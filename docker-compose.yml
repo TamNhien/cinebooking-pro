@@ -1,0 +1,152 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cinebooking}
+      POSTGRES_USER: ${POSTGRES_USER:-cinebooking}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cinebooking}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cinebooking} -d ${POSTGRES_DB:-cinebooking}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:8.8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend-1:
+    build: ./backend
+    volumes:
+      - ./uploads:/app/uploads
+    environment: &backend_env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-cinebooking}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-cinebooking}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-cinebooking}
+      SPRING_DATA_REDIS_HOST: redis
+      JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required. Run tools/init-env.ps1 first}"
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cine.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-Admin@123}
+      ADMIN_NAME: ${ADMIN_NAME:-System Admin}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      PAYMENT_WINDOW_SECONDS: ${PAYMENT_WINDOW_SECONDS:-300}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost/payment/result}
+      VNPAY_IPN_URL: ${VNPAY_IPN_URL:-http://localhost/api/payments/vnpay/ipn}
+      MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
+      MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}
+      MOMO_SECRET_KEY: ${MOMO_SECRET_KEY:-}
+      MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-http://localhost/payment/result}
+      MOMO_IPN_URL: ${MOMO_IPN_URL:-http://localhost/api/payments/momo/ipn}
+      DEV_RESET_LINK: ${DEV_RESET_LINK:-false}
+      RESET_TOKEN_MINUTES: ${RESET_TOKEN_MINUTES:-30}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-localhost}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
+      MAIL_STARTTLS_REQUIRED: ${MAIL_STARTTLS_REQUIRED:-false}
+      MAIL_CONNECTION_TIMEOUT: ${MAIL_CONNECTION_TIMEOUT:-5000}
+      MAIL_TIMEOUT: ${MAIL_TIMEOUT:-5000}
+      MAIL_WRITE_TIMEOUT: ${MAIL_WRITE_TIMEOUT:-5000}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@cinebooking.local}
+      STAFF_SHIFT_REMINDER_MINUTES: ${STAFF_SHIFT_REMINDER_MINUTES:-30}
+      STAFF_SHIFT_SCAN_MS: ${STAFF_SHIFT_SCAN_MS:-60000}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
+      CHECKIN_EARLY_MINUTES: ${CHECKIN_EARLY_MINUTES:-2880}
+      CHECKIN_LATE_MINUTES: ${CHECKIN_LATE_MINUTES:-240}
+      TICKET_PUBLIC_BASE_URL: ${TICKET_PUBLIC_BASE_URL:-}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
+      LOGIN_LOCK_SECONDS: ${LOGIN_LOCK_SECONDS:-900}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-30}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-30}
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-cinebooking_refresh}
+      STAFF_TIME_ZONE: ${STAFF_TIME_ZONE:-Asia/Ho_Chi_Minh}
+      PRICING_TIME_ZONE: ${PRICING_TIME_ZONE:-Asia/Ho_Chi_Minh}
+      ATTENDANCE_START_EARLY_MINUTES: ${ATTENDANCE_START_EARLY_MINUTES:-30}
+      ATTENDANCE_START_LATE_MINUTES: ${ATTENDANCE_START_LATE_MINUTES:-60}
+      STAFF_SCAN_GRACE_MINUTES: ${STAFF_SCAN_GRACE_MINUTES:-30}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  backend-2:
+    build: ./backend
+    volumes:
+      - ./uploads:/app/uploads
+    environment: *backend_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-/api}
+    environment:
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-/api}
+    depends_on:
+      - backend-1
+      - backend-2
+
+  nginx:
+    image: nginx:1.29-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend-1
+      - backend-2
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["observability"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - backend-1
+      - backend-2
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: ["observability"]
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  grafana_data:

@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "CineBooking Mobile",
+    "slug": "cinebooking-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.example.cinebooking" },
+    "android": { "package": "com.example.cinebooking" }
+  }
+}

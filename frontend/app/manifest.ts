@@ -1,0 +1,27 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: "/",
+    name: "CineBooking Pro",
+    short_name: "CineBooking",
+    description: "Đặt vé xem phim, QR điện tử và vé offline trên thiết bị",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#080b12",
+    theme_color: "#080b12",
+    categories: ["entertainment", "lifestyle"],
+    shortcuts: [
+      { name: "Vé của tôi", short_name: "Vé", url: "/bookings", icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }] },
+      { name: "Vé offline", short_name: "Offline", url: "/offline-tickets", icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }] },
+      { name: "Phim", short_name: "Phim", url: "/movies", icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }] }
+    ],
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
+    ]
+  };
+}

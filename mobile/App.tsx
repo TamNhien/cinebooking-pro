@@ -1,0 +1,43 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { SafeAreaView, View, Text, TextInput, Pressable, FlatList, ScrollView, Alert, StyleSheet, StatusBar } from 'react-native';
+
+type Movie={id:string;title:string;description?:string;durationMinutes:number;rating?:string};
+type Showtime={id:string;movieId:string;movieTitle:string;cinemaName:string;auditoriumName:string;startTime:string;basePrice:number};
+type Seat={id:string;code:string;rowLabel:string;seatNumber:number;seatType:string;price:number;status:string;heldByMe:boolean};
+type SeatMap={showtimeId:string;holdTtlSeconds:number;seats:Seat[]};
+type Auth={accessToken:string;fullName:string;email:string};
+
+const BASE=process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2/api';
+const money=(n:number)=>new Intl.NumberFormat('vi-VN').format(n)+' ₫';
+async function request<T>(path:string, init:RequestInit={}, token?:string):Promise<T>{
+  const headers:any={...(init.headers||{})}; if(init.body)headers['Content-Type']='application/json'; if(token)headers.Authorization=`Bearer ${token}`;
+  const r=await fetch(BASE+path,{...init,headers}); const text=await r.text(); const body=text?JSON.parse(text):null;
+  if(!r.ok) throw new Error(body?.message||`${r.status}`); return body as T;
+}
+
+export default function App(){
+  const [auth,setAuth]=useState<Auth|null>(null); const [screen,setScreen]=useState<'login'|'movies'|'showtimes'|'seats'>('login');
+  const [email,setEmail]=useState(''); const [password,setPassword]=useState(''); const [fullName,setFullName]=useState(''); const [movies,setMovies]=useState<Movie[]>([]); const [movie,setMovie]=useState<Movie|null>(null);
+  const [shows,setShows]=useState<Showtime[]>([]); const [show,setShow]=useState<Showtime|null>(null); const [seatMap,setSeatMap]=useState<SeatMap|null>(null); const [selected,setSelected]=useState<string[]>([]); const [held,setHeld]=useState(false);
+
+  async function login(){try{const a=await request<Auth>('/auth/login',{method:'POST',body:JSON.stringify({email,password})});setAuth(a);await loadMovies();setScreen('movies');}catch(e){Alert.alert('Đăng nhập thất bại',(e as Error).message)}}
+  async function register(){try{const a=await request<Auth>('/auth/register',{method:'POST',body:JSON.stringify({email,password,fullName})});setAuth(a);await loadMovies();setScreen('movies');}catch(e){Alert.alert('Đăng ký thất bại',(e as Error).message)}}
+  async function loadMovies(){setMovies(await request<Movie[]>('/movies'));}
+  async function openMovie(m:Movie){setMovie(m);setShows(await request<Showtime[]>(`/showtimes?movieId=${m.id}`));setScreen('showtimes');}
+  async function loadSeats(s:Showtime){setShow(s);setSeatMap(await request<SeatMap>(`/showtimes/${s.id}/seats`,{},auth?.accessToken));setSelected([]);setHeld(false);setScreen('seats');}
+  useEffect(()=>{if(screen!=='seats'||!show)return;const t=setInterval(()=>request<SeatMap>(`/showtimes/${show.id}/seats`,{},auth?.accessToken).then(setSeatMap).catch(()=>{}),5000);return()=>clearInterval(t)},[screen,show,auth]);
+  const picked=useMemo(()=>seatMap?.seats.filter(s=>selected.includes(s.id))||[],[seatMap,selected]);
+
+  async function hold(){if(!show||!selected.length||!auth)return;try{await request(`/showtimes/${show.id}/holds`,{method:'POST',body:JSON.stringify({seatIds:selected})},auth.accessToken);setHeld(true);setSeatMap(await request<SeatMap>(`/showtimes/${show.id}/seats`,{},auth.accessToken));}catch(e){Alert.alert('Không giữ được ghế',(e as Error).message)}}
+  async function book(){if(!show||!auth)return;try{const b:any=await request('/bookings',{method:'POST',body:JSON.stringify({showtimeId:show.id,seatIds:selected})},auth.accessToken);await request(`/payments/bookings/${b.id}/start`,{method:'POST',body:JSON.stringify({provider:'MOCK'})},auth.accessToken);await request(`/payments/bookings/${b.id}/mock/success`,{method:'POST'},auth.accessToken);Alert.alert('Thành công','Đã tạo booking và giả lập thanh toán thành công. QR có thể xem trên PWA.');setScreen('movies');}catch(e){Alert.alert('Đặt vé thất bại',(e as Error).message)}}
+
+  return <SafeAreaView style={s.safe}><StatusBar barStyle="light-content"/>
+    <View style={s.header}><Text style={s.logo}>🎬 CineBooking Mobile</Text>{screen!=='login'&&<Pressable onPress={()=>setScreen('movies')}><Text style={s.link}>Phim</Text></Pressable>}</View>
+    {screen==='login'&&<View style={s.center}><Text style={s.title}>Đăng nhập / đăng ký</Text><TextInput placeholder="Họ tên (khi đăng ký)" placeholderTextColor="#64748b" style={s.input} value={fullName} onChangeText={setFullName}/><TextInput placeholder="Email" placeholderTextColor="#64748b" autoCapitalize="none" style={s.input} value={email} onChangeText={setEmail}/><TextInput placeholder="Mật khẩu" placeholderTextColor="#64748b" secureTextEntry style={s.input} value={password} onChangeText={setPassword}/><Pressable style={s.primary} onPress={login}><Text style={s.primaryText}>Đăng nhập</Text></Pressable><Pressable style={s.secondary} onPress={register}><Text style={s.primaryText}>Tạo tài khoản</Text></Pressable><Text style={s.hint}>Mobile dùng chung tài khoản và backend với PWA.</Text></View>}
+    {screen==='movies'&&<FlatList contentContainerStyle={s.list} data={movies} keyExtractor={x=>x.id} renderItem={({item})=><Pressable style={s.card} onPress={()=>openMovie(item)}><Text style={s.cardTitle}>{item.title}</Text><Text style={s.muted}>{item.rating||'P'} · {item.durationMinutes} phút</Text><Text numberOfLines={2} style={s.body}>{item.description}</Text></Pressable>}/>}
+    {screen==='showtimes'&&<View style={s.flex}><Text style={[s.title,{padding:16}]}>{movie?.title}</Text><FlatList contentContainerStyle={s.list} data={shows} keyExtractor={x=>x.id} renderItem={({item})=><Pressable style={s.card} onPress={()=>loadSeats(item)}><Text style={s.cardTitle}>{new Date(item.startTime).toLocaleString('vi-VN')}</Text><Text style={s.muted}>{item.cinemaName} · {item.auditoriumName}</Text><Text style={s.body}>{money(item.basePrice)}</Text></Pressable>}/></View>}
+    {screen==='seats'&&seatMap&&<ScrollView contentContainerStyle={s.list}><Text style={s.title}>{show?.movieTitle}</Text><Text style={s.muted}>Chọn ghế · trạng thái refresh mỗi 5 giây</Text><View style={s.screen}/>{['A','B','C','D','E'].map(r=><View key={r} style={s.row}><Text style={s.rowLabel}>{r}</Text>{seatMap.seats.filter(x=>x.rowLabel===r).map(x=>{const on=selected.includes(x.id);const disabled=x.status!=='AVAILABLE'&&!x.heldByMe;return <Pressable disabled={held||disabled} key={x.id} onPress={()=>setSelected(v=>on?v.filter(i=>i!==x.id):[...v,x.id])} style={[s.seat,disabled?s.seatOff:on||x.heldByMe?s.seatOn:s.seatFree]}><Text style={s.seatText}>{x.code}</Text></Pressable>})}</View>)}<Text style={s.total}>Tổng: {money(picked.reduce((a,b)=>a+b.price,0))}</Text>{!held?<Pressable style={s.primary} onPress={hold}><Text style={s.primaryText}>Giữ ghế</Text></Pressable>:<Pressable style={s.primary} onPress={book}><Text style={s.primaryText}>Đặt vé + Mock Payment</Text></Pressable>}</ScrollView>}
+  </SafeAreaView>
+}
+
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#080b12'},flex:{flex:1},header:{height:58,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between',borderBottomWidth:1,borderBottomColor:'#1e293b'},logo:{color:'white',fontSize:18,fontWeight:'800'},link:{color:'#fb7185',fontWeight:'700'},center:{flex:1,justifyContent:'center',padding:24,gap:12},title:{color:'white',fontSize:28,fontWeight:'900'},input:{backgroundColor:'#0f172a',borderColor:'#334155',borderWidth:1,borderRadius:12,padding:14,color:'white'},primary:{backgroundColor:'#f43f5e',padding:14,borderRadius:12,alignItems:'center',marginTop:8},primaryText:{color:'white',fontWeight:'800'},secondary:{backgroundColor:'#1e293b',padding:14,borderRadius:12,alignItems:'center',borderWidth:1,borderColor:'#334155'},hint:{color:'#64748b',fontSize:12,marginTop:8},list:{padding:16,gap:12},card:{backgroundColor:'#111827',borderRadius:16,padding:18,borderWidth:1,borderColor:'#1e293b'},cardTitle:{color:'white',fontSize:18,fontWeight:'800'},muted:{color:'#94a3b8',marginTop:4},body:{color:'#cbd5e1',marginTop:8},screen:{height:5,backgroundColor:'#e2e8f0',borderRadius:10,marginVertical:28,marginHorizontal:40},row:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,marginBottom:8},rowLabel:{color:'#64748b',width:18,fontWeight:'700'},seat:{width:35,height:34,borderRadius:7,alignItems:'center',justifyContent:'center'},seatFree:{backgroundColor:'#065f46'},seatOn:{backgroundColor:'#f43f5e'},seatOff:{backgroundColor:'#1e293b'},seatText:{color:'white',fontSize:10,fontWeight:'700'},total:{color:'white',fontSize:20,fontWeight:'900',marginTop:20}});

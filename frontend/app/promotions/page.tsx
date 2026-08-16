@@ -1,0 +1,17 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { api, currency, dateTime } from "@/lib/api";
+import type { ConcessionProduct, Voucher } from "@/lib/types";
+
+export default function PromotionsPage(){
+ const [vouchers,setVouchers]=useState<Voucher[]>([]); const [products,setProducts]=useState<ConcessionProduct[]>([]);
+ useEffect(()=>{Promise.all([api<Voucher[]>("/commerce/vouchers"),api<ConcessionProduct[]>("/commerce/products")]).then(([v,p])=>{setVouchers(v);setProducts(p)}).catch(()=>{});},[]);
+ return <div className="space-y-9">
+  <div className="section-heading"><div><p className="section-kicker">ƯU ĐÃI CINEBOOKING</p><h1>Ưu đãi & dịch vụ</h1><p className="mt-2 max-w-2xl text-slate-400">Dùng voucher, điểm thành viên và chọn thêm bắp nước ngay trong bước đặt ghế.</p></div></div>
+  <section><div className="mb-4 flex items-end justify-between"><div><h2 className="text-2xl font-bold">Mã ưu đãi đang dùng được</h2><p className="mt-1 text-sm text-slate-400">Nhập mã tại phần Đơn hàng khi chọn ghế.</p></div></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{vouchers.map(v=><article key={v.id} className="promo-card promo-one"><small>VOUCHER</small><h3>{v.code}</h3><p className="!text-white"><b>{v.name}</b></p><p className="mt-2">{v.discountType==="PERCENT"?`Giảm ${v.discountValue}%`:`Giảm ${currency(v.discountValue)}`} cho đơn từ {currency(v.minOrderAmount)}{v.maxDiscount?`, tối đa ${currency(v.maxDiscount)}`:""}.</p>{v.endsAt&&<p className="mt-2 text-xs">Hạn: {dateTime(v.endsAt)}</p>}</article>)}{!vouchers.length&&<div className="card p-6 text-slate-400">Hiện chưa có voucher công khai.</div>}</div></section>
+  <section><div className="mb-4"><h2 className="text-2xl font-bold">Cine Food</h2><p className="mt-1 text-sm text-slate-400">Bắp nước/combo được cộng trực tiếp vào đơn vé.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{products.map(p=><article key={p.id} className="card p-5"><div className="text-4xl">🍿</div><h3 className="mt-3 text-lg font-bold">{p.name}</h3><p className="mt-1 min-h-10 text-sm leading-5 text-slate-400">{p.description}</p><div className="mt-3 text-xl font-black text-amber-300">{currency(p.price)}</div></article>)}</div></section>
+  <section className="grid gap-5 md:grid-cols-3"><article className="card p-6"><div className="text-4xl">💎</div><h2 className="mt-4 text-xl font-bold">Điểm thành viên</h2><p className="mt-2 leading-7 text-slate-400">10.000đ thanh toán thành công nhận 1 điểm. Khi đặt vé, 1 điểm đổi 100đ, tối đa 30% giá trị sau voucher.</p></article><article className="card p-6"><div className="text-4xl">🔔</div><h2 className="mt-4 text-xl font-bold">Thông báo giao dịch</h2><p className="mt-2 leading-7 text-slate-400">Nhận thông báo khi thanh toán thành công, booking hết hạn hoặc bị huỷ.</p></article><article className="card p-6"><div className="text-4xl">📲</div><h2 className="mt-4 text-xl font-bold">Vé QR điện tử</h2><p className="mt-2 leading-7 text-slate-400">Sau thanh toán, QR vé được lưu trong tài khoản để mở nhanh khi vào rạp.</p></article></section>
+  <div className="card flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center"><div><h2 className="text-xl font-bold">Sẵn sàng chọn suất chiếu?</h2><p className="mt-1 text-slate-400">Xem phim đang chiếu và áp dụng ưu đãi ngay khi đặt.</p></div><Link className="btn btn-primary" href="/movies">Xem phim</Link></div>
+ </div>
+}

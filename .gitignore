@@ -1,0 +1,22 @@
+.env
+.idea/
+.vscode/
+**/target/
+**/node_modules/
+**/.next/
+.DS_Store
+*.log
+
+uploads/*
+!uploads/.gitkeep
+!uploads/movies/
+uploads/movies/*
+!uploads/movies/.gitkeep
+
+# V27 database backups: keep dumps and checksums out of Git
+backups/*
+!backups/.gitkeep
+!backups/README.md
+
+# V28 local/CI build artifacts
+frontend/cinebooking-frontend-standalone.tgz

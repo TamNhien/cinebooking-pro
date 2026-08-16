@@ -1,0 +1,4 @@
+package com.cinebooking.commerce;
+import com.cinebooking.user.UserRepository; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.util.*; import static com.cinebooking.commerce.CommerceDtos.*;
+@RestController @RequestMapping("/api/loyalty")
+public class LoyaltyController { private final LoyaltyTransactionRepository tx; private final UserRepository users; public LoyaltyController(LoyaltyTransactionRepository t,UserRepository u){tx=t;users=u;} @GetMapping("/transactions") public List<LoyaltyTransactionResponse> list(Authentication a){UUID uid=users.findByEmailIgnoreCase(a.getName()).orElseThrow().getId();return tx.findTop50ByUserIdOrderByCreatedAtDesc(uid).stream().map(x->new LoyaltyTransactionResponse(x.getId(),x.getBookingId(),x.getTransactionType(),x.getPoints(),x.getDescription(),x.getCreatedAt())).toList();} }
