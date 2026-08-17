@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.admin.email=",
         "app.admin.password=",
         "app.mail.enabled=false",
+        "app.upload.dir=target/it-uploads",
         "app.notifications.staff-shift-scan-ms=3600000"
 })
 @AutoConfigureMockMvc
