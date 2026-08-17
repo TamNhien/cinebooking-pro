@@ -61,8 +61,12 @@ check("Integration reports are uploaded", "backend-integration-reports" in workf
 check("Backend JAR is uploaded", "cinebooking-backend-jar" in workflow)
 check("Frontend standalone artifact is uploaded", "cinebooking-frontend-standalone" in workflow)
 
+check(
+    "Workflow uses supported actions/checkout@v6 or @v7",
+    "actions/checkout@v6" in workflow or "actions/checkout@v7" in workflow,
+)
+
 for action in [
-    "actions/checkout@v6",
     "actions/setup-java@v5",
     "actions/setup-node@v6",
     "actions/upload-artifact@v7",
