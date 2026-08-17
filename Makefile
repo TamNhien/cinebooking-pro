@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 reset
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 e2e-v29.2 reset
 
 up:
 	docker compose up --build -d
@@ -33,6 +33,15 @@ diagnose-v29:
 
 verify-v29:
 	python tools/verify_v29_release_candidate.py
+
+verify-v29.2:
+	python tools/verify_v29_2_playwright_e2e.py
+
+verify-v29.3:
+	python tools/verify_v29_3_demo_schedule.py
+
+e2e-v29.2:
+	bash tools/e2e-v29.2.sh
 
 reset:
 	@echo "V27 SAFETY: destructive volume reset is disabled. Do NOT use docker compose down -v for normal updates."

@@ -20,3 +20,7 @@ backups/*
 
 # V28 local/CI build artifacts
 frontend/cinebooking-frontend-standalone.tgz
+
+# V29.2 Playwright local/CI evidence
+frontend/playwright-report/
+frontend/test-results/

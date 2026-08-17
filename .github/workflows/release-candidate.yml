@@ -6,7 +6,7 @@ on:
       version:
         description: "Release-candidate version label (letters/digits/._- only)"
         required: true
-        default: "v29-rc1"
+        default: "v29.3-rc1"
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
   smoke:
     name: Full-stack release-candidate smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
       APP_VERSION: ${{ inputs.version }}
       VCS_REF: ${{ github.sha }}
@@ -46,6 +46,36 @@ jobs:
 
       - name: Run full-stack V29 smoke test
         run: bash tools/smoke-v29.sh
+
+      - name: Set up Node.js for Playwright
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install frontend and Playwright dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run V29.2 browser E2E journey
+        env:
+          E2E_SKIP_BUILD: "true"
+        run: bash tools/e2e-v29.2.sh
+
+      - name: Upload Playwright E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cinebooking-${{ inputs.version }}-playwright-e2e
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Generate release-candidate manifest
         if: success()

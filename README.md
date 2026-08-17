@@ -490,6 +490,10 @@ V28.5 makes the V27 safety regression Git-aware: local `.env` and `backups/*.dum
 
 V28.6 removes a false-positive that required the V27 `docker compose down -v` warning to be duplicated in the root README. The dedicated V27 backup/restore guide remains the source of truth for that safety warning.
 
-## V29 Release Candidate readiness
+## V29.2 - Playwright browser E2E
 
-V29 adds a manual, non-deploying Release Candidate workflow plus a disposable full-stack smoke test. Docker application images carry version/revision OCI labels, while the normal local defaults remain unchanged (`HTTP_PORT=80`, `APP_VERSION=dev`). See `docs/V29_RELEASE_CANDIDATE_PIPELINE.md`.
+V29.2 adds a Chromium release-candidate E2E journey through nginx: register, explicit login, Quick Booking, seat hold, MOCK payment, ticket QR, and `/staff/check-in` confirmation through the disposable RC Admin gate. The normal CI remains the fast source/build/Testcontainers gate; the manual Release Candidate workflow owns the heavier browser test and uploads Playwright report/trace evidence. See `docs/V29_2_PLAYWRIGHT_E2E.md`.
+
+## V29.3 demo catalog and September 2026 schedule
+
+V29.3 adds a Flyway-safe demo data migration with eight active movies (two complete desktop rows), four additional demo auditoriums, and two daily showtimes per movie through 2026-09-30. The current Testcontainers integration test validates Flyway V29 and verifies September 30 coverage. See `docs/V29_3_DEMO_CATALOG_SEPTEMBER_SCHEDULE.md`.

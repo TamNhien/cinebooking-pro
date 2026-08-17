@@ -58,7 +58,7 @@ class CineBookingIntegrationIT {
     @Autowired ObjectMapper objectMapper;
 
     @Test
-    void flywayMigratesRealPostgresToV25() {
+    void flywayMigratesRealPostgresToV29DemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -68,9 +68,32 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
                 Integer.class);
 
-        assertThat(migrationCount).isGreaterThanOrEqualTo(25);
-        assertThat(latest).isEqualTo("25");
+        assertThat(migrationCount).isGreaterThanOrEqualTo(26);
+        assertThat(latest).isEqualTo("29");
         assertThat(publicTables).isGreaterThanOrEqualTo(30);
+
+        Integer activeMovies = jdbc.queryForObject(
+                "select count(*) from movie where active = true", Integer.class);
+        Integer september30Movies = jdbc.queryForObject(
+                """
+                select count(distinct movie_id)
+                from showtime
+                where status = 'OPEN'
+                  and start_time >= timestamptz '2026-09-30 00:00:00+07'
+                  and start_time < timestamptz '2026-10-01 00:00:00+07'
+                """, Integer.class);
+        Integer september30Showtimes = jdbc.queryForObject(
+                """
+                select count(*)
+                from showtime
+                where status = 'OPEN'
+                  and start_time >= timestamptz '2026-09-30 00:00:00+07'
+                  and start_time < timestamptz '2026-10-01 00:00:00+07'
+                """, Integer.class);
+
+        assertThat(activeMovies).isGreaterThanOrEqualTo(8);
+        assertThat(september30Movies).isGreaterThanOrEqualTo(8);
+        assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
     }
 
     @Test

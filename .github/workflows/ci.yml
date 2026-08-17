@@ -171,7 +171,15 @@ jobs:
 
       - name: Verify V29 release-candidate readiness
         run: python3 tools/verify_v29_release_candidate.py
-          python3 tools/verify_v29_1_checkout_compat.py
+
+      - name: Verify V29.1 checkout compatibility
+        run: python3 tools/verify_v29_1_checkout_compat.py
+
+      - name: Verify V29.2 Playwright E2E structure
+        run: python3 tools/verify_v29_2_playwright_e2e.py
+
+      - name: Verify V29.3 demo catalog and September schedule
+        run: python3 tools/verify_v29_3_demo_schedule.py
 
   compose-config:
     name: Docker Compose validation
