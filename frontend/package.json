@@ -28,6 +28,6 @@
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0",
-    "@playwright/test": "1.60.0"
+    "@playwright/test": "1.62.1"
   }
 }
