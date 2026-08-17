@@ -193,6 +193,9 @@ jobs:
       - name: Verify V31 ticket wallet and calendar
         run: python3 tools/verify_v31_ticket_wallet.py
 
+      - name: Verify V31.1 ticket-wallet lint purity
+        run: python3 tools/verify_v31_1_lint_purity.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

@@ -12,31 +12,32 @@ type SortMode = "showtime-asc" | "showtime-desc" | "created-desc";
 export default function Bookings(){
  const [items,setItems]=useState<Booking[]>([]); const [error,setError]=useState(""); const [msg,setMsg]=useState("");
  const [tab,setTab]=useState<TimeTab>("upcoming"); const [query,setQuery]=useState(""); const [status,setStatus]=useState("ALL"); const [sort,setSort]=useState<SortMode>("showtime-asc");
- const [busyId,setBusyId]=useState("");
+ const [busyId,setBusyId]=useState(""); const [now,setNow]=useState<number|null>(null);
  async function load(){setItems(await api<Booking[]>("/bookings/me"));}
  useEffect(()=>{if(!getAuth()){location.href="/login";return;}load().catch(e=>setError(e.message));},[]);
+ useEffect(()=>{const refresh=()=>setNow(Date.now());const first=setTimeout(refresh,0);const timer=setInterval(refresh,60000);return()=>{clearTimeout(first);clearInterval(timer);};},[]);
  async function refund(b:Booking){const reason=prompt("Lý do yêu cầu hoàn vé (không bắt buộc):","")??null;if(reason===null)return;setMsg("");try{await api(`/bookings/${b.id}/refund-request`,{method:"POST",body:JSON.stringify({reason})});setMsg("Đã gửi yêu cầu hoàn vé. Admin sẽ xử lý yêu cầu của bạn.");await load();}catch(e){setMsg((e as Error).message)}}
  async function calendar(b:Booking){setBusyId(b.id);setMsg("");try{await downloadBookingCalendar(b.id);setMsg("Đã tải lịch suất chiếu (.ics). Mở file để thêm vào Google Calendar, Apple Calendar hoặc Outlook.");}catch(e){setMsg((e as Error).message)}finally{setBusyId("")}}
  async function copyCode(b:Booking){try{await copyBookingCode(b.id);setMsg(`Đã sao chép mã booking ${b.id}.`);}catch{setMsg("Không thể sao chép tự động. Hãy chọn mã booking và sao chép thủ công.");}}
  const badge=(s:string)=>s==="CONFIRMED"?"bg-emerald-900 text-emerald-200":s==="PENDING"?"bg-amber-900 text-amber-200":s==="REFUND_REQUESTED"?"bg-orange-900 text-orange-200":s==="REFUNDED"?"bg-cyan-950 text-cyan-200":"bg-slate-800 text-slate-300";
- const now=Date.now();
+ const currentTime=now??0;
  const summary=useMemo(()=>({
-   upcoming:items.filter(b=>new Date(b.showtimeStart).getTime()>=now&&b.status==="CONFIRMED").length,
+   upcoming:items.filter(b=>new Date(b.showtimeStart).getTime()>=currentTime&&b.status==="CONFIRMED").length,
    pending:items.filter(b=>b.status==="PENDING").length,
    refund:items.filter(b=>b.status==="REFUND_REQUESTED").length,
    total:items.length,
- }),[items,now]);
+ }),[items,currentTime]);
  const visible=useMemo(()=>{
    const q=query.trim().toLocaleLowerCase("vi-VN");
    return items.filter(b=>{
      const start=new Date(b.showtimeStart).getTime();
-     if(tab==="upcoming"&&start<now)return false;
-     if(tab==="past"&&start>=now)return false;
+     if(tab==="upcoming"&&start<currentTime)return false;
+     if(tab==="past"&&start>=currentTime)return false;
      if(status!=="ALL"&&b.status!==status)return false;
      if(q&&!`${b.movieTitle} ${b.id} ${b.seats.map(s=>s.code).join(" ")}`.toLocaleLowerCase("vi-VN").includes(q))return false;
      return true;
    }).sort((a,b)=>sort==="created-desc"?new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime():sort==="showtime-desc"?new Date(b.showtimeStart).getTime()-new Date(a.showtimeStart).getTime():new Date(a.showtimeStart).getTime()-new Date(b.showtimeStart).getTime());
- },[items,tab,status,query,sort,now]);
+ },[items,tab,status,query,sort,currentTime]);
  return <div><div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="section-kicker">V31 · TICKET WALLET</p><h1 className="text-3xl font-bold">Ví vé của tôi</h1><p className="mt-2 text-slate-400">Tìm vé nhanh, mở QR, thêm suất chiếu vào lịch và theo dõi hoàn tiền.</p></div><Link href="/offline-tickets" className="btn btn-secondary">📴 Vé offline</Link></div>
  <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Tổng quan vé"><div className="card p-4"><div className="text-sm text-slate-400">Sắp chiếu</div><div className="mt-1 text-2xl font-black text-emerald-300">{summary.upcoming}</div></div><div className="card p-4"><div className="text-sm text-slate-400">Chờ thanh toán</div><div className="mt-1 text-2xl font-black text-amber-300">{summary.pending}</div></div><div className="card p-4"><div className="text-sm text-slate-400">Chờ hoàn tiền</div><div className="mt-1 text-2xl font-black text-orange-300">{summary.refund}</div></div><div className="card p-4"><div className="text-sm text-slate-400">Tổng booking</div><div className="mt-1 text-2xl font-black">{summary.total}</div></div></section>
  <section className="card mt-5 p-4"><div className="flex flex-wrap gap-2" role="group" aria-label="Khoảng thời gian"><button type="button" className={`btn ${tab==="upcoming"?"btn-primary":"btn-secondary"}`} onClick={()=>setTab("upcoming")}>Sắp chiếu</button><button type="button" className={`btn ${tab==="past"?"btn-primary":"btn-secondary"}`} onClick={()=>setTab("past")}>Đã qua</button><button type="button" className={`btn ${tab==="all"?"btn-primary":"btn-secondary"}`} onClick={()=>setTab("all")}>Tất cả</button></div><div className="mt-4 grid gap-3 md:grid-cols-3"><div><label htmlFor="booking-search" className="text-sm text-slate-400">Tìm phim / mã booking / ghế</label><input id="booking-search" className="input mt-1" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Ví dụ: Sao Hỏa, A1..."/></div><div><label htmlFor="booking-status" className="text-sm text-slate-400">Trạng thái</label><select id="booking-status" className="input mt-1" value={status} onChange={e=>setStatus(e.target.value)}><option value="ALL">Tất cả trạng thái</option><option value="CONFIRMED">CONFIRMED</option><option value="PENDING">PENDING</option><option value="REFUND_REQUESTED">REFUND_REQUESTED</option><option value="REFUNDED">REFUNDED</option><option value="CANCELLED">CANCELLED</option><option value="EXPIRED">EXPIRED</option></select></div><div><label htmlFor="booking-sort" className="text-sm text-slate-400">Sắp xếp</label><select id="booking-sort" className="input mt-1" value={sort} onChange={e=>setSort(e.target.value as SortMode)}><option value="showtime-asc">Suất chiếu gần nhất</option><option value="showtime-desc">Suất chiếu xa → gần</option><option value="created-desc">Booking mới tạo</option></select></div></div><div className="mt-3 text-sm text-slate-400">Hiển thị <b className="text-slate-200">{visible.length}</b> / {items.length} booking.</div></section>

@@ -68,3 +68,6 @@ verify-v31:
 
 diagnose-v31:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v31.ps1
+
+verify-v31-1:
+	python tools/verify_v31_1_lint_purity.py
