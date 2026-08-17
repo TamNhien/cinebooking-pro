@@ -28,7 +28,12 @@ services:
       retries: 20
 
   backend-1:
-    build: ./backend
+    image: cinebooking/backend:${APP_VERSION:-dev}
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+        VCS_REF: ${VCS_REF:-local}
     volumes:
       - ./uploads:/app/uploads
     environment: &backend_env
@@ -90,7 +95,12 @@ services:
         condition: service_healthy
 
   backend-2:
-    build: ./backend
+    image: cinebooking/backend:${APP_VERSION:-dev}
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-dev}
+        VCS_REF: ${VCS_REF:-local}
     volumes:
       - ./uploads:/app/uploads
     environment: *backend_env
@@ -101,10 +111,13 @@ services:
         condition: service_healthy
 
   frontend:
+    image: cinebooking/frontend:${APP_VERSION:-dev}
     build:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-/api}
+        APP_VERSION: ${APP_VERSION:-dev}
+        VCS_REF: ${VCS_REF:-local}
     environment:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-/api}
     depends_on:
@@ -114,7 +127,7 @@ services:
   nginx:
     image: nginx:1.29-alpine
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

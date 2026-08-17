@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 reset
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 reset
 
 up:
 	docker compose up --build -d
@@ -27,6 +27,12 @@ diagnose-v28:
 
 verify-v28:
 	python tools/verify_v28_ci.py
+
+diagnose-v29:
+	powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v29.ps1
+
+verify-v29:
+	python tools/verify_v29_release_candidate.py
 
 reset:
 	@echo "V27 SAFETY: destructive volume reset is disabled. Do NOT use docker compose down -v for normal updates."

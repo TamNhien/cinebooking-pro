@@ -12,6 +12,11 @@ COPY . .
 RUN npm run build
 
 FROM node:24-alpine AS runner
+ARG APP_VERSION=dev
+ARG VCS_REF=local
+LABEL org.opencontainers.image.title="CineBooking Frontend" \
+      org.opencontainers.image.version="$APP_VERSION" \
+      org.opencontainers.image.revision="$VCS_REF"
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/.next/standalone ./

@@ -6,6 +6,11 @@ COPY src ./src
 RUN mvn -q -DskipTests package
 
 FROM eclipse-temurin:25-jre
+ARG APP_VERSION=dev
+ARG VCS_REF=local
+LABEL org.opencontainers.image.title="CineBooking Backend" \
+      org.opencontainers.image.version="$APP_VERSION" \
+      org.opencontainers.image.revision="$VCS_REF"
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080

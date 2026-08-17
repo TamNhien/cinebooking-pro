@@ -169,6 +169,9 @@ jobs:
       - name: Verify V28.8 Testcontainers storage isolation
         run: python3 tools/verify_v28_8_test_storage.py
 
+      - name: Verify V29 release-candidate readiness
+        run: python3 tools/verify_v29_release_candidate.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

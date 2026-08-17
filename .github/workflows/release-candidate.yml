@@ -1,0 +1,81 @@
+name: CineBooking Release Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release-candidate version label (letters/digits/._- only)"
+        required: true
+        default: "v29-rc1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cinebooking-release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Full-stack release-candidate smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      APP_VERSION: ${{ inputs.version }}
+      VCS_REF: ${{ github.sha }}
+      HTTP_PORT: "18080"
+      POSTGRES_PORT: "15433"
+      COMPOSE_PROJECT_NAME: cinebooking_v29_rc_${{ github.run_id }}
+      JWT_SECRET: v29-rc-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate release-candidate version
+        shell: bash
+        run: |
+          if [[ ! "$APP_VERSION" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "Invalid version label: $APP_VERSION" >&2
+            exit 2
+          fi
+
+      - name: Docker diagnostics
+        run: |
+          docker version
+          docker compose version
+
+      - name: Run full-stack V29 smoke test
+        run: bash tools/smoke-v29.sh
+
+      - name: Generate release-candidate manifest
+        if: success()
+        shell: bash
+        run: |
+          backend_id="$(docker image inspect "cinebooking/backend:${APP_VERSION}" --format '{{.Id}}')"
+          frontend_id="$(docker image inspect "cinebooking/frontend:${APP_VERSION}" --format '{{.Id}}')"
+          BACKEND_ID="$backend_id" FRONTEND_ID="$frontend_id" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest = {
+              "schema": "cinebooking-v29-release-candidate/v1",
+              "version": os.environ["APP_VERSION"],
+              "revision": os.environ["VCS_REF"],
+              "workflow_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "images": {
+                  "backend": {"tag": f"cinebooking/backend:{os.environ['APP_VERSION']}", "id": os.environ["BACKEND_ID"]},
+                  "frontend": {"tag": f"cinebooking/frontend:{os.environ['APP_VERSION']}", "id": os.environ["FRONTEND_ID"]},
+              },
+              "published": False,
+              "deployed": False,
+          }
+          Path("release-candidate-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload release-candidate manifest
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cinebooking-${{ inputs.version }}-release-candidate-manifest
+          path: release-candidate-manifest.json
+          if-no-files-found: error
+          retention-days: 14
