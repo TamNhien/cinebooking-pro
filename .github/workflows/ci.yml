@@ -184,6 +184,9 @@ jobs:
       - name: Verify V30 discovery and showtime calendar
         run: python3 tools/verify_v30_discovery_showtimes.py
 
+      - name: Verify V30.1 frontend toolchain guard
+        run: python3 tools/verify_v30_1_frontend_toolchain.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

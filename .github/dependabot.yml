@@ -11,6 +11,17 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # V30.1: keep the lint/typecheck toolchain on validated majors.
+    # ESLint 10 is not yet compatible with the React plugin stack used by
+    # eslint-config-next 16.3, and TypeScript 7 is not yet supported by
+    # typescript-eslint. Minor/patch updates on the current majors remain open.
+    ignore:
+      - dependency-name: eslint
+        update-types:
+          - version-update:semver-major
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /

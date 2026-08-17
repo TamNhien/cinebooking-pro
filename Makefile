@@ -52,3 +52,9 @@ e2e-v29.2:
 reset:
 	@echo "V27 SAFETY: destructive volume reset is disabled. Do NOT use docker compose down -v for normal updates."
 	@exit 1
+
+verify-v30-1:
+	python tools/verify_v30_1_frontend_toolchain.py
+
+diagnose-v30-1:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v30.ps1
