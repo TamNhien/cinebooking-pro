@@ -20,6 +20,7 @@
 ./UPGRADE_V29_1.md
 ./UPGRADE_V29_2.md
 ./UPGRADE_V29_3.md
+./UPGRADE_V30.md
 ./backend/Dockerfile
 ./backend/pom.xml
 ./backend/src/main/java/com/cinebooking/CineBookingApplication.java
@@ -302,6 +303,7 @@
 ./docs/V29_2_PLAYWRIGHT_E2E.md
 ./docs/V29_3_DEMO_CATALOG_SEPTEMBER_SCHEDULE.md
 ./docs/V29_RELEASE_CANDIDATE_PIPELINE.md
+./docs/V30_MOVIE_DISCOVERY_SHOWTIME_CALENDAR.md
 ./frontend/Dockerfile
 ./frontend/app/admin/analytics/page.tsx
 ./frontend/app/admin/attendance/page.tsx
@@ -356,6 +358,7 @@
 ./frontend/components/SiteFooter.tsx
 ./frontend/components/StarRating.tsx
 ./frontend/e2e/booking-flow.spec.ts
+./frontend/e2e/discovery-calendar.spec.ts
 ./frontend/eslint.config.mjs
 ./frontend/lib/api.ts
 ./frontend/lib/auth.ts
@@ -412,6 +415,7 @@
 ./tools/diagnose-v27.ps1
 ./tools/diagnose-v28.ps1
 ./tools/diagnose-v29.ps1
+./tools/diagnose-v30.ps1
 ./tools/e2e-v29.2.sh
 ./tools/init-env.ps1
 ./tools/restore-db.ps1
@@ -457,5 +461,6 @@
 ./tools/verify_v29_2_playwright_e2e.py
 ./tools/verify_v29_3_demo_schedule.py
 ./tools/verify_v29_release_candidate.py
+./tools/verify_v30_discovery_showtimes.py
 ./uploads/.gitkeep
 ./uploads/movies/.gitkeep

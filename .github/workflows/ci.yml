@@ -181,6 +181,9 @@ jobs:
       - name: Verify V29.3 demo catalog and September schedule
         run: python3 tools/verify_v29_3_demo_schedule.py
 
+      - name: Verify V30 discovery and showtime calendar
+        run: python3 tools/verify_v30_discovery_showtimes.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

@@ -88,7 +88,7 @@ check("V28 compatibility verifier follows current Flyway V29", "Integration test
 check("main CI runs V29.3 demo schedule verifier", "run: python3 tools/verify_v29_3_demo_schedule.py" in ci)
 check("V29 diagnostics include V29.3 verifier", "verify_v29_3_demo_schedule.py" in diag)
 check("Makefile exposes V29.3 verifier", "verify-v29.3:" in makefile and "python tools/verify_v29_3_demo_schedule.py" in makefile)
-check("release-candidate default advances to V29.3", 'default: "v29.3-rc1"' in rc)
+check("release-candidate default remains V29.3-compatible or newer", 'default: "v29.3-rc1"' in rc or 'default: "v30-rc1"' in rc)
 
 failed = [name for name, ok in checks if not ok]
 print(f"\n{len(checks)-len(failed)}/{len(checks)} checks passed")

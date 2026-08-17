@@ -13,7 +13,7 @@ const timeLabel=(v:string)=>new Intl.DateTimeFormat("vi-VN",{hour:"2-digit",minu
 
 export default function MoviePage({params}:{params:Promise<{id:string}>}){
   const {id}=use(params); const [movie,setMovie]=useState<Movie|null>(null); const [showtimes,setShowtimes]=useState<Showtime[]>([]); const [reviews,setReviews]=useState<MovieReview[]>([]); const [similar,setSimilar]=useState<RecommendationItem[]>([]); const [favorite,setFavorite]=useState(false); const [error,setError]=useState("");
-  const [stars,setStars]=useState(5); const [comment,setComment]=useState(""); const [saving,setSaving]=useState(false); const auth=getAuth();
+  const [stars,setStars]=useState(5); const [comment,setComment]=useState(""); const [saving,setSaving]=useState(false); const [selectedDate,setSelectedDate]=useState(""); const auth=getAuth();
   async function load(){
     try{
       const [m,s,r,sim]=await Promise.all([api<Movie>(`/movies/${id}`),api<Showtime[]>(`/showtimes?movieId=${id}`),api<MovieReview[]>(`/movies/${id}/reviews`),api<RecommendationItem[]>(`/recommendations/similar/${id}?limit=4`)]);
@@ -23,7 +23,10 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
     }catch(e){setError((e as Error).message)}
   }
   useEffect(()=>{void load();},[id]);
-  const grouped=useMemo(()=>{const m=new Map<string,Showtime[]>();showtimes.forEach(s=>{const a=m.get(s.cinemaId)||[];a.push(s);m.set(s.cinemaId,a)});return [...m.values()];},[showtimes]);
+  const showtimeDates=useMemo(()=>[...new Set(showtimes.map(s=>localDateKey(s.startTime)))].sort(),[showtimes]);
+  useEffect(()=>{if(showtimeDates.length&&!showtimeDates.includes(selectedDate))setSelectedDate(showtimeDates[0]);if(!showtimeDates.length&&selectedDate)setSelectedDate("");},[showtimeDates,selectedDate]);
+  const selectedShows=useMemo(()=>showtimes.filter(s=>!selectedDate||localDateKey(s.startTime)===selectedDate),[showtimes,selectedDate]);
+  const grouped=useMemo(()=>{const m=new Map<string,Showtime[]>();selectedShows.forEach(s=>{const a=m.get(s.cinemaId)||[];a.push(s);m.set(s.cinemaId,a)});return [...m.values()];},[selectedShows]);
   async function toggleFavorite(){ if(!getAuth()){location.href=`/login?returnTo=/movies/${id}`;return;} try{const r=await api<{favorite:boolean}>(`/me/favorites/${id}`,{method:"PUT",body:JSON.stringify({favorite:!favorite})});setFavorite(r.favorite);}catch(e){setError((e as Error).message)} }
   async function saveReview(e:FormEvent){e.preventDefault();if(!getAuth()){location.href=`/login?returnTo=/movies/${id}`;return;}setSaving(true);try{await api(`/movies/${id}/reviews/me`,{method:"PUT",body:JSON.stringify({rating:stars,comment})});await load();}catch(e){setError((e as Error).message)}finally{setSaving(false)}}
   async function removeReview(){if(!confirm("Xoá đánh giá của bạn?"))return;try{await api(`/movies/${id}/reviews/me`,{method:"DELETE"});setStars(5);setComment("");await load();}catch(e){setError((e as Error).message)}}
@@ -43,9 +46,11 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
       </div>
     </section>
 
-    <section><div className="section-heading"><div><p className="section-kicker">LỊCH CHIẾU</p><h2>Chọn rạp và suất chiếu</h2></div></div>
-      <div className="space-y-4">{grouped.map(items=>{const first=items[0];return <div className="card p-5" key={first.cinemaId}><div><h3 className="text-lg font-bold">{first.cinemaName}</h3><p className="text-sm text-slate-400">{first.cinemaAddress}</p></div><div className="mt-4 space-y-4">{[...new Set(items.map(x=>localDateKey(x.startTime)))].map(d=><div key={d}><div className="mb-2 text-sm font-semibold capitalize text-slate-300">{dateLabel(`${d}T00:00:00`)}</div><div className="flex flex-wrap gap-3">{items.filter(x=>localDateKey(x.startTime)===d).map(s=><Link href={`/booking/${s.id}`} key={s.id} className="showtime-chip"><b>{timeLabel(s.startTime)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>)}</div></div>})}</div>
+    <section><div className="section-heading"><div><p className="section-kicker">LỊCH CHIẾU</p><h2>Chọn ngày, rạp và suất chiếu</h2><p className="mt-2 text-sm text-slate-400">Lịch được gom theo ngày để bạn không phải cuộn qua hàng chục ngày suất chiếu.</p></div></div>
+      {showtimeDates.length>0&&<div className="card mb-5 space-y-4 p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div className="text-sm text-slate-400">{selectedDate&&<>Đang xem <b className="capitalize text-white">{dateLabel(`${selectedDate}T00:00:00`)}</b> · <b className="text-white">{selectedShows.length}</b> suất</>}</div><label className="w-full sm:w-auto sm:min-w-52"><span className="mb-1 block text-xs font-semibold text-slate-400">Chọn ngày</span><input type="date" className="input" min={showtimeDates[0]} max={showtimeDates[showtimeDates.length-1]} value={selectedDate} onChange={e=>showtimeDates.includes(e.target.value)&&setSelectedDate(e.target.value)}/></label></div><div className="flex gap-2 overflow-x-auto pb-2">{showtimeDates.map(d=><button key={d} type="button" onClick={()=>setSelectedDate(d)} className={`date-chip shrink-0 ${selectedDate===d?"active":""}`}>{new Intl.DateTimeFormat("vi-VN",{weekday:"short",day:"2-digit",month:"2-digit"}).format(new Date(`${d}T00:00:00`))}</button>)}</div></div>}
+      <div className="space-y-4">{grouped.map(items=>{const first=items[0];return <div className="card p-5" key={first.cinemaId}><div><h3 className="text-lg font-bold">{first.cinemaName}</h3><p className="text-sm text-slate-400">{first.cinemaAddress}</p></div><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link href={`/booking/${s.id}`} key={s.id} className="showtime-chip"><b>{timeLabel(s.startTime)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>})}</div>
       {!showtimes.length&&<div className="empty-state">Chưa có suất chiếu sắp tới.</div>}
+      {showtimes.length>0&&!grouped.length&&<div className="empty-state">Chưa có suất chiếu cho ngày đã chọn.</div>}
     </section>
 
     {similar.length>0&&<section><div className="section-heading"><div><p className="section-kicker">GỢI Ý LIÊN QUAN</p><h2>Có thể bạn cũng thích</h2></div></div><div className="movie-grid">{similar.map(x=><div key={x.movie.id} className="space-y-2"><MovieCard movie={x.movie} trackingSource="MOVIE_SIMILAR"/><div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-xs text-slate-300">✨ {x.reason}</div></div>)}</div></section>}

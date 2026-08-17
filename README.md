@@ -148,7 +148,7 @@ Tài khoản admin mặc định trong `.env.example`:
 
 Có thể tạo tài khoản mới ở `/register`.
 
-Dữ liệu seed gồm 2 phim, 1 rạp, 1 phòng, 40 ghế và 3 suất chiếu tương lai.
+Dữ liệu demo hiện có **8 phim đang chiếu** (đủ 2 hàng desktop), 1 rạp, 5 phòng và lịch chiếu hằng ngày đến hết **30/09/2026**. V29.3 bổ sung 4 phòng demo và 704 suất chiếu xác định trước mà không sửa các migration Flyway cũ.
 
 
 ## PostgreSQL 18 / SQL / tạo CSDL
@@ -497,3 +497,7 @@ V29.2 adds a Chromium release-candidate E2E journey through nginx: register, exp
 ## V29.3 demo catalog and September 2026 schedule
 
 V29.3 adds a Flyway-safe demo data migration with eight active movies (two complete desktop rows), four additional demo auditoriums, and two daily showtimes per movie through 2026-09-30. The current Testcontainers integration test validates Flyway V29 and verifies September 30 coverage. See `docs/V29_3_DEMO_CATALOG_SEPTEMBER_SCHEDULE.md`.
+
+## V30 - Movie Discovery & Showtime Calendar
+
+V30 improves the customer browsing flow without changing the booking API or database schema. `/movies` now has advanced filters and sorting, `/cinemas` exposes the complete schedule instead of only 14 days, and movie-detail pages provide date-based showtime navigation. See `docs/V30_MOVIE_DISCOVERY_SHOWTIME_CALENDAR.md` and `UPGRADE_V30.md`.

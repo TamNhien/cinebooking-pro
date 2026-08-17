@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 e2e-v29.2 reset
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 e2e-v29.2 reset
 
 up:
 	docker compose up --build -d
@@ -39,6 +39,12 @@ verify-v29.2:
 
 verify-v29.3:
 	python tools/verify_v29_3_demo_schedule.py
+
+diagnose-v30:
+	powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v30.ps1
+
+verify-v30:
+	python tools/verify_v30_discovery_showtimes.py
 
 e2e-v29.2:
 	bash tools/e2e-v29.2.sh
