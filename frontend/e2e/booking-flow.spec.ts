@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 const CUSTOMER_PASSWORD = "V29E2e!Customer123";
@@ -71,6 +72,24 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
 
   let bookingId = "";
   let qrUrl = "";
+  await test.step("use V31 ticket wallet and download the authenticated calendar event", async () => {
+    await expect(page.getByRole("heading", { name: "Ví vé của tôi" })).toBeVisible();
+    await page.getByLabel("Tìm phim / mã booking / ghế").fill("Hành Trình Sao Hỏa");
+    await expect(page.getByText(/Hiển thị/)).toContainText("1");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: /Thêm vào lịch/ }).first().click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^cinebooking-[0-9a-f-]+\.ics$/i);
+    const path = await download.path();
+    expect(path).toBeTruthy();
+    const ics = await readFile(path!, "utf8");
+    expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).toContain("SUMMARY:CineBooking - Hành Trình Sao Hỏa");
+    expect(ics).toContain("STATUS:CONFIRMED");
+    expect(ics).toContain("END:VCALENDAR");
+  });
+
   await test.step("open ticket QR and capture signed check-in URL", async () => {
     const ticketLink = page.getByRole("link", { name: "Mở QR vé" }).first();
     await expect(ticketLink).toBeVisible();
@@ -80,6 +99,9 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await ticketLink.click();
     await expect(page).toHaveURL(new RegExp(`/ticket/${bookingId}$`));
     await expect(page.getByRole("img", { name: "QR URL vé CineBooking" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Thêm vào lịch/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Mã booking/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /In vé/ })).toBeVisible();
 
     qrUrl = await page.evaluate(async (id) => {
       const raw = localStorage.getItem("cinebooking_auth_v3");

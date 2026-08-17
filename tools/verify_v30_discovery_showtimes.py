@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 checks = []
@@ -46,7 +47,7 @@ check("V30 browser E2E spec exists", bool(e2e))
 check("V30 E2E verifies movie discovery filters", 'Khoa học viễn tưởng' in e2e and '8 phim phù hợp' in e2e)
 check("V30 E2E navigates to September 30", '2026-09-30' in e2e and '16 suất của 8 phim' in e2e)
 check("V30 E2E verifies selected-day movie detail", 'toHaveCount(2)' in e2e and 'Hành Trình Sao Hỏa' in e2e)
-check("release candidate runs all Playwright specs", 'Run browser E2E journeys (V29.2 + V30)' in rc and 'bash tools/e2e-v29.2.sh' in rc)
+check("release candidate runs all Playwright specs", 'Run browser E2E journeys' in rc and 'V29.2 + V30' in rc and 'bash tools/e2e-v29.2.sh' in rc)
 
 check("V29 demo schedule migration remains intact", migration.exists())
 if migration.exists():
@@ -60,7 +61,7 @@ check("V29.2 Playwright gate remains in CI", 'python3 tools/verify_v29_2_playwri
 check("V29.3 demo schedule gate remains in CI", 'python3 tools/verify_v29_3_demo_schedule.py' in ci)
 check("Makefile exposes V30 verifier", "verify-v30:" in makefile and "verify_v30_discovery_showtimes.py" in makefile)
 check("Makefile exposes V30 diagnostics", "diagnose-v30:" in makefile and "diagnose-v30.ps1" in makefile)
-check("release-candidate default advances to V30", 'default: "v30-rc1"' in rc)
+check("release-candidate default is V30 or newer", re.search(r'default: \"v(?:30|3[1-9]|[4-9][0-9])-rc1\"', rc) is not None)
 
 passed = sum(1 for _, ok in checks if ok)
 print(f"\n{passed}/{len(checks)} checks passed")

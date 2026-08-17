@@ -3,6 +3,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { getAuth, token } from "@/lib/auth";
 import { api, dateTime } from "@/lib/api";
+import { copyBookingCode, downloadBookingCalendar } from "@/lib/calendar";
 import { blobToDataUrl, deleteOfflineTicket, getOfflineTicket, requestPersistentStorage, saveOfflineTicket, type OfflineTicketSnapshot } from "@/lib/offlineTickets";
 import type { Booking, TicketInfo } from "@/lib/types";
 
@@ -16,6 +17,7 @@ export default function TicketPage({params}:{params:Promise<{bookingId:string}>}
  const [error,setError]=useState("");
  const [saveMsg,setSaveMsg]=useState("");
  const [saving,setSaving]=useState(false);
+ const [calendarBusy,setCalendarBusy]=useState(false);
 
  useEffect(()=>{let active=true;(async()=>{
    try{
@@ -56,6 +58,15 @@ export default function TicketPage({params}:{params:Promise<{bookingId:string}>}
  async function remove(){
    await deleteOfflineTicket(bookingId);setOffline(null);setSaveMsg("Đã xóa bản vé offline khỏi thiết bị.");
  }
+ async function addCalendar(){
+   setCalendarBusy(true);setSaveMsg("");
+   try{await downloadBookingCalendar(bookingId);setSaveMsg("📅 Đã tải lịch suất chiếu (.ics).");}
+   catch(e){setSaveMsg((e as Error).message)}finally{setCalendarBusy(false)}
+ }
+ async function copyCode(){
+   try{await copyBookingCode(bookingId);setSaveMsg(`📋 Đã sao chép mã booking ${bookingId}.`)}
+   catch{setSaveMsg("Không thể sao chép tự động trên trình duyệt này.")}
+ }
 
  const shownMovie=booking?.movieTitle||offline?.movieTitle;
  const shownStart=booking?.showtimeStart||offline?.showtimeStart;
@@ -64,13 +75,13 @@ export default function TicketPage({params}:{params:Promise<{bookingId:string}>}
  const publicBase=ticket?.publicBaseUrl||offline?.publicBaseUrl;
  const localOnly=!!publicBase&&/localhost|127\.0\.0\.1/i.test(publicBase);
 
- return <div className="mx-auto max-w-lg card p-7 text-center">
+ return <div className="ticket-print-card mx-auto max-w-lg card p-7 text-center">
    <p className="section-kicker">E-TICKET · PWA V26</p><h1 className="text-3xl font-bold">Vé điện tử</h1>
    {usingOffline&&<div className="mt-4 rounded-xl border border-cyan-800/50 bg-cyan-950/30 p-3 text-sm font-semibold text-cyan-200">📴 Đang hiển thị bản vé offline đã lưu trên thiết bị.</div>}
    {shownMovie&&<><div className="mt-3 font-bold">{shownMovie}</div><div className="text-slate-400">{shownStart&&dateTime(shownStart)} · Ghế {shownSeats}</div>{checkedIn&&<div className="mt-3 rounded-xl bg-emerald-950/60 p-3 font-bold text-emerald-300">✅ Vé đã check-in lúc {dateTime(checkedIn)}</div>}</>}
    {qrDataUrl&&<img src={qrDataUrl} alt="QR URL vé CineBooking" className={`mx-auto mt-6 w-72 rounded-2xl bg-white p-3 ${checkedIn?"opacity-45":""}`}/>} 
    {error&&<p className="mt-5 text-red-300">{error}</p>}
-   {!usingOffline&&booking&&ticket&&qrDataUrl&&<div className="mt-5 flex flex-wrap justify-center gap-2"><button type="button" className="btn btn-primary" disabled={saving} onClick={save}>{saving?"Đang lưu...":offline?"↻ Cập nhật vé offline":"⬇ Lưu vé offline"}</button>{offline&&<button type="button" className="btn btn-secondary" onClick={remove}>Xóa bản offline</button>}<Link href="/offline-tickets" className="btn btn-secondary">Vé offline</Link></div>}
+   {!usingOffline&&booking&&ticket&&qrDataUrl&&<div className="mt-5 flex flex-wrap justify-center gap-2"><button type="button" className="btn btn-primary" disabled={saving} onClick={save}>{saving?"Đang lưu...":offline?"↻ Cập nhật vé offline":"⬇ Lưu vé offline"}</button>{booking.status==="CONFIRMED"&&<button type="button" className="btn btn-secondary" disabled={calendarBusy} onClick={addCalendar}>📅 {calendarBusy?"Đang tạo...":"Thêm vào lịch"}</button>}<button type="button" className="btn btn-secondary" onClick={copyCode}>📋 Mã booking</button><button type="button" className="btn btn-secondary" onClick={()=>window.print()}>🖨 In vé</button>{offline&&<button type="button" className="btn btn-secondary" onClick={remove}>Xóa bản offline</button>}<Link href="/offline-tickets" className="btn btn-secondary">Vé offline</Link></div>}
    {usingOffline&&<div className="mt-5 flex flex-wrap justify-center gap-2"><Link href="/offline-tickets" className="btn btn-primary">Tất cả vé offline</Link>{typeof navigator!=="undefined"&&navigator.onLine&&<button className="btn btn-secondary" type="button" onClick={()=>location.reload()}>Đồng bộ lại</button>}</div>}
    {saveMsg&&<div className="mt-4 rounded-xl bg-slate-900 p-3 text-sm text-slate-300">{saveMsg}</div>}
    {(ticket||offline)&&!checkedIn&&<div className="mt-5 rounded-xl border border-slate-700 bg-slate-950/50 p-3 text-left text-xs leading-5 text-slate-400"><b className="text-slate-200">QR CineBooking:</b> camera mặc định trên điện thoại có thể mở thẳng trang check-in của CineBooking.{localOnly&&<div className="mt-2 text-amber-300">⚠ QR đang dùng {publicBase}. Điện thoại khác không truy cập được localhost. Hãy đặt TICKET_PUBLIC_BASE_URL thành IP LAN/domain của máy chủ rồi recreate backend.</div>}</div>}

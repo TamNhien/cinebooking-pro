@@ -187,6 +187,12 @@ jobs:
       - name: Verify V30.1 frontend toolchain guard
         run: python3 tools/verify_v30_1_frontend_toolchain.py
 
+      - name: Verify V30.2 Playwright pin policy
+        run: python3 tools/verify_v30_2_playwright_pin_policy.py
+
+      - name: Verify V31 ticket wallet and calendar
+        run: python3 tools/verify_v31_ticket_wallet.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

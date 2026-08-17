@@ -27,7 +27,11 @@ ci = text(".github/workflows/ci.yml")
 diag = text("tools/diagnose-v29.ps1")
 makefile = text("Makefile")
 
-check("Playwright dependency is pinned", pkg.get("devDependencies", {}).get("@playwright/test") == "1.60.0")
+playwright_version = str(pkg.get("devDependencies", {}).get("@playwright/test", ""))
+check(
+    "Playwright dependency is pinned to the validated 1.60 patch line",
+    re.fullmatch(r"1\.60\.\d+(?:-[0-9A-Za-z.-]+)?", playwright_version) is not None,
+)
 check("frontend exposes E2E npm script", pkg.get("scripts", {}).get("e2e") == "playwright test")
 check("Playwright config exists", bool(config))
 check("Playwright uses disposable V29 base URL", "PLAYWRIGHT_BASE_URL" in config and "127.0.0.1:18080" in config)

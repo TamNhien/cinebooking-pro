@@ -501,3 +501,7 @@ V29.3 adds a Flyway-safe demo data migration with eight active movies (two compl
 ## V30 - Movie Discovery & Showtime Calendar
 
 V30 improves the customer browsing flow without changing the booking API or database schema. `/movies` now has advanced filters and sorting, `/cinemas` exposes the complete schedule instead of only 14 days, and movie-detail pages provide date-based showtime navigation. See `docs/V30_MOVIE_DISCOVERY_SHOWTIME_CALENDAR.md` and `UPGRADE_V30.md`.
+
+## V31 - Ticket Wallet & Calendar
+
+V31 turns `/bookings` into a searchable/filterable ticket wallet and adds authenticated `.ics` calendar export for confirmed tickets. The e-ticket page also supports calendar download, booking-id copy, and print-friendly output. No database migration is required. See `docs/V31_TICKET_WALLET_CALENDAR.md` and `UPGRADE_V31.md`.

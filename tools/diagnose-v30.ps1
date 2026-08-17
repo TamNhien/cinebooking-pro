@@ -19,11 +19,16 @@ python .\tools\verify_v30_1_frontend_toolchain.py
 if($LASTEXITCODE -ne 0){ throw "V30.1 frontend toolchain verifier failed" }
 
 Write-Host ""
+Write-Host "=== V30.2 Playwright pin policy ==="
+python .\tools\verify_v30_2_playwright_pin_policy.py
+if($LASTEXITCODE -ne 0){ throw "V30.2 Playwright pin-policy verifier failed" }
+
+Write-Host ""
 Write-Host "=== Docker Compose validation ==="
 docker compose config --quiet
 if($LASTEXITCODE -ne 0){ throw "V30 docker compose config failed" }
 Write-Host "PASS: docker compose config"
 
 Write-Host ""
-Write-Host "V30.1 DIAGNOSTICS PASSED"
+Write-Host "V30.2 DIAGNOSTICS PASSED"
 Write-Host "Next: commit/push V30, confirm CineBooking CI, then run the Release Candidate workflow for browser E2E smoke."
