@@ -99,6 +99,21 @@ wait_http() {
 wait_http "http://127.0.0.1:${HTTP_PORT}/" "frontend through nginx"
 wait_http "http://127.0.0.1:${HTTP_PORT}/api/movies" "public movies API through nginx"
 
+assert_running_services() {
+  local running service
+  running="$(docker compose ps --status running --services)"
+  for service in postgres redis backend-1 backend-2 frontend nginx; do
+    if ! printf '%s\n' "$running" | grep -Fxq "$service"; then
+      echo "ERROR: expected Compose service $service to still be running" >&2
+      docker compose ps >&2 || true
+      return 1
+    fi
+  done
+  echo "PASS: both backend replicas and supporting services are running"
+}
+
+assert_running_services
+
 movies_payload="$(curl --silent --show-error --fail --max-time 5 "http://127.0.0.1:${HTTP_PORT}/api/movies")"
 python3 - "$movies_payload" <<'PY'
 import json, sys

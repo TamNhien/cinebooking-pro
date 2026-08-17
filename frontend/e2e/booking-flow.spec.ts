@@ -67,7 +67,7 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await expect(page.getByRole("heading", { name: "Mock Gateway" })).toBeVisible();
     await page.getByRole("button", { name: "Giả lập thành công" }).click();
     await expect(page).toHaveURL(/\/bookings$/);
-    await expect(page.getByText("CONFIRMED")).toBeVisible();
+    await expect(page.getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()).toBeVisible();
   });
 
   let bookingId = "";

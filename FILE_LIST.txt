@@ -24,6 +24,8 @@ UPGRADE_V30.md
 UPGRADE_V30_1.md
 UPGRADE_V30_2.md
 UPGRADE_V31.md
+UPGRADE_V31_1.md
+UPGRADE_V31_2.md
 backend/Dockerfile
 backend/pom.xml
 backend/src/main/java/com/cinebooking/CineBookingApplication.java
@@ -477,6 +479,8 @@ tools/verify_v29_release_candidate.py
 tools/verify_v30_1_frontend_toolchain.py
 tools/verify_v30_2_playwright_pin_policy.py
 tools/verify_v30_discovery_showtimes.py
+tools/verify_v31_1_lint_purity.py
+tools/verify_v31_2_rc_determinism.py
 tools/verify_v31_ticket_wallet.py
 uploads/.gitkeep
 uploads/movies/.gitkeep

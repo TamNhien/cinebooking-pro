@@ -61,7 +61,7 @@ check("V29.2 Playwright gate remains in CI", 'python3 tools/verify_v29_2_playwri
 check("V29.3 demo schedule gate remains in CI", 'python3 tools/verify_v29_3_demo_schedule.py' in ci)
 check("Makefile exposes V30 verifier", "verify-v30:" in makefile and "verify_v30_discovery_showtimes.py" in makefile)
 check("Makefile exposes V30 diagnostics", "diagnose-v30:" in makefile and "diagnose-v30.ps1" in makefile)
-check("release-candidate default is V30 or newer", re.search(r'default: \"v(?:30|3[1-9]|[4-9][0-9])-rc1\"', rc) is not None)
+check("release-candidate default is V30 or newer", re.search(r'default: "v(?:30|3[1-9]|[4-9][0-9])(?:\.\d+)*-rc1"', rc) is not None)
 
 passed = sum(1 for _, ok in checks if ok)
 print(f"\n{passed}/{len(checks)} checks passed")

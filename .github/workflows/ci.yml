@@ -196,6 +196,9 @@ jobs:
       - name: Verify V31.1 ticket-wallet lint purity
         run: python3 tools/verify_v31_1_lint_purity.py
 
+      - name: Verify V31.2 release-candidate determinism
+        run: python3 tools/verify_v31_2_rc_determinism.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

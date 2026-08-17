@@ -505,3 +505,8 @@ V30 improves the customer browsing flow without changing the booking API or data
 ## V31 - Ticket Wallet & Calendar
 
 V31 turns `/bookings` into a searchable/filterable ticket wallet and adds authenticated `.ics` calendar export for confirmed tickets. The e-ticket page also supports calendar download, booking-id copy, and print-friendly output. No database migration is required. See `docs/V31_TICKET_WALLET_CALENDAR.md` and `UPGRADE_V31.md`.
+
+
+## V31.2 — Release Candidate determinism
+
+V31.2 hardens the real Chromium release-candidate path: booking status assertions use an unambiguous accessible locator, concurrent admin bootstrap is replica-safe, and disposable smoke/E2E stacks verify that both backend replicas remain running. See `UPGRADE_V31_2.md`.

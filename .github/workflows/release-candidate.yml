@@ -6,7 +6,7 @@ on:
       version:
         description: "Release-candidate version label (letters/digits/._- only)"
         required: true
-        default: "v31-rc1"
+        default: "v31.2-rc1"
 
 permissions:
   contents: read
@@ -61,7 +61,7 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser E2E journeys (V29.2 + V30 + V31)
+      - name: Run browser E2E journeys (V29.2 + V30 + V31.2)
         env:
           E2E_SKIP_BUILD: "true"
         run: bash tools/e2e-v29.2.sh

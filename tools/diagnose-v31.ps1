@@ -19,11 +19,16 @@ python .\tools\verify_v31_1_lint_purity.py
 if($LASTEXITCODE -ne 0){ throw "V31.1 lint-purity verifier failed" }
 
 Write-Host ""
+Write-Host "=== V31.2 RC determinism hotfix ==="
+python .\tools\verify_v31_2_rc_determinism.py
+if($LASTEXITCODE -ne 0){ throw "V31.2 RC-determinism verifier failed" }
+
+Write-Host ""
 Write-Host "=== Docker Compose validation ==="
 docker compose config --quiet
 if($LASTEXITCODE -ne 0){ throw "V31 docker compose config failed" }
 Write-Host "PASS: docker compose config"
 
 Write-Host ""
-Write-Host "V31.1 DIAGNOSTICS PASSED"
-Write-Host "Next: commit/push V31.1, confirm CineBooking CI, then run the Release Candidate workflow with v31-rc1."
+Write-Host "V31.2 DIAGNOSTICS PASSED"
+Write-Host "Next: commit/push V31.2, confirm CineBooking CI, then run the Release Candidate workflow with v31.2-rc1."

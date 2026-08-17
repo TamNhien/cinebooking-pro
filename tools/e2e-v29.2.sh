@@ -97,6 +97,21 @@ docker compose up -d --no-build postgres redis backend-1 backend-2 frontend ngin
 wait_http "${PLAYWRIGHT_BASE_URL}/" "frontend through nginx"
 wait_http "${PLAYWRIGHT_BASE_URL}/api/movies" "movies API through nginx"
 
+assert_running_services() {
+  local running service
+  running="$(docker compose ps --status running --services)"
+  for service in postgres redis backend-1 backend-2 frontend nginx; do
+    if ! printf '%s\n' "$running" | grep -Fxq "$service"; then
+      echo "ERROR: expected Compose service $service to still be running" >&2
+      docker compose ps >&2 || true
+      return 1
+    fi
+  done
+  echo "PASS: both backend replicas and supporting services are running"
+}
+
+assert_running_services
+
 echo
 echo "=== Run Playwright Chromium journey ==="
 (

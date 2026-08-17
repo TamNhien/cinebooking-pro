@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 e2e-v29.2 reset
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 e2e-v29.2 reset
 
 up:
 	docker compose up --build -d
@@ -71,3 +71,6 @@ diagnose-v31:
 
 verify-v31-1:
 	python tools/verify_v31_1_lint_purity.py
+
+verify-v31-2:
+	python tools/verify_v31_2_rc_determinism.py
