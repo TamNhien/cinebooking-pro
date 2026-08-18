@@ -26,6 +26,8 @@ UPGRADE_V30_2.md
 UPGRADE_V31.md
 UPGRADE_V31_1.md
 UPGRADE_V31_2.md
+UPGRADE_V32.md
+UPGRADE_V33.md
 backend/Dockerfile
 backend/pom.xml
 backend/src/main/java/com/cinebooking/CineBookingApplication.java
@@ -116,6 +118,7 @@ backend/src/main/java/com/cinebooking/domain/Seat.java
 backend/src/main/java/com/cinebooking/domain/SeatType.java
 backend/src/main/java/com/cinebooking/domain/Showtime.java
 backend/src/main/java/com/cinebooking/domain/ShowtimeStatus.java
+backend/src/main/java/com/cinebooking/domain/ShowtimeWaitlist.java
 backend/src/main/java/com/cinebooking/domain/StaffAttendance.java
 backend/src/main/java/com/cinebooking/domain/StaffLeaveRequest.java
 backend/src/main/java/com/cinebooking/domain/StaffProfile.java
@@ -141,6 +144,8 @@ backend/src/main/java/com/cinebooking/movie/MovieDtos.java
 backend/src/main/java/com/cinebooking/movie/MovieRepository.java
 backend/src/main/java/com/cinebooking/movie/MovieService.java
 backend/src/main/java/com/cinebooking/movie/PosterStorageService.java
+backend/src/main/java/com/cinebooking/movie/ShowtimePlanningController.java
+backend/src/main/java/com/cinebooking/movie/ShowtimePlanningService.java
 backend/src/main/java/com/cinebooking/movie/ShowtimeRepository.java
 backend/src/main/java/com/cinebooking/notification/NotificationController.java
 backend/src/main/java/com/cinebooking/notification/NotificationDeliveryService.java
@@ -199,6 +204,11 @@ backend/src/main/java/com/cinebooking/user/StaffProfileRepository.java
 backend/src/main/java/com/cinebooking/user/UserDtos.java
 backend/src/main/java/com/cinebooking/user/UserRepository.java
 backend/src/main/java/com/cinebooking/user/UserService.java
+backend/src/main/java/com/cinebooking/waitlist/ShowtimeWaitlistController.java
+backend/src/main/java/com/cinebooking/waitlist/ShowtimeWaitlistJob.java
+backend/src/main/java/com/cinebooking/waitlist/ShowtimeWaitlistRepository.java
+backend/src/main/java/com/cinebooking/waitlist/ShowtimeWaitlistService.java
+backend/src/main/java/com/cinebooking/waitlist/WaitlistDtos.java
 backend/src/main/java/com/cinebooking/websocket/RedisSeatEventSubscriber.java
 backend/src/main/java/com/cinebooking/websocket/SeatEventPublisher.java
 backend/src/main/resources/application.yml
@@ -221,6 +231,7 @@ backend/src/main/resources/db/migration/V24__booking_idempotency_and_contention.
 backend/src/main/resources/db/migration/V25__recommendation_engine.sql
 backend/src/main/resources/db/migration/V29__demo_movies_and_showtimes_september_2026.sql
 backend/src/main/resources/db/migration/V2__seed_demo.sql
+backend/src/main/resources/db/migration/V32__showtime_waitlist.sql
 backend/src/main/resources/db/migration/V3__user_profile_and_password_reset.sql
 backend/src/main/resources/db/migration/V4__payment_checkout_fields.sql
 backend/src/main/resources/db/migration/V5__backfill_default_seats.sql
@@ -230,6 +241,7 @@ backend/src/main/resources/db/migration/V8__operations_checkin_refund_rbac_audit
 backend/src/main/resources/db/migration/V9__staff_accounts.sql
 backend/src/test/java/com/cinebooking/booking/IcsCalendarBuilderTest.java
 backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java
+backend/src/test/java/com/cinebooking/movie/ShowtimePlanningServiceTest.java
 backend/src/test/java/com/cinebooking/pricing/PricingServiceTimeWindowTest.java
 backend/src/test/java/com/cinebooking/staffops/StaffShiftRulesTest.java
 backups/.gitkeep
@@ -317,6 +329,8 @@ docs/V30_1_FRONTEND_TOOLCHAIN_GUARD.md
 docs/V30_2_PLAYWRIGHT_PIN_POLICY.md
 docs/V30_MOVIE_DISCOVERY_SHOWTIME_CALENDAR.md
 docs/V31_TICKET_WALLET_CALENDAR.md
+docs/V32_WAITLIST_SEAT_ALERTS.md
+docs/V33_SHOWTIME_PLANNER.md
 frontend/Dockerfile
 frontend/app/admin/analytics/page.tsx
 frontend/app/admin/attendance/page.tsx
@@ -330,6 +344,7 @@ frontend/app/admin/refunds/page.tsx
 frontend/app/admin/reviews/page.tsx
 frontend/app/admin/seat-layout/[auditoriumId]/page.tsx
 frontend/app/admin/shifts/page.tsx
+frontend/app/admin/showtimes/page.tsx
 frontend/app/admin/staff/page.tsx
 frontend/app/admin/vouchers/page.tsx
 frontend/app/booking/[showtimeId]/page.tsx
@@ -356,6 +371,7 @@ frontend/app/reset-password/page.tsx
 frontend/app/staff/check-in/page.tsx
 frontend/app/staff/schedule/page.tsx
 frontend/app/ticket/[bookingId]/page.tsx
+frontend/app/waitlist/page.tsx
 frontend/components/BackgroundTheme.tsx
 frontend/components/Header.js
 frontend/components/Header.tsx
@@ -372,6 +388,7 @@ frontend/components/SiteFooter.tsx
 frontend/components/StarRating.tsx
 frontend/e2e/booking-flow.spec.ts
 frontend/e2e/discovery-calendar.spec.ts
+frontend/e2e/showtime-planner.spec.ts
 frontend/eslint.config.mjs
 frontend/lib/api.ts
 frontend/lib/auth.ts
@@ -431,6 +448,8 @@ tools/diagnose-v28.ps1
 tools/diagnose-v29.ps1
 tools/diagnose-v30.ps1
 tools/diagnose-v31.ps1
+tools/diagnose-v32.ps1
+tools/diagnose-v33.ps1
 tools/e2e-v29.2.sh
 tools/init-env.ps1
 tools/restore-db.ps1
@@ -482,5 +501,7 @@ tools/verify_v30_discovery_showtimes.py
 tools/verify_v31_1_lint_purity.py
 tools/verify_v31_2_rc_determinism.py
 tools/verify_v31_ticket_wallet.py
+tools/verify_v32_waitlist.py
+tools/verify_v33_showtime_planner.py
 uploads/.gitkeep
 uploads/movies/.gitkeep

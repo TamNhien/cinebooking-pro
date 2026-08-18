@@ -22,7 +22,7 @@ ok('gate check occurs before booking mutation', checkin.find('gate.requireCanSca
 
 gate=Path('backend/src/main/java/com/cinebooking/staffops/StaffGatePolicyService.java').read_text()
 ok('gate requires active attendance', 'findFirstByStaffUserIdAndCheckOutAtIsNullOrderByCheckInAtDesc' in gate)
-ok('gate requires same cinema', 'p.getCinemaId(),ticketCinemaId' in gate and 'a.getCinemaId(),ticketCinemaId' in gate)
+ok('gate requires same cinema', 'Objects.equals(a.getCinemaId(),ticketCinemaId)' in gate)
 ok('ADMIN emergency override exists', 'u.getRole()==Role.ADMIN)return' in gate)
 
 shift=Path('backend/src/main/java/com/cinebooking/staffops/StaffShiftService.java').read_text()

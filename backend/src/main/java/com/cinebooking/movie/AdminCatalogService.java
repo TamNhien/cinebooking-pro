@@ -18,10 +18,10 @@ import static com.cinebooking.movie.MovieDtos.*;
 public class AdminCatalogService {
     private final MovieRepository movies; private final CinemaRepository cinemas; private final AuditoriumRepository auditoriums;
     private final SeatRepository seats; private final ShowtimeRepository showtimes; private final BookingRepository bookings;
-    private final BookingSeatRepository bookingSeats; private final MovieService movieService;
+    private final BookingSeatRepository bookingSeats; private final MovieService movieService; private final ShowtimePlanningService planning;
     public AdminCatalogService(MovieRepository movies,CinemaRepository cinemas,AuditoriumRepository auditoriums,SeatRepository seats,
-                               ShowtimeRepository showtimes,BookingRepository bookings,BookingSeatRepository bookingSeats,MovieService movieService){
-        this.movies=movies;this.cinemas=cinemas;this.auditoriums=auditoriums;this.seats=seats;this.showtimes=showtimes;this.bookings=bookings;this.bookingSeats=bookingSeats;this.movieService=movieService;
+                               ShowtimeRepository showtimes,BookingRepository bookings,BookingSeatRepository bookingSeats,MovieService movieService,ShowtimePlanningService planning){
+        this.movies=movies;this.cinemas=cinemas;this.auditoriums=auditoriums;this.seats=seats;this.showtimes=showtimes;this.bookings=bookings;this.bookingSeats=bookingSeats;this.movieService=movieService;this.planning=planning;
     }
 
     public List<MovieResponse> movies(){return movies.findAllByOrderByCreatedAtDesc().stream().map(movieService::movieDto).toList();}
@@ -91,8 +91,17 @@ public class AdminCatalogService {
     private void apply(Seat s,SeatAdminRequest r){s.setAuditoriumId(r.auditoriumId());s.setRowLabel(r.rowLabel().trim().toUpperCase(Locale.ROOT));s.setSeatNumber(r.seatNumber());try{s.setSeatType(SeatType.valueOf(r.seatType().trim().toUpperCase(Locale.ROOT)));}catch(Exception e){throw new ApiException(HttpStatus.BAD_REQUEST,"seatType không hợp lệ");}s.setPriceModifier(r.priceModifier());}
 
     public List<ShowtimeResponse> showtimes(){return showtimes.findAllByOrderByStartTimeDesc().stream().map(movieService::showtimeDto).toList();}
-    @Transactional public ShowtimeResponse createShowtime(ShowtimeAdminRequest r){Showtime s=new Showtime();apply(s,r);return movieService.showtimeDto(showtimes.save(s));}
-    @Transactional public ShowtimeResponse updateShowtime(UUID id,ShowtimeAdminRequest r){Showtime s=showtimeEntity(id);apply(s,r);return movieService.showtimeDto(showtimes.save(s));}
+    @Transactional public ShowtimeResponse createShowtime(ShowtimeAdminRequest r){
+        planning.requireNoConflict(null,r.movieId(),r.auditoriumId(),r.startTime(),r.status());
+        Showtime s=new Showtime();apply(s,r);return movieService.showtimeDto(showtimes.save(s));
+    }
+    @Transactional public ShowtimeResponse updateShowtime(UUID id,ShowtimeAdminRequest r){
+        Showtime s=showtimeEntity(id);
+        if(bookings.existsByShowtimeId(id) && (!s.getMovieId().equals(r.movieId()) || !s.getAuditoriumId().equals(r.auditoriumId()) || !s.getStartTime().equals(r.startTime())))
+            throw new ApiException(HttpStatus.CONFLICT,"Suất chiếu đã có booking: chỉ được đổi giá hoặc trạng thái, không được đổi phim/phòng/giờ chiếu");
+        planning.requireNoConflict(id,r.movieId(),r.auditoriumId(),r.startTime(),r.status());
+        apply(s,r);return movieService.showtimeDto(showtimes.save(s));
+    }
     @Transactional public void deleteShowtime(UUID id){Showtime s=showtimeEntity(id);if(bookings.existsByShowtimeId(id))throw new ApiException(HttpStatus.CONFLICT,"Suất chiếu đã có booking, không thể xoá");showtimes.delete(s);}
     private void apply(Showtime s,ShowtimeAdminRequest r){if(!movies.existsById(r.movieId()))throw new ApiException(HttpStatus.BAD_REQUEST,"movieId không tồn tại");requireAuditorium(r.auditoriumId());s.setMovieId(r.movieId());s.setAuditoriumId(r.auditoriumId());s.setStartTime(r.startTime());s.setBasePrice(r.basePrice());try{s.setStatus(ShowtimeStatus.valueOf(r.status().trim().toUpperCase(Locale.ROOT)));}catch(Exception e){throw new ApiException(HttpStatus.BAD_REQUEST,"status suất chiếu không hợp lệ");}}
 

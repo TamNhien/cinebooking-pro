@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset verify-v33 diagnose-v33
 
 up:
 	docker compose up --build -d
@@ -80,3 +80,9 @@ verify-v32:
 
 diagnose-v32:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v32.ps1
+
+verify-v33:
+	python tools/verify_v33_showtime_planner.py
+
+diagnose-v33:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v33.ps1

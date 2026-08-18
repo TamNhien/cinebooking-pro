@@ -4,5 +4,6 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
     List<Showtime> findByMovieIdAndStatusAndStartTimeAfterOrderByStartTimeAsc(UUID movieId, ShowtimeStatus status, Instant now);
     List<Showtime> findByStatusAndStartTimeAfterOrderByStartTimeAsc(ShowtimeStatus status, Instant now);
     List<Showtime> findAllByOrderByStartTimeDesc();
+    List<Showtime> findByAuditoriumIdOrderByStartTimeAsc(UUID auditoriumId);
     boolean existsByAuditoriumId(UUID auditoriumId);
 }

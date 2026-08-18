@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import com.cinebooking.movie.ShowtimePlanningService;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -18,6 +19,10 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,6 +61,7 @@ class CineBookingIntegrationIT {
     @Autowired StringRedisTemplate redisTemplate;
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
+    @Autowired ShowtimePlanningService showtimePlanning;
 
     @Test
     void flywayMigratesRealPostgresToV32WaitlistAndDemoCatalog() {
@@ -98,6 +104,25 @@ class CineBookingIntegrationIT {
         assertThat(activeMovies).isGreaterThanOrEqualTo(8);
         assertThat(september30Movies).isGreaterThanOrEqualTo(8);
         assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
+    }
+
+    @Test
+    void showtimePlannerDetectsSeededRoomCollisionWithoutWriting() {
+        var request = new com.cinebooking.movie.AdminCatalogDtos.ShowtimePlanRequest(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                UUID.fromString("44444444-4444-4444-4444-444444444445"),
+                LocalDate.of(2026, 9, 30),
+                LocalDate.of(2026, 9, 30),
+                List.of(LocalTime.of(10, 0), LocalTime.of(22, 30)),
+                new BigDecimal("90000"),
+                "OPEN",
+                true);
+        var preview = showtimePlanning.preview(request);
+        assertThat(preview.requested()).isEqualTo(2);
+        assertThat(preview.creatable()).isEqualTo(1);
+        assertThat(preview.conflicts()).isEqualTo(1);
+        assertThat(preview.slots().stream().filter(s -> !s.creatable()).findFirst().orElseThrow().conflictLabel())
+                .contains("Hành Trình Sao Hỏa");
     }
 
     @Test

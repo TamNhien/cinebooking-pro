@@ -514,3 +514,7 @@ V31.2 hardens the real Chromium release-candidate path: booking status assertion
 ## V32 — Sold-out Waitlist & Seat Availability Alerts
 
 V32 adds a real sold-out waitlist: customers can subscribe when a showtime has no available seats, manage alerts at `/waitlist`, and receive a deduplicated notification when a seat reopens. The scanner is multi-replica safe and uses the existing live seat-map consistency model. See `docs/V32_WAITLIST_SEAT_ALERTS.md` and `UPGRADE_V32.md`.
+
+## V33 — Showtime Planner & Conflict Guard
+
+V33 adds a dedicated admin scheduling workspace at `/admin/showtimes`: bulk date/time planning, dry-run preview, runtime + cleaning-buffer room collision detection, safe skip-conflict commits, pessimistic room locking, and protection against moving booked showtimes. Release Candidate browser E2E now covers deterministic conflict preview. See `docs/V33_SHOWTIME_PLANNER.md` and `UPGRADE_V33.md`.

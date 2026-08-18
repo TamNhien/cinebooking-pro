@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 import java.util.List;
 
@@ -23,4 +24,10 @@ public final class AdminCatalogDtos {
     public record SeatLayoutRequest(@NotEmpty @Size(max=500) @Valid List<SeatLayoutCell> seats){}
     public record ShowtimeAdminRequest(@NotNull UUID movieId,@NotNull UUID auditoriumId,@NotNull Instant startTime,
                                        @NotNull @DecimalMin("0.0") BigDecimal basePrice,@NotBlank String status){}
+    public record ShowtimePlanRequest(@NotNull UUID movieId,@NotNull UUID auditoriumId,@NotNull LocalDate fromDate,@NotNull LocalDate toDate,
+                                      @NotEmpty @Size(max=12) List<@NotNull LocalTime> startTimes,@NotNull @DecimalMin("0.0") BigDecimal basePrice,
+                                      @NotBlank String status,@NotNull Boolean skipConflicts){}
+    public record ShowtimePlanSlot(Instant startTime,Instant endTime,boolean creatable,UUID conflictShowtimeId,String conflictLabel){}
+    public record ShowtimePlanPreview(String zoneId,long turnaroundMinutes,int requested,int creatable,int conflicts,List<ShowtimePlanSlot> slots){}
+    public record ShowtimePlanCommitResponse(int created,int skipped,ShowtimePlanPreview preview,List<com.cinebooking.movie.MovieDtos.ShowtimeResponse> showtimes){}
 }

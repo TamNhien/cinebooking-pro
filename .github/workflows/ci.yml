@@ -202,6 +202,9 @@ jobs:
       - name: Verify V32 sold-out waitlist and seat alerts
         run: python3 tools/verify_v32_waitlist.py
 
+      - name: Verify V33 showtime planner and conflict guard
+        run: python3 tools/verify_v33_showtime_planner.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

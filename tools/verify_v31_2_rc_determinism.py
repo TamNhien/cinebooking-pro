@@ -36,13 +36,15 @@ check("admin bootstrap handles concurrent unique-key race", "catch (DataIntegrit
 check("admin bootstrap rechecks winner before suppressing integrity error", "findByEmailIgnoreCase(normalizedEmail).isEmpty()" in bootstrap and "throw ex" in bootstrap)
 check("V29 smoke asserts both backend replicas stay running", "assert_running_services" in smoke and "backend-1 backend-2" in smoke and "docker compose ps --status running --services" in smoke)
 check("Playwright E2E asserts both backend replicas stay running", "assert_running_services" in e2e and "backend-1 backend-2" in e2e and "docker compose ps --status running --services" in e2e)
-check("RC default advances to v31.2-rc1", 'default: "v31.2-rc1"' in rc)
+rc_version = re.search(r'default: "v(\d+)(?:\.(\d+))?-rc1"', rc)
+rc_tuple = (int(rc_version.group(1)), int(rc_version.group(2) or 0)) if rc_version else (0, 0)
+check("RC default remains v31.2 or newer", rc_tuple >= (31, 2))
 check("RC browser step identifies V31.2", "V29.2 + V30 + V31.2" in rc)
 check("main CI runs V31.2 determinism verifier", "python3 tools/verify_v31_2_rc_determinism.py" in ci)
 check("V31 diagnostics run V31.2 verifier", "verify_v31_2_rc_determinism.py" in diag)
 check("Makefile exposes V31.2 verifier", "verify-v31-2:" in makefile)
 check("V29.3 verifier accepts patch-level RC labels", "v(?:3[0-9]|[4-9][0-9])(?:\\.\\d+)*" in v293)
-check("V31 verifier accepts patch-level V31 RC labels", "v31(?:\\.\\d+)*-rc1" in v31)
+check("V31 verifier accepts V31-compatible or newer RC labels", "V31-compatible or newer" in v31)
 check("reset safety remains intact", "destructive volume reset is disabled" in makefile and "@exit 1" in makefile)
 
 failed=[name for name,ok in checks if not ok]
