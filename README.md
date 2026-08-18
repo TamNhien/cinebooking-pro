@@ -1,520 +1,704 @@
-## V28 - CI/CD + automated integration tests + Testcontainers
+# CineBooking Pro V34
 
-V28 adds a GitHub Actions quality gate on top of the V27.2 database-safety baseline:
+CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning và cinema operations.
 
-- Java 25 backend unit tests on every push / pull request.
-- PostgreSQL 18.4 + Redis 8.8 Testcontainers integration tests.
-- Flyway V25 verification against a real temporary PostgreSQL instance.
-- End-to-end register -> login -> JWT -> protected profile test.
-- Frontend ESLint advisory check + mandatory optimized Next.js production build.
-- V26-V28 source-regression checks and Docker Compose validation.
-- Backend/frontend Docker image build validation after all test gates pass.
-- Test reports, backend JAR and standalone frontend uploaded as CI artifacts.
-- Dependabot for Maven, npm, GitHub Actions and Dockerfiles.
+> **Current release:** V34 — Auditorium Maintenance & Blackout Windows  
+> **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
+> **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
+> **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V28 has **no new Flyway migration** and does not require recreating PostgreSQL. See `docs/V28_CI_CD_TESTCONTAINERS.md` and `UPGRADE_V28.md`.
+This repository intentionally keeps **all project documentation in this single `README.md`**.
 
-Local structural check:
+---
+
+## 1. V34 — Bảo trì & khóa phòng chiếu
+
+V34 bổ sung chức năng vận hành rạp tại:
+
+```text
+/admin/maintenance
+```
+
+### Chức năng
+
+- Tạo khoảng khóa một phòng chiếu để:
+  - bảo trì máy chiếu;
+  - vệ sinh sâu;
+  - sửa âm thanh/điện;
+  - tổ chức sự kiện riêng;
+  - xử lý sự cố kỹ thuật.
+- Chọn phòng, thời gian bắt đầu/kết thúc và lý do.
+- Mỗi khoảng khóa tối đa 14 ngày.
+- Không cho tạo khoảng khóa chồng lên blackout khác.
+- Không cho khóa phòng nếu đang có suất chiếu `OPEN`/`CLOSED` trùng thời gian.
+- Showtime `CANCELLED` không chiếm phòng.
+- Có thể mở lại phòng bằng cách xóa blackout.
+- Showtime Planner V33 tự xem blackout như một conflict.
+- Cả bulk planner và thao tác tạo/sửa một showtime đều bị chặn nếu đụng khoảng bảo trì.
+- Database lock trên auditorium giúp thao tác an toàn khi nhiều admin cùng cập nhật.
+
+Migration:
+
+```text
+backend/src/main/resources/db/migration/V34__auditorium_blackout_windows.sql
+```
+
+Bảng mới:
+
+```text
+auditorium_blackout
+```
+
+REST API:
+
+```text
+GET    /api/admin/auditorium-blackouts
+POST   /api/admin/auditorium-blackouts
+DELETE /api/admin/auditorium-blackouts/{id}
+```
+
+---
+
+## 2. Các chức năng chính
+
+### Khách hàng
+
+- Đăng ký / đăng nhập / refresh session / logout.
+- Quản lý hồ sơ và các phiên đăng nhập.
+- Danh sách phim, tìm kiếm, lọc thể loại/ngôn ngữ/phân loại tuổi.
+- Sắp xếp phim theo nhiều tiêu chí.
+- Chi tiết phim, trailer, đánh giá, yêu thích.
+- Gợi ý phim cá nhân hóa và trending.
+- Duyệt lịch chiếu theo tháng/ngày.
+- Quick Booking.
+- Chọn ghế realtime với Redis hold + WebSocket.
+- Giá vé động.
+- Bắp nước/concession và inventory-aware checkout.
+- Voucher và loyalty points.
+- Thanh toán mock/VNPay/MoMo integration structure.
+- QR e-ticket.
+- Vé offline/PWA.
+- Ví vé `/bookings` với lọc/tìm kiếm/trạng thái.
+- Tải lịch `.ics` cho Google Calendar / Apple Calendar / Outlook.
+- Sao chép booking code và in vé.
+- Yêu cầu hoàn vé.
+- Notification center và notification preferences.
+- Showtime reminder.
+- Sold-out waitlist `/waitlist` và thông báo khi ghế được mở lại.
+
+### Staff / Manager
+
+- QR check-in / staff gate.
+- Lịch sử check-in.
+- Nhân viên theo rạp.
+- Xếp ca.
+- Check-in/check-out ca làm.
+- Chấm công, đi trễ, về sớm, vắng ca.
+- Xin nghỉ / duyệt nghỉ.
+- Timesheet.
+
+### Admin
+
+- Quản lý phim, rạp, phòng, ghế, suất chiếu, user.
+- Seat layout editor.
+- Booking operations.
+- Refund operations.
+- Commerce / voucher / concession.
+- Inventory và stock movement.
+- Dynamic pricing.
+- Review moderation.
+- Audit log.
+- Revenue / occupancy / seat heatmap / hourly demand / staff analytics.
+- **V33 Showtime Planner & Conflict Guard**.
+- **V34 Auditorium Maintenance & Blackout Windows**.
+
+---
+
+## 3. V33 — Showtime Planner & Conflict Guard
+
+Trang:
+
+```text
+/admin/showtimes
+```
+
+V33 hỗ trợ:
+
+- lập nhiều suất theo khoảng ngày;
+- nhiều giờ chiếu trong một ngày;
+- preview trước khi ghi database;
+- phát hiện trùng phòng;
+- tính `movie runtime + 15 phút turnaround`;
+- bỏ qua slot bị conflict khi bulk-create;
+- tối đa 62 ngày/lần;
+- tối đa 12 start times/ngày;
+- tối đa 500 slot/lần;
+- pessimistic lock khi commit;
+- không cho đổi movie/auditorium/start time của showtime đã có booking;
+- vẫn cho đổi price/status của showtime đã bán vé;
+- từ V34, planner còn phát hiện cả khoảng bảo trì/khóa phòng.
+
+Timezone mặc định:
+
+```text
+Asia/Ho_Chi_Minh
+```
+
+Có thể cấu hình:
+
+```properties
+app.showtime.turnaround-minutes=15
+app.showtime.zone=Asia/Ho_Chi_Minh
+```
+
+---
+
+## 4. V32 — Sold-out Waitlist & Seat Alerts
+
+Khi showtime hết ghế, khách có thể đăng ký **Báo khi có ghế**.
+
+Backend định kỳ kiểm tra availability và tạo notification khi ghế được mở lại bởi:
+
+- booking timeout;
+- cancellation;
+- refund;
+- seat-hold expiry.
+
+Database dùng atomic claim để tránh gửi trùng alert khi cả `backend-1` và `backend-2` cùng chạy scheduler.
+
+Migration:
+
+```text
+V32__showtime_waitlist.sql
+```
+
+---
+
+## 5. V31 — Ticket Wallet & Calendar
+
+Trang `/bookings` là ví vé gồm:
+
+- upcoming / past / all;
+- search booking/movie/seat;
+- status filter;
+- booking summary metrics;
+- tải `.ics`;
+- copy booking code;
+- print e-ticket.
+
+Calendar endpoint:
+
+```text
+GET /api/bookings/{id}/calendar.ics
+```
+
+Endpoint kiểm tra booking ownership và chỉ xuất calendar cho booking hợp lệ.
+
+---
+
+## PWA V26 compatibility note
+
+V26 has no schema migration. PWA/offline-ticket changes are frontend/service-worker features and preserve the existing database schema.
+
+## 6. V30 — Movie Discovery & Showtime Calendar
+
+- bộ lọc phim nâng cao;
+- sort phim;
+- calendar theo tháng/ngày;
+- chi tiết phim chỉ hiện showtime ngày đang chọn;
+- hỗ trợ catalog/lịch demo đến 30/09/2026.
+
+---
+
+## 7. Demo catalog & lịch chiếu
+
+V29.3 seed 8 phim active để homepage desktop hiển thị đủ **2 hàng × 4 phim**.
+
+Lịch demo:
+
+```text
+18/08/2026 → 30/09/2026
+8 phim
+2 suất/phim/ngày
+16 suất/ngày
+704 suất mới
+```
+
+Migration demo:
+
+```text
+V29__demo_movies_and_showtimes_september_2026.sql
+```
+
+Không chỉnh sửa migration đã chạy ở production. Nếu cần thay đổi dữ liệu/schema, tạo migration Flyway mới.
+
+---
+
+## 8. Kiến trúc
+
+```text
+Browser / PWA
+      |
+    nginx
+   /     \
+backend-1 backend-2
+   |         |
+   +---- PostgreSQL 18.4
+   +---- Redis 8.8
+```
+
+Docker Compose services:
+
+```text
+postgres
+redis
+backend-1
+backend-2
+frontend
+nginx
+```
+
+Optional observability profile có Prometheus/Grafana nếu cấu hình tương ứng.
+
+Frontend internal port:
+
+```text
+3000
+```
+
+Backend internal port:
+
+```text
+8080
+```
+
+Default public HTTP port:
+
+```text
+80
+```
+
+Có thể đổi bằng:
+
+```text
+HTTP_PORT
+```
+
+---
+
+## 9. Yêu cầu môi trường
+
+Khuyến nghị:
+
+```text
+Docker Desktop / Docker Engine + Compose
+Java 25 nếu chạy backend ngoài Docker
+Node.js 24 nếu chạy frontend ngoài Docker
+Python 3 để chạy source verifiers
+Windows PowerShell 5.1+ cho diagnostic/backup scripts trên Windows
+```
+
+Kiểm tra:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v28.ps1
+docker version
+docker compose version
+java -version
+node --version
+python --version
 ```
 
-The full Testcontainers suite runs with Maven + Docker using:
+---
 
-```bash
-cd backend
-mvn -B -ntp verify -Pci-integration
-```
+## 10. Environment variables
 
-## V27.1 - Windows PowerShell runtime compatibility hotfix
+Tạo file local `.env` từ `.env.example`.
 
-- Removes critical reliance on captured `docker compose exec` stdout in V27 diagnostics/verification tests.
-- `flyway_schema_history` is now optional for backup safety; when present in the source DB, the restore smoke test requires it to round-trip.
-- `pg_restore --list` validation now runs fully inside the PostgreSQL container.
+**Không commit `.env` thật.**
 
-# 🎬 CineBooking Pro
-
-## Bản vá Admin 403 / Poster Upload
-
-Nếu Dashboard Admin từng hiện toàn bộ số liệu = 0 và thông báo `403`, nguyên nhân phổ biến là trình duyệt giữ JWT của một CineBooking cũ trên cùng `http://localhost`. Bản này dùng storage key mới, xác minh phiên bằng `/api/me`, trả 401 rõ ràng cho token hết hạn/sai và tự yêu cầu đăng nhập lại. Xem `docs/ADMIN_403_FIX.md`.
-
-
-Đồ án **hệ thống đặt vé xem phim đa nền tảng chịu tải cao** theo hướng Web-first/PWA.
-
-## Feature Pack V24 — High-Traffic Booking & Idempotent Checkout
-
-- `POST /api/bookings` hỗ trợ `Idempotency-Key`: retry cùng nội dung trả lại đúng booking cũ, không tạo đơn trùng.
-- Lưu SHA-256 request fingerprint; dùng lại cùng key cho payload khác trả `409 Conflict`.
-- Redis Lua giữ ghế atomically, PostgreSQL `uq_showtime_seat_active` là lớp bảo vệ cuối chống bán trùng.
-- Race chạm unique index ghế được chuyển thành `409` thân thiện thay vì `500`.
-- Có smoke test V24, diagnostic invariant và k6 test riêng cho idempotency retry / tranh chấp cùng một ghế.
-
-Chi tiết: `docs/FEATURE_PACK_V24.md`.
-
-## Feature Pack V20 — Analytics V2 & heatmap vận hành
-
-- Dashboard `/admin/analytics` có KPI doanh thu, AOV, occupancy, payment success, refund rate, check-in và user mới.
-- Lọc theo 7/30/90/365 ngày và theo từng rạp.
-- Hiệu suất theo rạp và top suất chiếu: doanh thu, booking, vé, sức chứa, tỷ lệ lấp đầy.
-- Heatmap vị trí ghế, nhu cầu theo khung giờ và hiệu suất check-in nhân viên.
-- Phân bố trạng thái booking/payment và giữ lại top phim, payment provider, bắp nước.
-- Flyway V20 chỉ thêm index phục vụ truy vấn báo cáo, không sửa dữ liệu nghiệp vụ.
-
-Chi tiết: `docs/FEATURE_PACK_V20.md`.
-
-## Feature Pack V19 — kho bắp nước transactional
-
-- Admin quản lý tồn kho tại `/admin/inventory`: tồn thực tế, đang giữ, khả dụng, ngưỡng sắp hết và hết hàng.
-- Booking `PENDING` giữ tồn kho; huỷ/hết hạn/payment fail tự trả lượng giữ.
-- Payment `SUCCESS` mới xuất kho thật; refund được duyệt hoàn kho đúng một lần.
-- `inventory_movement` lưu sổ RESTOCK / ADJUSTMENT / RESERVE / RELEASE / SALE / REFUND để audit.
-- Trang đặt vé hiển thị số lượng còn lại và khóa nút `+` khi bắp nước/combo hết hàng.
-
-Chi tiết: `docs/FEATURE_PACK_V19.md`.
-
-## Feature Pack V10 — nhân viên, xếp ca, chấm công & kiểm soát cổng vé
-
-Bản hiện tại gồm toàn bộ V8/V9 và bổ sung:
-
-- Admin tạo/chỉnh sửa tài khoản `STAFF / MANAGER` tại `/admin/staff`, phân rạp và khóa tài khoản.
-- Admin/Manager xếp ca tại `/admin/shifts`; Manager chỉ xếp `STAFF` cùng rạp.
-- Chặn ca trùng giờ và hỗ trợ ca qua đêm.
-- Nhân viên xem lịch, bắt đầu/kết thúc ca tại `/staff/schedule`.
-- Quét QR tại `/staff/check-in` chỉ khi nhân viên đang trong ca và vé thuộc đúng rạp.
-- Audit log cho tạo/sửa/hủy ca, chấm công và check-in vé.
-- ADMIN giữ quyền check-in khẩn cấp không cần ca.
-- QR ticket ký HMAC, refund workflow, Seat Layout Editor, RBAC, Argon2id và Redis login rate limiting từ V8.
-
-Chi tiết: `docs/FEATURE_PACK_V10.md`.
-
-## Stack
-
-- Next.js 16.3 + React 19.2 + TypeScript + Tailwind CSS 4
-- Expo SDK 57 + React Native 0.86 (ứng dụng bonus Android/iOS)
-- Java 25 + Spring Boot 4.1
-- PostgreSQL 18.4
-- Redis 8.8
-- WebSocket/STOMP
-- Nginx load balancing 2 backend instances
-- Mock Payment + VNPay Sandbox + MoMo Sandbox adapters
-- QR ticket (ZXing)
-- Docker Compose
-- k6 load test / contention test
-
-## Điểm kỹ thuật chính
-
-- Redis Lua script giữ **nhiều ghế atomically** trong 300 giây.
-- PostgreSQL có `UNIQUE(showtime_id, seat_id)` để bảo vệ invariant không bán trùng.
-- Booking `PENDING` tự hết hạn; job xóa reservation và trả ghế.
-- Realtime seat event qua WebSocket/STOMP; Redis Pub/Sub đồng bộ event giữa nhiều backend instance.
-- Backend stateless JWT nên có thể scale ngang sau Nginx.
-- PWA chạy trên desktop/mobile và có thể Add to Home Screen.
-
-## Chạy nhanh
-
-### 1. Chuẩn bị
-
-Cần Docker + Docker Compose.
-
-Trên Windows/PowerShell, tạo `.env` và sinh `JWT_SECRET` ngẫu nhiên 256-bit:
+Tạo secret local bằng helper:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\init-env.ps1
 ```
 
-Trên Linux/macOS có thể copy thủ công `.env.example` sang `.env`, sau đó đặt `JWT_SECRET` bằng một secret ngẫu nhiên tối thiểu 32 bytes.
-Docker Compose V26.1 sẽ **từ chối khởi động backend nếu `JWT_SECRET` bị thiếu/rỗng**; backend cũng chặn giá trị mẫu mặc định.
+JWT secret phải đủ mạnh và backend fail-fast nếu secret thiếu/placeholder/quá ngắn.
 
-**Đổi ngay** `ADMIN_PASSWORD` nếu triển khai ngoài máy local. Không commit `.env` lên Git.
+Kiểm tra file nhạy cảm không bị Git track:
 
-### 2. Khởi động
+```powershell
+git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
+```
 
-```bash
-docker compose up --build
+Lệnh trên phải không trả về gì.
+
+---
+
+## 11. Chạy hệ thống local
+
+```powershell
+docker compose up -d --build
+docker compose ps
 ```
 
 Mở:
 
-- App: `http://localhost`
-- Health backend: `http://localhost/api/../actuator/health` (qua trực tiếp backend nếu expose riêng; mặc định Nginx chỉ route `/api`)
-
-Tài khoản admin mặc định trong `.env.example`:
-
-- Email: `admin@cine.local`
-- Password: `Admin@123`
-
-### 3. Demo user
-
-Có thể tạo tài khoản mới ở `/register`.
-
-Dữ liệu demo hiện có **8 phim đang chiếu** (đủ 2 hàng desktop), 1 rạp, 5 phòng và lịch chiếu hằng ngày đến hết **30/09/2026**. V29.3 bổ sung 4 phòng demo và 704 suất chiếu xác định trước mà không sửa các migration Flyway cũ.
-
-
-## PostgreSQL 18 / SQL / tạo CSDL
-
-Dự án dùng PostgreSQL 18 và Flyway. Với PostgreSQL Docker Official Image **18+**, volume phải mount ở `/var/lib/postgresql` (không còn dùng `/var/lib/postgresql/data` như các bản cũ). File `docker-compose.yml` của bản này đã được sửa theo layout mới.
-
-SQL nằm tại:
-
 ```text
-backend/src/main/resources/db/migration/
-├── V1__init.sql       # tạo schema/tables/index/constraints
-└── V2__seed_demo.sql  # dữ liệu demo
+http://localhost
 ```
 
-Khi `postgres` healthy, Spring Boot kết nối database và Flyway tự chạy `V1` rồi `V2`. Không cần import SQL thủ công nếu chạy bằng Docker Compose.
-
-PostgreSQL Docker được expose mặc định ra host:
-
-```text
-Host:     localhost
-Port:     5433
-Database: cinebooking
-User:     cinebooking
-Password: cinebooking
-```
-
-Xem thêm `database/README.md`.
-
-## Thanh toán
-
-### MOCK
-
-Mặc định dùng `MOCK`, không cần credentials. Đây là cách tốt nhất để demo offline hoặc khi bảo vệ đồ án.
-
-### VNPay Sandbox
-
-Điền:
-
-```env
-VNPAY_TMN_CODE=...
-VNPAY_HASH_SECRET=...
-VNPAY_RETURN_URL=http://your-host/payment/result
-VNPAY_IPN_URL=https://public-host/api/payments/vnpay/ipn
-```
-
-VNPay callback/IPN phải truy cập được từ internet khi test server-to-server.
-
-### MoMo Sandbox
-
-Điền:
-
-```env
-MOMO_PARTNER_CODE=...
-MOMO_ACCESS_KEY=...
-MOMO_SECRET_KEY=...
-MOMO_REDIRECT_URL=http://your-host/payment/result
-MOMO_IPN_URL=https://public-host/api/payments/momo/ipn
-```
-
-## Test tranh chấp một ghế
-
-Cài k6, sau đó xác định một `SEAT_ID` còn trống.
-
-```bash
-k6 run \
-  -e BASE_URL=http://localhost/api \
-  -e SHOWTIME_ID=55555555-5555-5555-5555-555555555555 \
-  -e SEAT_ID=<uuid-ghe> \
-  -e VUS=100 \
-  loadtest/contention.js
-```
-
-Threshold `hold_success: count==1` và `booking_success: count==1` yêu cầu **chỉ đúng một người giữ được ghế và chỉ đúng một booking thành công**.
-
-> Sau một lần test, ghế thắng cuộc đang nằm trong booking PENDING. Reset volume hoặc chọn ghế khác trước khi chạy lại.
-
-## Load test 1.000 users
-
-```bash
-k6 run -e BASE_URL=http://localhost/api loadtest/high-traffic.js
-```
-
-Mặc định ramp lên 1.000 VU và kiểm tra:
-
-- error rate < 1%
-- p95 < 800ms
-- p99 < 1500ms
-
-Các threshold là mục tiêu demo, không phải cam kết production; kết quả phụ thuộc CPU/RAM/mạng của máy chạy.
-
-## Cấu trúc thư mục
-
-```text
-cinebooking-pro/
-├── backend/                 Spring Boot API
-├── frontend/                Next.js PWA
-├── mobile/                  Expo/React Native bonus app
-├── infra/nginx/             Load balancer/reverse proxy
-├── loadtest/                k6 scripts
-├── docs/                    Kiến trúc, ERD, API, kịch bản demo
-├── docker-compose.yml
-└── .env.example
-```
-
-## Luồng nghiệp vụ
-
-```text
-Chọn suất chiếu
-  -> Xem seat map
-  -> Chọn ghế
-  -> Redis atomic hold (TTL 5 phút)
-  -> Tạo booking PENDING + DB unique reservation
-  -> Chọn MOCK / VNPay / MoMo
-  -> Payment success
-  -> Booking CONFIRMED
-  -> Phát hành QR ticket
-```
-
-Nếu payment fail hoặc booking hết hạn, `booking_seat` bị xóa và ghế mở lại.
-
-## Lưu ý production
-
-Đây là bản đồ án/portfolio có kiến trúc tốt để demo và benchmark. Trước khi dùng thật nên bổ sung thêm:
-
-- TLS/HTTPS thực tế, secret manager, rotation key.
-- Refresh token / token revocation hoặc OAuth2/OIDC.
-- WAF / reverse-proxy hardening và rate limit theo IP ở edge. (Login rate limiting + audit log đã có trong V8.)
-- Outbox/event broker cho email/notification/payment event.
-- PostgreSQL HA/replication, Redis Sentinel/Cluster nếu cần.
-- Observability đầy đủ: Prometheus, Grafana, OpenTelemetry.
-- Idempotency-Key cho API tạo booking/payment.
-- Testcontainers/integration tests và CI/CD.
-- Tích hợp máy quét chuyên dụng/offline sync cho cổng soát vé. (QR ký HMAC + check-in một lần đã có trong V8.)
-
-## Tài liệu
-
-- `docs/ARCHITECTURE.md`
-- `docs/ERD.md`
-- `docs/API.md`
-- `docs/DEMO_SCRIPT.md`
-
-## Bonus mobile Android/iOS
-
-Thư mục `mobile/` là app Expo SDK 57 dùng chung backend.
-
-```bash
-cd mobile
-cp .env.example .env
-npm install
-npx expo start
-```
-
-Trên điện thoại thật, sửa `EXPO_PUBLIC_API_URL` thành IP LAN của máy đang chạy Docker, ví dụ `http://192.168.1.10/api`. Không dùng `localhost` vì khi đó localhost là chính điện thoại.
-
-## Observability (tùy chọn)
-
-Chạy thêm Prometheus + Grafana:
-
-```bash
-docker compose --profile observability up --build
-```
-
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3001` (`admin` / `admin` trong môi trường demo)
-
-Prometheus scrape trực tiếp `/actuator/prometheus` của cả `backend-1` và `backend-2`, phù hợp để trình bày latency, throughput, JVM và HTTP metrics khi chạy k6.
-
-## Spring Boot 4 + Flyway note
-
-Spring Boot 4 modularized Flyway auto-configuration. This project therefore uses
-`spring-boot-starter-flyway` plus `flyway-database-postgresql`. If the database is
-empty and the backend reports `Schema validation: missing table [app_user]`, rebuild
-the backend image so the Flyway starter is included:
+Xem log:
 
 ```powershell
-docker compose up -d --build backend-1 backend-2
-docker compose logs -f backend-1
+docker compose logs --tail=200 backend-1
+docker compose logs --tail=200 backend-2
+docker compose logs --tail=100 frontend
+docker compose logs --tail=100 nginx
 ```
 
-On a successful first startup you should see Flyway create `flyway_schema_history`
-and apply `V1__init.sql` and `V2__seed_demo.sql` before Hibernate schema validation.
+### Cập nhật source bình thường
+
+```powershell
+docker compose up -d --build
+```
+
+**Do not use `docker compose down -v` for normal updates.**  
+Lệnh đó xóa volume và có thể xóa database local.
+
+Makefile target `reset` bị khóa chủ động để bảo vệ dữ liệu.
 
 ---
 
-## Full account / admin / payment features (added)
+## 12. Database migrations
 
-### Account
-- Register from `/login` or `/register`.
-- Forgot password: `/forgot-password`.
-- Reset password tokens are SHA-256 hashed in `password_reset_token`, single-use, default TTL 30 minutes.
-- Local development: `DEV_RESET_LINK=true` returns a local reset link so SMTP is not required.
-- Production email: set `MAIL_ENABLED=true` and configure the `MAIL_*` variables.
-- Profile: `/profile` lets a signed-in user update full name, phone and change password.
+Flyway chạy khi backend startup.
 
-### Admin
-`/admin` now has CRUD screens for:
-- Movies (delete is a safe hide/soft-delete)
-- Cinemas
-- Auditoriums
-- Showtimes
-- Seats
-- Users / roles
-- Booking overview
+Các mốc schema quan trọng:
 
-Destructive deletes are rejected when database relations make deletion unsafe (for example, a seat already used by a booking).
-
-### Payment providers
-Supported `provider` values:
-- `MOCK`
-- `VNPAY`
-- `VNPAY_QR`
-- `MOMO`
-- `MOMO_QR`
-
-`VNPAY_QR` creates a VNPAY payment URL with `vnp_BankCode=VNPAYQR`.
-`MOMO_QR` uses MoMo `captureWallet`, stores `qrCodeUrl` payload and renders it as a QR on `/payment/qr`.
-
-#### VNPAY Sandbox
-Fill in `.env`:
-```env
-VNPAY_TMN_CODE=YOUR_SANDBOX_TMN_CODE
-VNPAY_HASH_SECRET=YOUR_SANDBOX_HASH_SECRET
-VNPAY_RETURN_URL=http://localhost/payment/result
-VNPAY_IPN_URL=https://YOUR_PUBLIC_HTTPS_HOST/api/payments/vnpay/ipn
+```text
+V1..V25   Core product/platform features
+V29       Demo catalog + September 2026 schedule
+V32       Showtime waitlist
+V34       Auditorium maintenance blackout windows
 ```
-For local-only browser testing the return URL may use localhost. For true server-to-server IPN, use a public HTTPS URL and configure the same IPN endpoint in the VNPAY merchant/sandbox configuration.
 
-#### MoMo Sandbox
-Fill in `.env`:
-```env
-MOMO_PARTNER_CODE=YOUR_PARTNER_CODE
-MOMO_ACCESS_KEY=YOUR_ACCESS_KEY
-MOMO_SECRET_KEY=YOUR_SECRET_KEY
-MOMO_REDIRECT_URL=http://localhost/payment/result
-MOMO_IPN_URL=https://YOUR_PUBLIC_HTTPS_HOST/api/payments/momo/ipn
+Sau V34, Flyway latest version phải là:
+
+```text
+34
 ```
-For direct QR display, the frontend uses the `qrCodeUrl` payload returned by MoMo. Production merchants may need MoMo permission for QR/deeplink response fields.
 
-### Apply new database migrations
-If your database is already at Flyway version 2, rebuild/restart the backend. Flyway will apply:
-- `V3__user_profile_and_password_reset.sql`
-- `V4__payment_checkout_fields.sql`
+Không sửa nội dung migration cũ đã được áp dụng. Luôn tạo migration mới.
+
+---
+
+## 13. Backup / verify / restore PostgreSQL
+
+Backup được lưu dưới:
+
+```text
+./backups
+```
+
+Compose mount:
+
+```text
+./backups:/backups
+```
+
+### Tạo backup
 
 ```powershell
-docker compose up -d --build backend-1 backend-2
-
-docker compose logs -f backend-1
-```
-Then verify:
-```powershell
-docker compose exec postgres psql -U cinebooking -d cinebooking -c "SELECT version,description,success FROM flyway_schema_history ORDER BY installed_rank;"
+powershell -ExecutionPolicy Bypass -File .\tools\backup-db.ps1
 ```
 
-## Upload poster từ máy
+Backup dùng PostgreSQL custom archive và tạo SHA-256 sidecar.
 
-Admin có thể upload JPG/PNG/WebP trực tiếp ở tab **Phim**. File được lưu trong `./uploads/movies` và hai backend dùng chung thư mục này. Xem `docs/POSTER_UPLOAD.md`.
-
-## Full cinema backgrounds
-
-The site now uses `frontend/public/backgrounds/cinema-main.png` as the full-page background. Seat-booking routes (`/booking/[showtimeId]`) automatically switch to `frontend/public/backgrounds/cinema-booking-red.png`. See `docs/CINEMA_BACKGROUND_IMAGES.md`.
-
-## Feature Pack V6
-
-- Phim yêu thích và trang `/favorites`.
-- Đánh giá phim 1-5 sao, điểm trung bình và bình luận thành viên.
-- Admin kiểm duyệt review tại `/admin/reviews`.
-- Thành viên BRONZE/SILVER/GOLD/DIAMOND và tích điểm sau payment thành công.
-- Flyway `V6__engagement_and_loyalty.sql`; không cần xóa database cũ.
-
-Chi tiết: `docs/FEATURE_PACK_V6.md`.
-
-## Feature Pack V7 – Commerce, Voucher, Notification, Analytics
-
-Bản này bổ sung quy trình thương mại hoàn chỉnh hơn cho CineBooking:
-
-- Cine Food: bắp nước/combo đi cùng booking.
-- Voucher phần trăm hoặc số tiền cố định.
-- Dùng điểm thành viên để giảm giá và hoàn điểm khi booking hết hạn.
-- Notification Center + nhắc giờ chiếu chống gửi trùng trên nhiều backend instance.
-- Admin quản lý bắp nước/voucher tại `/admin/commerce`.
-- Dashboard doanh thu tại `/admin/analytics`.
-- Flyway migration `V7__commerce_vouchers_notifications_analytics.sql`.
-
-Xem `docs/FEATURE_PACK_V7.md` để biết chi tiết.
-
-## V9 - Employee accounts
-
-Admin can manage dedicated STAFF/MANAGER accounts at `/admin/staff`, including cinema assignment, employee code, employment status, login enable/disable and password reset. See `docs/FEATURE_PACK_V9.md`.
-
-## V21 - Security & Session Management
-
-V21 adds revocable multi-device login sessions with short-lived access JWTs and rotating HttpOnly refresh-token cookies. Users can review/revoke devices from **Tài khoản → Bảo mật & thiết bị**; Admin can inspect/revoke a user's sessions through `/api/admin/security`. Password reset revokes all sessions, password change revokes other devices, and disabling/deleting staff revokes active sessions immediately. Nginx also adds baseline browser security headers.
-
-After upgrading, existing V20 access tokens intentionally require one fresh login because V21 access tokens include a server-side session id (`sid`). Local HTTP keeps `REFRESH_COOKIE_SECURE=false`; production HTTPS should set it to `true`.
-
-Run:
+### Verify backup
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v21.ps1
-powershell -ExecutionPolicy Bypass -File .\tools\test-v21.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\verify-db-backup.ps1 -BackupPath .\backups\<file>.dump
 ```
 
-## V22 - Notification Center V2
+Verify gồm SHA-256 và `pg_restore --list`.
 
-V22 adds per-user notification channels and category preferences. The existing bell/in-app feed now supports optional SMTP email delivery, browser notifications while CineBooking is open, booking/refund/showtime/staff-shift categories, a test-notification action, and staff shift assignment/update/cancellation reminders. Scheduled shift reminders are deduplicated in PostgreSQL so the two backend instances cannot create duplicate reminders.
+### Test restore an toàn
 
-Flyway migration: `V22__notification_center_v2.sql`. Run `tools/diagnose-v22.ps1` and `tools/test-v22.ps1` after upgrading. Existing database data is preserved; do **not** use `docker compose down -v` for this upgrade.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\test-v27.ps1
+```
 
-## V23 - Attendance V2, Leave & Timesheet
+Test chỉ restore vào temporary database và không drop production/local main DB.
 
-V23 upgrades staff operations with attendance quality metrics (`late_minutes`, `early_leave_minutes`, `worked_minutes`, punctuality status), employee leave requests/approval, approved-leave shift blocking, and a monthly timesheet dashboard for Manager/Admin. Staff manage leave from `/staff/schedule`; Manager/Admin use `/admin/attendance`.
+### Restore thật
 
-Flyway migration: `V23__attendance_leave_timesheet.sql`. Run `tools/diagnose-v23.ps1` and `tools/test-v23.ps1` after upgrading. Existing booking/payment/inventory data is preserved; do **not** use `docker compose down -v` when keeping the current database.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\restore-db.ps1 -BackupPath .\backups\<file>.dump -ConfirmRestore
+```
 
-## V26.2 PWA manifest runtime fix
+Restore flow:
 
-If Windows PowerShell reports `Manifest display must be standalone (actual: '')` even though `/manifest.webmanifest` returns HTTP 200, use the V26.2 static-manifest patch. See `docs/V26_2_MANIFEST_RUNTIME_FIX.md`.
+1. verify archive;
+2. tạo safety backup;
+3. stop `backend-1` và `backend-2`;
+4. recreate DB sạch từ `template0`;
+5. `pg_restore --exit-on-error`;
+6. rollback tự động nếu restore thất bại khi có thể.
 
+**Do not run `docker compose down -v` as a backup/restore shortcut.**
 
-## V27.2 - Windows PowerShell restore smoke-test fix
+---
 
-V27.2 keeps the V27 backup/restore safety design and fixes the non-destructive restore smoke test on Windows PowerShell 5.1. The public-table count query is now executed from a temporary SQL file in the existing `./backups:/backups` mount instead of embedding `count(*)` inside nested `sh -lc` command substitution. See `docs/V27_2_RESTORE_PROBE_FIX.md`.
+## 14. Frontend toolchain policy
 
-## V28.1 local-artifact verifier hotfix
+Toolchain được giữ trong vùng đã tương thích với Next.js hiện tại:
 
-V28.1 allows the expected local `.env` and V27 `backups/*.dump` files to exist while ensuring they are not tracked by Git. This removes a Windows/local diagnostic false-positive without weakening source-control leak protection. See `UPGRADE_V28_1.md`.
+- ESLint 9.x;
+- TypeScript 5.x;
+- `@playwright/test` pin exact trong dòng được dự án kiểm chứng.
 
+Dependabot vẫn cập nhật patch/minor phù hợp nhưng không tự động đưa các major chưa tương thích vào CI.
 
-## V28.4 CI docs-regression fix
+Lint:
 
-V28.4 makes the V27 safety verifier Markdown-aware so the documented warning against `docker compose down -v` is recognized correctly by CI even when **not** is Markdown-bold. No runtime or database behavior changes.
+```powershell
+cd frontend
+npm install
+npm run lint
+```
 
-## V28.5 CI V27 Git/local-artifact verifier fix
+Production build:
 
-V28.5 makes the V27 safety regression Git-aware: local `.env` and `backups/*.dump` files are allowed but must remain untracked, and Markdown-formatted warnings against `docker compose down -v` are recognized correctly. No runtime/database behavior changes.
+```powershell
+npm run build
+```
 
+---
 
-## V28.6 CI V27 documentation-scope fix
+## 15. Playwright E2E
 
-V28.6 removes a false-positive that required the V27 `docker compose down -v` warning to be duplicated in the root README. The dedicated V27 backup/restore guide remains the source of truth for that safety warning.
+Browser E2E chạy Chromium qua nginx/full stack.
 
-## V29.2 - Playwright browser E2E
+Các journey chính:
 
-V29.2 adds a Chromium release-candidate E2E journey through nginx: register, explicit login, Quick Booking, seat hold, MOCK payment, ticket QR, and `/staff/check-in` confirmation through the disposable RC Admin gate. The normal CI remains the fast source/build/Testcontainers gate; the manual Release Candidate workflow owns the heavier browser test and uploads Playwright report/trace evidence. See `docs/V29_2_PLAYWRIGHT_E2E.md`.
+```text
+register
+→ login
+→ quick booking
+→ seat hold
+→ mock payment
+→ CONFIRMED ticket
+→ calendar / ticket wallet
+→ QR
+→ staff/admin gate check-in
+```
 
-## V29.3 demo catalog and September 2026 schedule
+Ngoài ra có E2E cho:
 
-V29.3 adds a Flyway-safe demo data migration with eight active movies (two complete desktop rows), four additional demo auditoriums, and two daily showtimes per movie through 2026-09-30. The current Testcontainers integration test validates Flyway V29 and verifies September 30 coverage. See `docs/V29_3_DEMO_CATALOG_SEPTEMBER_SCHEDULE.md`.
+- movie discovery + September calendar;
+- V33 showtime conflict preview;
+- V34 maintenance blackout → planner conflict → cleanup.
 
-## V30 - Movie Discovery & Showtime Calendar
+Chạy khi stack E2E đã sẵn sàng:
 
-V30 improves the customer browsing flow without changing the booking API or database schema. `/movies` now has advanced filters and sorting, `/cinemas` exposes the complete schedule instead of only 14 days, and movie-detail pages provide date-based showtime navigation. See `docs/V30_MOVIE_DISCOVERY_SHOWTIME_CALENDAR.md` and `UPGRADE_V30.md`.
+```powershell
+cd frontend
+npm run e2e
+```
 
-## V31 - Ticket Wallet & Calendar
+Playwright CI timezone:
 
-V31 turns `/bookings` into a searchable/filterable ticket wallet and adds authenticated `.ics` calendar export for confirmed tickets. The e-ticket page also supports calendar download, booking-id copy, and print-friendly output. No database migration is required. See `docs/V31_TICKET_WALLET_CALENDAR.md` and `UPGRADE_V31.md`.
+```text
+Asia/Ho_Chi_Minh
+```
 
+để `datetime-local` deterministic trên GitHub runner.
 
-## V31.2 — Release Candidate determinism
+---
 
-V31.2 hardens the real Chromium release-candidate path: booking status assertions use an unambiguous accessible locator, concurrent admin bootstrap is replica-safe, and disposable smoke/E2E stacks verify that both backend replicas remain running. See `UPGRADE_V31_2.md`.
+## 16. High-Traffic Booking protections
 
-## V32 — Sold-out Waitlist & Seat Availability Alerts
+High-Traffic Booking bao gồm:
 
-V32 adds a real sold-out waitlist: customers can subscribe when a showtime has no available seats, manage alerts at `/waitlist`, and receive a deduplicated notification when a seat reopens. The scanner is multi-replica safe and uses the existing live seat-map consistency model. See `docs/V32_WAITLIST_SEAT_ALERTS.md` and `UPGRADE_V32.md`.
+- booking idempotency key;
+- request fingerprint SHA-256;
+- duplicate/retry replay;
+- seat ownership uniqueness;
+- contention handling;
+- HTTP 409 cho seat race;
+- load-test scripts cho idempotency và contention.
 
-## V33 — Showtime Planner & Conflict Guard
+Mục tiêu là không tạo booking trùng khi client retry hoặc nhiều request cạnh tranh cùng ghế.
 
-V33 adds a dedicated admin scheduling workspace at `/admin/showtimes`: bulk date/time planning, dry-run preview, runtime + cleaning-buffer room collision detection, safe skip-conflict commits, pessimistic room locking, and protection against moving booked showtimes. Release Candidate browser E2E now covers deterministic conflict preview. See `docs/V33_SHOWTIME_PLANNER.md` and `UPGRADE_V33.md`.
+---
+
+## 17. Source verifiers
+
+Verifier V34:
+
+```powershell
+python .\tools\verify_v34_auditorium_blackouts.py
+```
+
+Diagnostic full chain:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v34.ps1
+```
+
+Các verifier quan trọng vẫn được giữ để bắt regression của security, DB safety, CI, Playwright, demo schedule, discovery, ticket wallet, RC determinism, waitlist và showtime planner.
+
+---
+
+## 18. GitHub CI
+
+Workflow chính:
+
+```text
+.github/workflows/ci.yml
+```
+
+Các gate chính:
+
+- backend unit tests;
+- backend Testcontainers integration;
+- PostgreSQL + Redis real containers;
+- Flyway latest-version assertion;
+- frontend lint;
+- frontend production build;
+- V26→V34 source regression checks;
+- Docker Compose config validation;
+- backend/frontend Docker image builds;
+- test/build artifacts.
+
+CI không deploy production.
+
+---
+
+## 19. Release Candidate
+
+Workflow:
+
+```text
+.github/workflows/release-candidate.yml
+```
+
+Workflow là **manual-only** và không publish/deploy.
+
+Sau khi main CI xanh:
+
+```text
+GitHub
+→ Actions
+→ CineBooking Release Candidate
+→ Run workflow
+→ branch: main
+→ version: v34-rc1
+```
+
+RC chạy:
+
+- full disposable Docker stack;
+- nginx/frontend/API smoke;
+- cả hai backend replicas phải sống;
+- Playwright Chromium journeys;
+- release-candidate manifest artifact;
+- cleanup chỉ trên disposable Compose project/volumes.
+
+Không dùng production credentials trong RC.
+
+---
+
+## 20. V34 validation checklist
+
+Sau khi update source:
+
+```powershell
+python .\tools\verify_v34_auditorium_blackouts.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v34.ps1
+docker compose up -d --build
+docker compose ps
+```
+
+Kiểm tra migration:
+
+```powershell
+docker compose logs --tail=200 backend-1
+docker compose logs --tail=200 backend-2
+```
+
+Tìm migration version 34 và đảm bảo cả backend đều `Up`.
+
+Manual functional test:
+
+1. login Admin;
+2. mở `/admin/maintenance`;
+3. chọn một phòng không có showtime ở khoảng test;
+4. tạo blackout;
+5. mở `/admin/showtimes`;
+6. preview một showtime trùng blackout;
+7. xác nhận preview báo `Bảo trì` và `creatable = 0`;
+8. quay lại maintenance và mở phòng.
+
+---
+
+## 21. Commit an toàn
+
+```powershell
+git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
+git add -A
+git status --short
+git commit -m "Add V34 auditorium maintenance and blackout guard"
+git push
+```
+
+`git ls-files` phải không hiển thị `.env` hoặc database dump.
+
+---
+
+## 22. Security / production notes
+
+- Không commit JWT secret thật.
+- Không commit SMTP/payment credentials.
+- Không commit `.env`.
+- Không commit database dump.
+- Không dùng demo admin password ở production.
+- Không expose PostgreSQL/Redis trực tiếp ra Internet.
+- Dùng HTTPS ở reverse proxy/load balancer production.
+- Backup DB trước migration lớn.
+- Kiểm tra CI + RC trước release.
+- Release Candidate workflow hiện không publish image và không deploy production.
+
+---
+
+## 23. Project structure
+
+```text
+backend/                 Spring Boot backend
+frontend/                Next.js frontend + Playwright
+nginx/                   reverse proxy/load balancer
+loadtest/                k6 scenarios
+tools/                   diagnostics, verifiers, backup/restore, E2E scripts
+backups/.gitkeep         safe local backup directory placeholder
+.github/workflows/       CI + manual Release Candidate
+docker-compose.yml       local/full-stack orchestration
+README.md                toàn bộ tài liệu dự án
+```
+
+---
+
+## 24. Current release status
+
+Source target:
+
+```text
+CineBooking Pro V34
+```
+
+Release-candidate label:
+
+```text
+v34-rc1
+```
+
+Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và manual Release Candidate chạy xanh trên clean runner.

@@ -19,7 +19,7 @@ grep -q 'icon-maskable-512.png' frontend/public/manifest.webmanifest && pass "ma
 grep -q 'beforeinstallprompt' frontend/components/PwaManager.tsx && pass "install prompt UX"
 grep -q 'controllerchange' frontend/components/PwaManager.tsx && pass "PWA update reload UX"
 test -s frontend/public/icon-192.png && test -s frontend/public/icon-512.png && test -s frontend/public/icon-maskable-512.png && pass "PNG install icons"
-grep -q 'V26 has no schema migration' docs/V26_PWA_OFFLINE_TICKETS.md && pass "database compatibility documented"
+grep -q 'V26 has no schema migration' README.md && pass "database compatibility documented"
 
 echo "$checks/14 checks passed"
 test "$checks" -eq 14

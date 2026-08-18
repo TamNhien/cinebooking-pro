@@ -60,7 +60,7 @@ check('admin dashboard links to planner','href="/admin/showtimes"' in admin and 
 check('Playwright V33 planner journey exists','admin previews showtime conflicts before scheduling' in e2e)
 check('Playwright V33 test is deterministic preview-only','2026-09-30' in e2e and '10:00, 22:30' in e2e and 'Yêu cầu: 2' in e2e and 'Có thể tạo: 1' in e2e and '/commit' not in e2e)
 check('main CI runs V33 verifier','python3 tools/verify_v33_showtime_planner.py' in ci)
-check('RC defaults to V33 and identifies V33 browser coverage','default: "v33-rc1"' in rc and 'V29.2 + V30 + V31.2 + V33' in rc)
+check('RC is V33-compatible or newer and identifies V33 browser coverage',bool(re.search(r'default: \"v(?:3[3-9]|[4-9][0-9])(?:\.\d+)?-rc\d+\"',rc)) and 'V29.2 + V30 + V31.2 + V33' in rc)
 check('legacy V31 RC verifier accepts newer release candidates','V31-compatible or newer' in v31 and 'v(?:31|3[2-9]|[4-9][0-9])' in v31)
 check('legacy V31.2 verifier accepts RC versions newer than 31.2','rc_tuple >= (31, 2)' in v312)
 check('V33 diagnostics Makefile and reset safety are wired','diagnose-v32.ps1' in diag and 'verify_v33_showtime_planner.py' in diag and 'verify-v33:' in make and 'diagnose-v33:' in make and 'destructive volume reset is disabled' in make and '@exit 1' in make)

@@ -44,9 +44,10 @@ export type Cinema = { id:string; name:string; address:string };
 export type Auditorium = { id:string; cinemaId:string; cinemaName:string; name:string };
 export type AdminSeat = { id:string; auditoriumId:string; auditoriumName:string; rowLabel:string; seatNumber:number; seatType:string; priceModifier:number };
 
-export type ShowtimePlanSlot = { startTime:string; endTime:string; creatable:boolean; conflictShowtimeId?:string; conflictLabel?:string };
+export type ShowtimePlanSlot = { startTime:string; endTime:string; creatable:boolean; conflictType?:"SHOWTIME"|"BLACKOUT"|"BATCH"; conflictShowtimeId?:string; conflictBlackoutId?:string; conflictLabel?:string };
 export type ShowtimePlanPreview = { zoneId:string; turnaroundMinutes:number; requested:number; creatable:number; conflicts:number; slots:ShowtimePlanSlot[] };
 export type ShowtimePlanCommit = { created:number; skipped:number; preview:ShowtimePlanPreview; showtimes:Showtime[] };
+export type AuditoriumBlackout = { id:string; auditoriumId:string; cinemaName:string; auditoriumName:string; startTime:string; endTime:string; reason:string; createdAt:string };
 
 export type MovieReview = { id:string; movieId:string; userId:string; userName:string; rating:number; comment?:string; createdAt:string; updatedAt:string; mine:boolean };
 export type RatingSummary = { averageRating:number; reviewCount:number };

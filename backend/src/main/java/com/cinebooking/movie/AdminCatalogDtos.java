@@ -27,7 +27,9 @@ public final class AdminCatalogDtos {
     public record ShowtimePlanRequest(@NotNull UUID movieId,@NotNull UUID auditoriumId,@NotNull LocalDate fromDate,@NotNull LocalDate toDate,
                                       @NotEmpty @Size(max=12) List<@NotNull LocalTime> startTimes,@NotNull @DecimalMin("0.0") BigDecimal basePrice,
                                       @NotBlank String status,@NotNull Boolean skipConflicts){}
-    public record ShowtimePlanSlot(Instant startTime,Instant endTime,boolean creatable,UUID conflictShowtimeId,String conflictLabel){}
+    public record ShowtimePlanSlot(Instant startTime,Instant endTime,boolean creatable,String conflictType,UUID conflictShowtimeId,UUID conflictBlackoutId,String conflictLabel){}
     public record ShowtimePlanPreview(String zoneId,long turnaroundMinutes,int requested,int creatable,int conflicts,List<ShowtimePlanSlot> slots){}
     public record ShowtimePlanCommitResponse(int created,int skipped,ShowtimePlanPreview preview,List<com.cinebooking.movie.MovieDtos.ShowtimeResponse> showtimes){}
+    public record AuditoriumBlackoutRequest(@NotNull UUID auditoriumId,@NotNull Instant startTime,@NotNull Instant endTime,@NotBlank @Size(max=300) String reason){}
+    public record AuditoriumBlackoutResponse(UUID id,UUID auditoriumId,String cinemaName,String auditoriumName,Instant startTime,Instant endTime,String reason,Instant createdAt){}
 }

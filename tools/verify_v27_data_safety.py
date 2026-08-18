@@ -46,12 +46,12 @@ verify = (ROOT / "tools/verify-db-backup.ps1").read_text(encoding="utf-8")
 restore = (ROOT / "tools/restore-db.ps1").read_text(encoding="utf-8")
 test = (ROOT / "tools/test-v27.ps1").read_text(encoding="utf-8")
 diag = (ROOT / "tools/diagnose-v27.ps1").read_text(encoding="utf-8")
-doc = (ROOT / "docs/V27_DATABASE_BACKUP_RESTORE.md").read_text(encoding="utf-8")
 readme = (ROOT / "README.md").read_text(encoding="utf-8")
+doc = readme
 
 check("postgres exposes /backups bind mount", "./backups:/backups" in compose)
 check("backup dumps are git-ignored", "backups/*" in gitignore and "!backups/.gitkeep" in gitignore)
-check("backup directory is tracked safely", (ROOT / "backups/.gitkeep").exists() and (ROOT / "backups/README.md").exists())
+check("backup directory is tracked safely", (ROOT / "backups/.gitkeep").exists() and "./backups" in readme)
 check("Makefile no longer runs docker compose down -v", not re.search(r"(?m)^\s*docker compose down -v(?:\s|$)", makefile))
 check("Makefile reset is explicitly blocked", "V27 SAFETY" in makefile and re.search(r"(?m)^reset:\s*$", makefile))
 

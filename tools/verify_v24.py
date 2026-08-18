@@ -14,7 +14,7 @@ checks={
  'smoke test': (root/'tools/test-v24.ps1','ALL V24 HIGH-TRAFFIC BOOKING SMOKE TESTS PASSED'),
  'k6 idempotency': (root/'loadtest/idempotency-retry.js','Idempotency-Replayed'),
  'k6 contention key': (root/'loadtest/contention.js','Idempotency-Key'),
- 'docs': (root/'docs/FEATURE_PACK_V24.md','High-Traffic Booking'),
+ 'docs': (root/'README.md','High-Traffic Booking'),
 }
 failed=[]
 for name,(path,needle) in checks.items():

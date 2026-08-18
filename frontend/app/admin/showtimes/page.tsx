@@ -80,8 +80,8 @@ export default function ShowtimePlannerPage(){
 
   return <div className="mx-auto max-w-7xl space-y-7">
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><p className="section-kicker">V33 · SHOWTIME OPERATIONS</p><h1 className="text-3xl font-bold">Lập lịch chiếu & chống trùng phòng</h1><p className="mt-2 max-w-3xl text-slate-400">Tạo nhiều suất theo dải ngày, preview xung đột trước khi ghi dữ liệu. Hệ thống tính cả thời lượng phim và thời gian dọn phòng.</p></div>
-      <Link href="/admin" className="btn btn-secondary">← Admin Dashboard</Link>
+      <div><p className="section-kicker">V34 · SHOWTIME OPERATIONS</p><h1 className="text-3xl font-bold">Lập lịch chiếu & chống trùng phòng</h1><p className="mt-2 max-w-3xl text-slate-400">Tạo nhiều suất theo dải ngày, preview xung đột trước khi ghi dữ liệu. Hệ thống tính cả thời lượng phim, thời gian dọn phòng và các khoảng bảo trì/khóa phòng.</p></div>
+      <div className="flex gap-2"><Link href="/admin/maintenance" className="btn btn-secondary">🛠 Bảo trì phòng</Link><Link href="/admin" className="btn btn-secondary">← Admin Dashboard</Link></div>
     </div>
 
     {error&&<div className="rounded-xl border border-red-800/60 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}

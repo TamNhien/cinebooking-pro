@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
@@ -48,7 +49,8 @@ check('booking page exposes notify/cancel seat alert CTA', 'Báo khi có ghế' 
 check('dedicated waitlist management page exists', 'Danh sách chờ suất chiếu' in waitpage and '/waitlist/me' in waitpage)
 check('waitlist page supports cancellation and booking deep link', 'method:"DELETE"' in waitpage and 'href={`/booking/${x.showtimeId}`}' in waitpage)
 check('header exposes waitlist navigation', 'href="/waitlist"' in header)
-check('integration test expects Flyway V32 and waitlist table', 'isEqualTo("32")' in it and 'showtime_waitlist' in it)
+latest_versions=[int(x) for x in re.findall(r'isEqualTo\(\"(\d+)\"\)',it)]
+check('integration test expects Flyway V32 or newer and waitlist table', bool(latest_versions) and max(latest_versions)>=32 and 'showtime_waitlist' in it)
 check('main CI runs V32 verifier', 'python3 tools/verify_v32_waitlist.py' in ci)
 check('V32 diagnostics chain V31 and V32 verifiers', 'diagnose-v31.ps1' in diag and 'verify_v32_waitlist.py' in diag)
 check('Makefile exposes V32 verification', 'verify-v32:' in make and 'diagnose-v32:' in make)

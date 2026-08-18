@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V28 source regression
+    name: V26-V34 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -204,6 +204,9 @@ jobs:
 
       - name: Verify V33 showtime planner and conflict guard
         run: python3 tools/verify_v33_showtime_planner.py
+
+      - name: Verify V34 auditorium maintenance blackouts
+        run: python3 tools/verify_v34_auditorium_blackouts.py
 
   compose-config:
     name: Docker Compose validation

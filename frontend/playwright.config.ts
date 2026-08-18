@@ -14,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:18080",
     locale: "vi-VN",
+    timezoneId: "Asia/Ho_Chi_Minh",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

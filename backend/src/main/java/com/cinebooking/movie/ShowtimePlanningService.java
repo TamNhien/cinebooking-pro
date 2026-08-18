@@ -26,6 +26,7 @@ public class ShowtimePlanningService {
     private final MovieRepository movies;
     private final AuditoriumRepository auditoriums;
     private final ShowtimeRepository showtimes;
+    private final AuditoriumBlackoutRepository blackouts;
     private final MovieService movieService;
     private final long turnaroundMinutes;
     private final ZoneId zone;
@@ -33,12 +34,14 @@ public class ShowtimePlanningService {
     public ShowtimePlanningService(MovieRepository movies,
                                    AuditoriumRepository auditoriums,
                                    ShowtimeRepository showtimes,
+                                   AuditoriumBlackoutRepository blackouts,
                                    MovieService movieService,
                                    @Value("${app.showtime.turnaround-minutes:15}") long turnaroundMinutes,
                                    @Value("${app.showtime.zone:Asia/Ho_Chi_Minh}") String zoneId) {
         this.movies = movies;
         this.auditoriums = auditoriums;
         this.showtimes = showtimes;
+        this.blackouts = blackouts;
         this.movieService = movieService;
         this.turnaroundMinutes = Math.max(0, turnaroundMinutes);
         this.zone = ZoneId.of(zoneId);
@@ -47,13 +50,13 @@ public class ShowtimePlanningService {
     @Transactional(readOnly = true)
     public ShowtimePlanPreview preview(ShowtimePlanRequest request) {
         ValidatedPlan plan = validate(request, false);
-        return buildPreview(plan, showtimes.findByAuditoriumIdOrderByStartTimeAsc(request.auditoriumId()));
+        return buildPreview(plan, request.auditoriumId(), showtimes.findByAuditoriumIdOrderByStartTimeAsc(request.auditoriumId()));
     }
 
     @Transactional
     public ShowtimePlanCommitResponse commit(ShowtimePlanRequest request) {
         ValidatedPlan plan = validate(request, true);
-        ShowtimePlanPreview preview = buildPreview(plan, showtimes.findByAuditoriumIdOrderByStartTimeAsc(request.auditoriumId()));
+        ShowtimePlanPreview preview = buildPreview(plan, request.auditoriumId(), showtimes.findByAuditoriumIdOrderByStartTimeAsc(request.auditoriumId()));
         if (preview.conflicts() > 0 && !request.skipConflicts()) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Kế hoạch có " + preview.conflicts() + " khung giờ trùng lịch. Hãy preview và xử lý xung đột hoặc bật bỏ qua khung giờ trùng.");
@@ -85,6 +88,12 @@ public class ShowtimePlanningService {
         auditoriums.findByIdForUpdate(auditoriumId).orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "auditoriumId không tồn tại"));
 
         Instant end = endTime(startTime, movie.getDurationMinutes());
+        var roomBlackouts = blackouts.findByAuditoriumIdAndEndTimeAfterAndStartTimeBeforeOrderByStartTimeAsc(auditoriumId, startTime, end);
+        if (!roomBlackouts.isEmpty()) {
+            var b = roomBlackouts.getFirst();
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Phòng đang bị khóa/bảo trì: " + b.getReason() + " · " + local(b.getStartTime()) + " → " + local(b.getEndTime()));
+        }
         Map<UUID, Movie> movieMap = movieMap();
         for (Showtime existing : showtimes.findByAuditoriumIdOrderByStartTimeAsc(auditoriumId)) {
             if (Objects.equals(existing.getId(), ignoreShowtimeId) || existing.getStatus() == ShowtimeStatus.CANCELLED) continue;
@@ -124,38 +133,54 @@ public class ShowtimePlanningService {
         return new ValidatedPlan(movie, status, starts);
     }
 
-    private ShowtimePlanPreview buildPreview(ValidatedPlan plan, List<Showtime> existing) {
+    private ShowtimePlanPreview buildPreview(ValidatedPlan plan, UUID auditoriumId, List<Showtime> existing) {
         Map<UUID, Movie> movieMap = movieMap();
+        List<com.cinebooking.domain.AuditoriumBlackout> roomBlackouts = blackouts.findByAuditoriumIdOrderByStartTimeAsc(auditoriumId);
         List<ShowtimePlanSlot> slots = new ArrayList<>();
         List<PlannedWindow> accepted = new ArrayList<>();
 
         for (Instant start : plan.starts()) {
             Instant end = endTime(start, plan.movie().getDurationMinutes());
+            com.cinebooking.domain.AuditoriumBlackout blackout = roomBlackouts.stream()
+                    .filter(b -> overlaps(start, end, b.getStartTime(), b.getEndTime()))
+                    .findFirst().orElse(null);
             Showtime conflict = null;
             Movie conflictMovie = null;
-            for (Showtime s : existing) {
-                if (s.getStatus() == ShowtimeStatus.CANCELLED) continue;
-                Movie m = movieMap.get(s.getMovieId());
-                if (m == null) continue;
-                if (overlaps(start, end, s.getStartTime(), endTime(s.getStartTime(), m.getDurationMinutes()))) {
-                    conflict = s;
-                    conflictMovie = m;
-                    break;
+            if (blackout == null) {
+                for (Showtime s : existing) {
+                    if (s.getStatus() == ShowtimeStatus.CANCELLED) continue;
+                    Movie m = movieMap.get(s.getMovieId());
+                    if (m == null) continue;
+                    if (overlaps(start, end, s.getStartTime(), endTime(s.getStartTime(), m.getDurationMinutes()))) {
+                        conflict = s;
+                        conflictMovie = m;
+                        break;
+                    }
                 }
             }
 
+            String conflictType = null;
             String conflictLabel = null;
-            UUID conflictId = null;
-            if (conflict != null) {
-                conflictId = conflict.getId();
+            UUID conflictShowtimeId = null;
+            UUID conflictBlackoutId = null;
+            if (blackout != null) {
+                conflictType = "BLACKOUT";
+                conflictBlackoutId = blackout.getId();
+                conflictLabel = "Bảo trì · " + blackout.getReason() + " · " + local(blackout.getStartTime()) + " → " + local(blackout.getEndTime());
+            } else if (conflict != null) {
+                conflictType = "SHOWTIME";
+                conflictShowtimeId = conflict.getId();
                 conflictLabel = conflictMovie.getTitle() + " · " + local(conflict.getStartTime());
             } else {
                 PlannedWindow internal = accepted.stream().filter(w -> overlaps(start, end, w.start(), w.end())).findFirst().orElse(null);
-                if (internal != null) conflictLabel = "Khung mới cùng batch · " + local(internal.start());
+                if (internal != null) {
+                    conflictType = "BATCH";
+                    conflictLabel = "Khung mới cùng batch · " + local(internal.start());
+                }
             }
 
             boolean creatable = conflictLabel == null;
-            slots.add(new ShowtimePlanSlot(start, end, creatable, conflictId, conflictLabel));
+            slots.add(new ShowtimePlanSlot(start, end, creatable, conflictType, conflictShowtimeId, conflictBlackoutId, conflictLabel));
             if (creatable) accepted.add(new PlannedWindow(start, end));
         }
         long conflicts = slots.stream().filter(s -> !s.creatable()).count();

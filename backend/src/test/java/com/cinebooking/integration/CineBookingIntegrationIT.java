@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import com.cinebooking.movie.ShowtimePlanningService;
+import com.cinebooking.movie.AuditoriumBlackoutService;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -21,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -62,9 +64,10 @@ class CineBookingIntegrationIT {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired ShowtimePlanningService showtimePlanning;
+    @Autowired AuditoriumBlackoutService blackoutService;
 
     @Test
-    void flywayMigratesRealPostgresToV32WaitlistAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV34OperationsSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -75,12 +78,15 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(27);
-        assertThat(latest).isEqualTo("32");
-        assertThat(publicTables).isGreaterThanOrEqualTo(31);
+        assertThat(latest).isEqualTo("34");
+        assertThat(publicTables).isGreaterThanOrEqualTo(32);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
         assertThat(waitlistTable).isEqualTo(1);
+        Integer blackoutTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'auditorium_blackout'", Integer.class);
+        assertThat(blackoutTable).isEqualTo(1);
 
         Integer activeMovies = jdbc.queryForObject(
                 "select count(*) from movie where active = true", Integer.class);
@@ -123,6 +129,37 @@ class CineBookingIntegrationIT {
         assertThat(preview.conflicts()).isEqualTo(1);
         assertThat(preview.slots().stream().filter(s -> !s.creatable()).findFirst().orElseThrow().conflictLabel())
                 .contains("Hành Trình Sao Hỏa");
+    }
+
+
+    @Test
+    void showtimePlannerTreatsAuditoriumBlackoutAsConflict() {
+        UUID auditoriumId = UUID.fromString("44444444-4444-4444-4444-444444444445");
+        var created = blackoutService.create(new com.cinebooking.movie.AdminCatalogDtos.AuditoriumBlackoutRequest(
+                auditoriumId,
+                Instant.parse("2026-10-01T03:00:00Z"),
+                Instant.parse("2026-10-01T06:00:00Z"),
+                "V34 integration maintenance"));
+        try {
+            var request = new com.cinebooking.movie.AdminCatalogDtos.ShowtimePlanRequest(
+                    UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                    auditoriumId,
+                    LocalDate.of(2026, 10, 1),
+                    LocalDate.of(2026, 10, 1),
+                    List.of(LocalTime.of(10, 30)),
+                    new BigDecimal("90000"),
+                    "OPEN",
+                    true);
+            var preview = showtimePlanning.preview(request);
+            assertThat(preview.requested()).isEqualTo(1);
+            assertThat(preview.creatable()).isZero();
+            assertThat(preview.conflicts()).isEqualTo(1);
+            assertThat(preview.slots().getFirst().conflictType()).isEqualTo("BLACKOUT");
+            assertThat(preview.slots().getFirst().conflictBlackoutId()).isEqualTo(created.id());
+            assertThat(preview.slots().getFirst().conflictLabel()).contains("V34 integration maintenance");
+        } finally {
+            blackoutService.delete(created.id());
+        }
     }
 
     @Test
