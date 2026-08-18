@@ -54,6 +54,7 @@ check('admin dashboard links maintenance operations', 'href="/admin/maintenance"
 check('frontend blackout type exists', 'export type AuditoriumBlackout' in types)
 check('Playwright uses Vietnam timezone for datetime-local determinism', 'timezoneId: "Asia/Ho_Chi_Minh"' in playwright)
 check('V34 browser journey creates maintenance window', 'admin maintenance blackout blocks showtime planning' in e2e and 'V34 RC projector maintenance' in e2e)
+check('V34 maintenance room selector is exact to avoid filter collision', 'getByLabel(\"Phòng bảo trì\", { exact: true })' in e2e)
 check('V34 browser journey proves planner conflict', 'Có thể tạo: 0' in e2e and 'Trùng lịch: 1' in e2e and 'Xung đột: Bảo trì' in e2e)
 check('V34 browser journey cleans up blackout', 'Mở lại phòng' in e2e and 'toHaveCount(0)' in e2e)
 check('Testcontainers expects Flyway V34', 'isEqualTo("34")' in it and 'auditorium_blackout' in it)

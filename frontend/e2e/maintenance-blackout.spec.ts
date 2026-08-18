@@ -13,7 +13,7 @@ test("admin maintenance blackout blocks showtime planning", async ({ page }) => 
 
   await page.goto("/admin/maintenance");
   await expect(page.getByRole("heading", { name: "Bảo trì & khóa phòng chiếu" })).toBeVisible();
-  await page.getByLabel("Phòng bảo trì").selectOption({ label: "CineHub Quận 1 · Phòng 02" });
+  await page.getByLabel("Phòng bảo trì", { exact: true }).selectOption({ label: "CineHub Quận 1 · Phòng 02" });
   await page.getByLabel("Bắt đầu bảo trì").fill("2026-10-01T10:00");
   await page.getByLabel("Kết thúc bảo trì").fill("2026-10-01T13:00");
   await page.getByLabel("Lý do bảo trì").fill(reason);

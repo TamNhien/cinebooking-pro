@@ -702,3 +702,7 @@ v34-rc1
 ```
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và manual Release Candidate chạy xanh trên clean runner.
+
+## V34.1 - RC selector hardening
+
+V34.1 is a test-only reliability patch for the V34 Release Candidate. The maintenance Playwright journey now selects the maintenance-room field with an exact accessible-label match so it cannot collide with the separate maintenance-room filter. No application behavior, database schema, Flyway migration, or production configuration changes are introduced by this patch.
