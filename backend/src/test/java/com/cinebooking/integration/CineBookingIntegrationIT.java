@@ -58,7 +58,7 @@ class CineBookingIntegrationIT {
     @Autowired ObjectMapper objectMapper;
 
     @Test
-    void flywayMigratesRealPostgresToV29DemoCatalog() {
+    void flywayMigratesRealPostgresToV32WaitlistAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -68,9 +68,13 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
                 Integer.class);
 
-        assertThat(migrationCount).isGreaterThanOrEqualTo(26);
-        assertThat(latest).isEqualTo("29");
-        assertThat(publicTables).isGreaterThanOrEqualTo(30);
+        assertThat(migrationCount).isGreaterThanOrEqualTo(27);
+        assertThat(latest).isEqualTo("32");
+        assertThat(publicTables).isGreaterThanOrEqualTo(31);
+
+        Integer waitlistTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
+        assertThat(waitlistTable).isEqualTo(1);
 
         Integer activeMovies = jdbc.queryForObject(
                 "select count(*) from movie where active = true", Integer.class);

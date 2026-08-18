@@ -1,6 +1,7 @@
 from pathlib import Path
 import subprocess
 import sys
+import re
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,7 +100,7 @@ check("Integration test exists", it_path.exists())
 check("Integration test starts PostgreSQL 18.4", 'PostgreSQLContainer("postgres:18.4-alpine")' in it)
 check("Integration test starts Redis 8.8", 'redis:8.8-alpine' in it)
 check("Integration test uses Spring Boot service connections", "@ServiceConnection" in it)
-check("Integration test validates current Flyway V29", "flyway_schema_history" in it and 'isEqualTo("29")' in it)
+check("Integration test validates current Flyway V29 or newer", "flyway_schema_history" in it and re.search(r'isEqualTo\("(?:29|[3-9][0-9])"\)', it) is not None)
 check("Integration test validates Redis read/write", "redisTemplate.opsForValue().set" in it and "redisTemplate.opsForValue().get" in it)
 check("Integration test covers register", '/api/auth/register' in it)
 check("Integration test covers login", '/api/auth/login' in it)

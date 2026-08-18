@@ -120,6 +120,7 @@ export default function Header(){
             {drawerSection==="account"&&<div className="menu-drawer-submenu">
               <Link onClick={close} href="/bookings">🎟 {en?"My tickets":"Vé của tôi"}</Link>
               <Link onClick={close} href="/favorites">❤️ {en?"Favorites":"Yêu thích"}</Link>
+              <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
               <Link onClick={close} href="/notifications">🔔 {en?"Notifications":"Thông báo"}{unread>0?` (${unread})`:""}</Link>
             </div>}
@@ -177,6 +178,7 @@ export default function Header(){
           <Link href="/promotions" className="nav-link">{en?"Promotions":"Ưu đãi"}</Link>
           {auth&&<Link href="/bookings" className="nav-link">{en?"My tickets":"Vé của tôi"}</Link>}
           {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
+          {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
           {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link">Ca làm</Link>}
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link">Check-in</Link>}

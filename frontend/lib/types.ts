@@ -111,3 +111,6 @@ export type PricingQuote = {
   showtimeId:string; seatId:string; seatCode:string; seatType:string; cinemaName:string; auditoriumName:string; movieTitle:string; showtimeStart:string; pricingTimeZone:string;
   basePrice:number; seatModifier:number; priceBeforeDynamic:number; dynamicAdjustment:number; finalPrice:number; appliedRules:AppliedPricingRule[];
 };
+
+export type WaitlistStatus = { showtimeId:string; subscribed:boolean; status:"NONE"|"ACTIVE"|"NOTIFIED"|"CANCELLED"|"EXPIRED"; availableSeats:number; createdAt?:string; notifiedAt?:string };
+export type WaitlistItem = { id:string; showtimeId:string; movieTitle:string; showtimeStart:string; cinemaName:string; auditoriumName:string; status:"ACTIVE"|"NOTIFIED"|"CANCELLED"|"EXPIRED"; lastAvailableCount:number; createdAt:string; notifiedAt?:string };

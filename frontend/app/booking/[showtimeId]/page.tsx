@@ -6,7 +6,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { useLanguage } from "@/components/LanguageProvider";
-import type { Booking, ConcessionProduct, PaymentStart, SeatMap, Showtime, UserProfile, VoucherQuote } from "@/lib/types";
+import type { Booking, ConcessionProduct, PaymentStart, SeatMap, Showtime, UserProfile, VoucherQuote, WaitlistStatus } from "@/lib/types";
 
 export default function BookingPage({params}:{params:Promise<{showtimeId:string}>}){
   const {showtimeId}=use(params);
@@ -29,6 +29,8 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true);
   const [fatalError,setFatalError]=useState("");
+  const [waitlist,setWaitlist]=useState<WaitlistStatus|null>(null);
+  const [waitlistBusy,setWaitlistBusy]=useState(false);
   const checkoutKeyRef=useRef<string|null>(null);
   const auth = typeof window !== "undefined" ? getAuth() : null;
 
@@ -61,13 +63,18 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
     }
   },[showtimeId,en]);
 
+  const loadWaitlist=useCallback(async()=>{
+    if(!getAuth()){setWaitlist(null);return;}
+    try{setWaitlist(await api<WaitlistStatus>(`/waitlist/showtimes/${showtimeId}`));}catch{setWaitlist(null);}
+  },[showtimeId]);
+
   const loadPending=useCallback(async()=>{
     if(!getAuth()){setPendingBooking(null);return;}
     try{setPendingBooking(await api<Booking|null>(`/bookings/pending?showtimeId=${encodeURIComponent(showtimeId)}`));}
     catch{setPendingBooking(null);}
   },[showtimeId]);
 
-  useEffect(()=>{setLoading(true);load();loadPending().catch(()=>{});},[load,loadPending]);
+  useEffect(()=>{setLoading(true);load();loadPending().catch(()=>{});loadWaitlist().catch(()=>{});},[load,loadPending,loadWaitlist]);
   useEffect(()=>{
     const scheme=location.protocol==="https:"?"wss":"ws";
     const client=new Client({brokerURL:`${scheme}://${location.host}/ws`,reconnectDelay:2000,onConnect:()=>client.subscribe(`/topic/showtimes/${showtimeId}/seats`,()=>load().catch(()=>{}))});
@@ -75,6 +82,20 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   },[showtimeId,load]);
   useEffect(()=>{if(seconds<=0)return;const t=setInterval(()=>setSeconds(x=>Math.max(0,x-1)),1000);return()=>clearInterval(t);},[seconds]);
   useEffect(()=>{if(held&&seconds===0){setHeld(false);setSelected([]);load().catch(()=>{});}},[seconds,held,load]);
+
+
+  const availableSeats=useMemo(()=>map?.seats.filter(s=>s.status==="AVAILABLE").length??0,[map]);
+  const soldOut=Boolean(map&&map.seats.length>0&&availableSeats===0&&!map.seats.some(s=>s.heldByMe));
+
+  async function toggleWaitlist(){
+    if(!auth){location.href=`/login?returnTo=${encodeURIComponent(`/booking/${showtimeId}`)}&reason=required`;return;}
+    setWaitlistBusy(true);setMessage("");
+    try{
+      if(waitlist?.subscribed){setWaitlist(await api<WaitlistStatus>(`/waitlist/showtimes/${showtimeId}`,{method:"DELETE"}));setMessage(en?"Seat alert cancelled.":"Đã huỷ theo dõi ghế trống.");}
+      else{setWaitlist(await api<WaitlistStatus>(`/waitlist/showtimes/${showtimeId}`,{method:"POST"}));setMessage(en?"Seat alert enabled. We will notify you when seats reopen.":"Đã đăng ký chờ. CineBooking sẽ báo khi có ghế trống trở lại.");}
+    }catch(e){setMessage((e as Error).message);await load();await loadWaitlist();}
+    finally{setWaitlistBusy(false);}
+  }
 
   const selectedSeats=useMemo(()=>map?.seats.filter(s=>selected.includes(s.id))??[],[map,selected]);
   const seatTotal=selectedSeats.reduce((sum,s)=>sum+s.price,0);
@@ -147,6 +168,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
         {rows.length===0?<div className="mx-auto max-w-xl rounded-2xl border border-amber-700/50 bg-amber-950/25 p-6 text-center"><div className="text-4xl">💺</div><h2 className="mt-3 text-lg font-bold text-amber-100">{en?"No seats configured for this auditorium":"Phòng chiếu này chưa có sơ đồ ghế"}</h2><p className="mt-2 text-sm leading-6 text-amber-200/80">{en?"An administrator needs to generate or add seats before customers can book this showtime.":"Admin cần tạo sơ đồ ghế cho phòng chiếu trước khi khách đặt vé."}</p>{auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-primary mt-4 inline-flex">{en?"Open Admin":"Mở trang Admin"}</Link>}</div>:<>
           <div className="overflow-x-auto pb-4"><div className="mx-auto w-max min-w-[620px] space-y-3 px-3">{rows.map(([row,seats])=><div key={row} className="flex items-center justify-center gap-2"><span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span>{seats.map(s=>{const isSelected=selected.includes(s.id);const cls=s.status==="BLOCKED"?"border-slate-800 bg-black/50 text-slate-700 cursor-not-allowed":s.status==="BOOKED"?"border-slate-700 bg-slate-800 text-slate-600 cursor-not-allowed":s.status==="HELD"&&!s.heldByMe?"border-amber-700 bg-amber-900/70 text-amber-200 cursor-not-allowed":isSelected||s.heldByMe?"border-rose-300 bg-rose-500 text-white shadow-lg shadow-rose-950/40":s.seatType==="VIP"?"border-violet-700 bg-violet-950/60 text-violet-200 hover:bg-violet-900":s.seatType==="COUPLE"?"border-pink-700 bg-pink-950/60 text-pink-200 hover:bg-pink-900":s.seatType==="ACCESSIBLE"?"border-cyan-700 bg-cyan-950/60 text-cyan-200 hover:bg-cyan-900":"border-emerald-800 bg-emerald-950/60 text-emerald-200 hover:bg-emerald-900";return <button key={s.id} type="button" aria-label={`${en?"Seat":"Ghế"} ${s.code}`} title={`${s.code} · ${s.seatType} · ${currency(s.price)}${s.dynamicAdjustment?` · Giá động ${s.dynamicAdjustment>0?"+":""}${currency(s.dynamicAdjustment)}${s.pricingRules?.length?` (${s.pricingRules.join(", ")})`:""}`:""} · ${s.status}`} onClick={()=>toggle(s.id,s.status,s.heldByMe)} className={`h-10 w-12 rounded-t-xl rounded-b-md border text-xs font-bold transition ${cls}`}>{s.status==="BLOCKED"?"×":s.seatNumber}</button>})}<span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span></div>)}</div></div>
           <div className="mt-7 grid gap-2 text-xs text-slate-400 sm:grid-cols-2 xl:grid-cols-5"><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-emerald-800 bg-emerald-950/60"/> {en?"Standard":"Ghế thường"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-violet-700 bg-violet-950/60"/> VIP</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-pink-700 bg-pink-950/60"/> {en?"Couple":"Ghế đôi"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded bg-rose-500"/> {en?"Selected":"Đang chọn"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-cyan-700 bg-cyan-950/60"/> ♿ {en?"Accessible":"Ghế hỗ trợ"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded bg-slate-800"/> {en?"Booked/blocked":"Đã đặt/khóa"}</span></div>
+          {soldOut&&<div className="mt-6 rounded-2xl border border-amber-700/60 bg-amber-950/30 p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-bold text-amber-100">🔔 {en?"No seats available right now":"Hiện tại đã hết ghế"}</div><p className="mt-1 text-sm leading-6 text-amber-200/75">{en?"Join the waitlist and CineBooking will notify you when a seat is released.":"Đăng ký danh sách chờ; CineBooking sẽ tự báo khi có ghế được mở lại."}</p></div><button type="button" className={waitlist?.subscribed?"btn btn-secondary":"btn btn-primary"} disabled={waitlistBusy} onClick={toggleWaitlist}>{waitlistBusy?(en?"Saving...":"Đang lưu..."):waitlist?.subscribed?(en?"Cancel alert":"Huỷ theo dõi"):(en?"Notify me":"Báo khi có ghế")}</button></div>{waitlist?.subscribed&&<div className="mt-3 text-xs font-semibold text-emerald-300">✓ {en?"Seat alert is active":"Đang theo dõi suất chiếu này"} · <Link className="underline" href="/waitlist">{en?"Manage waitlist":"Quản lý danh sách chờ"}</Link></div>}</div>}
         </>}
       </div>
 

@@ -199,6 +199,9 @@ jobs:
       - name: Verify V31.2 release-candidate determinism
         run: python3 tools/verify_v31_2_rc_determinism.py
 
+      - name: Verify V32 sold-out waitlist and seat alerts
+        run: python3 tools/verify_v32_waitlist.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

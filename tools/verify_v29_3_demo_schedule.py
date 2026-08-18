@@ -79,11 +79,11 @@ check("daily schedule contains sixteen showtime slots", len(re.findall(r"TIME '[
 check("each of the eight movies receives two showtimes per day", all(slot_counts[mid] == 2 for mid in movie_ids))
 check("schedule documents expected 704 generated showtimes", "= 704 deterministic demo showtimes" in migration)
 
-check("integration test expects current Flyway V29", 'isEqualTo("29")' in it and "flywayMigratesRealPostgresToV29DemoCatalog" in it)
+check("integration test expects Flyway V29 or newer", re.search(r'isEqualTo\("(?:29|[3-9][0-9])"\)', it) is not None and "flywayMigratesRealPostgresToV" in it)
 check("integration test requires at least eight active movies", "assertThat(activeMovies).isGreaterThanOrEqualTo(8)" in it)
 check("integration test verifies September 30 coverage", "2026-09-30 00:00:00+07" in it and "assertThat(september30Movies).isGreaterThanOrEqualTo(8)" in it)
 check("integration test verifies at least sixteen shows on September 30", "assertThat(september30Showtimes).isGreaterThanOrEqualTo(16)" in it)
-check("V28 compatibility verifier follows current Flyway V29", "Integration test validates current Flyway V29" in v28 and 'isEqualTo("29")' in v28)
+check("V28 compatibility verifier accepts current Flyway V29 or newer", "Integration test validates current Flyway V29 or newer" in v28 and "29|[3-9][0-9]" in v28)
 
 check("main CI runs V29.3 demo schedule verifier", "run: python3 tools/verify_v29_3_demo_schedule.py" in ci)
 check("V29 diagnostics include V29.3 verifier", "verify_v29_3_demo_schedule.py" in diag)
