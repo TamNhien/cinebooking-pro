@@ -793,3 +793,26 @@ powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v35.ps1
 ```
 
 V35 là release-engineering upgrade; không thêm migration database và không thay đổi nghiệp vụ booking.
+
+
+### V35 tooling hotfix - setup-node v7 compatibility
+
+GitHub Actions hiện dùng `actions/setup-node@v7` trong main CI, standalone Release Candidate và stable-release workflow. V7 giữ nguyên input/output chính của action nhưng cập nhật runtime nội bộ.
+
+Verifier V28 được giữ backward-compatible: **setup-node v6 hoặc v7** đều được xem là hợp lệ, vì mục tiêu của regression gate là ngăn workflow tụt xuống action major cũ chứ không khóa repo vào đúng một major duy nhất. Baseline hiện tại của CineBooking là:
+
+```text
+actions/checkout@v7
+actions/setup-java@v5
+actions/setup-node@v7
+actions/upload-artifact@v7
+```
+
+Release target vẫn là `v35.0.0-rc.1 -> v35.0.0`; đây chỉ là toolchain compatibility hotfix và không thêm migration database hay thay đổi nghiệp vụ.
+
+Kiểm tra riêng:
+
+```powershell
+python .\tools\verify_v28_ci.py
+python .\tools\verify_v35_setup_node_compat.py
+```

@@ -67,9 +67,13 @@ check(
     "actions/checkout@v6" in workflow or "actions/checkout@v7" in workflow,
 )
 
+check(
+    "Workflow uses supported actions/setup-node@v6 or @v7",
+    "actions/setup-node@v6" in workflow or "actions/setup-node@v7" in workflow,
+)
+
 for action in [
     "actions/setup-java@v5",
-    "actions/setup-node@v6",
     "actions/upload-artifact@v7",
     "docker/setup-buildx-action@v4",
     "docker/build-push-action@v7",

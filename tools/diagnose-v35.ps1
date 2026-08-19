@@ -10,5 +10,9 @@ Write-Host "2) Verify V35 automated release lifecycle"
 python .\tools\verify_v35_release_lifecycle.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+Write-Host "3) Verify GitHub Actions setup-node compatibility"
+python .\tools\verify_v35_setup_node_compat.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 Write-Host "V35 DIAGNOSTICS PASSED"
 Write-Host "Release flow: main CI -> v35.0.0-rc.N -> RC E2E -> v35.0.0 -> GitHub Release"

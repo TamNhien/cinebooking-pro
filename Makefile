@@ -99,3 +99,6 @@ verify-v35:
 
 diagnose-v35:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v35.ps1
+
+verify-v35-node:
+	python tools/verify_v35_setup_node_compat.py
