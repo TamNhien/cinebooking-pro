@@ -593,7 +593,7 @@ GitHub
 → CineBooking Release Candidate
 → Run workflow
 → branch: main
-→ version: v34-rc1
+→ version: v35.0.0-rc.1
 ```
 
 RC chạy:
@@ -692,13 +692,13 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V34
+CineBooking Pro V35
 ```
 
 Release-candidate label:
 
 ```text
-v34-rc1
+v35.0.0-rc.1
 ```
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và manual Release Candidate chạy xanh trên clean runner.
@@ -706,3 +706,90 @@ Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và manu
 ## V34.1 - RC selector hardening
 
 V34.1 is a test-only reliability patch for the V34 Release Candidate. The maintenance Playwright journey now selects the maintenance-room field with an exact accessible-label match so it cannot collide with the separate maintenance-room filter. No application behavior, database schema, Flyway migration, or production configuration changes are introduced by this patch.
+
+
+---
+
+## V35 - Automated Release Lifecycle
+
+V35 chuẩn hóa quy trình phát hành từ `main` thành một chuỗi có kiểm soát và có thể audit:
+
+```text
+feature development
+        ↓
+main CI
+        ↓
+v35.0.0-rc.1
+        ↓
+Release Candidate E2E
+        ↓
+v35.0.0
+        ↓
+GitHub Release
+```
+
+Workflow mới:
+
+```text
+.github/workflows/release.yml
+```
+
+### Nguyên tắc an toàn
+
+- workflow release chỉ chạy bằng `workflow_dispatch`;
+- bắt buộc dispatch từ branch `main`;
+- bắt buộc có `CineBooking CI` **SUCCESS cho đúng commit SHA**;
+- stable version dùng `MAJOR.MINOR.PATCH`;
+- release candidate dùng `vMAJOR.MINOR.PATCH-rc.N`;
+- RC tag được tạo trước khi chạy E2E;
+- RC E2E chạy full Docker smoke + Playwright Chromium;
+- stable tag chỉ được tạo nếu RC E2E PASS;
+- GitHub Release chỉ publish sau stable tag;
+- tag đã tồn tại không bao giờ bị force/move;
+- workflow không push container package và không deploy production.
+
+### Quyền GitHub Token theo job
+
+- `preflight`: `contents: read`, `actions: read`;
+- `rc_tag`: `contents: write`;
+- `rc_e2e`: `contents: read`;
+- `publish`: `contents: write`.
+
+### Cách phát hành V35
+
+Sau khi feature được merge vào `main` và **CineBooking CI** xanh:
+
+```text
+GitHub → Actions → CineBooking Stable Release → Run workflow
+branch: main
+version: 35.0.0
+rc_number: 1
+```
+
+Workflow tự chạy:
+
+```text
+CI SHA verification
+→ create v35.0.0-rc.1
+→ full-stack smoke
+→ Playwright Chromium E2E
+→ create v35.0.0
+→ publish GitHub Release
+```
+
+Nếu RC thất bại do lỗi source và cần commit sửa mới, không di chuyển `rc.1`. Sau khi fix + main CI xanh, chạy lại với `rc_number: 2` để tạo `v35.0.0-rc.2`.
+
+Nếu stable tag `v35.0.0` đã tồn tại, workflow fail an toàn thay vì ghi đè.
+
+### Standalone RC
+
+`.github/workflows/release-candidate.yml` vẫn được giữ để test thủ công không publish, default `v35.0.0-rc.1`, quyền `contents: read`.
+
+### V35 verifier
+
+```powershell
+python .\tools\verify_v35_release_lifecycle.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v35.ps1
+```
+
+V35 là release-engineering upgrade; không thêm migration database và không thay đổi nghiệp vụ booking.

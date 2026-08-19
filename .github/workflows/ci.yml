@@ -208,6 +208,9 @@ jobs:
       - name: Verify V34 auditorium maintenance blackouts
         run: python3 tools/verify_v34_auditorium_blackouts.py
 
+      - name: Verify V35 automated release lifecycle
+        run: python3 tools/verify_v35_release_lifecycle.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

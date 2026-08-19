@@ -36,7 +36,7 @@ check("admin bootstrap handles concurrent unique-key race", "catch (DataIntegrit
 check("admin bootstrap rechecks winner before suppressing integrity error", "findByEmailIgnoreCase(normalizedEmail).isEmpty()" in bootstrap and "throw ex" in bootstrap)
 check("V29 smoke asserts both backend replicas stay running", "assert_running_services" in smoke and "backend-1 backend-2" in smoke and "docker compose ps --status running --services" in smoke)
 check("Playwright E2E asserts both backend replicas stay running", "assert_running_services" in e2e and "backend-1 backend-2" in e2e and "docker compose ps --status running --services" in e2e)
-rc_version = re.search(r'default: "v(\d+)(?:\.(\d+))?-rc1"', rc)
+rc_version = re.search(r'default: "v(\d+)(?:\.(\d+))?(?:\.\d+)?-rc(?:\.\d+|\d+)"', rc)
 rc_tuple = (int(rc_version.group(1)), int(rc_version.group(2) or 0)) if rc_version else (0, 0)
 check("RC default remains v31.2 or newer", rc_tuple >= (31, 2))
 check("RC browser step identifies V31.2", "V29.2 + V30 + V31.2" in rc)

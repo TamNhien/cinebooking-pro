@@ -1,0 +1,296 @@
+name: CineBooking Stable Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable semantic version without v prefix (example: 35.0.0)"
+        required: true
+        default: "35.0.0"
+      rc_number:
+        description: "Release-candidate sequence number"
+        required: true
+        default: "1"
+
+concurrency:
+  group: cinebooking-stable-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Verify main CI and release inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      rc_tag: ${{ steps.meta.outputs.rc_tag }}
+      stable_tag: ${{ steps.meta.outputs.stable_tag }}
+      rc_exists: ${{ steps.tags.outputs.rc_exists }}
+    steps:
+      - name: Checkout main release commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Require main branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Stable releases must be dispatched from main; got $GITHUB_REF" >&2
+            exit 2
+          fi
+
+      - name: Validate semantic version and derive tags
+        id: meta
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          version='${{ inputs.version }}'
+          rc_number='${{ inputs.rc_number }}'
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version must use MAJOR.MINOR.PATCH, for example 35.0.0" >&2
+            exit 2
+          fi
+          if [[ ! "$rc_number" =~ ^[1-9][0-9]*$ ]]; then
+            echo "rc_number must be a positive integer" >&2
+            exit 2
+          fi
+          echo "rc_tag=v${version}-rc.${rc_number}" >> "$GITHUB_OUTPUT"
+          echo "stable_tag=v${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Require successful main CI for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&status=completed&per_page=50" \
+            > /tmp/cinebooking-ci-runs.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          data = json.loads(Path('/tmp/cinebooking-ci-runs.json').read_text(encoding='utf-8'))
+          sha = os.environ['GITHUB_SHA']
+          successful = [
+              run for run in data.get('workflow_runs', [])
+              if run.get('head_sha') == sha and run.get('conclusion') == 'success'
+          ]
+          if not successful:
+              raise SystemExit(f'No successful CineBooking CI run found for commit {sha}')
+          latest = max(successful, key=lambda run: run.get('run_number', 0))
+          print(f"PASS: CineBooking CI #{latest.get('run_number')} succeeded for {sha}")
+          PY
+
+      - name: Protect immutable RC and stable tags
+        id: tags
+        shell: bash
+        env:
+          RC_TAG: ${{ steps.meta.outputs.rc_tag }}
+          STABLE_TAG: ${{ steps.meta.outputs.stable_tag }}
+        run: |
+          set -Eeuo pipefail
+          git fetch --force --tags origin
+
+          if git show-ref --verify --quiet "refs/tags/${STABLE_TAG}"; then
+            echo "Stable tag ${STABLE_TAG} already exists. Refusing to overwrite an immutable release." >&2
+            exit 3
+          fi
+
+          rc_exists=false
+          if git show-ref --verify --quiet "refs/tags/${RC_TAG}"; then
+            rc_commit="$(git rev-list -n 1 "${RC_TAG}")"
+            if [[ "$rc_commit" != "$GITHUB_SHA" ]]; then
+              echo "RC tag ${RC_TAG} already points to ${rc_commit}, not ${GITHUB_SHA}. Use the next rc_number." >&2
+              exit 3
+            fi
+            rc_exists=true
+            echo "PASS: existing ${RC_TAG} already points to this commit and may be reused"
+          fi
+          echo "rc_exists=${rc_exists}" >> "$GITHUB_OUTPUT"
+
+  rc_tag:
+    name: Create immutable RC tag
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create RC tag
+        if: needs.preflight.outputs.rc_exists != 'true'
+        shell: bash
+        env:
+          RC_TAG: ${{ needs.preflight.outputs.rc_tag }}
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$RC_TAG" "$GITHUB_SHA" -m "CineBooking Pro ${RC_TAG}"
+          git push origin "refs/tags/${RC_TAG}"
+
+      - name: Confirm RC tag
+        shell: bash
+        env:
+          RC_TAG: ${{ needs.preflight.outputs.rc_tag }}
+        run: |
+          set -Eeuo pipefail
+          git fetch --force --tags origin
+          test "$(git rev-list -n 1 "$RC_TAG")" = "$GITHUB_SHA"
+          echo "PASS: ${RC_TAG} -> ${GITHUB_SHA}"
+
+  rc_e2e:
+    name: Release Candidate E2E
+    needs: [preflight, rc_tag]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    env:
+      APP_VERSION: ${{ needs.preflight.outputs.rc_tag }}
+      VCS_REF: ${{ github.sha }}
+      HTTP_PORT: "18080"
+      POSTGRES_PORT: "15433"
+      COMPOSE_PROJECT_NAME: cinebooking_v35_release_${{ github.run_id }}
+      JWT_SECRET: v35-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+    steps:
+      - name: Checkout exact RC commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Docker diagnostics
+        run: |
+          docker version
+          docker compose version
+
+      - name: Run full-stack smoke gate
+        run: bash tools/smoke-v29.sh
+
+      - name: Set up Node.js for Playwright
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Install Playwright Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Release Candidate browser E2E
+        env:
+          E2E_SKIP_BUILD: "true"
+        run: bash tools/e2e-v29.2.sh
+
+      - name: Upload RC Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cinebooking-${{ needs.preflight.outputs.rc_tag }}-playwright-e2e
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  publish:
+    name: Publish stable tag and GitHub Release
+    needs: [preflight, rc_tag, rc_e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout exact tested commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Verify RC tag still points to tested commit
+        shell: bash
+        env:
+          RC_TAG: ${{ needs.preflight.outputs.rc_tag }}
+        run: |
+          set -Eeuo pipefail
+          git fetch --force --tags origin
+          test "$(git rev-list -n 1 "$RC_TAG")" = "$GITHUB_SHA"
+
+      - name: Create immutable stable tag
+        shell: bash
+        env:
+          STABLE_TAG: ${{ needs.preflight.outputs.stable_tag }}
+        run: |
+          set -Eeuo pipefail
+          if git show-ref --verify --quiet "refs/tags/${STABLE_TAG}"; then
+            echo "Stable tag ${STABLE_TAG} already exists; refusing to overwrite it." >&2
+            exit 3
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$STABLE_TAG" "$GITHUB_SHA" -m "CineBooking Pro ${STABLE_TAG}"
+          git push origin "refs/tags/${STABLE_TAG}"
+
+      - name: Generate release manifest
+        shell: bash
+        env:
+          RC_TAG: ${{ needs.preflight.outputs.rc_tag }}
+          STABLE_TAG: ${{ needs.preflight.outputs.stable_tag }}
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = {
+              "schema": "cinebooking-release/v1",
+              "stable_tag": os.environ["STABLE_TAG"],
+              "release_candidate_tag": os.environ["RC_TAG"],
+              "revision": os.environ["GITHUB_SHA"],
+              "workflow_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "ci_verified": True,
+              "release_candidate_e2e": "passed",
+              "published": True,
+              "deployed": False,
+          }
+          Path("release-manifest.json").write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STABLE_TAG: ${{ needs.preflight.outputs.stable_tag }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          gh release create "$STABLE_TAG" release-manifest.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "CineBooking Pro ${STABLE_TAG}" \
+            --generate-notes
+
+      - name: Upload stable release manifest artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cinebooking-${{ needs.preflight.outputs.stable_tag }}-release-manifest
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 30

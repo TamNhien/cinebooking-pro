@@ -60,7 +60,7 @@ check('V34 browser journey cleans up blackout', 'Mở lại phòng' in e2e and '
 check('Testcontainers expects Flyway V34', 'isEqualTo("34")' in it and 'auditorium_blackout' in it)
 check('Testcontainers proves blackout blocks planner', 'showtimePlannerTreatsAuditoriumBlackoutAsConflict' in it and 'conflictType()).isEqualTo("BLACKOUT")' in it)
 check('main CI runs V34 verifier', 'python3 tools/verify_v34_auditorium_blackouts.py' in ci)
-check('RC defaults to V34', 'default: "v34-rc1"' in rc)
+check('RC defaults to V34-compatible or newer semantic RC', re.search(r'default: "v(?:34|3[5-9]|[4-9][0-9])(?:\.\d+)*-rc(?:\.\d+|\d+)"', rc) is not None)
 check('RC label includes V34 browser coverage', 'V29.2 + V30 + V31.2 + V33 + V34' in rc)
 check('V34 diagnostics chains V33 and verifier', 'diagnose-v33.ps1' in diag and 'verify_v34_auditorium_blackouts.py' in diag)
 check('Makefile exposes V34 verify and diagnose', 'verify-v34:' in make and 'diagnose-v34:' in make)
