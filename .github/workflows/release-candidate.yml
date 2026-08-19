@@ -48,7 +48,7 @@ jobs:
         run: bash tools/smoke-v29.sh
 
       - name: Set up Node.js for Playwright
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "24"
           package-manager-cache: false
