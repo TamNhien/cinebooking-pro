@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Stable semantic version without v prefix (example: 36.0.0)"
+        description: "Stable semantic version without v prefix (example: 37.0.0)"
         required: true
-        default: "36.0.0"
+        default: "37.0.0"
       rc_number:
         description: "Release-candidate sequence number"
         required: true
@@ -162,8 +162,8 @@ jobs:
       VCS_REF: ${{ github.sha }}
       HTTP_PORT: "18080"
       POSTGRES_PORT: "15433"
-      COMPOSE_PROJECT_NAME: cinebooking_v36_release_${{ github.run_id }}
-      JWT_SECRET: v36-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+      COMPOSE_PROJECT_NAME: cinebooking_v37_release_${{ github.run_id }}
+      JWT_SECRET: v37-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
     steps:
       - name: Checkout exact RC commit
         uses: actions/checkout@v7

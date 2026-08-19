@@ -1,12 +1,14 @@
 package com.cinebooking.payment;
 
+import com.cinebooking.booking.BookingDtos.BookingResponse;
 import com.cinebooking.booking.BookingService;
-import com.cinebooking.commerce.LoyaltyTransactionRepository;
 import com.cinebooking.commerce.InventoryService;
+import com.cinebooking.commerce.LoyaltyTransactionRepository;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
 import com.cinebooking.notification.NotificationService;
 import com.cinebooking.user.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,52 +20,250 @@ import static com.cinebooking.payment.PaymentDtos.*;
 
 @Service
 public class PaymentService {
-    private final PaymentRepository payments; private final BookingService bookingService; private final UserRepository users; private final VnPayGateway vnPay; private final MomoGateway momo; private final LoyaltyTransactionRepository loyaltyTransactions; private final NotificationService notifications; private final InventoryService inventory;
-    public PaymentService(PaymentRepository payments,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyTransactionRepository loyaltyTransactions,NotificationService notifications,InventoryService inventory){this.payments=payments;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyaltyTransactions=loyaltyTransactions;this.notifications=notifications;this.inventory=inventory;}
+    private final PaymentRepository payments;
+    private final PaymentWebhookEventRepository webhooks;
+    private final PaymentAttemptService attempts;
+    private final BookingService bookingService;
+    private final UserRepository users;
+    private final VnPayGateway vnPay;
+    private final MomoGateway momo;
+    private final LoyaltyTransactionRepository loyaltyTransactions;
+    private final NotificationService notifications;
+    private final InventoryService inventory;
+    private final boolean mockEnabled;
 
-    @Transactional
-    public PaymentStartResponse start(UUID bookingId,String email,String providerRaw,String ipAddress){
-        Booking booking=bookingService.entity(bookingId);UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();
-        if(!booking.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền thanh toán booking này");
-        if(booking.getStatus()!=BookingStatus.PENDING)throw new ApiException(HttpStatus.CONFLICT,"Booking không ở trạng thái chờ thanh toán");
-        if(booking.getExpiresAt()!=null&&booking.getExpiresAt().isBefore(Instant.now())){bookingService.cancelPending(bookingId,BookingStatus.EXPIRED);throw new ApiException(HttpStatus.CONFLICT,"Booking đã hết hạn; ghế đã được mở lại");}
-        String provider=providerRaw.trim().toUpperCase(Locale.ROOT);Set<String> allowed=Set.of("MOCK","VNPAY","VNPAY_QR","MOMO","MOMO_QR");if(!allowed.contains(provider))throw new ApiException(HttpStatus.BAD_REQUEST,"provider không hợp lệ");
-        String effectiveProvider=booking.getTotalAmount().signum()==0?"BALANCE":provider;
-        Optional<Payment> latest=payments.findFirstByBookingIdOrderByCreatedAtDesc(bookingId);
-        if(latest.isPresent()){
-            Payment existing=latest.get();
-            if(existing.getStatus()==PaymentStatus.PENDING&&effectiveProvider.equals(existing.getProvider())&&existing.getCheckoutUrl()!=null){
-                String existingClientUrl=existing.getProvider().equals("MOMO_QR")?"/payment/qr?paymentId="+existing.getId():existing.getCheckoutUrl();
-                return new PaymentStartResponse(existing.getId(),bookingId,existing.getProvider(),existingClientUrl,existing.getQrPayload(),existing.getDeeplink());
-            }
-        }
-        Payment p=new Payment();p.setBookingId(bookingId);p.setProvider(effectiveProvider);p.setStatus(PaymentStatus.PENDING);p.setAmount(booking.getTotalAmount());payments.save(p);String externalRef=p.getId().toString().replace("-","");p.setProviderTransactionId(externalRef);
-        if(booking.getTotalAmount().signum()==0){PaymentResultResponse r=success(p,"BALANCE-"+System.currentTimeMillis());return new PaymentStartResponse(p.getId(),bookingId,"BALANCE","/bookings",null,null);}
-        String url=null,qr=null,deeplink=null;switch(provider){case "MOCK"->url="/payment/mock?bookingId="+bookingId+"&paymentId="+p.getId();case "VNPAY"->url=vnPay.createUrl(p,booking,ipAddress,false);case "VNPAY_QR"->url=vnPay.createUrl(p,booking,ipAddress,true);case "MOMO","MOMO_QR"->{var session=momo.create(p,booking);url=session.payUrl();qr=session.qrData();deeplink=session.deeplink();}default->throw new IllegalStateException();}
-        p.setCheckoutUrl(url);p.setQrPayload(qr);p.setDeeplink(deeplink);payments.save(p);String clientUrl=provider.equals("MOMO_QR")?"/payment/qr?paymentId="+p.getId():url;return new PaymentStartResponse(p.getId(),bookingId,provider,clientUrl,qr,deeplink);
+    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyTransactionRepository loyaltyTransactions,NotificationService notifications,InventoryService inventory,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled){
+        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyaltyTransactions=loyaltyTransactions;this.notifications=notifications;this.inventory=inventory;this.mockEnabled=mockEnabled;
     }
 
-    public PaymentCheckoutResponse checkout(UUID paymentId,String email){Payment p=payments.findById(paymentId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment"));Booking b=bookingService.entity(p.getBookingId());UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();if(!b.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền xem payment này");return new PaymentCheckoutResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),p.getCheckoutUrl(),p.getQrPayload(),p.getDeeplink());}
-    @Transactional public PaymentResultResponse mockSuccess(UUID bookingId,String email){Booking booking=bookingService.entity(bookingId);UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();if(!booking.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền");Payment p=payments.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có payment"));if(!"MOCK".equals(p.getProvider()))throw new ApiException(HttpStatus.BAD_REQUEST,"Payment không phải MOCK");return success(p,"MOCK-"+System.currentTimeMillis());}
-    @Transactional public PaymentResultResponse mockFail(UUID bookingId,String email){Booking booking=bookingService.entity(bookingId);UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();if(!booking.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền");Payment p=payments.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có payment"));p.setStatus(PaymentStatus.FAILED);payments.save(p);bookingService.cancelPending(bookingId,BookingStatus.CANCELLED);return result(p);}
+    public PaymentStartResponse start(UUID bookingId,String email,String providerRaw,String ipAddress,String idempotencyKey){
+        String requested=providerRaw.trim().toUpperCase(Locale.ROOT);
+        Set<String> allowed=Set.of("MOCK","VNPAY","VNPAY_QR","MOMO","MOMO_QR");
+        if(!allowed.contains(requested))throw new ApiException(HttpStatus.BAD_REQUEST,"provider không hợp lệ");
+        if("MOCK".equals(requested)&&!mockEnabled)throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Mock payment đã bị tắt trên môi trường này");
+        String key=normalizeIdempotencyKey(idempotencyKey);
 
-    @Transactional public Map<String,String> vnPayIpn(Map<String,String> params){if(!vnPay.verify(params))return Map.of("RspCode","97","Message","Invalid checksum");String ref=params.getOrDefault("vnp_TxnRef","");Payment p=payments.findByProviderInAndProviderTransactionId(List.of("VNPAY","VNPAY_QR"),ref).orElse(null);if(p==null)return Map.of("RspCode","01","Message","Order not found");long expected=p.getAmount().movePointRight(2).longValueExact();long received;try{received=Long.parseLong(params.getOrDefault("vnp_Amount","-1"));}catch(Exception e){return Map.of("RspCode","04","Message","Invalid amount");}if(expected!=received)return Map.of("RspCode","04","Message","Invalid amount");if(p.getStatus()==PaymentStatus.SUCCESS)return Map.of("RspCode","02","Message","Order already confirmed");if("00".equals(params.get("vnp_ResponseCode"))&&"00".equals(params.get("vnp_TransactionStatus"))){success(p,params.getOrDefault("vnp_TransactionNo",ref));return Map.of("RspCode","00","Message","Confirm Success");}p.setStatus(PaymentStatus.FAILED);payments.save(p);bookingService.cancelPending(p.getBookingId(),BookingStatus.CANCELLED);return Map.of("RspCode","00","Message","Payment failed recorded");}
-    @Transactional public Map<String,Object> momoIpn(Map<String,Object> params){if(!momo.verifyIpn(params))return Map.of("resultCode",97,"message","Invalid signature");String orderId=String.valueOf(params.getOrDefault("orderId",""));Payment p=payments.findByProviderInAndProviderTransactionId(List.of("MOMO","MOMO_QR"),orderId).orElse(null);if(p==null)return Map.of("resultCode",1,"message","Order not found");long received;try{received=Long.parseLong(String.valueOf(params.getOrDefault("amount","-1")));}catch(Exception e){return Map.of("resultCode",1,"message","Invalid amount");}if(p.getAmount().longValueExact()!=received)return Map.of("resultCode",1,"message","Invalid amount");int code=Integer.parseInt(String.valueOf(params.getOrDefault("resultCode","-1")));if(code==0)success(p,String.valueOf(params.getOrDefault("transId",orderId)));else{p.setStatus(PaymentStatus.FAILED);payments.save(p);bookingService.cancelPending(p.getBookingId(),BookingStatus.CANCELLED);}return Map.of("resultCode",0,"message","success");}
+        BookingResponse owned=bookingService.getOwned(bookingId,email);
+        String provider=owned.totalAmount().signum()==0?"BALANCE":requested;
+        PaymentAttemptService.StartClaim claim=attempts.claim(bookingId,email,provider,key);
+        Payment p=claim.payment();
+
+        if(p.getStatus()==PaymentStatus.SUCCESS||p.getStatus()==PaymentStatus.REFUNDED||p.getStatus()==PaymentStatus.REVIEW)return startResponse(p,true);
+        if(p.getStatus()==PaymentStatus.FAILED||p.getStatus()==PaymentStatus.EXPIRED)throw new ApiException(HttpStatus.CONFLICT,"Payment với Idempotency-Key này đã kết thúc ở trạng thái "+p.getStatus());
+        if(p.getCheckoutUrl()!=null&&!p.getCheckoutUrl().isBlank())return startResponse(p,true);
+
+        if("BALANCE".equals(provider)){
+            success(p,"BALANCE-"+System.currentTimeMillis(),"00","Zero-balance checkout");
+            return startResponse(payments.findById(p.getId()).orElseThrow(),claim.replayed());
+        }
+
+        try{
+            String url=null,qr=null,deeplink=null;
+            if("MOCK".equals(provider)){
+                url="/payment/mock?bookingId="+bookingId+"&paymentId="+p.getId();
+            }else if(provider.startsWith("VNPAY")){
+                var s=vnPay.create(p,claim.booking(),ipAddress,"VNPAY_QR".equals(provider));
+                url=s.paymentUrl();
+            }else{
+                var s=momo.create(p,claim.booking());
+                url=s.payUrl();qr=s.qrData();deeplink=s.deeplink();
+            }
+            Payment saved=attempts.attachSession(p.getId(),url,qr,deeplink,"SESSION_CREATED",claim.replayed()?"Replayed payment session":"Payment session created");
+            return startResponse(saved,claim.replayed());
+        }catch(RuntimeException e){
+            attempts.recordGatewayError(p.getId(),"GATEWAY_UNAVAILABLE",safeMessage(e));
+            throw e;
+        }
+    }
+
+    public PaymentCheckoutResponse checkout(UUID paymentId,String email){return checkoutView(owned(paymentId,email));}
+
+    public List<PaymentHistoryItem> history(String email){
+        UUID payerId=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy tài khoản")).getId();
+        return payments.findByPayerUserIdOrderByCreatedAtDesc(payerId).stream().map(p->{
+            BookingResponse b=bookingService.toDto(bookingService.entity(p.getBookingId()));
+            return new PaymentHistoryItem(p.getId(),p.getBookingId(),p.getPayerUserId(),b.movieTitle(),p.getProvider(),p.getStatus().name(),p.getAmount(),p.getProviderOrderId(),p.getProviderTransactionId(),p.getProviderResponseCode(),p.getProviderMessage(),p.getCreatedAt(),p.getUpdatedAt(),p.getExpiresAt(),p.getPaidAt(),p.getFailedAt());
+        }).toList();
+    }
+
+    public List<ProviderAvailability> providers(){return List.of(
+            new ProviderAvailability("MOCK",mockEnabled,true,mockEnabled?"enabled":"disabled"),
+            new ProviderAvailability("VNPAY",vnPay.configured(),false,vnPay.configured()?"configured":"credentials-required"),
+            new ProviderAvailability("MOMO",momo.configured(),false,momo.configured()?"configured":"credentials-required")
+    );}
 
     @Transactional
-    public PaymentResultResponse success(Payment input,String providerTxn){
+    public PaymentResultResponse mockSuccess(UUID bookingId,String email){
+        Booking booking=bookingService.entity(bookingId);UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();
+        if(!booking.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền");
+        Payment p=payments.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có payment"));
+        if(!"MOCK".equals(p.getProvider()))throw new ApiException(HttpStatus.BAD_REQUEST,"Payment không phải MOCK");
+        if(!mockEnabled)throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Mock payment đã bị tắt");
+        return success(p,"MOCK-"+System.currentTimeMillis(),"00","Mock success");
+    }
+
+    @Transactional
+    public PaymentResultResponse mockFail(UUID bookingId,String email){
+        Booking booking=bookingService.entity(bookingId);UUID userId=users.findByEmailIgnoreCase(email).orElseThrow().getId();
+        if(!booking.getUserId().equals(userId))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền");
+        Payment p=payments.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có payment"));
+        if(!"MOCK".equals(p.getProvider()))throw new ApiException(HttpStatus.BAD_REQUEST,"Payment không phải MOCK");
+        fail(p,"MOCK_FAILED","Mock failure",false);
+        return result(p);
+    }
+
+    @Transactional
+    public Map<String,String> vnPayIpn(Map<String,String> params){
+        boolean signatureValid=vnPay.verify(params);
+        String orderId=params.getOrDefault("vnp_TxnRef","");
+        Payment p=payments.findByProviderInAndProviderOrderId(List.of("VNPAY","VNPAY_QR"),orderId).orElse(null);
+        String eventKey=bounded(orderId+":"+params.getOrDefault("vnp_TransactionNo","")+":"+params.getOrDefault("vnp_ResponseCode","")+":"+params.getOrDefault("vnp_TransactionStatus",""),240);
+        String resultCode=params.getOrDefault("vnp_ResponseCode","");
+        String payloadHash=CryptoUtil.sha256(CryptoUtil.canonicalMap(params));
+        if(!signatureValid){
+            String rejectedKey=rejectedWebhookKey("signature",payloadHash);
+            if(!claimWebhook("VNPAY",rejectedKey,p,payloadHash,false,resultCode))return previousVnPayResponse(rejectedKey);
+            return finishVnPay(rejectedKey,p,"97","Invalid checksum");
+        }
+        if(p==null){
+            if(!claimWebhook("VNPAY",eventKey,null,payloadHash,true,resultCode))return previousVnPayResponse(eventKey);
+            return finishVnPay(eventKey,null,"01","Order not found");
+        }
+        if(!validVnPayAmount(p,params)){
+            String rejectedKey=rejectedWebhookKey("amount",payloadHash);
+            if(!claimWebhook("VNPAY",rejectedKey,p,payloadHash,true,resultCode))return previousVnPayResponse(rejectedKey);
+            return finishVnPay(rejectedKey,p,"04","Invalid amount");
+        }
+        if(!claimWebhook("VNPAY",eventKey,p,payloadHash,true,resultCode))return previousVnPayResponse(eventKey);
+        p.setLastWebhookAt(Instant.now());p.setProviderResponseCode(resultCode);p.setProviderMessage(params.getOrDefault("vnp_TransactionStatus",""));payments.save(p);
+        if(p.getStatus()==PaymentStatus.SUCCESS)return finishVnPay(eventKey,p,"02","Order already confirmed");
+        String transactionStatus=params.getOrDefault("vnp_TransactionStatus","");
+        if("00".equals(resultCode)&&"00".equals(transactionStatus)){
+            success(p,params.getOrDefault("vnp_TransactionNo",orderId),resultCode,"VNPAY success");
+            return finishVnPay(eventKey,p,"00","Confirm Success");
+        }
+        if("01".equals(transactionStatus))return finishVnPay(eventKey,p,"00","Pending status recorded");
+        if(Set.of("04","05","06").contains(transactionStatus)){
+            p.setStatus(PaymentStatus.REVIEW);p.setProviderResponseCode(resultCode+"/"+transactionStatus);p.setProviderMessage("VNPAY status requires reconciliation: "+transactionStatus);payments.save(p);
+            return finishVnPay(eventKey,p,"00","Review status recorded");
+        }
+        fail(p,resultCode,"VNPAY transaction status "+transactionStatus,false);
+        return finishVnPay(eventKey,p,"00","Payment failed recorded");
+    }
+
+    @Transactional
+    public Map<String,Object> momoIpn(Map<String,Object> params){
+        boolean signatureValid=momo.verifyIpn(params);
+        String orderId=String.valueOf(params.getOrDefault("orderId",""));
+        Payment p=payments.findByProviderInAndProviderOrderId(List.of("MOMO","MOMO_QR"),orderId).orElse(null);
+        String code=String.valueOf(params.getOrDefault("resultCode","-1"));
+        String eventKey=bounded(orderId+":"+String.valueOf(params.getOrDefault("transId",""))+":"+code,240);
+        String payloadHash=CryptoUtil.sha256(CryptoUtil.canonicalMap(params));
+        if(!signatureValid){
+            String rejectedKey=rejectedWebhookKey("signature",payloadHash);
+            if(!claimWebhook("MOMO",rejectedKey,p,payloadHash,false,code))return previousMomoResponse(rejectedKey);
+            return finishMomo(rejectedKey,p,97,"Invalid signature");
+        }
+        if(p==null){
+            if(!claimWebhook("MOMO",eventKey,null,payloadHash,true,code))return previousMomoResponse(eventKey);
+            return finishMomo(eventKey,null,1,"Order not found");
+        }
+        if(!validMomoAmount(p,params)){
+            String rejectedKey=rejectedWebhookKey("amount",payloadHash);
+            if(!claimWebhook("MOMO",rejectedKey,p,payloadHash,true,code))return previousMomoResponse(rejectedKey);
+            return finishMomo(rejectedKey,p,1,"Invalid amount");
+        }
+        if(!claimWebhook("MOMO",eventKey,p,payloadHash,true,code))return previousMomoResponse(eventKey);
+        p.setLastWebhookAt(Instant.now());p.setProviderResponseCode(code);p.setProviderMessage(String.valueOf(params.getOrDefault("message","")));payments.save(p);
+        int result=parseInt(code,-1);
+        if(result==0){success(p,String.valueOf(params.getOrDefault("transId",orderId)),code,String.valueOf(params.getOrDefault("message","Successful")));return finishMomo(eventKey,p,0,"success");}
+        if(Set.of(7000,7002,9000).contains(result))return finishMomo(eventKey,p,0,"pending acknowledged");
+        fail(p,code,String.valueOf(params.getOrDefault("message","MoMo payment failed")),false);
+        return finishMomo(eventKey,p,0,"failure recorded");
+    }
+
+    public PaymentReturnResponse vnPayReturn(Map<String,String> params){
+        boolean signatureValid=vnPay.verify(params);String orderId=params.getOrDefault("vnp_TxnRef","");
+        Payment p=payments.findByProviderInAndProviderOrderId(List.of("VNPAY","VNPAY_QR"),orderId).orElse(null);
+        String message=!signatureValid?"Invalid checksum":p==null?"Order not found":!validVnPayAmount(p,params)?"Invalid amount":"Return verified; waiting for server IPN is allowed";
+        return returnView("VNPAY",p,signatureValid&&p!=null&&validVnPayAmount(p,params),params.getOrDefault("vnp_ResponseCode",""),message);
+    }
+
+    public PaymentReturnResponse momoReturn(Map<String,Object> params){
+        boolean signatureValid=momo.verifyIpn(params);String orderId=String.valueOf(params.getOrDefault("orderId",""));
+        Payment p=payments.findByProviderInAndProviderOrderId(List.of("MOMO","MOMO_QR"),orderId).orElse(null);
+        boolean valid=signatureValid&&p!=null&&validMomoAmount(p,params);
+        String message=!signatureValid?"Invalid signature":p==null?"Order not found":!validMomoAmount(p,params)?"Invalid amount":"Return verified; payment state comes from server IPN/reconciliation";
+        return returnView("MOMO",p,valid,String.valueOf(params.getOrDefault("resultCode","")),message);
+    }
+
+    @Transactional
+    public PaymentResultResponse success(Payment input,String providerTxn,String responseCode,String message){
         Payment p=payments.findByIdForUpdate(input.getId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment"));
         if(p.getStatus()==PaymentStatus.SUCCESS){awardLoyaltyIfNeeded(p);return result(p);}
         if(p.getStatus()==PaymentStatus.REFUNDED)return result(p);
-        // V19: convert the PENDING inventory reservation into a real stock issue exactly once.
+        Booking current=bookingService.entity(p.getBookingId());
+        if(current.getStatus()!=BookingStatus.PENDING&&current.getStatus()!=BookingStatus.CONFIRMED){
+            p.setStatus(PaymentStatus.REVIEW);p.setPaidAt(Instant.now());p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage("Gateway reported success after booking became "+current.getStatus()+"; manual review/refund required");payments.save(p);
+            notifications.create(current.getUserId(),"PAYMENT_REVIEW","Thanh toán cần được kiểm tra","Cổng thanh toán đã báo thành công nhưng booking "+current.getId()+" không còn ở trạng thái chờ. CineBooking sẽ cần đối soát giao dịch.","/bookings");
+            return result(p);
+        }
+        if(current.getExpiresAt()!=null&&current.getExpiresAt().isBefore(Instant.now())&&current.getStatus()!=BookingStatus.CONFIRMED){
+            p.setStatus(PaymentStatus.REVIEW);p.setPaidAt(Instant.now());p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage("Gateway success arrived after payment window expired; manual review/refund required");payments.save(p);
+            return result(p);
+        }
         inventory.finalizeSale(p.getBookingId());
-        Booking b=bookingService.confirm(p.getBookingId());p.setStatus(PaymentStatus.SUCCESS);p.setPaidAt(Instant.now());awardLoyaltyIfNeeded(p);payments.save(p);
+        Booking b=bookingService.confirm(p.getBookingId());
+        p.setStatus(PaymentStatus.SUCCESS);p.setPaidAt(Instant.now());p.setFailedAt(null);p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage(message);
+        awardLoyaltyIfNeeded(p);payments.save(p);
         notifications.create(b.getUserId(),"PAYMENT_SUCCESS","Thanh toán thành công","Vé "+b.getId()+" đã được xác nhận. Bạn có thể mở QR vé trong mục Vé của tôi.","/ticket/"+b.getId());
         return new PaymentResultResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),b.getStatus().name());
     }
 
+    @Transactional
+    public int expireStale(){
+        int count=0;
+        for(Payment p:payments.findByStatusAndExpiresAtBefore(PaymentStatus.PENDING,Instant.now())){
+            Payment locked=payments.findByIdForUpdate(p.getId()).orElse(null);if(locked==null||locked.getStatus()!=PaymentStatus.PENDING)continue;
+            locked.setStatus(PaymentStatus.EXPIRED);locked.setFailedAt(Instant.now());locked.setProviderResponseCode("EXPIRED");locked.setProviderMessage("Booking payment window expired");payments.save(locked);bookingService.cancelPending(locked.getBookingId(),BookingStatus.EXPIRED);count++;
+        }
+        return count;
+    }
+
+    private void fail(Payment input,String code,String message,boolean cancelBooking){
+        Payment p=payments.findByIdForUpdate(input.getId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment"));
+        if(p.getStatus()==PaymentStatus.SUCCESS||p.getStatus()==PaymentStatus.REFUNDED)return;
+        p.setStatus(PaymentStatus.FAILED);p.setFailedAt(Instant.now());p.setProviderResponseCode(code);p.setProviderMessage(message);payments.save(p);
+        if(cancelBooking)bookingService.cancelPending(p.getBookingId(),BookingStatus.CANCELLED);
+    }
+
+    private Payment owned(UUID paymentId,String email){
+        Payment p=payments.findById(paymentId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment"));
+        UUID userId=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy tài khoản")).getId();
+        if(!userId.equals(p.getPayerUserId()))throw new ApiException(HttpStatus.FORBIDDEN,"Không có quyền xem giao dịch thanh toán này");
+        return p;
+    }
+    private PaymentCheckoutResponse checkoutView(Payment p){return new PaymentCheckoutResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),p.getAmount(),p.getCheckoutUrl(),p.getQrPayload(),p.getDeeplink(),p.getProviderOrderId(),p.getProviderTransactionId(),p.getProviderResponseCode(),p.getProviderMessage(),p.getCreatedAt(),p.getUpdatedAt(),p.getExpiresAt(),p.getPaidAt(),p.getFailedAt());}
+    private PaymentStartResponse startResponse(Payment p,boolean replayed){String url="MOMO_QR".equals(p.getProvider())?"/payment/qr?paymentId="+p.getId():p.getCheckoutUrl();if("BALANCE".equals(p.getProvider())||p.getStatus()==PaymentStatus.SUCCESS||p.getStatus()==PaymentStatus.REFUNDED||p.getStatus()==PaymentStatus.REVIEW)url="/bookings";return new PaymentStartResponse(p.getId(),p.getBookingId(),p.getProvider(),url,p.getQrPayload(),p.getDeeplink(),p.getExpiresAt(),replayed);}
+    private PaymentReturnResponse returnView(String provider,Payment p,boolean valid,String code,String message){if(p==null)return new PaymentReturnResponse(valid,provider,null,null,null,null,code,message);Booking b=bookingService.entity(p.getBookingId());return new PaymentReturnResponse(valid,provider,p.getId(),p.getBookingId(),p.getStatus().name(),b.getStatus().name(),code,message);}
+    private boolean validVnPayAmount(Payment p,Map<String,String> params){try{return p.getAmount().movePointRight(2).longValueExact()==Long.parseLong(params.getOrDefault("vnp_Amount","-1"));}catch(Exception e){return false;}}
+    private boolean validMomoAmount(Payment p,Map<String,Object> params){try{return p.getAmount().longValueExact()==Long.parseLong(String.valueOf(params.getOrDefault("amount","-1")));}catch(Exception e){return false;}}
+
+    private boolean claimWebhook(String provider,String eventKey,Payment p,String payloadHash,boolean signatureValid,String resultCode){return webhooks.claim(UUID.randomUUID(),provider,eventKey,p==null?null:p.getId(),payloadHash,signatureValid,resultCode,Instant.now())==1;}
+    private Map<String,String> previousVnPayResponse(String eventKey){return webhooks.findByProviderAndEventKey("VNPAY",eventKey).map(e->Map.of("RspCode",e.getResponseCode()==null?"02":e.getResponseCode(),"Message",e.getResponseMessage()==null?"Duplicate notification":e.getResponseMessage())).orElse(Map.of("RspCode","02","Message","Duplicate notification"));}
+    private Map<String,Object> previousMomoResponse(String eventKey){return webhooks.findByProviderAndEventKey("MOMO",eventKey).map(e->{int code=parseInt(e.getResponseCode(),0);return Map.<String,Object>of("resultCode",code,"message",e.getResponseMessage()==null?"duplicate acknowledged":e.getResponseMessage());}).orElse(Map.of("resultCode",0,"message","duplicate acknowledged"));}
+    private Map<String,String> finishVnPay(String eventKey,Payment p,String code,String message){finishWebhook("VNPAY",eventKey,p,code,message);return Map.of("RspCode",code,"Message",message);}
+    private Map<String,Object> finishMomo(String eventKey,Payment p,int code,String message){finishWebhook("MOMO",eventKey,p,String.valueOf(code),message);return Map.of("resultCode",code,"message",message);}
+    private String rejectedWebhookKey(String reason,String payloadHash){return bounded("rejected:"+reason+":"+payloadHash,240);}
+    private void finishWebhook(String provider,String eventKey,Payment p,String code,String message){webhooks.findByProviderAndEventKey(provider,eventKey).ifPresent(e->{e.setPaymentId(p==null?e.getPaymentId():p.getId());e.setResponseCode(code);e.setResponseMessage(message);e.setProcessedAt(Instant.now());webhooks.save(e);});}
+
+    private String normalizeIdempotencyKey(String key){if(key==null||key.isBlank())return null;String v=key.trim();if(v.length()>120)throw new ApiException(HttpStatus.BAD_REQUEST,"Idempotency-Key tối đa 120 ký tự");if(!v.matches("[A-Za-z0-9._:-]+"))throw new ApiException(HttpStatus.BAD_REQUEST,"Idempotency-Key chứa ký tự không hợp lệ");return v;}
+    private int parseInt(String value,int fallback){try{return Integer.parseInt(value);}catch(Exception e){return fallback;}}
+    private String bounded(String value,int max){return value.length()<=max?value:value.substring(0,max);}
+    private String safeMessage(Throwable e){String m=e.getMessage();return m==null||m.isBlank()?e.getClass().getSimpleName():bounded(m,450);}
+
     private void awardLoyaltyIfNeeded(Payment p){
-        if(p.getLoyaltyPointsAwarded()!=null&&p.getLoyaltyPointsAwarded()>0)return;Booking booking=bookingService.entity(p.getBookingId());AppUser user=users.findByIdForUpdate(booking.getUserId()).orElseThrow();int points=p.getAmount().divideToIntegralValue(java.math.BigDecimal.valueOf(10000)).intValue();if(points<=0){p.setLoyaltyPointsAwarded(0);return;}int total=(user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints())+points;user.setLoyaltyPoints(total);user.setMembershipTier(tier(total));users.save(user);p.setLoyaltyPointsAwarded(points);LoyaltyTransaction tx=new LoyaltyTransaction();tx.setUserId(user.getId());tx.setBookingId(booking.getId());tx.setTransactionType("EARN");tx.setPoints(points);tx.setDescription("Tích điểm từ thanh toán booking "+booking.getId());loyaltyTransactions.save(tx);
+        if(p.getLoyaltyPointsAwarded()!=null&&p.getLoyaltyPointsAwarded()>0)return;Booking booking=bookingService.entity(p.getBookingId());UUID benefitOwner=booking.getPurchaserUserId()==null?booking.getUserId():booking.getPurchaserUserId();AppUser user=users.findByIdForUpdate(benefitOwner).orElseThrow();int points=p.getAmount().divideToIntegralValue(java.math.BigDecimal.valueOf(10000)).intValue();if(points<=0){p.setLoyaltyPointsAwarded(0);return;}int total=(user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints())+points;user.setLoyaltyPoints(total);user.setMembershipTier(tier(total));users.save(user);p.setLoyaltyPointsAwarded(points);LoyaltyTransaction tx=new LoyaltyTransaction();tx.setUserId(user.getId());tx.setBookingId(booking.getId());tx.setTransactionType("EARN");tx.setPoints(points);tx.setDescription("Tích điểm từ thanh toán booking "+booking.getId());loyaltyTransactions.save(tx);
     }
     private String tier(int points){if(points>=4000)return "DIAMOND";if(points>=1500)return "GOLD";if(points>=500)return "SILVER";return "BRONZE";}
     private PaymentResultResponse result(Payment p){Booking b=bookingService.entity(p.getBookingId());return new PaymentResultResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),b.getStatus().name());}

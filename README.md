@@ -930,3 +930,87 @@ rc_number: 1
 ```
 
 Workflow tự tạo `v36.0.0-rc.1`, chạy full-stack smoke + toàn bộ Playwright E2E, rồi chỉ khi PASS mới tạo `v36.0.0` và GitHub Release. Nếu RC fail sau khi cần commit fix mới, tăng `rc_number` thành `2`; không di chuyển tag RC cũ.
+
+---
+
+## V37 - Payment Gateway Production Ready
+
+V37 hardens CineBooking's payment subsystem around VNPay and MoMo while keeping the MOCK gateway available for local/CI E2E. The browser redirect is **display-only**: it verifies the gateway signature and then polls CineBooking for the server-side state. Booking/payment mutation only comes from authenticated CineBooking actions, signed server-to-server IPN, or an explicit Admin reconciliation.
+
+### What V37 adds
+
+- payment-start `Idempotency-Key` protection across both backend replicas;
+- payer ownership stored separately from ticket ownership, so V36 ticket transfer does not transfer the original payment/refund history;
+- merchant order ID separated from the provider transaction ID;
+- signed VNPay return/IPN verification with amount checks;
+- signed MoMo redirect/IPN verification with amount checks;
+- exactly-once webhook event claiming through PostgreSQL `ON CONFLICT DO NOTHING`;
+- rejected/invalid webhook payloads are isolated by payload hash so they cannot consume the canonical idempotency key of a later valid IPN;
+- `PENDING`, `SUCCESS`, `FAILED`, `EXPIRED`, `REVIEW`, `REFUNDED` payment lifecycle;
+- automatic payment-window expiry and booking/seat release;
+- late gateway success protection: a success arriving after the booking is no longer valid goes to `REVIEW` instead of silently recreating a ticket;
+- VNPay QueryDr and MoMo transaction query support for Admin reconciliation;
+- `/payments` customer payment history;
+- `/admin/payments` payment/IPN operations dashboard;
+- gateway availability exposed to the booking UI so unconfigured real gateways are disabled instead of failing after seat selection;
+- Flyway `V37__payment_gateway_hardening.sql` and Testcontainers coverage for the new schema and idempotent payment claim.
+
+### Sandbox/default endpoint configuration
+
+The repository contains **URLs only**, never merchant secrets:
+
+```env
+PAYMENT_MOCK_ENABLED=true
+VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_QUERY_URL=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+VNPAY_TMN_CODE=
+VNPAY_HASH_SECRET=
+VNPAY_RETURN_URL=http://localhost/payment/result
+VNPAY_IPN_URL=http://localhost/api/payments/vnpay/ipn
+MOMO_CREATE_URL=https://test-payment.momo.vn/v2/gateway/api/create
+MOMO_QUERY_URL=https://test-payment.momo.vn/v2/gateway/api/query
+MOMO_PARTNER_CODE=
+MOMO_ACCESS_KEY=
+MOMO_SECRET_KEY=
+MOMO_REDIRECT_URL=http://localhost/payment/result
+MOMO_IPN_URL=http://localhost/api/payments/momo/ipn
+```
+
+For a real sandbox/production merchant, put credentials in local `.env` or deployment secrets. Do not commit them. Public IPN URLs must be reachable by the gateway over HTTPS in real integration environments.
+
+### V37 verification
+
+```powershell
+python .\tools\verify_v37_payment_gateway.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v37.ps1
+```
+
+Start the stack without deleting persistent data:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do **not** use `docker compose down -v` for normal updates.
+
+After `main` CI is green, publish through the stable-release lifecycle:
+
+```text
+GitHub -> Actions -> CineBooking Stable Release -> Run workflow
+branch: main
+version: 37.0.0
+rc_number: 1
+```
+
+The lifecycle is:
+
+```text
+main CI
+-> v37.0.0-rc.1
+-> full-stack smoke + Playwright E2E
+-> v37.0.0
+-> GitHub Release
+```
+
+If a source fix is needed after RC creation, push the fix, wait for `main` CI, then use `rc_number: 2`. Never move an existing RC or stable tag.

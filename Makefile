@@ -108,3 +108,10 @@ verify-v36:
 
 diagnose-v36:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v36.ps1
+
+
+verify-v37:
+	python tools/verify_v37_payment_gateway.py
+
+diagnose-v37:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v37.ps1

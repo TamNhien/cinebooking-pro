@@ -17,6 +17,8 @@ import com.cinebooking.operations.TicketTokenService;
 import com.cinebooking.operations.CheckInService;
 import com.cinebooking.user.UserRepository;
 import com.cinebooking.movie.ShowtimeRepository;
+import com.cinebooking.payment.PaymentAttemptService;
+import com.cinebooking.payment.PaymentRepository;
 import com.cinebooking.domain.*;
 import com.cinebooking.common.ApiException;
 import org.testcontainers.containers.GenericContainer;
@@ -80,9 +82,11 @@ class CineBookingIntegrationIT {
     @Autowired BookingRepository bookings;
     @Autowired UserRepository users;
     @Autowired ShowtimeRepository showtimes;
+    @Autowired PaymentAttemptService paymentAttempts;
+    @Autowired PaymentRepository payments;
 
     @Test
-    void flywayMigratesRealPostgresToV36OperationsSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV37PaymentOperationsSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -93,8 +97,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(27);
-        assertThat(latest).isEqualTo("36");
-        assertThat(publicTables).isGreaterThanOrEqualTo(32);
+        assertThat(latest).isEqualTo("37");
+        assertThat(publicTables).isGreaterThanOrEqualTo(33);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -105,6 +109,12 @@ class CineBookingIntegrationIT {
         Integer transferColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='booking' and column_name in ('purchaser_user_id','ticket_version','transfer_count','transferred_at','transferred_from_user_id')", Integer.class);
         assertThat(transferColumns).isEqualTo(5);
+        Integer paymentV37Columns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='payment' and column_name in ('payer_user_id','client_idempotency_key','provider_order_id','merchant_request_id','provider_created_at','provider_response_code','provider_message','expires_at','failed_at','updated_at','last_webhook_at')", Integer.class);
+        assertThat(paymentV37Columns).isEqualTo(11);
+        Integer webhookTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='payment_webhook_event'", Integer.class);
+        assertThat(webhookTable).isEqualTo(1);
 
         Integer activeMovies = jdbc.queryForObject(
                 "select count(*) from movie where active = true", Integer.class);
@@ -128,6 +138,33 @@ class CineBookingIntegrationIT {
         assertThat(activeMovies).isGreaterThanOrEqualTo(8);
         assertThat(september30Movies).isGreaterThanOrEqualTo(8);
         assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
+    }
+
+    @Test
+    void paymentStartClaimIsIdempotentAndKeepsPayerOwnership() {
+        String stamp = UUID.randomUUID().toString().substring(0, 8);
+        AppUser payer = customer("v37-payer-" + stamp + "@example.test", "V37 Payer");
+        Booking booking = new Booking();
+        booking.setUserId(payer.getId());
+        booking.setPurchaserUserId(payer.getId());
+        booking.setShowtimeId(showtimes.findAll().stream().filter(st -> st.getStartTime().isAfter(Instant.now())).findFirst().orElseThrow().getId());
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setTotalAmount(new BigDecimal("120000"));
+        booking.setSeatAmount(new BigDecimal("120000"));
+        booking.setConcessionAmount(BigDecimal.ZERO);
+        booking.setDiscountAmount(BigDecimal.ZERO);
+        booking.setPointsRedeemed(0);
+        booking.setExpiresAt(Instant.now().plusSeconds(300));
+        bookings.save(booking);
+
+        String key="v37-it-"+UUID.randomUUID();
+        var first=paymentAttempts.claim(booking.getId(),payer.getEmail(),"MOCK",key);
+        var second=paymentAttempts.claim(booking.getId(),payer.getEmail(),"MOCK",key);
+        assertThat(first.replayed()).isFalse();
+        assertThat(second.replayed()).isTrue();
+        assertThat(second.payment().getId()).isEqualTo(first.payment().getId());
+        assertThat(first.payment().getPayerUserId()).isEqualTo(payer.getId());
+        assertThat(payments.findByPayerUserIdOrderByCreatedAtDesc(payer.getId())).extracting(Payment::getId).contains(first.payment().getId());
     }
 
     @Test

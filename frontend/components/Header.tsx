@@ -119,6 +119,7 @@ export default function Header(){
             {sectionButton("account",en?"My account":"Tài khoản","👤")}
             {drawerSection==="account"&&<div className="menu-drawer-submenu">
               <Link onClick={close} href="/bookings">🎟 {en?"My tickets":"Vé của tôi"}</Link>
+              <Link onClick={close} href="/payments">💳 {en?"Payments":"Thanh toán"}</Link>
               <Link onClick={close} href="/favorites">❤️ {en?"Favorites":"Yêu thích"}</Link>
               <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
@@ -148,6 +149,7 @@ export default function Header(){
             {drawerSection==="admin"&&<div className="menu-drawer-submenu">
               <Link onClick={close} href="/admin">🧭 Dashboard</Link>
               <Link onClick={close} href="/admin/bookings">🎫 Booking</Link>
+              <Link onClick={close} href="/admin/payments">💳 Payment Ops</Link>
               <Link onClick={close} href="/admin/staff">👨‍💼 {en?"Staff accounts":"Nhân viên"}</Link>
               <Link onClick={close} href="/admin/shifts">🕒 {en?"Shift scheduling":"Xếp ca"}</Link>
               <Link onClick={close} href="/admin/attendance">🧾 {en?"Timesheet & leave":"Bảng công & nghỉ phép"}</Link>
@@ -177,6 +179,7 @@ export default function Header(){
           <Link href="/cinemas" className="nav-link">{en?"Cinemas & showtimes":"Rạp & lịch chiếu"}</Link>
           <Link href="/promotions" className="nav-link">{en?"Promotions":"Ưu đãi"}</Link>
           {auth&&<Link href="/bookings" className="nav-link">{en?"My tickets":"Vé của tôi"}</Link>}
+          {auth&&<Link href="/payments" className="nav-link">{en?"Payments":"Thanh toán"}</Link>}
           {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
           {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
@@ -194,6 +197,7 @@ export default function Header(){
               <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="admin"?"is-open":""}`} onClick={()=>toggleDesktop("admin")} aria-expanded={desktopMenu==="admin"}>Quản trị <span aria-hidden="true">⌄</span></button>
               {desktopMenu==="admin"&&<div className="nav-menu-panel">
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin">Dashboard</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/payments">Payment Ops</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">Nhân viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>

@@ -70,6 +70,15 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await expect(page.getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()).toBeVisible();
   });
 
+  await test.step("V37 payment history shows the successful payer-owned transaction", async () => {
+    await page.goto("/payments");
+    await expect(page.getByRole("heading", { name: "Lịch sử thanh toán" })).toBeVisible();
+    await expect(page.getByText("Hành Trình Sao Hỏa").first()).toBeVisible();
+    await expect(page.getByText("SUCCESS").first()).toBeVisible();
+    await expect(page.getByText("MOCK").first()).toBeVisible();
+    await page.goto("/bookings");
+  });
+
   let bookingId = "";
   let qrUrl = "";
   await test.step("use V31 ticket wallet and download the authenticated calendar event", async () => {
@@ -138,5 +147,10 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await page.getByRole("button", { name: "Kiểm tra & xác nhận check-in" }).click();
     await expect(page.getByText("Check-in vé thành công.")).toBeVisible();
     await expect(page.getByText("Hành Trình Sao Hỏa").last()).toBeVisible();
+
+    await page.goto("/admin/payments");
+    await expect(page.getByRole("heading", { name: "Đối soát thanh toán" })).toBeVisible();
+    await expect(page.getByText("Payment Operations · V37")).toBeVisible();
+    await expect(page.getByText("MOCK").first()).toBeVisible();
   });
 });

@@ -6,7 +6,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { useLanguage } from "@/components/LanguageProvider";
-import type { Booking, ConcessionProduct, PaymentStart, SeatMap, Showtime, UserProfile, VoucherQuote, WaitlistStatus } from "@/lib/types";
+import type { Booking, ConcessionProduct, PaymentProviderAvailability, PaymentStart, SeatMap, Showtime, UserProfile, VoucherQuote, WaitlistStatus } from "@/lib/types";
 
 export default function BookingPage({params}:{params:Promise<{showtimeId:string}>}){
   const {showtimeId}=use(params);
@@ -22,6 +22,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   const [held,setHeld]=useState(false);
   const [seconds,setSeconds]=useState(0);
   const [provider,setProvider]=useState("MOCK");
+  const [providerAvailability,setProviderAvailability]=useState<PaymentProviderAvailability[]>([]);
   const [voucherCode,setVoucherCode]=useState("");
   const [voucher,setVoucher]=useState<VoucherQuote|null>(null);
   const [points,setPoints]=useState(0);
@@ -32,6 +33,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   const [waitlist,setWaitlist]=useState<WaitlistStatus|null>(null);
   const [waitlistBusy,setWaitlistBusy]=useState(false);
   const checkoutKeyRef=useRef<string|null>(null);
+  const paymentKeysRef=useRef<Record<string,string>>({});
   const auth = typeof window !== "undefined" ? getAuth() : null;
 
   const load=useCallback(async()=>{
@@ -75,6 +77,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   },[showtimeId]);
 
   useEffect(()=>{setLoading(true);load();loadPending().catch(()=>{});loadWaitlist().catch(()=>{});},[load,loadPending,loadWaitlist]);
+  useEffect(()=>{if(!getAuth()){setProviderAvailability([]);return;}api<PaymentProviderAvailability[]>("/payments/providers").then(setProviderAvailability).catch(()=>setProviderAvailability([]));},[auth?.userId]);
   useEffect(()=>{
     const scheme=location.protocol==="https:"?"wss":"ws";
     const client=new Client({brokerURL:`${scheme}://${location.host}/ws`,reconnectDelay:2000,onConnect:()=>client.subscribe(`/topic/showtimes/${showtimeId}/seats`,()=>load().catch(()=>{}))});
@@ -122,11 +125,22 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   function toggle(id:string,status:string,heldByMe:boolean){if(held)return;if(status!=="AVAILABLE"&&!heldByMe)return;setSelected(v=>v.includes(id)?v.filter(x=>x!==id):[...v,id]);}
   function qty(id:string,delta:number){const product=products.find(p=>p.id===id);const cap=product?.inventoryEnabled?Math.min(10,product.stockAvailable):10;setAddons(v=>{const next=Math.max(0,Math.min(cap,(v[id]||0)+delta));return {...v,[id]:next};});}
 
+
+  function paymentKey(bookingId:string,paymentProvider:string){
+    const bucket=`${bookingId}:${paymentProvider}`;
+    if(!paymentKeysRef.current[bucket]){
+      const suffix=typeof crypto!=="undefined"&&typeof crypto.randomUUID==="function"?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      paymentKeysRef.current[bucket]=`pay-${bookingId}-${paymentProvider}-${suffix}`;
+    }
+    return paymentKeysRef.current[bucket];
+  }
+  function providerReady(value:string){const base=value.startsWith("VNPAY")?"VNPAY":value.startsWith("MOMO")?"MOMO":value;const row=providerAvailability.find(x=>x.provider===base);return row?row.configured:true;}
+
   async function applyVoucher(){if(!voucherCode.trim())return;if(gross<=0){setVoucher(null);setMessage(en?"Select at least one seat before applying a voucher.":"Hãy chọn ít nhất 1 ghế trước khi áp dụng mã ưu đãi.");return;}setBusy(true);setMessage("");try{const q=await api<VoucherQuote>("/commerce/vouchers/quote",{method:"POST",body:JSON.stringify({code:voucherCode.trim(),orderAmount:gross})});setVoucher(q);setVoucherCode(q.code);}catch(e){setVoucher(null);setMessage((e as Error).message);}finally{setBusy(false);}}
   async function holdSeats(){if(!auth){location.href=`/login?next=${encodeURIComponent(`/booking/${showtimeId}`)}`;return;}if(pendingBooking){setMessage(en?"You already have an unpaid booking for this showtime. Continue payment or cancel it first.":"Bạn đang có đơn chờ thanh toán cho suất này. Hãy tiếp tục thanh toán hoặc huỷ đơn cũ để mở ghế.");return;}if(!selected.length)return;setBusy(true);setMessage("");try{const r=await api<{ttlSeconds:number}>(`/showtimes/${showtimeId}/holds`,{method:"POST",body:JSON.stringify({seatIds:selected})});checkoutKeyRef.current=null;setHeld(true);setSeconds(r.ttlSeconds);await load();}catch(e){setMessage((e as Error).message);await load();}finally{setBusy(false);}}
   async function release(){setBusy(true);try{if(selected.length)await api(`/showtimes/${showtimeId}/holds`,{method:"DELETE",body:JSON.stringify({seatIds:selected})});}catch{}finally{checkoutKeyRef.current=null;setHeld(false);setSeconds(0);setSelected([]);setBusy(false);await load();}}
   async function refreshSeats(){setBusy(true);setMessage("");try{if(held&&selected.length){try{await api(`/showtimes/${showtimeId}/holds`,{method:"DELETE",body:JSON.stringify({seatIds:selected})});}catch{}}checkoutKeyRef.current=null;setHeld(false);setSeconds(0);setSelected([]);await Promise.all([load(),loadPending()]);setMessage(en?"Seat map refreshed. Expired holds/bookings were cleaned up.":"Đã đồng bộ sơ đồ ghế. Các lượt giữ/đơn hết hạn và khóa ghế treo đã được kiểm tra, giải phóng nếu không còn hiệu lực.");}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}
-  async function resumePendingPayment(){if(!pendingBooking)return;setBusy(true);setMessage("");try{const payment=await api<PaymentStart>(`/payments/bookings/${pendingBooking.id}/start`,{method:"POST",body:JSON.stringify({provider})});location.href=payment.paymentUrl;}catch(e){setMessage((e as Error).message);await Promise.all([load(),loadPending()]);setBusy(false);}}
+  async function resumePendingPayment(){if(!pendingBooking)return;setBusy(true);setMessage("");try{const payment=await api<PaymentStart>(`/payments/bookings/${pendingBooking.id}/start`,{method:"POST",headers:{"Idempotency-Key":paymentKey(pendingBooking.id,provider)},body:JSON.stringify({provider})});location.href=payment.paymentUrl;}catch(e){setMessage((e as Error).message);await Promise.all([load(),loadPending()]);setBusy(false);}}
   async function cancelPendingBooking(){if(!pendingBooking)return;setBusy(true);setMessage("");try{await api<Booking>(`/bookings/${pendingBooking.id}/cancel`,{method:"POST"});checkoutKeyRef.current=null;setPendingBooking(null);setSelected([]);setHeld(false);setSeconds(0);setVoucher(null);await Promise.all([load(),loadPending()]);setMessage(en?"Unpaid booking cancelled. Its seats are available again.":"Đã huỷ đơn chưa thanh toán và mở lại ghế.");}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}
   async function checkout(){if(!held||!selected.length)return;setBusy(true);setMessage("");let booking:Booking|null=null;try{
       const concessions=(Object.entries(addons) as [string,number][]).filter(([,q])=>q>0).map(([productId,quantity])=>({productId,quantity}));
@@ -137,7 +151,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       checkoutKeyRef.current=null;
       setPendingBooking(booking);setHeld(false);setSeconds(0);
       try{
-        const payment=await api<PaymentStart>(`/payments/bookings/${booking.id}/start`,{method:"POST",body:JSON.stringify({provider})});
+        const payment=await api<PaymentStart>(`/payments/bookings/${booking.id}/start`,{method:"POST",headers:{"Idempotency-Key":paymentKey(booking.id,provider)},body:JSON.stringify({provider})});
         location.href=payment.paymentUrl;
         return;
       }catch(paymentError){
@@ -195,7 +209,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       {held&&<div className="mt-4 rounded-xl bg-rose-950/40 p-3 text-center text-sm text-rose-200">{en?"Seats held for":"Ghế được giữ trong"} <strong>{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,"0")}</strong></div>}
       {!auth&&rows.length>0&&<div className="mt-4 rounded-xl bg-amber-950/40 p-3 text-sm text-amber-200">{en?<>Please <Link className="underline" href="/login">sign in</Link> to hold seats.</>:<>Bạn cần <Link className="underline" href="/login">đăng nhập</Link> để giữ ghế.</>}</div>}
       {message&&<div className="mt-4 rounded-xl bg-red-950/50 p-3 text-sm text-red-300">{message}</div>}
-      {rows.length>0&&(!held?<button disabled={!selected.length||busy||!!pendingBooking} onClick={holdSeats} className="btn btn-primary mt-5 w-full">{busy?(en?"Processing...":"Đang xử lý..."):(en?"Hold seats for 5 minutes":"Giữ ghế 5 phút")}</button>:<><label className="mt-5 block text-sm text-slate-400">{en?"Payment method":"Phương thức thanh toán"}</label><select className="input mt-2" value={provider} onChange={e=>setProvider(e.target.value)}><option value="MOCK">Mock (demo)</option><option value="VNPAY">VNPay</option><option value="VNPAY_QR">VNPay QR</option><option value="MOMO">MoMo</option><option value="MOMO_QR">MoMo QR</option></select><button disabled={busy||seconds===0} onClick={checkout} className="btn btn-primary mt-4 w-full">{en?"Pay now":"Thanh toán"} · {currency(previewTotal)}</button><p className="mt-2 text-center text-[11px] leading-4 text-slate-500">🔒 {en?"Duplicate checkout retries are protected by an idempotency key.":"Chống tạo đơn trùng khi mạng chập chờn hoặc nút thanh toán bị gửi lại."}</p><button disabled={busy} onClick={release} className="btn btn-secondary mt-2 w-full">{en?"Release seats":"Bỏ giữ ghế"}</button></>)}
+      {rows.length>0&&(!held?<button disabled={!selected.length||busy||!!pendingBooking} onClick={holdSeats} className="btn btn-primary mt-5 w-full">{busy?(en?"Processing...":"Đang xử lý..."):(en?"Hold seats for 5 minutes":"Giữ ghế 5 phút")}</button>:<><label className="mt-5 block text-sm text-slate-400">{en?"Payment method":"Phương thức thanh toán"}</label><select className="input mt-2" value={provider} onChange={e=>setProvider(e.target.value)}><option value="MOCK" disabled={!providerReady("MOCK")}>Mock (demo){!providerReady("MOCK")?" · tắt":""}</option><option value="VNPAY" disabled={!providerReady("VNPAY")}>VNPay{!providerReady("VNPAY")?" · chưa cấu hình":""}</option><option value="VNPAY_QR" disabled={!providerReady("VNPAY_QR")}>VNPay QR{!providerReady("VNPAY_QR")?" · chưa cấu hình":""}</option><option value="MOMO" disabled={!providerReady("MOMO")}>MoMo{!providerReady("MOMO")?" · chưa cấu hình":""}</option><option value="MOMO_QR" disabled={!providerReady("MOMO_QR")}>MoMo QR{!providerReady("MOMO_QR")?" · chưa cấu hình":""}</option></select><button disabled={busy||seconds===0} onClick={checkout} className="btn btn-primary mt-4 w-full">{en?"Pay now":"Thanh toán"} · {currency(previewTotal)}</button><p className="mt-2 text-center text-[11px] leading-4 text-slate-500">🔒 {en?"Duplicate checkout retries are protected by an idempotency key.":"Chống tạo đơn trùng khi mạng chập chờn hoặc nút thanh toán bị gửi lại."}</p><button disabled={busy} onClick={release} className="btn btn-secondary mt-2 w-full">{en?"Release seats":"Bỏ giữ ghế"}</button></>)}
     </aside>
   </div>;
 }
