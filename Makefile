@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset verify-v33 diagnose-v33 verify-v34 diagnose-v34 verify-v35 diagnose-v35
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset verify-v33 diagnose-v33 verify-v34 diagnose-v34 verify-v35 diagnose-v35 verify-v36 diagnose-v36
 
 up:
 	docker compose up --build -d
@@ -102,3 +102,9 @@ diagnose-v35:
 
 verify-v35-node:
 	python tools/verify_v35_setup_node_compat.py
+
+verify-v36:
+	python tools/verify_v36_ticket_transfer.py
+
+diagnose-v36:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v36.ps1

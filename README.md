@@ -1,8 +1,8 @@
-# CineBooking Pro V34
+# CineBooking Pro V36
 
-CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning và cinema operations.
+CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V34 — Auditorium Maintenance & Blackout Windows  
+> **Current release:** V36 — Secure Ticket Transfer  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -11,7 +11,96 @@ This repository intentionally keeps **all project documentation in this single `
 
 ---
 
-## 1. V34 — Bảo trì & khóa phòng chiếu
+## 1. V36 — Secure Ticket Transfer
+
+V36 bổ sung chức năng **chuyển/tặng vé điện tử an toàn** giữa hai tài khoản khách hàng CineBooking.
+
+### Luồng người dùng
+
+1. chủ vé mở `/ticket/{bookingId}`;
+2. chọn **🎁 Chuyển/tặng vé**;
+3. nhập email tài khoản CineBooking của người nhận;
+4. xác nhận chuyển quyền sở hữu;
+5. booking biến mất khỏi Ví vé người gửi và xuất hiện trong Ví vé người nhận;
+6. người nhận mở QR mới;
+7. QR cũ/bản offline của người gửi bị từ chối tại cổng check-in.
+
+### Quy tắc an toàn
+
+- chỉ booking `CONFIRMED` mới được chuyển;
+- vé đã check-in không được chuyển;
+- vé đang/đã hoàn tiền không được chuyển;
+- người nhận phải là tài khoản `USER` đang hoạt động;
+- không được chuyển cho chính mình;
+- mặc định chỉ chuyển trước giờ chiếu ít nhất **60 phút**;
+- mặc định mỗi vé được chuyển tối đa **1 lần**;
+- row-level `PESSIMISTIC_WRITE` lock bảo vệ thao tác khi nhiều request cùng tới hai backend replica;
+- audit log ghi lại hành động `TICKET_TRANSFER`;
+- notification được gửi cho cả người gửi và người nhận.
+
+Cấu hình:
+
+```env
+TICKET_TRANSFER_CUTOFF_MINUTES=60
+TICKET_MAX_TRANSFERS=1
+```
+
+Migration:
+
+```text
+backend/src/main/resources/db/migration/V36__secure_ticket_transfer.sql
+```
+
+V36 lưu thêm:
+
+```text
+purchaser_user_id
+ticket_version
+transfer_count
+transferred_at
+transferred_from_user_id
+```
+
+`purchaser_user_id` giữ nguyên người mua ban đầu để loyalty/refund vẫn hoàn lợi ích cho đúng tài khoản, kể cả khi vé đã được tặng cho người khác.
+
+### QR rotation
+
+V36 phát QR mới dạng `CINEBOOKING|V2|...` có `ticket_version`. Mỗi lần chuyển vé, `ticket_version` tăng lên; check-in so sánh version trong QR với version hiện tại của booking. Vì vậy ảnh QR cũ và vé offline cũ không còn hiệu lực.
+
+QR `V1` cũ vẫn được đọc cho các booking chưa chuyển (`ticket_version = 1`) để không làm hỏng ảnh vé đã lưu trước khi nâng cấp V36.
+
+REST API:
+
+```text
+GET  /api/bookings/{id}/transfer-eligibility
+POST /api/bookings/{id}/transfer
+```
+
+Playwright RC có journey riêng kiểm tra:
+
+```text
+đăng ký người nhận
+→ người gửi mua vé
+→ lấy QR cũ
+→ chuyển vé qua UI
+→ người nhận thấy booking + QR mới
+→ staff gate từ chối QR cũ
+→ staff gate chấp nhận/check-in QR mới
+```
+
+Release target:
+
+```text
+main CI
+→ v36.0.0-rc.1
+→ Release Candidate E2E
+→ v36.0.0
+→ GitHub Release
+```
+
+---
+
+## 2. V34 — Bảo trì & khóa phòng chiếu
 
 V34 bổ sung chức năng vận hành rạp tại:
 
@@ -85,6 +174,7 @@ DELETE /api/admin/auditorium-blackouts/{id}
 - Notification center và notification preferences.
 - Showtime reminder.
 - Sold-out waitlist `/waitlist` và thông báo khi ghế được mở lại.
+- **V36 chuyển/tặng vé** với QR rotation và invalidation QR cũ.
 
 ### Staff / Manager
 
@@ -111,6 +201,7 @@ DELETE /api/admin/auditorium-blackouts/{id}
 - Revenue / occupancy / seat heatmap / hourly demand / staff analytics.
 - **V33 Showtime Planner & Conflict Guard**.
 - **V34 Auditorium Maintenance & Blackout Windows**.
+- **V36 Secure Ticket Transfer**.
 
 ---
 
@@ -692,16 +783,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V35
+CineBooking Pro V36
 ```
 
 Release-candidate label:
 
 ```text
-v35.0.0-rc.1
+v36.0.0-rc.1
 ```
 
-Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và manual Release Candidate chạy xanh trên clean runner.
+Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 
 ## V34.1 - RC selector hardening
 
@@ -816,3 +907,26 @@ Kiểm tra riêng:
 python .\tools\verify_v28_ci.py
 python .\tools\verify_v35_setup_node_compat.py
 ```
+
+
+---
+
+## V36 verification & release
+
+Source verifier:
+
+```powershell
+python .\tools\verify_v36_ticket_transfer.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v36.ps1
+```
+
+Sau khi CI `main` xanh, phát hành bằng workflow chuẩn V35+:
+
+```text
+GitHub → Actions → CineBooking Stable Release → Run workflow
+branch: main
+version: 36.0.0
+rc_number: 1
+```
+
+Workflow tự tạo `v36.0.0-rc.1`, chạy full-stack smoke + toàn bộ Playwright E2E, rồi chỉ khi PASS mới tạo `v36.0.0` và GitHub Release. Nếu RC fail sau khi cần commit fix mới, tăng `rc_number` thành `2`; không di chuyển tag RC cũ.

@@ -116,7 +116,7 @@ public class BookingService {
 
         Instant bookingCreatedAt = Instant.now();
         Booking b = new Booking();
-        b.setUserId(user.getId()); b.setShowtimeId(showtime.getId()); b.setStatus(BookingStatus.PENDING);
+        b.setUserId(user.getId()); b.setPurchaserUserId(user.getId()); b.setShowtimeId(showtime.getId()); b.setStatus(BookingStatus.PENDING);
         b.setSeatAmount(seatTotal); b.setConcessionAmount(BigDecimal.ZERO); b.setDiscountAmount(BigDecimal.ZERO);
         b.setPointsRedeemed(0); b.setBenefitsRefunded(false); b.setTotalAmount(seatTotal);
         b.setIdempotencyKey(idempotencyKey); b.setRequestFingerprint(fingerprint);

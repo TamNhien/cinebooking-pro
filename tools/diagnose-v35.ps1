@@ -15,4 +15,4 @@ python .\tools\verify_v35_setup_node_compat.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "V35 DIAGNOSTICS PASSED"
-Write-Host "Release flow: main CI -> v35.0.0-rc.N -> RC E2E -> v35.0.0 -> GitHub Release"
+Write-Host "Release flow: main CI -> vMAJOR.MINOR.PATCH-rc.N -> RC E2E -> vMAJOR.MINOR.PATCH -> GitHub Release"

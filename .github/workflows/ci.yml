@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V34 source regression
+    name: V26-V36 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -213,6 +213,9 @@ jobs:
 
       - name: Verify V35 setup-node compatibility
         run: python3 tools/verify_v35_setup_node_compat.py
+
+      - name: Verify V36 secure ticket transfer
+        run: python3 tools/verify_v36_ticket_transfer.py
 
   compose-config:
     name: Docker Compose validation

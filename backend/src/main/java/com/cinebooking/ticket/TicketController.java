@@ -53,7 +53,7 @@ public class TicketController {
         if (b.getStatus()!= BookingStatus.CONFIRMED) throw new ApiException(HttpStatus.CONFLICT,"Vé chỉ khả dụng khi booking đã thanh toán và chưa hoàn tiền");
         return b;
     }
-    private String payload(Booking b){ return tokens.create(b.getId(),b.getShowtimeId()); }
+    private String payload(Booking b){ return tokens.create(b.getId(),b.getShowtimeId(),b.getTicketVersion()==null?1:b.getTicketVersion()); }
     private String checkInUrl(String raw,HttpServletRequest request){return baseUrl(request)+"/staff/check-in?ticket="+URLEncoder.encode(raw,StandardCharsets.UTF_8);}
     private String baseUrl(HttpServletRequest request){
         if(!configuredPublicBaseUrl.isBlank())return trimSlash(configuredPublicBaseUrl);

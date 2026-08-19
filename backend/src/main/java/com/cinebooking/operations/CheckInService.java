@@ -74,6 +74,8 @@ public class CheckInService {
         var parsed=tokens.verify(payload);
         Booking b=(lock?bookings.findByIdForUpdate(parsed.bookingId()):bookings.findById(parsed.bookingId())).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy vé"));
         if(!b.getShowtimeId().equals(parsed.showtimeId()))throw new ApiException(HttpStatus.BAD_REQUEST,"QR không khớp suất chiếu");
+        int currentVersion=b.getTicketVersion()==null?1:b.getTicketVersion();
+        if(parsed.ticketVersion()!=currentVersion)throw new ApiException(HttpStatus.CONFLICT,"QR vé đã hết hiệu lực do vé được chuyển sang tài khoản khác. Hãy dùng QR mới trong Ví vé.");
         Showtime st=showtimes.findById(b.getShowtimeId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy suất chiếu"));
         Movie m=movies.findById(st.getMovieId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phim"));
         Auditorium a=auditoriums.findById(st.getAuditoriumId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phòng chiếu"));

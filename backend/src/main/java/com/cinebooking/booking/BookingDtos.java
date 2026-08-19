@@ -16,6 +16,9 @@ public final class BookingDtos {
                                        @Min(0) Integer redeemPoints) {}
     public record BookingSeatResponse(UUID seatId, String code, BigDecimal price) {}
     public record BookingConcessionResponse(UUID productId,String name,BigDecimal unitPrice,int quantity,BigDecimal subtotal) {}
+    public record TransferTicketRequest(@NotBlank @Email @Size(max=254) String recipientEmail) {}
+    public record TicketTransferEligibility(boolean allowed, String reason, Instant cutoffAt, int transferCount, int maxTransfers) {}
+    public record TicketTransferResponse(UUID bookingId, String recipientEmail, Instant transferredAt, int ticketVersion, String message) {}
     public record BookingResponse(UUID id, UUID showtimeId, String movieTitle, Instant showtimeStart,
                                   String status, BigDecimal totalAmount, BigDecimal seatAmount,
                                   BigDecimal concessionAmount, BigDecimal discountAmount,

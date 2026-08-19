@@ -78,7 +78,7 @@ public class AdminBookingOperationsController {
     public TicketAdminView ticket(@PathVariable UUID id, Authentication auth, HttpServletRequest request) throws Exception {
         Booking b = bookings.entity(id);
         if (b.getStatus() != BookingStatus.CONFIRMED) throw new ApiException(HttpStatus.CONFLICT, "QR chỉ khả dụng cho booking CONFIRMED");
-        String raw = tokens.create(b.getId(), b.getShowtimeId());
+        String raw = tokens.create(b.getId(), b.getShowtimeId(), b.getTicketVersion()==null?1:b.getTicketVersion());
         String url = baseUrl(request)+"/staff/check-in?ticket="+ URLEncoder.encode(raw, StandardCharsets.UTF_8);
         var matrix = new QRCodeWriter().encode(url, BarcodeFormat.QR_CODE, 420, 420);
         ByteArrayOutputStream out = new ByteArrayOutputStream();

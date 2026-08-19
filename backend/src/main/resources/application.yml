@@ -81,6 +81,8 @@ app:
     late-minutes: ${CHECKIN_LATE_MINUTES:240}
   ticket:
     public-base-url: ${TICKET_PUBLIC_BASE_URL:}
+    transfer-cutoff-minutes: ${TICKET_TRANSFER_CUTOFF_MINUTES:60}
+    max-transfers: ${TICKET_MAX_TRANSFERS:1}
   pricing:
     time-zone: ${PRICING_TIME_ZONE:Asia/Ho_Chi_Minh}
   staff:

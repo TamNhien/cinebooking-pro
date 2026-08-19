@@ -18,9 +18,15 @@ import java.util.UUID;
 public class TicketTokenService {
     private final byte[] secret;
     public TicketTokenService(@Value("${app.jwt.secret}") String secret){this.secret=secret.getBytes(StandardCharsets.UTF_8);}
-    public String create(UUID bookingId,UUID showtimeId){String data="ticket:v1|"+bookingId+"|"+showtimeId;return "CINEBOOKING|V1|"+bookingId+"|"+showtimeId+"|"+sign(data);}
 
-    /** Accepts either the signed raw payload or a V11 check-in URL containing ?ticket=. */
+    /** V36 token. The ticket version lets a transfer invalidate every previously issued QR. */
+    public String create(UUID bookingId,UUID showtimeId,int ticketVersion){
+        int version=Math.max(1,ticketVersion);
+        String data="ticket:v2|"+bookingId+"|"+showtimeId+"|"+version;
+        return "CINEBOOKING|V2|"+bookingId+"|"+showtimeId+"|"+version+"|"+sign(data);
+    }
+
+    /** Accepts either the signed raw payload or a check-in URL containing ?ticket=. */
     public String normalize(String value){
         if(value==null) throw bad();
         String v=value.trim();
@@ -42,16 +48,32 @@ public class TicketTokenService {
         throw bad();
     }
 
+    /** V1 stays readable for pre-V36 screenshots. It maps to ticketVersion=1. */
     public Parsed verify(String value){
         String payload=normalize(value);
         try{
-            String[] p=payload.split("\\|"); if(p.length!=5||!"CINEBOOKING".equals(p[0])||!"V1".equals(p[1])) throw bad();
-            UUID booking=UUID.fromString(p[2]), showtime=UUID.fromString(p[3]);
-            byte[] expected=Base64.getUrlDecoder().decode(sign("ticket:v1|"+booking+"|"+showtime)); byte[] actual=Base64.getUrlDecoder().decode(p[4]);
-            if(!MessageDigest.isEqual(expected,actual))throw bad(); return new Parsed(booking,showtime);
+            String[] p=payload.split("\\|");
+            if(p.length==5 && "CINEBOOKING".equals(p[0]) && "V1".equals(p[1])){
+                UUID booking=UUID.fromString(p[2]), showtime=UUID.fromString(p[3]);
+                verifySignature(sign("ticket:v1|"+booking+"|"+showtime),p[4]);
+                return new Parsed(booking,showtime,1,"V1");
+            }
+            if(p.length==6 && "CINEBOOKING".equals(p[0]) && "V2".equals(p[1])){
+                UUID booking=UUID.fromString(p[2]), showtime=UUID.fromString(p[3]);
+                int ticketVersion=Integer.parseInt(p[4]); if(ticketVersion<1)throw bad();
+                verifySignature(sign("ticket:v2|"+booking+"|"+showtime+"|"+ticketVersion),p[5]);
+                return new Parsed(booking,showtime,ticketVersion,"V2");
+            }
+            throw bad();
         }catch(ApiException e){throw e;}catch(Exception e){throw bad();}
+    }
+
+    private void verifySignature(String expectedEncoded,String actualEncoded){
+        byte[] expected=Base64.getUrlDecoder().decode(expectedEncoded);
+        byte[] actual=Base64.getUrlDecoder().decode(actualEncoded);
+        if(!MessageDigest.isEqual(expected,actual))throw bad();
     }
     private String sign(String s){try{Mac m=Mac.getInstance("HmacSHA256");m.init(new SecretKeySpec(secret,"HmacSHA256"));return Base64.getUrlEncoder().withoutPadding().encodeToString(m.doFinal(s.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
     private ApiException bad(){return new ApiException(HttpStatus.BAD_REQUEST,"QR vé không hợp lệ hoặc đã bị thay đổi");}
-    public record Parsed(UUID bookingId,UUID showtimeId){}
+    public record Parsed(UUID bookingId,UUID showtimeId,int ticketVersion,String tokenVersion){}
 }
