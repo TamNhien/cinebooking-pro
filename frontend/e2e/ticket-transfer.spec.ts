@@ -66,7 +66,10 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
     await cinema.selectOption({ index: 1 });
     const date = page.getByLabel("3. Ngày");
     await expect.poll(async () => date.locator("option").count()).toBeGreaterThan(1);
-    await date.selectOption({ index: 1 });
+    // V39 RC2 determinism: choose the farthest Quick Booking date so V36's
+    // 60-minute transfer cutoff cannot hide the transfer action on CI date changes.
+    const dateCount = await date.locator("option").count();
+    await date.selectOption({ index: dateCount - 1 });
     const showtime = page.getByLabel("4. Suất");
     await expect.poll(async () => showtime.locator("option").count()).toBeGreaterThan(1);
     await showtime.selectOption({ index: 1 });

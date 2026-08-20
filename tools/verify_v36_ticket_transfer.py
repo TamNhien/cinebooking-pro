@@ -72,6 +72,7 @@ check('ticket page removes stale offline ticket after transfer', 'deleteOfflineT
 check('frontend defines transfer API types', 'TicketTransferEligibility' in types and 'TicketTransferResult' in types)
 check('V36 browser journey exists', 'confirmed ticket can be transferred once and old QR becomes invalid' in e2e)
 check('browser journey creates sender and recipient', 'v36-sender-' in e2e and 'v36-recipient-' in e2e)
+check('browser journey chooses a far seeded date so transfer cutoff is deterministic', 'const dateCount = await date.locator("option").count()' in e2e and 'date.selectOption({ index: dateCount - 1 })' in e2e)
 check('browser journey proves ownership transfer through UI', 'Xác nhận chuyển vé' in e2e and 'Đã chuyển vé' in e2e)
 check('browser journey proves QR rotation', 'not.toEqual(oldQrUrl)' in e2e and 'CINEBOOKING%7CV2%7C' in e2e)
 check('browser journey proves stale QR rejection and new QR check-in', 'QR vé đã hết hiệu lực' in e2e and 'Check-in vé thành công.' in e2e)
