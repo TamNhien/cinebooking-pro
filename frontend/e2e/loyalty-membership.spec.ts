@@ -150,8 +150,11 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     await expect(rewardInput).toBeVisible();
     await rewardInput.fill(giftCode);
     await page.getByRole("button", { name:"Xác nhận giao quà" }).click();
-    await expect(page.getByText("Bắp Caramel × 1", { exact:false })).toBeVisible();
-    await expect(page.getByText(email, { exact:true })).toBeVisible();
+    const claimResult = page.getByTestId("loyalty-reward-claim-result");
+    await expect(claimResult).toBeVisible();
+    await expect(page.getByTestId("loyalty-reward-claim-product")).toContainText("Bắp Caramel × 1");
+    await expect(page.getByTestId("loyalty-reward-claim-customer-email")).toHaveText(email);
+    await expect(page.getByTestId("loyalty-reward-claim-code")).toHaveText(giftCode);
 
     const duplicate = await authedJson<{ message?:string }>(page, "/api/staff/loyalty-rewards/claim", { method:"POST", body:{ code:giftCode } });
     expect(duplicate.status).toBe(409);

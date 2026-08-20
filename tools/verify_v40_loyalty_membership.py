@@ -113,6 +113,7 @@ check('Profile UI exposes stable loyalty state anchors for browser tests', all(x
 check('Admin UI supports audited signed point adjustments', 'deltaPoints' in admin_ui and 'Lý do điều chỉnh' in admin_ui and '/adjustments' in admin_ui)
 check('Admin UI supports audited birth-date correction', '/birth-date' in admin_ui and 'Lý do chỉnh ngày sinh' in admin_ui)
 check('Staff gate supports GIFT concession claim', 'GIFT-RWDCORN-XXXXXXXX' in staff_ui and 'Xác nhận giao quà' in staff_ui)
+check('Staff reward claim result exposes stable product, customer and code anchors', all(x in staff_ui for x in ['data-testid="loyalty-reward-claim-result"','data-testid="loyalty-reward-claim-product"','data-testid="loyalty-reward-claim-customer-email"','data-testid="loyalty-reward-claim-code"']))
 check('Header links admin to loyalty operations', '/admin/loyalty' in header and 'Thành viên' in header)
 
 check('V40 Playwright journey exists', 'V40 admin credit -> private voucher + concession reward -> staff claim' in e2e)
@@ -125,6 +126,7 @@ check('V40 Playwright login helper waits for post-login navigation', 'expectedRo
 check('V40 Playwright login helper verifies persisted auth role', 'localStorage.getItem("cinebooking_auth_v3")' in e2e and 'toBe(expectedRole)' in e2e)
 check('V40 Playwright proves Admin token with backend before staff route', 'const adminMe = await authedJson<{ role:string }>(page, "/api/me")' in e2e and 'adminMe.body?.role).toBe("ADMIN")' in e2e)
 check('V40 Playwright asserts staff route is not bounced back to login', 'toHaveURL(/\\/staff\\/check-in$/)' in e2e)
+check('V40 Playwright validates rendered reward-claim contract with stable anchors', all(x in e2e for x in ['getByTestId("loyalty-reward-claim-result")','getByTestId("loyalty-reward-claim-product")','getByTestId("loyalty-reward-claim-customer-email")','getByTestId("loyalty-reward-claim-code")']) and 'getByText(email, { exact:true })' not in e2e)
 check('V40 Playwright validates GIFT one-time claim', 'duplicate.status).toBe(409)' in e2e)
 
 check('Integration test expects Flyway V40', 'assertThat(latest).isEqualTo("40")' in integration)
