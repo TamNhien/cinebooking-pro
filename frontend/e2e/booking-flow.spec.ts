@@ -73,9 +73,10 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
   await test.step("V37 payment history shows the successful payer-owned transaction", async () => {
     await page.goto("/payments");
     await expect(page.getByRole("heading", { name: "Lịch sử thanh toán" })).toBeVisible();
-    await expect(page.getByText("Hành Trình Sao Hỏa").first()).toBeVisible();
-    await expect(page.getByText("SUCCESS").first()).toBeVisible();
-    await expect(page.getByText("MOCK").first()).toBeVisible();
+    const paymentCard = page.locator("article").filter({ hasText: "Hành Trình Sao Hỏa" }).first();
+    await expect(paymentCard).toBeVisible();
+    await expect(paymentCard.getByText("SUCCESS", { exact: true })).toBeVisible();
+    await expect(paymentCard.getByText("MOCK", { exact: true })).toBeVisible();
     await page.goto("/bookings");
   });
 

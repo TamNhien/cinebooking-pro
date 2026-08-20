@@ -102,6 +102,7 @@ check('example env contains gateway URLs but no real credentials', all(x in env 
 check('Testcontainers expects Flyway V37 and webhook schema', 'isEqualTo("37")' in it and 'paymentV37Columns' in it and 'payment_webhook_event' in it)
 check('Testcontainers covers idempotent payment claim and payer ownership', 'paymentStartClaimIsIdempotentAndKeepsPayerOwnership' in it and 'second.replayed()).isTrue()' in it and 'getPayerUserId()' in it)
 check('Playwright covers V37 customer payment history', 'V37 payment history shows the successful payer-owned transaction' in e2e and 'Lịch sử thanh toán' in e2e)
+check('V37 payment history E2E scopes status/provider to the visible payment card', 'const paymentCard = page.locator("article").filter({ hasText: "Hành Trình Sao Hỏa" }).first();' in e2e and 'paymentCard.getByText("SUCCESS", { exact: true })' in e2e and 'paymentCard.getByText("MOCK", { exact: true })' in e2e)
 check('Playwright covers V37 admin payment operations page', '/admin/payments' in e2e and 'Đối soát thanh toán' in e2e)
 check('main CI runs V37 verifier', 'python3 tools/verify_v37_payment_gateway.py' in ci and 'V26-V37 source regression' in ci)
 check('standalone RC defaults to V37 candidate and includes V37 journey', 'default: "v37.0.0-rc.1"' in rc and 'V36 + V37' in rc)
