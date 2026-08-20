@@ -73,7 +73,10 @@ app:
   upload:
     dir: ${UPLOAD_DIR:/app/uploads}
   seat-hold:
-    ttl-seconds: 300
+    ttl-seconds: ${SEAT_HOLD_TTL_SECONDS:300}
+  seat-selection:
+    max-seats: ${SEAT_MAX_PER_BOOKING:8}
+    prevent-single-gap: ${SEAT_PREVENT_SINGLE_GAP:true}
   booking:
     payment-window-seconds: ${PAYMENT_WINDOW_SECONDS:300}
   checkin:

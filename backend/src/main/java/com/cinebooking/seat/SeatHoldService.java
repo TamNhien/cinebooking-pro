@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SeatHoldService {
@@ -65,6 +66,27 @@ public class SeatHoldService {
         for (UUID seatId : seatIds) keys.add(key(showtimeId, seatId));
         List<String> values = redis.opsForValue().multiGet(keys);
         return values == null ? java.util.Collections.nCopies(keys.size(), null) : values;
+    }
+
+    /**
+     * Server-authoritative remaining TTL for a user's current hold. Returning the minimum TTL keeps a
+     * multi-seat hold consistent even if Redis keys were refreshed a few milliseconds apart.
+     */
+    public long remainingSeconds(UUID showtimeId, List<UUID> seatIds, UUID userId) {
+        if (userId == null || seatIds == null || seatIds.isEmpty()) return 0;
+        long remaining = Long.MAX_VALUE;
+        boolean found = false;
+        for (UUID seatId : seatIds.stream().distinct().toList()) {
+            String redisKey = key(showtimeId, seatId);
+            String owner = redis.opsForValue().get(redisKey);
+            if (!userId.toString().equals(owner)) continue;
+            Long ttl = redis.getExpire(redisKey, TimeUnit.SECONDS);
+            if (ttl != null && ttl > 0) {
+                remaining = Math.min(remaining, ttl);
+                found = true;
+            }
+        }
+        return found ? remaining : 0;
     }
 
     public long ttlSeconds() { return ttlSeconds; }

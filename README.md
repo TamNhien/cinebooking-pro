@@ -1102,3 +1102,69 @@ The V38 refund approval contract now forwards `providerReference` consistently t
 
 The V38 refund Playwright journey now scopes the `100%` assertion to the percentage/amount row with an anchored locator (`/^100%\s*·/`). This prevents strict-mode collisions with the explanatory sentence that also contains `100%`. This is RC-only test hardening; refund policy, backend behavior, database schema and payment/refund semantics are unchanged.
 
+
+---
+
+## V39 - Seat Map & Booking UX 2.0
+
+V39 upgrades the existing seat-booking path instead of adding a separate module. The Redis hold remains the concurrency authority, while the customer seat map becomes easier to use under real contention.
+
+### V39 behavior
+
+- `GET /api/showtimes/{showtimeId}/seat-suggestions?count=N` ranks up to five contiguous available seat groups, preferring row-center positions while de-prioritizing accessible inventory when alternatives exist;
+- the suggestion engine refuses candidates that would create a **new single-seat gap** between unavailable/selected seats;
+- `POST /api/showtimes/{showtimeId}/selection-validation` lets the UI validate a selection before the actual Redis hold, while the hold endpoint repeats the same validation so direct API callers cannot bypass the rule;
+- the hold endpoint caps one booking at `SEAT_MAX_PER_BOOKING` seats (default `8`);
+- the seat map exposes a server-authoritative `holdRemainingSeconds`, derived from Redis TTL, and the browser re-syncs it every 15 seconds while a hold is active;
+- Redis Lua acquisition remains atomic across `backend-1` and `backend-2`: when two customers request the same seats, only one hold succeeds;
+- STOMP/Redis seat events continue to update every backend replica, and the booking page now surfaces a visible realtime-update indicator;
+- the V39 Playwright journey registers two customers, asks for a two-seat recommendation, races the exact same seat pair, and requires one `200` winner plus one `409` loser.
+
+No Flyway migration is required for V39.
+
+### V39 seat-selection configuration
+
+```env
+SEAT_HOLD_TTL_SECONDS=300
+SEAT_MAX_PER_BOOKING=8
+SEAT_PREVENT_SINGLE_GAP=true
+```
+
+These values are non-secret configuration and are safe to document in `.env.example`. Real credentials remain excluded from source control.
+
+### V39 verification
+
+```powershell
+python .\tools\verify_v39_seat_map_ux.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v39.ps1
+```
+
+Start/update the stack without deleting PostgreSQL data:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do **not** use `docker compose down -v` for normal updates.
+
+After `main` CI is green, publish through the stable release workflow:
+
+```text
+GitHub -> Actions -> CineBooking Stable Release -> Run workflow
+branch: main
+version: 39.0.0
+rc_number: 1
+```
+
+Release lifecycle:
+
+```text
+main CI
+-> v39.0.0-rc.1
+-> full-stack smoke + Playwright E2E
+-> v39.0.0
+-> GitHub Release
+```
+
+If an RC needs a source fix, commit/push the fix, wait for `main` CI again, then increment `rc_number`. Never move an existing RC or stable tag.

@@ -10,7 +10,11 @@ public final class SeatDtos {
     public record SeatResponse(UUID id, String code, String rowLabel, Integer seatNumber, String seatType,
                                BigDecimal basePrice, BigDecimal seatModifier, BigDecimal dynamicAdjustment, BigDecimal price,
                                List<String> pricingRules, String status, boolean heldByMe) {}
-    public record SeatMapResponse(UUID showtimeId, long holdTtlSeconds, List<SeatResponse> seats) {}
+    public record SeatMapResponse(UUID showtimeId, long holdTtlSeconds, long holdRemainingSeconds, int maxSelectableSeats,
+                                  boolean preventSingleGap, List<SeatResponse> seats) {}
     public record HoldRequest(@NotEmpty List<UUID> seatIds) {}
     public record HoldResponse(boolean acquired, long ttlSeconds, List<UUID> seatIds) {}
+    public record SeatSuggestion(List<UUID> seatIds, List<String> seatCodes, BigDecimal totalPrice, int score, String reason) {}
+    public record SeatSuggestionResponse(UUID showtimeId, int requestedCount, List<SeatSuggestion> suggestions) {}
+    public record SelectionValidationResponse(boolean allowed, List<String> orphanSeatCodes, String message) {}
 }

@@ -121,3 +121,10 @@ verify-v38:
 
 diagnose-v38:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v38.ps1
+
+
+verify-v39:
+	python tools/verify_v39_seat_map_ux.py
+
+diagnose-v39:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v39.ps1

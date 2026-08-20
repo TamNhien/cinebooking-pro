@@ -16,8 +16,21 @@ public class SeatController {
 
     @GetMapping("/seats")
     public SeatMapResponse seats(@PathVariable UUID showtimeId, Authentication auth) {
-        UUID userId = auth == null ? null : users.findByEmailIgnoreCase(auth.getName()).map(u->u.getId()).orElse(null);
-        return service.map(showtimeId,userId);
+        return service.map(showtimeId, optionalUserId(auth));
+    }
+
+    @GetMapping("/seat-suggestions")
+    public SeatSuggestionResponse suggestions(@PathVariable UUID showtimeId,
+                                              @RequestParam(defaultValue="2") int count,
+                                              Authentication auth) {
+        return service.suggestions(showtimeId,count,optionalUserId(auth));
+    }
+
+    @PostMapping("/selection-validation")
+    public SelectionValidationResponse validateSelection(@PathVariable UUID showtimeId,
+                                                         @Valid @RequestBody HoldRequest req,
+                                                         Authentication auth) {
+        return service.validateSelection(showtimeId,req.seatIds(),optionalUserId(auth));
     }
 
     @PostMapping("/holds")
@@ -30,5 +43,6 @@ public class SeatController {
         service.release(showtimeId, req.seatIds(), userId(auth));
     }
 
+    private UUID optionalUserId(Authentication auth){return auth==null?null:users.findByEmailIgnoreCase(auth.getName()).map(u->u.getId()).orElse(null);}
     private UUID userId(Authentication auth){ return users.findByEmailIgnoreCase(auth.getName()).orElseThrow().getId(); }
 }
