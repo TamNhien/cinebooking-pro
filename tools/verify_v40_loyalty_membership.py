@@ -109,6 +109,7 @@ check('Profile UI displays lifetime tier and progress', 'Lifetime:' in profile a
 check('Profile UI displays point expiry forecast', 'sắp hết hạn' in profile and 'nextExpiryAt' in profile)
 check('Profile UI has reward catalog and private reward wallet', '🎁 Đổi điểm lấy phần thưởng' in profile and '🎟 Ví phần thưởng' in profile)
 check('Profile UI supports birthday reward and immutable self-entered birth date', '🎂 Quà sinh nhật' in profile and 'birthdayRewardEligible' in profile and 'disabled={Boolean(profile.birthDate)}' in profile)
+check('Profile UI exposes stable loyalty state anchors for browser tests', all(x in profile for x in ['data-testid="loyalty-balance-points"','data-testid="loyalty-lifetime-points"','data-testid="loyalty-membership-tier"']))
 check('Admin UI supports audited signed point adjustments', 'deltaPoints' in admin_ui and 'Lý do điều chỉnh' in admin_ui and '/adjustments' in admin_ui)
 check('Admin UI supports audited birth-date correction', '/birth-date' in admin_ui and 'Lý do chỉnh ngày sinh' in admin_ui)
 check('Staff gate supports GIFT concession claim', 'GIFT-RWDCORN-XXXXXXXX' in staff_ui and 'Xác nhận giao quà' in staff_ui)
@@ -116,12 +117,16 @@ check('Header links admin to loyalty operations', '/admin/loyalty' in header and
 
 check('V40 Playwright journey exists', 'V40 admin credit -> private voucher + concession reward -> staff claim' in e2e)
 check('V40 Playwright proves admin credit does not manufacture lifetime tier', 'lifetimePoints).toBe(0)' in e2e and 'membershipTier).toBe("BRONZE")' in e2e)
+check('V40 Playwright verifies customer-side persisted summary before UI assertions', 'const beforeSpend = await authedJson' in e2e and 'beforeSpend.body?.balancePoints).toBe(500)' in e2e)
+check('V40 Playwright uses stable loyalty test ids instead of brittle combined-text locators', all(x in e2e for x in ['getByTestId("loyalty-balance-points")','getByTestId("loyalty-lifetime-points")','getByTestId("loyalty-membership-tier")']) and 'getByText("500 điểm", { exact:true })' not in e2e and 'getByText("BRONZE", { exact:true })' not in e2e)
+check('V40 Playwright proves visible balance transitions 500 -> 300 -> 0', e2e.count('getByTestId("loyalty-balance-points")')>=3 and 'toHaveText("500")' in e2e and 'toHaveText("300")' in e2e and 'toHaveText("0")' in e2e)
 check('V40 Playwright redeems both voucher and concession rewards', 'Voucher giảm 20.000đ' in e2e and 'Bắp Caramel miễn phí' in e2e)
 check('V40 Playwright validates GIFT one-time claim', 'duplicate.status).toBe(409)' in e2e)
 
 check('Integration test expects Flyway V40', 'assertThat(latest).isEqualTo("40")' in integration)
 check('Integration test verifies V40 tables and reward seeds', 'loyalty_point_lot' in integration and 'loyalty_reward_redemption' in integration and 'rewardSeeds' in integration)
 check('Integration test covers adjustment, reward voucher and expiry ledger', 'loyaltyV40RewardRedemptionAndPointExpiryStayLedgerConsistent' in integration and 'integration credit' in integration and "transaction_type='EXPIRE'" in integration)
+check('Integration test re-reads customer summary after admin credit and reward debit', 'var customerSummary = loyalty.summary(customer.getEmail())' in integration and 'var afterVoucher = loyalty.summary(customer.getEmail())' in integration and 'afterVoucher.membershipTier()).isEqualTo("BRONZE")' in integration)
 
 check('Main CI runs V40 verifier', 'V26-V40 source regression' in ci and 'python3 tools/verify_v40_loyalty_membership.py' in ci)
 check('Standalone RC defaults to V40 candidate', 'default: "v40.0.0-rc.1"' in rc and 'cinebooking_v40_rc_${{ github.run_id }}' in rc)

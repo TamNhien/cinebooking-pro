@@ -177,11 +177,19 @@ class CineBookingIntegrationIT {
         assertThat(credited.membershipTier()).isEqualTo("BRONZE");
         assertThat(loyalty.tierFor(500)).isEqualTo("SILVER");
 
+        var customerSummary = loyalty.summary(customer.getEmail());
+        assertThat(customerSummary.balancePoints()).isEqualTo(500);
+        assertThat(customerSummary.lifetimePoints()).isZero();
+        assertThat(customerSummary.membershipTier()).isEqualTo("BRONZE");
+
         UUID voucherReward = UUID.fromString("74000000-0000-0000-0000-000000000001");
         var redemption = loyalty.redeemReward(customer.getEmail(), voucherReward);
         assertThat(redemption.rewardType()).isEqualTo("VOUCHER");
         assertThat(redemption.voucherCode()).startsWith("RWD-RWD20K-");
-        assertThat(loyalty.summary(customer.getEmail()).balancePoints()).isEqualTo(300);
+        var afterVoucher = loyalty.summary(customer.getEmail());
+        assertThat(afterVoucher.balancePoints()).isEqualTo(300);
+        assertThat(afterVoucher.lifetimePoints()).isZero();
+        assertThat(afterVoucher.membershipTier()).isEqualTo("BRONZE");
         Integer ownedVoucher = jdbc.queryForObject("select count(*) from voucher where owner_user_id=? and code=?", Integer.class, customer.getId(), redemption.voucherCode());
         assertThat(ownedVoucher).isEqualTo(1);
 

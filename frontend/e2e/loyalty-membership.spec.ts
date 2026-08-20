@@ -76,16 +76,28 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     await logout(page); await context.clearCookies();
     await login(page, email, PASSWORD);
     await expect(page).toHaveURL(/\/$/);
+
+    // Prove the admin adjustment survived the auth/session hand-off before asserting UI.
+    // This separates a backend persistence/auth problem from a rendering/locator problem.
+    const beforeSpend = await authedJson<{ balancePoints:number; lifetimePoints:number; membershipTier:string }>(page, "/api/loyalty/summary");
+    expect(beforeSpend.status).toBe(200);
+    expect(beforeSpend.body?.balancePoints).toBe(500);
+    expect(beforeSpend.body?.lifetimePoints).toBe(0);
+    expect(beforeSpend.body?.membershipTier).toBe("BRONZE");
+
     await page.goto("/profile");
     await expect(page.getByRole("heading", { name: "🎁 Đổi điểm lấy phần thưởng" })).toBeVisible();
-    await expect(page.getByText("500 điểm", { exact:true }).first()).toBeVisible();
-    await expect(page.getByText("BRONZE", { exact:true }).first()).toBeVisible();
+    await expect(page.getByTestId("loyalty-balance-points")).toHaveText("500");
+    await expect(page.getByTestId("loyalty-lifetime-points")).toHaveText("0");
+    await expect(page.getByTestId("loyalty-membership-tier")).toHaveText("BRONZE");
 
     page.once("dialog", d => d.accept());
     const voucherCard = page.locator("article").filter({ hasText:"Voucher giảm 20.000đ" }).first();
     await voucherCard.getByRole("button", { name:"Đổi" }).click();
     await expect(page.getByText(/Voucher: RWD-RWD20K-/)).toBeVisible();
     await expect(page.getByText(/^RWD-RWD20K-/).first()).toBeVisible();
+    await expect(page.getByTestId("loyalty-balance-points")).toHaveText("300");
+    await expect(page.getByTestId("loyalty-membership-tier")).toHaveText("BRONZE");
 
     page.once("dialog", d => d.accept());
     const cornCard = page.locator("article").filter({ hasText:"Bắp Caramel miễn phí" }).first();
@@ -94,6 +106,8 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     await expect(gift).toBeVisible();
     giftCode = (await gift.textContent())!.trim();
     expect(giftCode).toMatch(/^GIFT-RWDCORN-/);
+    await expect(page.getByTestId("loyalty-balance-points")).toHaveText("0");
+    await expect(page.getByTestId("loyalty-membership-tier")).toHaveText("BRONZE");
 
     const summary = await authedJson<{ balancePoints:number; lifetimePoints:number; membershipTier:string }>(page, "/api/loyalty/summary");
     expect(summary.status).toBe(200);

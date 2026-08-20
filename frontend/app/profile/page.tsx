@@ -166,11 +166,11 @@ export default function ProfilePage() {
         <div className="card p-5 sm:col-span-2">
           <div className="text-xs font-bold tracking-[.2em] text-rose-400">CINEBOOKING MEMBER · V40</div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-            <div><div className="text-2xl font-bold">Hạng {member?.membershipTier || profile.membershipTier}</div><div className="mt-1 text-sm text-slate-400">Hạng dựa trên điểm tích luỹ trọn đời, không tụt khi bạn dùng điểm.</div></div>
-            <div className="text-right"><div className="text-3xl font-bold text-amber-400">{member?.balancePoints ?? profile.loyaltyPoints}</div><div className="text-xs text-slate-400">điểm khả dụng</div></div>
+            <div><div className="text-2xl font-bold">Hạng <span data-testid="loyalty-membership-tier">{member?.membershipTier || profile.membershipTier}</span></div><div className="mt-1 text-sm text-slate-400">Hạng dựa trên điểm tích luỹ trọn đời, không tụt khi bạn dùng điểm.</div></div>
+            <div className="text-right"><div data-testid="loyalty-balance-points" className="text-3xl font-bold text-amber-400">{member?.balancePoints ?? profile.loyaltyPoints}</div><div className="text-xs text-slate-400">điểm khả dụng</div></div>
           </div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-400" style={{width:`${tierProgress}%`}}/></div>
-          <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-500"><span>Lifetime: {member?.lifetimePoints ?? profile.loyaltyLifetimePoints} điểm</span><span>{member?.nextTier ? `Còn ${member.pointsToNextTier} điểm → ${member.nextTier}` : "Đã đạt hạng cao nhất"}</span></div>
+          <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-slate-500"><span>Lifetime: <span data-testid="loyalty-lifetime-points">{member?.lifetimePoints ?? profile.loyaltyLifetimePoints}</span> điểm</span><span>{member?.nextTier ? `Còn ${member.pointsToNextTier} điểm → ${member.nextTier}` : "Đã đạt hạng cao nhất"}</span></div>
           <div className="mt-3 text-xs text-slate-500">BRONZE · 500 SILVER · 1.500 GOLD · 4.000 DIAMOND</div>
         </div>
         <div className="card p-5"><div className="text-sm text-slate-400">Tốc độ tích điểm</div><div className="mt-2 text-xl font-bold">x{Number(member?.earnMultiplier || 1).toFixed(2)}</div><p className="mt-2 text-xs leading-5 text-slate-500">Base: 10.000đ = 1 điểm. SILVER x1,10 · GOLD x1,25 · DIAMOND x1,50.</p></div>
