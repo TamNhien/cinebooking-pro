@@ -61,7 +61,7 @@ test("V38 mock refund auto-processes policy, reopens seat, and updates payment h
     const policy = page.locator('[aria-label^="Chính sách hoàn vé "]').first();
     await expect(policy).toBeVisible();
     await expect(policy.getByText("AUTO_FULL", { exact: false })).toBeVisible();
-    await expect(policy.getByText(/100%/)).toBeVisible();
+    await expect(policy.getByText(/^100%\s*·/)).toBeVisible();
     await expect(policy.getByText("Tự động", { exact: true })).toBeVisible();
     await policy.getByRole("button", { name: /Xác nhận hủy & hoàn/ }).click();
     await expect(page.getByText(/Đã hoàn vé tự động/)).toBeVisible();

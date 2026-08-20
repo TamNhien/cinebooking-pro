@@ -107,6 +107,8 @@ check('Payment history UI shows refunded amount/reference', 'Đã hoàn' in paym
 check('V38 Playwright journey exists', bool(e2e) and 'V38 mock refund auto-processes policy' in e2e)
 check('V38 Playwright selects a far seeded showtime', 'dateCount - 1' in e2e)
 check('V38 Playwright verifies AUTO_FULL quote', 'AUTO_FULL' in e2e and '100%' in e2e)
+check('V38 Playwright scopes 100 percent assertion to the rate row', 'policy.getByText(/^100%\\s*·/)' in e2e)
+check('V38 Playwright avoids ambiguous broad 100 percent text lookup', 'policy.getByText(/100%/)' not in e2e)
 check('V38 Playwright verifies automatic REFUNDED booking state', 'Trạng thái booking: REFUNDED' in e2e)
 check('V38 Playwright verifies refunded payment state', 'paymentCard.getByText("REFUNDED", { exact: true })' in e2e)
 check('V38 Playwright verifies released seat becomes available', 'released seat becomes available again' in e2e and 'title*="AVAILABLE"' in e2e)
