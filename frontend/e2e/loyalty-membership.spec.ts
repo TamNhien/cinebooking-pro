@@ -1,0 +1,119 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const PASSWORD = "V40Loyalty!Customer123";
+
+async function login(page: Page, email: string, password: string) {
+  await page.goto("/login");
+  await page.getByPlaceholder("Email").fill(email);
+  await page.getByPlaceholder("Mật khẩu").fill(password);
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+}
+
+async function authedJson<T>(page: Page, url: string, init?: { method?: string; body?: unknown }) {
+  return page.evaluate(async ({ url, init }) => {
+    const raw = localStorage.getItem("cinebooking_auth_v3");
+    if (!raw) throw new Error("auth missing");
+    const auth = JSON.parse(raw) as { accessToken?: string };
+    const res = await fetch(url, {
+      method: init?.method || "GET",
+      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${auth.accessToken || ""}`,
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: init?.body ? JSON.stringify(init.body) : undefined,
+    });
+    let body: unknown = null;
+    try { body = await res.json(); } catch { body = null; }
+    return { status: res.status, body };
+  }, { url, init }) as Promise<{ status:number; body:T|null }>;
+}
+
+async function logout(page: Page) {
+  await page.evaluate(async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => undefined);
+    localStorage.clear();
+  });
+}
+
+test("V40 admin credit -> private voucher + concession reward -> staff claim", async ({ page, context }) => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const email = `v40-loyalty-${stamp}@example.test`;
+  const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
+
+  await test.step("register loyalty customer", async () => {
+    await page.goto("/register");
+    await page.getByPlaceholder("Họ và tên").fill("V40 Loyalty Customer");
+    await page.getByPlaceholder("Email").fill(email);
+    await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
+    await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
+    await page.getByRole("button", { name: "Đăng ký" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  await test.step("admin credits 500 non-qualifying adjustment points", async () => {
+    await logout(page); await context.clearCookies();
+    await login(page, adminEmail, adminPassword);
+    await expect(page).toHaveURL(/\/admin$/);
+    const members = await authedJson<{ userId:string; email:string }[]>(page, "/api/admin/loyalty/members");
+    expect(members.status).toBe(200);
+    const member = members.body!.find(x => x.email === email);
+    expect(member).toBeTruthy();
+    const adjusted = await authedJson<{ balancePoints:number; lifetimePoints:number; membershipTier:string }>(
+      page,
+      `/api/admin/loyalty/users/${member!.userId}/adjustments`,
+      { method:"POST", body:{ deltaPoints:500, reason:"V40 Playwright reward journey" } },
+    );
+    expect(adjusted.status).toBe(200);
+    expect(adjusted.body?.balancePoints).toBe(500);
+    expect(adjusted.body?.lifetimePoints).toBe(0);
+    expect(adjusted.body?.membershipTier).toBe("BRONZE");
+  });
+
+  let giftCode = "";
+  await test.step("customer spends points without lowering lifetime tier", async () => {
+    await logout(page); await context.clearCookies();
+    await login(page, email, PASSWORD);
+    await expect(page).toHaveURL(/\/$/);
+    await page.goto("/profile");
+    await expect(page.getByRole("heading", { name: "🎁 Đổi điểm lấy phần thưởng" })).toBeVisible();
+    await expect(page.getByText("500 điểm", { exact:true }).first()).toBeVisible();
+    await expect(page.getByText("BRONZE", { exact:true }).first()).toBeVisible();
+
+    page.once("dialog", d => d.accept());
+    const voucherCard = page.locator("article").filter({ hasText:"Voucher giảm 20.000đ" }).first();
+    await voucherCard.getByRole("button", { name:"Đổi" }).click();
+    await expect(page.getByText(/Voucher: RWD-RWD20K-/)).toBeVisible();
+    await expect(page.getByText(/^RWD-RWD20K-/).first()).toBeVisible();
+
+    page.once("dialog", d => d.accept());
+    const cornCard = page.locator("article").filter({ hasText:"Bắp Caramel miễn phí" }).first();
+    await cornCard.getByRole("button", { name:"Đổi" }).click();
+    const gift = page.getByText(/^GIFT-RWDCORN-/).first();
+    await expect(gift).toBeVisible();
+    giftCode = (await gift.textContent())!.trim();
+    expect(giftCode).toMatch(/^GIFT-RWDCORN-/);
+
+    const summary = await authedJson<{ balancePoints:number; lifetimePoints:number; membershipTier:string }>(page, "/api/loyalty/summary");
+    expect(summary.status).toBe(200);
+    expect(summary.body?.balancePoints).toBe(0);
+    expect(summary.body?.lifetimePoints).toBe(0);
+    expect(summary.body?.membershipTier).toBe("BRONZE");
+  });
+
+  await test.step("admin uses staff reward counter and duplicate claim is blocked", async () => {
+    await logout(page); await context.clearCookies();
+    await login(page, adminEmail, adminPassword);
+    await page.goto("/staff/check-in");
+    const rewardInput = page.getByPlaceholder("GIFT-RWDCORN-XXXXXXXX");
+    await expect(rewardInput).toBeVisible();
+    await rewardInput.fill(giftCode);
+    await page.getByRole("button", { name:"Xác nhận giao quà" }).click();
+    await expect(page.getByText("Bắp Caramel × 1", { exact:false })).toBeVisible();
+    await expect(page.getByText(email, { exact:true })).toBeVisible();
+
+    const duplicate = await authedJson<{ message?:string }>(page, "/api/staff/loyalty-rewards/claim", { method:"POST", body:{ code:giftCode } });
+    expect(duplicate.status).toBe(409);
+  });
+});

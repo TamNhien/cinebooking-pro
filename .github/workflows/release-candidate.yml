@@ -6,7 +6,7 @@ on:
       version:
         description: "Release-candidate version label (letters/digits/._- only)"
         required: true
-        default: "v39.0.0-rc.1"
+        default: "v40.0.0-rc.1"
 
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
       VCS_REF: ${{ github.sha }}
       HTTP_PORT: "18080"
       POSTGRES_PORT: "15433"
-      COMPOSE_PROJECT_NAME: cinebooking_v39_rc_${{ github.run_id }}
+      COMPOSE_PROJECT_NAME: cinebooking_v40_rc_${{ github.run_id }}
       JWT_SECRET: v29-rc-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser E2E journeys (V29.2 + V30 + V31.2 + V33 + V34 + V36 + V37 + V38 + V39)
+      - name: Run browser E2E journeys (V29.2 + V30 + V31.2 + V33 + V34 + V36 + V37 + V38 + V39 + V40)
         env:
           E2E_SKIP_BUILD: "true"
         run: bash tools/e2e-v29.2.sh

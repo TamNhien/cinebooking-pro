@@ -41,7 +41,7 @@ public class BookingService {
     private final SeatEventPublisher events;
     private final CommerceService commerce;
     private final InventoryService inventory;
-    private final LoyaltyTransactionRepository loyaltyTransactions;
+    private final LoyaltyService loyalty;
     private final NotificationService notifications;
     private final PricingService pricing;
     private final long paymentWindowSeconds;
@@ -49,11 +49,11 @@ public class BookingService {
     public BookingService(BookingRepository bookings, BookingSeatRepository bookingSeats, ShowtimeRepository showtimes,
                           SeatRepository seats, MovieRepository movies, UserRepository users,
                           SeatHoldService holds, SeatEventPublisher events, CommerceService commerce, InventoryService inventory,
-                          LoyaltyTransactionRepository loyaltyTransactions, NotificationService notifications, PricingService pricing,
+                          LoyaltyService loyalty, NotificationService notifications, PricingService pricing,
                           @Value("${app.booking.payment-window-seconds}") long paymentWindowSeconds) {
         this.bookings=bookings; this.bookingSeats=bookingSeats; this.showtimes=showtimes; this.seats=seats;
         this.movies=movies; this.users=users; this.holds=holds; this.events=events; this.commerce=commerce; this.inventory=inventory;
-        this.loyaltyTransactions=loyaltyTransactions; this.notifications=notifications; this.pricing=pricing; this.paymentWindowSeconds=paymentWindowSeconds;
+        this.loyalty=loyalty; this.notifications=notifications; this.pricing=pricing; this.paymentWindowSeconds=paymentWindowSeconds;
     }
 
     public record BookingCreateResult(BookingResponse booking, boolean replayed) {}
@@ -136,15 +136,12 @@ public class BookingService {
         BigDecimal afterVoucher = gross.subtract(voucher.discount()).max(BigDecimal.ZERO);
 
         int requestedPoints = req.redeemPoints()==null?0:req.redeemPoints();
-        int availablePoints = user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints();
+        int availablePoints = loyalty.refreshAvailablePoints(user);
         int maxByOrder = afterVoucher.multiply(BigDecimal.valueOf(0.30)).divide(POINT_VALUE,0,RoundingMode.DOWN).intValue();
         int maxPoints = Math.min(availablePoints,maxByOrder);
         if(requestedPoints>maxPoints) throw new ApiException(HttpStatus.CONFLICT,"Bạn chỉ có thể dùng tối đa "+maxPoints+" điểm cho đơn hàng này");
         BigDecimal pointsDiscount = POINT_VALUE.multiply(BigDecimal.valueOf(requestedPoints));
-        if(requestedPoints>0){
-            user.setLoyaltyPoints(availablePoints-requestedPoints); user.setMembershipTier(tier(user.getLoyaltyPoints())); users.save(user);
-            LoyaltyTransaction tx=new LoyaltyTransaction();tx.setUserId(user.getId());tx.setBookingId(b.getId());tx.setTransactionType("REDEEM");tx.setPoints(requestedPoints);tx.setDescription("Dùng điểm cho booking "+b.getId());loyaltyTransactions.save(tx);
-        }
+        if(requestedPoints>0) loyalty.redeemForBooking(user,b.getId(),requestedPoints);
 
         BigDecimal discountTotal = voucher.discount().add(pointsDiscount);
         BigDecimal finalTotal = gross.subtract(discountTotal).max(BigDecimal.ZERO);
@@ -241,7 +238,7 @@ public class BookingService {
     private void refundBenefitsIfNeeded(Booking b){
         if(Boolean.TRUE.equals(b.getBenefitsRefunded()))return;
         int points=b.getPointsRedeemed()==null?0:b.getPointsRedeemed();
-        if(points>0){AppUser u=users.findByIdForUpdate(b.getUserId()).orElseThrow();u.setLoyaltyPoints((u.getLoyaltyPoints()==null?0:u.getLoyaltyPoints())+points);u.setMembershipTier(tier(u.getLoyaltyPoints()));users.save(u);LoyaltyTransaction tx=new LoyaltyTransaction();tx.setUserId(u.getId());tx.setBookingId(b.getId());tx.setTransactionType("REFUND");tx.setPoints(points);tx.setDescription("Hoàn điểm do booking bị huỷ/hết hạn");loyaltyTransactions.save(tx);}
+        if(points>0) loyalty.refundRedeemedPoints(b.getUserId(),b.getId(),points,"Hoàn điểm do booking bị huỷ/hết hạn");
         commerce.releaseVoucher(b.getId()); b.setBenefitsRefunded(true);
     }
 
@@ -301,5 +298,4 @@ public class BookingService {
     }
 
     private BigDecimal nz(BigDecimal v){return v==null?BigDecimal.ZERO:v;}
-    private String tier(int points){if(points>=4000)return "DIAMOND";if(points>=1500)return "GOLD";if(points>=500)return "SILVER";return "BRONZE";}
 }

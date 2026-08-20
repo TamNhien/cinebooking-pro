@@ -154,6 +154,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/shifts">🕒 {en?"Shift scheduling":"Xếp ca"}</Link>
               <Link onClick={close} href="/admin/attendance">🧾 {en?"Timesheet & leave":"Bảng công & nghỉ phép"}</Link>
               <Link onClick={close} href="/admin/vouchers">🎟 {en?"Vouchers":"Mã ưu đãi"}</Link>
+              <Link onClick={close} href="/admin/loyalty">🏆 {en?"Loyalty":"Thành viên"}</Link>
               <Link onClick={close} href="/admin/pricing">💰 {en?"Dynamic pricing":"Giá vé động"}</Link>
               <Link onClick={close} href="/admin/commerce">🍿 {en?"Food & commerce":"Bắp nước & thương mại"}</Link><Link onClick={close} href="/admin/inventory">📦 {en?"Inventory":"Kho bắp nước"}</Link>
               <Link onClick={close} href="/admin/reviews">⭐ {en?"Review moderation":"Kiểm duyệt đánh giá"}</Link>
@@ -201,7 +202,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">Nhân viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">Mã ưu đãi</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">Mã ưu đãi</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/loyalty">Loyalty & thành viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">Giá vé động</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/commerce">Bắp nước & thương mại</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/inventory">Kho bắp nước</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/reviews">Kiểm duyệt đánh giá</Link>

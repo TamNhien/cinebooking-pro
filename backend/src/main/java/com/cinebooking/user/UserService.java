@@ -27,7 +27,13 @@ public class UserService {
 
     @Transactional
     public UserResponse updateMe(String email, UpdateProfileRequest req){
-        AppUser u=findByEmail(email); u.setFullName(req.fullName().trim()); u.setPhone(clean(req.phone())); return dto(users.save(u));
+        AppUser u=findByEmail(email); u.setFullName(req.fullName().trim()); u.setPhone(clean(req.phone()));
+        if(req.birthDate()!=null){
+            if(req.birthDate().isAfter(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))||req.birthDate().isBefore(java.time.LocalDate.of(1900,1,1)))throw new ApiException(HttpStatus.BAD_REQUEST,"Ngày sinh không hợp lệ");
+            if(u.getBirthDate()!=null&&!u.getBirthDate().equals(req.birthDate()))throw new ApiException(HttpStatus.CONFLICT,"Ngày sinh chỉ được tự thiết lập một lần. Hãy liên hệ quản trị viên nếu cần chỉnh sửa.");
+            if(u.getBirthDate()==null)u.setBirthDate(req.birthDate());
+        }
+        return dto(users.save(u));
     }
 
     @Transactional
@@ -73,7 +79,7 @@ public class UserService {
     }
 
     public AppUser findByEmail(String email){return users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy người dùng"));}
-    public UserResponse dto(AppUser u){return new UserResponse(u.getId(),u.getEmail(),u.getFullName(),u.getPhone(),u.getRole().name(),u.getLoyaltyPoints()==null?0:u.getLoyaltyPoints(),u.getMembershipTier()==null?"BRONZE":u.getMembershipTier(),u.isAccountEnabled(),u.getCreatedAt(),u.getUpdatedAt());}
+    public UserResponse dto(AppUser u){return new UserResponse(u.getId(),u.getEmail(),u.getFullName(),u.getPhone(),u.getRole().name(),u.getLoyaltyPoints()==null?0:u.getLoyaltyPoints(),u.getLoyaltyLifetimePoints()==null?0:u.getLoyaltyLifetimePoints(),u.getMembershipTier()==null?"BRONZE":u.getMembershipTier(),u.getBirthDate(),u.isAccountEnabled(),u.getCreatedAt(),u.getUpdatedAt());}
     private Role parseGeneralRole(String raw){try{Role role=Role.valueOf(raw.trim().toUpperCase(Locale.ROOT));if(role!=Role.USER&&role!=Role.ADMIN)throw new IllegalArgumentException();return role;}catch(Exception e){throw new ApiException(HttpStatus.BAD_REQUEST,"Tài khoản nhân viên STAFF/MANAGER phải được tạo và chỉnh sửa trong mục Nhân viên");}}
     private String clean(String v){return v==null||v.isBlank()?null:v.trim();}
 }

@@ -120,6 +120,17 @@ public class InventoryService {
     }
 
     @Transactional
+    public void consumeLoyaltyReward(UUID productId,int quantity,String actorEmail,String rewardCode){
+        if(quantity<=0)throw new ApiException(HttpStatus.BAD_REQUEST,"Số lượng phần thưởng không hợp lệ");
+        ConcessionProduct p=products.findByIdForUpdate(productId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Sản phẩm phần thưởng không còn tồn tại"));
+        if(!Boolean.TRUE.equals(p.getActive()))throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm phần thưởng đang tạm dừng");
+        if(!Boolean.TRUE.equals(p.getInventoryEnabled()))return;
+        if(available(p)<quantity)throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm "+p.getName()+" hiện không đủ tồn kho để giao phần thưởng");
+        p.setStockOnHand(nz(p.getStockOnHand())-quantity);products.save(p);
+        record(p,null,"LOYALTY_REWARD",-quantity,0,actorEmail,"Đổi điểm loyalty · "+rewardCode);
+    }
+
+    @Transactional
     public void restoreForRefund(UUID bookingId){
         List<BookingConcession> rows=bookingConcessions.findByBookingId(bookingId); Map<UUID,Integer> qty=quantities(rows); if(qty.isEmpty())return;
         Map<UUID,ConcessionProduct> locked=lock(qty.keySet());

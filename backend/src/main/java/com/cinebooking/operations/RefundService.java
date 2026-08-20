@@ -5,7 +5,7 @@ import com.cinebooking.booking.BookingRepository;
 import com.cinebooking.booking.BookingSeatRepository;
 import com.cinebooking.commerce.CommerceService;
 import com.cinebooking.commerce.InventoryService;
-import com.cinebooking.commerce.LoyaltyTransactionRepository;
+import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
 import com.cinebooking.movie.ShowtimeRepository;
@@ -32,7 +32,7 @@ public class RefundService {
     private final PaymentRepository payments;
     private final CommerceService commerce;
     private final InventoryService inventory;
-    private final LoyaltyTransactionRepository loyalty;
+    private final LoyaltyService loyalty;
     private final NotificationService notifications;
     private final AuditService audit;
     private final BookingSeatRepository bookingSeats;
@@ -42,7 +42,7 @@ public class RefundService {
 
     public RefundService(BookingRepository bookings, ShowtimeRepository showtimes, UserRepository users,
                          PaymentRepository payments, CommerceService commerce, InventoryService inventory,
-                         LoyaltyTransactionRepository loyalty, NotificationService notifications, AuditService audit,
+                         LoyaltyService loyalty, NotificationService notifications, AuditService audit,
                          BookingSeatRepository bookingSeats, SeatEventPublisher events, ShowtimeWaitlistService waitlist,
                          RefundPolicy policy) {
         this.bookings=bookings; this.showtimes=showtimes; this.users=users; this.payments=payments; this.commerce=commerce;
@@ -118,20 +118,10 @@ public class RefundService {
     private RefundView finalizeRefund(Booking b, Payment p, String actorEmail, String providerReference, String ip, boolean automatic){
         if(Boolean.TRUE.equals(b.getBenefitsRefunded()) && b.getStatus()==BookingStatus.REFUNDED) return view(b);
         UUID benefitOwnerId=b.getPurchaserUserId()==null?b.getUserId():b.getPurchaserUserId();
-        AppUser user=users.findByIdForUpdate(benefitOwnerId).orElseThrow();
-
         int earned=p.getLoyaltyPointsAwarded()==null?0:p.getLoyaltyPointsAwarded();
-        if(earned>0){
-            int current=user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints();
-            user.setLoyaltyPoints(Math.max(0,current-earned)); user.setMembershipTier(tier(user.getLoyaltyPoints()));
-            LoyaltyTransaction tx=new LoyaltyTransaction(); tx.setUserId(user.getId()); tx.setBookingId(b.getId()); tx.setTransactionType("REVERSAL"); tx.setPoints(earned); tx.setDescription("Thu hồi điểm do hoàn tiền booking "+b.getId()); loyalty.save(tx);
-        }
+        if(earned>0) loyalty.reverseEarnedPoints(benefitOwnerId,b.getId(),earned);
         int redeemed=b.getPointsRedeemed()==null?0:b.getPointsRedeemed();
-        if(redeemed>0){
-            user.setLoyaltyPoints((user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints())+redeemed); user.setMembershipTier(tier(user.getLoyaltyPoints()));
-            LoyaltyTransaction tx=new LoyaltyTransaction(); tx.setUserId(user.getId()); tx.setBookingId(b.getId()); tx.setTransactionType("REFUND"); tx.setPoints(redeemed); tx.setDescription("Hoàn điểm đã dùng do hoàn vé"); loyalty.save(tx);
-        }
-        users.save(user);
+        if(redeemed>0) loyalty.refundRedeemedPoints(benefitOwnerId,b.getId(),redeemed,"Hoàn điểm đã dùng do hoàn vé");
         commerce.releaseVoucher(b.getId());
         inventory.restoreForRefund(b.getId());
 
@@ -202,7 +192,6 @@ public class RefundService {
     private void clearRequestSnapshot(Booking b){b.setRefundRequestedAt(null);b.setRefundAmount(null);b.setRefundReason(null);b.setRefundRatePercent(null);b.setRefundFeeAmount(null);b.setRefundPolicyCode(null);b.setRefundAutomatic(false);}
     private RefundView view(Booking b){return new RefundView(b.getId(),b.getUserId(),b.getShowtimeId(),b.getStatus().name(),b.getTotalAmount(),b.getRefundAmount(),b.getRefundFeeAmount(),b.getRefundRatePercent(),b.getRefundPolicyCode(),Boolean.TRUE.equals(b.getRefundAutomatic()),b.getRefundReason(),b.getRefundRequestedAt(),b.getRefundedAt(),b.getRefundProcessedAt(),b.getRefundProcessedBy(),b.getRefundProviderReference());}
     private BigDecimal nz(BigDecimal v){return v==null?BigDecimal.ZERO:v;}
-    private String tier(int p){if(p>=4000)return "DIAMOND";if(p>=1500)return "GOLD";if(p>=500)return "SILVER";return "BRONZE";}
 
     public record RefundQuote(UUID bookingId,boolean refundable,String policyCode,BigDecimal ratePercent,BigDecimal refundAmount,
                               BigDecimal feeAmount,boolean automatic,boolean requiresAdmin,boolean gatewayConfirmationRequired,

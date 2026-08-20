@@ -81,8 +81,8 @@ check('Legacy admin booking UI collects provider reference for real gateways',
 
 check('Automatic refund uses explicit system audit action', 'REFUND_AUTO_APPROVE' in service and 'AUTO-'+ '"+b.getId()' in service)
 check('Refund keeps benefit ownership on original purchaser', 'getPurchaserUserId()==null?b.getUserId():b.getPurchaserUserId()' in service)
-check('Refund reverses earned loyalty points', 'transactionType("REVERSAL")' in service or 'setTransactionType("REVERSAL")' in service)
-check('Refund restores redeemed loyalty points', 'setTransactionType("REFUND")' in service and 'Hoàn điểm đã dùng do hoàn vé' in service)
+check('Refund reverses earned loyalty points', 'transactionType("REVERSAL")' in service or 'setTransactionType("REVERSAL")' in service or 'loyalty.reverseEarnedPoints' in service)
+check('Refund restores redeemed loyalty points', ('setTransactionType("REFUND")' in service or 'loyalty.refundRedeemedPoints' in service) and 'Hoàn điểm đã dùng do hoàn vé' in service)
 check('Refund releases voucher entitlement', 'commerce.releaseVoucher(b.getId())' in service)
 check('Refund restores concession inventory', 'inventory.restoreForRefund(b.getId())' in service)
 check('Refund records refunded amount on payment', 'p.setRefundedAmount(b.getRefundAmount())' in service)
@@ -114,7 +114,8 @@ check('V38 Playwright verifies refunded payment state', 'paymentCard.getByText("
 check('V38 Playwright verifies released seat becomes available', 'released seat becomes available again' in e2e and 'title*="AVAILABLE"' in e2e)
 
 check('RefundPolicy unit test covers all four policy bands', all(x in unit for x in ['AUTO_FULL','AUTO_PARTIAL','MANUAL_PARTIAL','NON_REFUNDABLE']))
-check('Testcontainers expects Flyway V38', 'isEqualTo("38")' in it)
+latest=re.search(r'assertThat\(latest\)\.isEqualTo\("(\d+)"\)',it)
+check('Testcontainers expects Flyway V38 or newer', bool(latest) and int(latest.group(1))>=38)
 check('Testcontainers validates V38 booking refund columns', 'refundV38BookingColumns' in it and 'isEqualTo(7)' in it)
 check('Testcontainers validates V38 payment refund columns', 'refundV38PaymentColumns' in it and 'isEqualTo(3)' in it)
 

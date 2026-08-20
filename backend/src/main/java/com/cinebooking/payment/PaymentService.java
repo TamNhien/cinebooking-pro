@@ -3,7 +3,7 @@ package com.cinebooking.payment;
 import com.cinebooking.booking.BookingDtos.BookingResponse;
 import com.cinebooking.booking.BookingService;
 import com.cinebooking.commerce.InventoryService;
-import com.cinebooking.commerce.LoyaltyTransactionRepository;
+import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
 import com.cinebooking.notification.NotificationService;
@@ -27,13 +27,13 @@ public class PaymentService {
     private final UserRepository users;
     private final VnPayGateway vnPay;
     private final MomoGateway momo;
-    private final LoyaltyTransactionRepository loyaltyTransactions;
+    private final LoyaltyService loyalty;
     private final NotificationService notifications;
     private final InventoryService inventory;
     private final boolean mockEnabled;
 
-    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyTransactionRepository loyaltyTransactions,NotificationService notifications,InventoryService inventory,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled){
-        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyaltyTransactions=loyaltyTransactions;this.notifications=notifications;this.inventory=inventory;this.mockEnabled=mockEnabled;
+    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyService loyalty,NotificationService notifications,InventoryService inventory,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled){
+        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyalty=loyalty;this.notifications=notifications;this.inventory=inventory;this.mockEnabled=mockEnabled;
     }
 
     public PaymentStartResponse start(UUID bookingId,String email,String providerRaw,String ipAddress,String idempotencyKey){
@@ -263,8 +263,11 @@ public class PaymentService {
     private String safeMessage(Throwable e){String m=e.getMessage();return m==null||m.isBlank()?e.getClass().getSimpleName():bounded(m,450);}
 
     private void awardLoyaltyIfNeeded(Payment p){
-        if(p.getLoyaltyPointsAwarded()!=null&&p.getLoyaltyPointsAwarded()>0)return;Booking booking=bookingService.entity(p.getBookingId());UUID benefitOwner=booking.getPurchaserUserId()==null?booking.getUserId():booking.getPurchaserUserId();AppUser user=users.findByIdForUpdate(benefitOwner).orElseThrow();int points=p.getAmount().divideToIntegralValue(java.math.BigDecimal.valueOf(10000)).intValue();if(points<=0){p.setLoyaltyPointsAwarded(0);return;}int total=(user.getLoyaltyPoints()==null?0:user.getLoyaltyPoints())+points;user.setLoyaltyPoints(total);user.setMembershipTier(tier(total));users.save(user);p.setLoyaltyPointsAwarded(points);LoyaltyTransaction tx=new LoyaltyTransaction();tx.setUserId(user.getId());tx.setBookingId(booking.getId());tx.setTransactionType("EARN");tx.setPoints(points);tx.setDescription("Tích điểm từ thanh toán booking "+booking.getId());loyaltyTransactions.save(tx);
+        if(p.getLoyaltyPointsAwarded()!=null&&p.getLoyaltyPointsAwarded()>0)return;
+        Booking booking=bookingService.entity(p.getBookingId());
+        UUID benefitOwner=booking.getPurchaserUserId()==null?booking.getUserId():booking.getPurchaserUserId();
+        int points=loyalty.awardForPayment(benefitOwner,booking.getId(),p.getAmount());
+        p.setLoyaltyPointsAwarded(points);
     }
-    private String tier(int points){if(points>=4000)return "DIAMOND";if(points>=1500)return "GOLD";if(points>=500)return "SILVER";return "BRONZE";}
     private PaymentResultResponse result(Payment p){Booking b=bookingService.entity(p.getBookingId());return new PaymentResultResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),b.getStatus().name());}
 }

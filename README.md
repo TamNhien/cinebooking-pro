@@ -1,8 +1,8 @@
-# CineBooking Pro V36
+# CineBooking Pro V40
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V36 — Secure Ticket Transfer  
+> **Current release:** V40 — Loyalty & Membership 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -1177,3 +1177,107 @@ The V39 RC1 browser run exposed a date-sensitive legacy V36 ticket-transfer test
 
 The V39 RC2 browser run proved the transferred V2 QR is accepted by the check-in preview, but the E2E had moved the booking to the farthest seeded date. That solved the 60-minute transfer cutoff while pushing the same ticket outside the default 48-hour early check-in window, so the preview returned `allowed=false` and no final check-in request was sent. The journey now selects tomorrow in the `Asia/Ho_Chi_Minh` cinema timezone: far enough for secure transfer and close enough for staff-gate validation/check-in. No backend, database, QR rotation, seat-map, payment, or refund behavior changes are included. After the failed `v39.0.0-rc.2`, publish the next immutable candidate as `v39.0.0-rc.3`; do not move RC1 or RC2 tags.
 
+
+
+---
+
+## V40 - Loyalty & Membership 2.0
+
+V40 upgrades the existing loyalty system from a simple spendable balance into a lifetime membership ledger. Spending reward points no longer demotes a customer tier; tier qualification is based on lifetime qualifying points earned from successful paid bookings.
+
+### Membership tiers and earning
+
+- `BRONZE`: 0-499 lifetime qualifying points, `1.00x` earning;
+- `SILVER`: 500-1499, `1.10x`;
+- `GOLD`: 1500-3999, `1.25x`;
+- `DIAMOND`: 4000+, `1.50x`.
+
+Payment earning, booking redemption and refund reversal all route through `LoyaltyService`. V36 `purchaser_user_id` remains the economic owner for loyalty reversal/refund after a ticket transfer.
+
+### Expiring point lots
+
+V40 stores every credit as a `loyalty_point_lot` and consumes the earliest-expiring balance first. New lots expire after a configurable number of calendar months. Expiry is recorded as an `EXPIRE` ledger transaction and can be processed by the scheduled sweep or manually by Admin.
+
+```env
+LOYALTY_POINT_EXPIRY_MONTHS=12
+LOYALTY_EXPIRING_SOON_DAYS=30
+LOYALTY_EXPIRY_SCAN_MS=3600000
+```
+
+The profile shows available points, lifetime points, tier progress, earning multiplier, points expiring soon and the next expiry time.
+
+### Reward catalog and private wallet
+
+Seeded rewards include:
+
+- `RWD20K`: 200 points -> private 20,000 VND voucher;
+- `RWD10`: 350 points -> private 10% voucher, capped at 50,000 VND;
+- `RWDCORN`: 300 points -> one Caramel Popcorn concession reward.
+
+Reward vouchers are bound to `voucher.owner_user_id`, do not appear in the public/global voucher catalog and cannot be quoted or applied by another member. Concession rewards generate a one-time `GIFT-*` code; Staff/Manager/Admin claims it at the counter and tracked inventory is decremented exactly once with movement type `LOYALTY_REWARD`.
+
+### Birthday benefit
+
+A customer may self-enter a birth date once. Admin can correct it later with a required audit reason. On the member's birthday in `Asia/Ho_Chi_Minh`, the customer can claim one private 20% voucher per year, capped at 50,000 VND and valid for 30 days.
+
+### Admin and staff operations
+
+Admin `/admin/loyalty` provides member balance/lifetime/tier/expiry visibility, signed point adjustments with a required reason, audited birth-date correction and an on-demand expiry sweep. Admin adjustments intentionally do **not** manufacture lifetime qualifying points. Staff counter `/staff/check-in` includes the `GIFT-*` concession reward claim flow.
+
+### V40 API
+
+```text
+GET  /api/loyalty/summary
+GET  /api/loyalty/transactions
+GET  /api/loyalty/rewards
+GET  /api/loyalty/redemptions
+GET  /api/loyalty/vouchers
+POST /api/loyalty/rewards/{id}/redeem
+POST /api/loyalty/birthday-reward
+
+GET  /api/admin/loyalty/members
+POST /api/admin/loyalty/users/{userId}/adjustments
+PUT  /api/admin/loyalty/users/{userId}/birth-date
+POST /api/admin/loyalty/expire-now
+
+POST /api/staff/loyalty-rewards/claim
+```
+
+Flyway migration: `V40__loyalty_membership_2.sql`.
+
+### V40 verification
+
+```powershell
+python .\tools\verify_v40_loyalty_membership.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v40.ps1
+```
+
+Start/update Docker without deleting persistent data:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do **not** use `docker compose down -v` for normal updates.
+
+After `main` CI is green, publish V40 through the stable release workflow:
+
+```text
+GitHub -> Actions -> CineBooking Stable Release -> Run workflow
+branch: main
+version: 40.0.0
+rc_number: 1
+```
+
+Release lifecycle:
+
+```text
+main CI
+-> v40.0.0-rc.1
+-> full-stack smoke + Playwright E2E
+-> v40.0.0
+-> GitHub Release
+```
+
+If an RC needs a source fix, commit/push the fix, wait for `main` CI to become green again and increment `rc_number`. Never move an existing RC or stable tag.

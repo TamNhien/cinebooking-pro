@@ -128,3 +128,10 @@ verify-v39:
 
 diagnose-v39:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v39.ps1
+
+
+verify-v40:
+	python tools/verify_v40_loyalty_membership.py
+
+diagnose-v40:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v40.ps1

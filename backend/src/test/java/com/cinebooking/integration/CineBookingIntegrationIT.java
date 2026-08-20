@@ -19,6 +19,7 @@ import com.cinebooking.user.UserRepository;
 import com.cinebooking.movie.ShowtimeRepository;
 import com.cinebooking.payment.PaymentAttemptService;
 import com.cinebooking.payment.PaymentRepository;
+import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.domain.*;
 import com.cinebooking.common.ApiException;
 import org.testcontainers.containers.GenericContainer;
@@ -84,9 +85,10 @@ class CineBookingIntegrationIT {
     @Autowired ShowtimeRepository showtimes;
     @Autowired PaymentAttemptService paymentAttempts;
     @Autowired PaymentRepository payments;
+    @Autowired LoyaltyService loyalty;
 
     @Test
-    void flywayMigratesRealPostgresToV38RefundAutomationSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV40LoyaltyMembershipSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -96,9 +98,9 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
                 Integer.class);
 
-        assertThat(migrationCount).isGreaterThanOrEqualTo(27);
-        assertThat(latest).isEqualTo("38");
-        assertThat(publicTables).isGreaterThanOrEqualTo(33);
+        assertThat(migrationCount).isGreaterThanOrEqualTo(28);
+        assertThat(latest).isEqualTo("40");
+        assertThat(publicTables).isGreaterThanOrEqualTo(36);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -122,6 +124,18 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='payment' and column_name in ('refunded_amount','refunded_at','refund_reference')", Integer.class);
         assertThat(refundV38PaymentColumns).isEqualTo(3);
 
+        Integer loyaltyV40UserColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);
+        assertThat(loyaltyV40UserColumns).isEqualTo(3);
+        Integer loyaltyV40Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('loyalty_point_lot','loyalty_reward','loyalty_reward_redemption')", Integer.class);
+        assertThat(loyaltyV40Tables).isEqualTo(3);
+        Integer voucherOwnerColumn = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
+        assertThat(voucherOwnerColumn).isEqualTo(1);
+        Integer rewardSeeds = jdbc.queryForObject("select count(*) from loyalty_reward where active=true", Integer.class);
+        assertThat(rewardSeeds).isGreaterThanOrEqualTo(3);
+
         Integer activeMovies = jdbc.queryForObject(
                 "select count(*) from movie where active = true", Integer.class);
         Integer september30Movies = jdbc.queryForObject(
@@ -144,6 +158,38 @@ class CineBookingIntegrationIT {
         assertThat(activeMovies).isGreaterThanOrEqualTo(8);
         assertThat(september30Movies).isGreaterThanOrEqualTo(8);
         assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
+    }
+
+    @Test
+    void loyaltyV40RewardRedemptionAndPointExpiryStayLedgerConsistent() {
+        String stamp = UUID.randomUUID().toString().substring(0, 8);
+        AppUser customer = customer("v40-member-" + stamp + "@example.test", "V40 Member");
+        AppUser admin = new AppUser();
+        admin.setEmail("v40-admin-" + stamp + "@example.test");
+        admin.setFullName("V40 Admin");
+        admin.setPasswordHash("test-only");
+        admin.setRole(Role.ADMIN);
+        users.save(admin);
+
+        var credited = loyalty.adminAdjust(customer.getId(), 500, "integration credit", admin.getEmail(), "127.0.0.1");
+        assertThat(credited.balancePoints()).isEqualTo(500);
+        assertThat(credited.lifetimePoints()).isZero();
+        assertThat(credited.membershipTier()).isEqualTo("BRONZE");
+        assertThat(loyalty.tierFor(500)).isEqualTo("SILVER");
+
+        UUID voucherReward = UUID.fromString("74000000-0000-0000-0000-000000000001");
+        var redemption = loyalty.redeemReward(customer.getEmail(), voucherReward);
+        assertThat(redemption.rewardType()).isEqualTo("VOUCHER");
+        assertThat(redemption.voucherCode()).startsWith("RWD-RWD20K-");
+        assertThat(loyalty.summary(customer.getEmail()).balancePoints()).isEqualTo(300);
+        Integer ownedVoucher = jdbc.queryForObject("select count(*) from voucher where owner_user_id=? and code=?", Integer.class, customer.getId(), redemption.voucherCode());
+        assertThat(ownedVoucher).isEqualTo(1);
+
+        jdbc.update("update loyalty_point_lot set expires_at=now()-interval '1 minute' where user_id=? and remaining_points>0", customer.getId());
+        var expired = loyalty.summary(customer.getEmail());
+        assertThat(expired.balancePoints()).isZero();
+        Integer expireTx = jdbc.queryForObject("select count(*) from loyalty_transaction where user_id=? and transaction_type='EXPIRE'", Integer.class, customer.getId());
+        assertThat(expireTx).isGreaterThanOrEqualTo(1);
     }
 
     @Test

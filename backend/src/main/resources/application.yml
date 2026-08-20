@@ -79,6 +79,10 @@ app:
     prevent-single-gap: ${SEAT_PREVENT_SINGLE_GAP:true}
   booking:
     payment-window-seconds: ${PAYMENT_WINDOW_SECONDS:300}
+  loyalty:
+    point-expiry-months: ${LOYALTY_POINT_EXPIRY_MONTHS:12}
+    expiring-soon-days: ${LOYALTY_EXPIRING_SOON_DAYS:30}
+    expiry-scan-ms: ${LOYALTY_EXPIRY_SCAN_MS:3600000}
   checkin:
     early-minutes: ${CHECKIN_EARLY_MINUTES:2880}
     late-minutes: ${CHECKIN_LATE_MINUTES:240}
