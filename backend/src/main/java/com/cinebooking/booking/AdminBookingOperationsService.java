@@ -83,8 +83,8 @@ public class AdminBookingOperationsService {
     }
 
     @Transactional
-    public ActionResult approveRefund(UUID id, String adminEmail, String ip) {
-        refunds.approve(id, adminEmail, ip);
+    public ActionResult approveRefund(UUID id, String providerReference, String adminEmail, String ip) {
+        refunds.approve(id, adminEmail, providerReference, ip);
         return new ActionResult("Đã duyệt hoàn tiền và mở lại ghế.", detail(id));
     }
 

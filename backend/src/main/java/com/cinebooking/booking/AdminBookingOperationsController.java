@@ -55,8 +55,9 @@ public class AdminBookingOperationsController {
     }
 
     @PostMapping("/{id}/refund-approve")
-    public ActionResult approveRefund(@PathVariable UUID id, Authentication auth, HttpServletRequest req) {
-        return service.approveRefund(id, auth.getName(), ip(req));
+    public ActionResult approveRefund(@PathVariable UUID id, @RequestBody(required=false) ActionRequest body,
+                                      Authentication auth, HttpServletRequest req) {
+        return service.approveRefund(id, body==null?null:body.providerReference(), auth.getName(), ip(req));
     }
 
     @PostMapping("/{id}/refund-reject")

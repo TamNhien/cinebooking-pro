@@ -25,6 +25,7 @@ public final class BookingDtos {
                                   int pointsRedeemed, String voucherCode, Instant expiresAt,
                                   Instant createdAt, Instant confirmedAt, Instant checkedInAt,
                                   Instant refundRequestedAt, Instant refundedAt, BigDecimal refundAmount,
-                                  String refundReason, List<BookingSeatResponse> seats,
+                                  BigDecimal refundFeeAmount, BigDecimal refundRatePercent, String refundPolicyCode,
+                                  boolean refundAutomatic, String refundReason, List<BookingSeatResponse> seats,
                                   List<BookingConcessionResponse> concessions) {}
 }

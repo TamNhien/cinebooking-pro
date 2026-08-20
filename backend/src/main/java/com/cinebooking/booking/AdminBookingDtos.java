@@ -49,7 +49,7 @@ public final class AdminBookingDtos {
             List<AuditView> timeline
     ) {}
 
-    public record ActionRequest(String reason) {}
+    public record ActionRequest(String reason, String providerReference) {}
     public record ActionResult(String message, BookingAdminView booking) {}
     public record TicketAdminView(UUID bookingId, String qrPayload, String qrUrl, String qrImageDataUrl) {}
 }

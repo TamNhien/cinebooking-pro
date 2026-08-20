@@ -1019,3 +1019,81 @@ If a source fix is needed after RC creation, push the fix, wait for `main` CI, t
 
 The V37 payment-history journey now scopes the `SUCCESS` and `MOCK` assertions to the visible payment transaction card. This prevents Playwright from matching the hidden `<option>SUCCESS</option>` in the status filter while preserving the same runtime behavior and payment implementation. No backend, database, migration, payment API, or production gateway behavior changes are included in this RC-only test hardening.
 
+
+---
+
+## V38 - Refund & Cancellation Automation
+
+V38 upgrades the existing refund flow into an explicit policy-driven cancellation lifecycle. It does **not** pretend that a real VNPay/MoMo refund has happened: MOCK payments may auto-refund inside CineBooking, while real gateway payments require an external/provider refund reference before an Admin can mark the booking refunded.
+
+### Default refund policy
+
+- **24 hours or more before showtime:** `AUTO_FULL`, 100% refund, 0% cancellation fee.
+- **6 to under 24 hours:** `AUTO_PARTIAL`, 80% refund, 20% cancellation fee.
+- **2 to under 6 hours:** `MANUAL_PARTIAL`, 50% refund, Admin confirmation required.
+- **Under 2 hours:** `NON_REFUNDABLE`.
+
+The thresholds and partial rates are configurable through `.env`:
+
+```env
+REFUND_FULL_REFUND_MINUTES=1440
+REFUND_PARTIAL_AUTO_MINUTES=360
+REFUND_MINIMUM_MINUTES=120
+REFUND_PARTIAL_AUTO_RATE=0.80
+REFUND_MANUAL_RATE=0.50
+```
+
+### V38 behavior
+
+- `/api/bookings/{id}/refund-quote` calculates the policy before the customer confirms cancellation;
+- the booking stores the applied rate, cancellation fee, policy code, automatic/manual flag, processor and provider reference as an immutable processing snapshot;
+- only MOCK payments are auto-finalized when the time policy allows it;
+- VNPay/MoMo refunds stay in `REFUND_REQUESTED` until an Admin records the gateway/provider refund reference;
+- refund completion reverses earned loyalty, restores redeemed loyalty to the original purchaser, releases voucher redemption, restores concession inventory, releases seats, broadcasts the seat update and immediately scans the V32 waitlist;
+- payment history records `refunded_amount`, `refunded_at` and `refund_reference`, so a partial refund is visible even though the payment lifecycle status is `REFUNDED`;
+- duplicate customer refund requests are idempotent for `REFUND_REQUESTED` and `REFUNDED` bookings;
+- checked-in tickets and requests inside the minimum cutoff remain blocked.
+
+Flyway migration: `V38__refund_cancellation_automation.sql`.
+
+### V38 verification
+
+```powershell
+python .\tools\verify_v38_refund_automation.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v38.ps1
+```
+
+Start/update Docker without deleting persistent PostgreSQL data:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do **not** use `docker compose down -v` for a normal update.
+
+After `main` CI is green, publish using the stable release workflow:
+
+```text
+GitHub -> Actions -> CineBooking Stable Release -> Run workflow
+branch: main
+version: 38.0.0
+rc_number: 1
+```
+
+Release lifecycle:
+
+```text
+main CI
+-> v38.0.0-rc.1
+-> full-stack smoke + Playwright E2E
+-> v38.0.0
+-> GitHub Release
+```
+
+If an RC needs a source fix, commit/push the fix, wait for `main` CI to become green again, then increment `rc_number` (`2`, `3`, ...). Never move an existing RC or stable tag.
+
+
+### V38 RC compile compatibility hotfix
+
+The V38 refund approval contract now forwards `providerReference` consistently through both admin refund entry points. The legacy `/api/admin/booking-ops/{id}/refund-approve` path accepts the same gateway refund reference requirement as `/api/admin/refunds/{id}/approve`, preventing a Java compile-time signature mismatch while preserving MOCK approval without a provider reference.

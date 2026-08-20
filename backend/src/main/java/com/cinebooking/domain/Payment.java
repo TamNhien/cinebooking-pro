@@ -25,6 +25,9 @@ public class Payment {
  @Column(name="failed_at") private Instant failedAt;
  @Column(name="last_webhook_at") private Instant lastWebhookAt;
  @Column(name="loyalty_points_awarded",nullable=false) private Integer loyaltyPointsAwarded;
+ @Column(name="refunded_amount") private BigDecimal refundedAmount;
+ @Column(name="refunded_at") private Instant refundedAt;
+ @Column(name="refund_reference") private String refundReference;
  @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();if(updatedAt==null)updatedAt=createdAt;if(status==null)status=PaymentStatus.PENDING;if(loyaltyPointsAwarded==null)loyaltyPointsAwarded=0;}
  @PreUpdate void update(){updatedAt=Instant.now();}
  public UUID getId(){return id;} public void setId(UUID id){this.id=id;}
@@ -50,4 +53,7 @@ public class Payment {
  public Instant getFailedAt(){return failedAt;} public void setFailedAt(Instant failedAt){this.failedAt=failedAt;}
  public Instant getLastWebhookAt(){return lastWebhookAt;} public void setLastWebhookAt(Instant lastWebhookAt){this.lastWebhookAt=lastWebhookAt;}
  public Integer getLoyaltyPointsAwarded(){return loyaltyPointsAwarded;} public void setLoyaltyPointsAwarded(Integer loyaltyPointsAwarded){this.loyaltyPointsAwarded=loyaltyPointsAwarded;}
+ public BigDecimal getRefundedAmount(){return refundedAmount;} public void setRefundedAmount(BigDecimal v){refundedAmount=v;}
+ public Instant getRefundedAt(){return refundedAt;} public void setRefundedAt(Instant v){refundedAt=v;}
+ public String getRefundReference(){return refundReference;} public void setRefundReference(String v){refundReference=v;}
 }

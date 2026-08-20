@@ -86,7 +86,7 @@ class CineBookingIntegrationIT {
     @Autowired PaymentRepository payments;
 
     @Test
-    void flywayMigratesRealPostgresToV37PaymentOperationsSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV38RefundAutomationSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -97,7 +97,7 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(27);
-        assertThat(latest).isEqualTo("37");
+        assertThat(latest).isEqualTo("38");
         assertThat(publicTables).isGreaterThanOrEqualTo(33);
 
         Integer waitlistTable = jdbc.queryForObject(
@@ -115,6 +115,12 @@ class CineBookingIntegrationIT {
         Integer webhookTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name='payment_webhook_event'", Integer.class);
         assertThat(webhookTable).isEqualTo(1);
+        Integer refundV38BookingColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='booking' and column_name in ('refund_rate_percent','refund_fee_amount','refund_policy_code','refund_automatic','refund_processed_at','refund_processed_by','refund_provider_reference')", Integer.class);
+        assertThat(refundV38BookingColumns).isEqualTo(7);
+        Integer refundV38PaymentColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='payment' and column_name in ('refunded_amount','refunded_at','refund_reference')", Integer.class);
+        assertThat(refundV38PaymentColumns).isEqualTo(3);
 
         Integer activeMovies = jdbc.queryForObject(
                 "select count(*) from movie where active = true", Integer.class);

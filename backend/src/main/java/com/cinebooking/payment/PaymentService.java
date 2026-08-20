@@ -82,7 +82,7 @@ public class PaymentService {
         UUID payerId=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy tài khoản")).getId();
         return payments.findByPayerUserIdOrderByCreatedAtDesc(payerId).stream().map(p->{
             BookingResponse b=bookingService.toDto(bookingService.entity(p.getBookingId()));
-            return new PaymentHistoryItem(p.getId(),p.getBookingId(),p.getPayerUserId(),b.movieTitle(),p.getProvider(),p.getStatus().name(),p.getAmount(),p.getProviderOrderId(),p.getProviderTransactionId(),p.getProviderResponseCode(),p.getProviderMessage(),p.getCreatedAt(),p.getUpdatedAt(),p.getExpiresAt(),p.getPaidAt(),p.getFailedAt());
+            return new PaymentHistoryItem(p.getId(),p.getBookingId(),p.getPayerUserId(),b.movieTitle(),p.getProvider(),p.getStatus().name(),p.getAmount(),p.getRefundedAmount(),p.getRefundReference(),p.getProviderOrderId(),p.getProviderTransactionId(),p.getProviderResponseCode(),p.getProviderMessage(),p.getCreatedAt(),p.getUpdatedAt(),p.getExpiresAt(),p.getPaidAt(),p.getFailedAt(),p.getRefundedAt());
         }).toList();
     }
 

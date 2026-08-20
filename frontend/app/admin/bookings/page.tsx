@@ -55,6 +55,18 @@ export default function AdminBookingsPage(){
   }
   async function showQr(){if(!selected)return;try{setBusy("qr");setTicket(await api<AdminTicketInfo>(`/admin/booking-ops/${selected.id}/ticket`))}catch(e){setMsg((e as Error).message)}finally{setBusy("")}}
   async function refundRequest(){if(!selected)return;const reason=prompt("Lý do hoàn vé (không bắt buộc):","Admin hỗ trợ khách hàng hoàn vé");if(reason===null)return;await action(`/admin/booking-ops/${selected.id}/refund-request`,{reason},"Tạo yêu cầu hoàn tiền cho booking này?")}
+  async function approveRefund(){
+    if(!selected)return;
+    const provider=selected.latestPayment?.provider||"";
+    let providerReference:string|undefined;
+    if(provider!=="MOCK"){
+      const entered=prompt(`Reference hoàn tiền ${provider||"gateway"}:`,"");
+      if(entered===null)return;
+      if(!entered.trim()){setMsg("Cần nhập reference hoàn tiền từ cổng thanh toán trước khi duyệt.");return;}
+      providerReference=entered.trim();
+    }
+    await action(`/admin/booking-ops/${selected.id}/refund-approve`,{providerReference},"Duyệt hoàn tiền? Ghế sẽ được mở bán lại và payment chuyển REFUNDED.")
+  }
   async function cancelPending(){if(!selected)return;const reason=prompt("Lý do huỷ booking PENDING:","Admin huỷ đơn chưa thanh toán");if(reason===null)return;await action(`/admin/booking-ops/${selected.id}/cancel`,{reason},"Huỷ booking và mở lại ghế?")}
 
   const closeDetail=()=>{setSelected(null);setTicket(null)};
@@ -91,7 +103,7 @@ export default function AdminBookingsPage(){
                 {selected.status==="CONFIRMED"&&!selected.checkedInAt&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/manual-checkin`,undefined,"Check-in thủ công booking này? Chỉ dùng khi đã xác minh khách tại rạp.")}>✅ Check-in thủ công</button>}
                 {selected.status==="PENDING"&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={cancelPending}>❌ Huỷ đơn PENDING</button>}
                 {selected.status==="CONFIRMED"&&!selected.checkedInAt&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={refundRequest}>↩ Tạo yêu cầu hoàn tiền</button>}
-                {selected.status==="REFUND_REQUESTED"&&<><button className="btn btn-primary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/refund-approve`,undefined,"Duyệt hoàn tiền? Ghế sẽ được mở bán lại và payment chuyển REFUNDED.")}>✅ Duyệt hoàn tiền</button><button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/refund-reject`,undefined,"Từ chối yêu cầu hoàn tiền?")}>⛔ Từ chối hoàn tiền</button></>}
+                {selected.status==="REFUND_REQUESTED"&&<><button className="btn btn-primary w-full" disabled={!!busy} onClick={approveRefund}>✅ Duyệt hoàn tiền</button><button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/refund-reject`,undefined,"Từ chối yêu cầu hoàn tiền?")}>⛔ Từ chối hoàn tiền</button></>}
               </div><p className="text-xs leading-5 text-slate-500">Không xoá cứng booking. Huỷ/hoàn tiền giữ nguyên payment, check-in và audit để đối soát.</p></div>
               {selected.refundReason&&<div className="card p-5"><h3 className="font-black">Refund</h3><div className="mt-2 text-sm">{selected.refundReason}</div>{selected.refundAmount!==undefined&&<div className="mt-2 font-bold text-amber-300">{currency(selected.refundAmount)}</div>}</div>}
               {ticket&&<div className="card p-5 text-center"><h3 className="mb-3 font-black">QR vé</h3><img src={ticket.qrImageDataUrl} alt="QR vé" className="mx-auto w-full max-w-[320px] rounded-2xl bg-white p-3"/><div className="mt-3 break-all text-left text-xs text-slate-400">{ticket.qrUrl}</div><button className="btn btn-secondary mt-3 w-full" onClick={()=>navigator.clipboard?.writeText(ticket.qrUrl)}>Copy link QR</button></div>}

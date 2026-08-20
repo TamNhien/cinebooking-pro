@@ -115,3 +115,9 @@ verify-v37:
 
 diagnose-v37:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v37.ps1
+
+verify-v38:
+	python tools/verify_v38_refund_automation.py
+
+diagnose-v38:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v38.ps1
