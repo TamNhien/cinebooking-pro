@@ -66,10 +66,19 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
     await cinema.selectOption({ index: 1 });
     const date = page.getByLabel("3. Ngày");
     await expect.poll(async () => date.locator("option").count()).toBeGreaterThan(1);
-    // V39 RC2 determinism: choose the farthest Quick Booking date so V36's
-    // 60-minute transfer cutoff cannot hide the transfer action on CI date changes.
-    const dateCount = await date.locator("option").count();
-    await date.selectOption({ index: dateCount - 1 });
+    // V39 RC3 determinism: choose tomorrow in Vietnam. That keeps the showtime
+    // beyond V36's 60-minute transfer cutoff while still inside the staff gate's
+    // default 48-hour early check-in window used later in this same journey.
+    const nextDate = await page.evaluate(() => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(tomorrow);
+      const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+      return `${values.year}-${values.month}-${values.day}`;
+    });
+    await expect(date.locator(`option[value="${nextDate}"]`)).toHaveCount(1);
+    await date.selectOption(nextDate);
     const showtime = page.getByLabel("4. Suất");
     await expect.poll(async () => showtime.locator("option").count()).toBeGreaterThan(1);
     await showtime.selectOption({ index: 1 });
