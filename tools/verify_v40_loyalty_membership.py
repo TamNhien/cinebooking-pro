@@ -121,6 +121,10 @@ check('V40 Playwright verifies customer-side persisted summary before UI asserti
 check('V40 Playwright uses stable loyalty test ids instead of brittle combined-text locators', all(x in e2e for x in ['getByTestId("loyalty-balance-points")','getByTestId("loyalty-lifetime-points")','getByTestId("loyalty-membership-tier")']) and 'getByText("500 điểm", { exact:true })' not in e2e and 'getByText("BRONZE", { exact:true })' not in e2e)
 check('V40 Playwright proves visible balance transitions 500 -> 300 -> 0', e2e.count('getByTestId("loyalty-balance-points")')>=3 and 'toHaveText("500")' in e2e and 'toHaveText("300")' in e2e and 'toHaveText("0")' in e2e)
 check('V40 Playwright redeems both voucher and concession rewards', 'Voucher giảm 20.000đ' in e2e and 'Bắp Caramel miễn phí' in e2e)
+check('V40 Playwright login helper waits for post-login navigation', 'expectedRole: "USER" | "ADMIN"' in e2e and 'page.waitForURL(expectedRole === "ADMIN" ? /\\/admin$/ : /\\/$/' in e2e)
+check('V40 Playwright login helper verifies persisted auth role', 'localStorage.getItem("cinebooking_auth_v3")' in e2e and 'toBe(expectedRole)' in e2e)
+check('V40 Playwright proves Admin token with backend before staff route', 'const adminMe = await authedJson<{ role:string }>(page, "/api/me")' in e2e and 'adminMe.body?.role).toBe("ADMIN")' in e2e)
+check('V40 Playwright asserts staff route is not bounced back to login', 'toHaveURL(/\\/staff\\/check-in$/)' in e2e)
 check('V40 Playwright validates GIFT one-time claim', 'duplicate.status).toBe(409)' in e2e)
 
 check('Integration test expects Flyway V40', 'assertThat(latest).isEqualTo("40")' in integration)

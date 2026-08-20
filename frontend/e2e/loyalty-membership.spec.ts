@@ -2,11 +2,28 @@ import { expect, test, type Page } from "@playwright/test";
 
 const PASSWORD = "V40Loyalty!Customer123";
 
-async function login(page: Page, email: string, password: string) {
+async function login(page: Page, email: string, password: string, expectedRole: "USER" | "ADMIN") {
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
+
+  // Login writes the access token to localStorage and then performs a hard navigation.
+  // Do not let the next test action race that asynchronous hand-off.
+  await Promise.all([
+    page.waitForURL(expectedRole === "ADMIN" ? /\/admin$/ : /\/$/, { timeout: 15000 }),
+    page.getByRole("button", { name: "Đăng nhập" }).click(),
+  ]);
+
+  await expect.poll(async () => page.evaluate(() => {
+    const raw = localStorage.getItem("cinebooking_auth_v3");
+    if (!raw) return null;
+    try {
+      const auth = JSON.parse(raw) as { accessToken?: string; role?: string };
+      return auth.accessToken ? auth.role || null : null;
+    } catch {
+      return null;
+    }
+  })).toBe(expectedRole);
 }
 
 async function authedJson<T>(page: Page, url: string, init?: { method?: string; body?: unknown }) {
@@ -54,7 +71,7 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
 
   await test.step("admin credits 500 non-qualifying adjustment points", async () => {
     await logout(page); await context.clearCookies();
-    await login(page, adminEmail, adminPassword);
+    await login(page, adminEmail, adminPassword, "ADMIN");
     await expect(page).toHaveURL(/\/admin$/);
     const members = await authedJson<{ userId:string; email:string }[]>(page, "/api/admin/loyalty/members");
     expect(members.status).toBe(200);
@@ -74,7 +91,7 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
   let giftCode = "";
   await test.step("customer spends points without lowering lifetime tier", async () => {
     await logout(page); await context.clearCookies();
-    await login(page, email, PASSWORD);
+    await login(page, email, PASSWORD, "USER");
     await expect(page).toHaveURL(/\/$/);
 
     // Prove the admin adjustment survived the auth/session hand-off before asserting UI.
@@ -118,8 +135,17 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
 
   await test.step("admin uses staff reward counter and duplicate claim is blocked", async () => {
     await logout(page); await context.clearCookies();
-    await login(page, adminEmail, adminPassword);
+    await login(page, adminEmail, adminPassword, "ADMIN");
+
+    // Prove the freshly established Admin session is accepted by the backend before
+    // navigating to the client-guarded staff page. This catches token/session races
+    // separately from staff-page rendering failures.
+    const adminMe = await authedJson<{ role:string }>(page, "/api/me");
+    expect(adminMe.status).toBe(200);
+    expect(adminMe.body?.role).toBe("ADMIN");
+
     await page.goto("/staff/check-in");
+    await expect(page).toHaveURL(/\/staff\/check-in$/);
     const rewardInput = page.getByPlaceholder("GIFT-RWDCORN-XXXXXXXX");
     await expect(rewardInput).toBeVisible();
     await rewardInput.fill(giftCode);
