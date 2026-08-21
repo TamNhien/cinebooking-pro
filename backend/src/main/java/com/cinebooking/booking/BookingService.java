@@ -45,15 +45,20 @@ public class BookingService {
     private final NotificationService notifications;
     private final PricingService pricing;
     private final long paymentWindowSeconds;
+    private final int showtimeReminderHours;
+    private final int showtimeFinalReminderMinutes;
 
     public BookingService(BookingRepository bookings, BookingSeatRepository bookingSeats, ShowtimeRepository showtimes,
                           SeatRepository seats, MovieRepository movies, UserRepository users,
                           SeatHoldService holds, SeatEventPublisher events, CommerceService commerce, InventoryService inventory,
                           LoyaltyService loyalty, NotificationService notifications, PricingService pricing,
-                          @Value("${app.booking.payment-window-seconds}") long paymentWindowSeconds) {
+                          @Value("${app.booking.payment-window-seconds}") long paymentWindowSeconds,
+                          @Value("${app.notifications.showtime-reminder-hours:3}") int showtimeReminderHours,
+                          @Value("${app.notifications.showtime-final-reminder-minutes:30}") int showtimeFinalReminderMinutes) {
         this.bookings=bookings; this.bookingSeats=bookingSeats; this.showtimes=showtimes; this.seats=seats;
         this.movies=movies; this.users=users; this.holds=holds; this.events=events; this.commerce=commerce; this.inventory=inventory;
         this.loyalty=loyalty; this.notifications=notifications; this.pricing=pricing; this.paymentWindowSeconds=paymentWindowSeconds;
+        this.showtimeReminderHours=Math.max(1,showtimeReminderHours); this.showtimeFinalReminderMinutes=Math.max(5,showtimeFinalReminderMinutes);
     }
 
     public record BookingCreateResult(BookingResponse booking, boolean replayed) {}
@@ -244,14 +249,22 @@ public class BookingService {
 
     @Transactional
     public void sendReminderIfDue(UUID bookingId){
+        sendEngagementRemindersIfDue(bookingId);
+    }
+
+    @Transactional
+    public void sendEngagementRemindersIfDue(UUID bookingId){
         Booking b=bookings.findByIdForUpdate(bookingId).orElse(null);
-        if(b==null||b.getStatus()!=BookingStatus.CONFIRMED||Boolean.TRUE.equals(b.getReminderSent()))return;
+        if(b==null||b.getStatus()!=BookingStatus.CONFIRMED||b.getCheckedInAt()!=null)return;
         Showtime st=showtimes.findById(b.getShowtimeId()).orElse(null); if(st==null)return;
-        Instant now=Instant.now(); Instant deadline=now.plusSeconds(3*60*60);
-        if(st.getStartTime().isAfter(now)&&!st.getStartTime().isAfter(deadline)){
-            Movie m=movies.findById(st.getMovieId()).orElse(null);
-            notifications.create(b.getUserId(),"SHOWTIME_REMINDER","Sắp đến giờ chiếu",(m==null?"Phim":m.getTitle())+" sẽ bắt đầu trong vòng 3 giờ. Hãy chuẩn bị QR vé trước khi đến rạp.","/ticket/"+b.getId());
-            b.setReminderSent(true); bookings.save(b);
+        Instant now=Instant.now(); if(!st.getStartTime().isAfter(now))return;
+        long seconds=st.getStartTime().getEpochSecond()-now.getEpochSecond();
+        Movie m=movies.findById(st.getMovieId()).orElse(null); String movie=m==null?"Phim":m.getTitle();
+        if(seconds<=showtimeFinalReminderMinutes*60L){
+            notifications.createOnce(b.getUserId(),"SHOWTIME_REMINDER_30M","Sắp đến giờ vào rạp",movie+" sẽ bắt đầu trong vòng "+showtimeFinalReminderMinutes+" phút. Hãy mở QR vé và đến khu vực check-in.","/ticket/"+b.getId(),"SHOWTIME_REMINDER_30M:"+b.getId());
+            if(!Boolean.TRUE.equals(b.getReminderSent())){b.setReminderSent(true);bookings.save(b);}
+        }else if(seconds<=showtimeReminderHours*3600L){
+            notifications.createOnce(b.getUserId(),"SHOWTIME_REMINDER_3H","Sắp đến giờ chiếu",movie+" sẽ bắt đầu trong vòng "+showtimeReminderHours+" giờ. Hãy kiểm tra rạp, ghế và QR vé trước khi đi.","/ticket/"+b.getId(),"SHOWTIME_REMINDER_3H:"+b.getId());
         }
     }
 

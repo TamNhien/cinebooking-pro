@@ -22,6 +22,15 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     List<Booking> findByStatusAndReminderSentFalse(BookingStatus status);
     List<Booking> findByStatusOrderByRefundRequestedAtAsc(BookingStatus status);
 
+    @Query(value="""
+        select b.* from booking b
+        join showtime s on s.id=b.showtime_id
+        where b.status=:status and b.checked_in_at is null
+          and s.start_time>:now and s.start_time<=:until
+        order by s.start_time asc
+        """,nativeQuery=true)
+    List<Booking> findUpcomingForReminder(@Param("status") String status,@Param("now") Instant now,@Param("until") Instant until);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select b from Booking b where b.id = :id")
     Optional<Booking> findByIdForUpdate(@Param("id") UUID id);

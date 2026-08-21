@@ -20,6 +20,7 @@ import com.cinebooking.movie.ShowtimeRepository;
 import com.cinebooking.payment.PaymentAttemptService;
 import com.cinebooking.payment.PaymentRepository;
 import com.cinebooking.commerce.LoyaltyService;
+import com.cinebooking.notification.NotificationService;
 import com.cinebooking.domain.*;
 import com.cinebooking.common.ApiException;
 import org.testcontainers.containers.GenericContainer;
@@ -86,9 +87,10 @@ class CineBookingIntegrationIT {
     @Autowired PaymentAttemptService paymentAttempts;
     @Autowired PaymentRepository payments;
     @Autowired LoyaltyService loyalty;
+    @Autowired NotificationService notifications;
 
     @Test
-    void flywayMigratesRealPostgresToV40LoyaltyMembershipSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV41NotificationEngagementSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -98,8 +100,8 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
                 Integer.class);
 
-        assertThat(migrationCount).isGreaterThanOrEqualTo(28);
-        assertThat(latest).isEqualTo("40");
+        assertThat(migrationCount).isGreaterThanOrEqualTo(29);
+        assertThat(latest).isEqualTo("41");
         assertThat(publicTables).isGreaterThanOrEqualTo(36);
 
         Integer waitlistTable = jdbc.queryForObject(
@@ -130,6 +132,12 @@ class CineBookingIntegrationIT {
         Integer loyaltyV40Tables = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name in ('loyalty_point_lot','loyalty_reward','loyalty_reward_redemption')", Integer.class);
         assertThat(loyaltyV40Tables).isEqualTo(3);
+        Integer notificationV41Columns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='user_notification' and column_name in ('priority','read_at','archived_at')", Integer.class);
+        assertThat(notificationV41Columns).isEqualTo(3);
+        Integer notificationV41PreferenceColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='notification_preference' and column_name in ('loyalty_enabled','waitlist_enabled')", Integer.class);
+        assertThat(notificationV41PreferenceColumns).isEqualTo(2);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);
@@ -158,6 +166,36 @@ class CineBookingIntegrationIT {
         assertThat(activeMovies).isGreaterThanOrEqualTo(8);
         assertThat(september30Movies).isGreaterThanOrEqualTo(8);
         assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
+    }
+
+    @Test
+    void notificationV41ArchiveAndPrioritySummaryStayConsistent() {
+        String stamp = Long.toString(System.nanoTime());
+        AppUser customer = customer("v41-notify-" + stamp + "@example.test", "V41 Notify");
+        boolean first = notifications.createOnce(customer.getId(),"WAITLIST_AVAILABLE","Ghế vừa trống","Có ghế vừa được mở lại.","/waitlist","V41-WAITLIST:"+customer.getId());
+        boolean duplicate = notifications.createOnce(customer.getId(),"WAITLIST_AVAILABLE","Ghế vừa trống","Có ghế vừa được mở lại.","/waitlist","V41-WAITLIST:"+customer.getId());
+        assertThat(first).isTrue(); assertThat(duplicate).isFalse();
+
+        var active = notifications.list(customer.getEmail(),"ACTIVE");
+        assertThat(active).hasSize(1);
+        assertThat(active.getFirst().category()).isEqualTo("WAITLIST");
+        assertThat(active.getFirst().priority()).isEqualTo("HIGH");
+        var before = notifications.summary(customer.getEmail());
+        assertThat(before.unreadCount()).isEqualTo(1);
+        assertThat(before.highPriorityUnreadCount()).isEqualTo(1);
+
+        notifications.archive(active.getFirst().id(),customer.getEmail());
+        assertThat(notifications.list(customer.getEmail(),"ACTIVE")).isEmpty();
+        assertThat(notifications.list(customer.getEmail(),"ARCHIVED")).hasSize(1);
+        var archived = notifications.summary(customer.getEmail());
+        assertThat(archived.unreadCount()).isZero();
+        assertThat(archived.archivedCount()).isEqualTo(1);
+
+        notifications.unarchive(active.getFirst().id(),customer.getEmail());
+        notifications.read(active.getFirst().id(),customer.getEmail());
+        var after = notifications.summary(customer.getEmail());
+        assertThat(after.unreadCount()).isZero();
+        assertThat(after.archivedCount()).isZero();
     }
 
     @Test

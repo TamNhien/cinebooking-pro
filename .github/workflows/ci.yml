@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V40 source regression
+    name: V26-V41 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -228,6 +228,9 @@ jobs:
 
       - name: Verify V40 loyalty and membership 2.0
         run: python3 tools/verify_v40_loyalty_membership.py
+
+      - name: Verify V41 notification and engagement automation
+        run: python3 tools/verify_v41_notification_engagement.py
 
   compose-config:
     name: Docker Compose validation

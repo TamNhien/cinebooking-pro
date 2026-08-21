@@ -135,3 +135,10 @@ verify-v40:
 
 diagnose-v40:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v40.ps1
+
+
+verify-v41:
+	python tools/verify_v41_notification_engagement.py
+
+diagnose-v41:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v41.ps1

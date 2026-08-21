@@ -179,6 +179,28 @@ public class LoyaltyService {
     }
 
     @Transactional
+    public int engagementSweep(){
+        Instant now=Instant.now(); Instant cutoff=now.plus(expiringSoonDays,ChronoUnit.DAYS); int created=0;
+        Map<UUID,List<LoyaltyPointLot>> byUser=new LinkedHashMap<>();
+        for(LoyaltyPointLot lot:lots.findByRemainingPointsGreaterThan(0)){
+            if(lot.getExpiresAt().isAfter(now)&&!lot.getExpiresAt().isAfter(cutoff))byUser.computeIfAbsent(lot.getUserId(),k->new ArrayList<>()).add(lot);
+        }
+        for(var entry:byUser.entrySet()){
+            int soon=entry.getValue().stream().mapToInt(LoyaltyPointLot::getRemainingPoints).sum();
+            Instant next=entry.getValue().stream().map(LoyaltyPointLot::getExpiresAt).min(Comparator.naturalOrder()).orElse(null);
+            if(soon<=0||next==null)continue;
+            String day=next.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate().toString();
+            if(notifications.createOnce(entry.getKey(),"LOYALTY_EXPIRING_SOON","Điểm thành viên sắp hết hạn",soon+" điểm sẽ bắt đầu hết hạn từ "+day+". Hãy dùng điểm cho vé hoặc phần thưởng trước thời hạn.","/profile","LOYALTY_EXPIRING:"+entry.getKey()+":"+day))created++;
+        }
+        LocalDate today=LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        for(AppUser u:users.findAllByOrderByCreatedAtDesc()){
+            if(u.getRole()!=Role.USER||u.getBirthDate()==null||!sameMonthDay(u.getBirthDate(),today)||Objects.equals(u.getBirthdayRewardYear(),today.getYear()))continue;
+            if(notifications.createOnce(u.getId(),"BIRTHDAY_REWARD_AVAILABLE","Quà sinh nhật CineBooking đang chờ bạn","Chúc mừng sinh nhật! Voucher sinh nhật 20% của bạn đã sẵn sàng để nhận trong trang Thành viên.","/profile","BIRTHDAY_REWARD:"+u.getId()+":"+today.getYear()))created++;
+        }
+        return created;
+    }
+
+    @Transactional
     public int expireSweep(){
         Instant now=Instant.now(); Set<UUID> userIds=new LinkedHashSet<>(); for(LoyaltyPointLot lot:lots.findTop100ByExpiresAtLessThanEqualAndRemainingPointsGreaterThanOrderByExpiresAtAsc(now,0))userIds.add(lot.getUserId()); int expired=0;
         for(UUID uid:userIds){AppUser u=users.findByIdForUpdate(uid).orElse(null);if(u!=null)expired+=expireDue(u,now);}return expired;

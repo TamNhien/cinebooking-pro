@@ -102,6 +102,9 @@ app:
   notifications:
     staff-shift-reminder-minutes: ${STAFF_SHIFT_REMINDER_MINUTES:30}
     staff-shift-scan-ms: ${STAFF_SHIFT_SCAN_MS:60000}
+    showtime-reminder-hours: ${SHOWTIME_REMINDER_HOURS:3}
+    showtime-final-reminder-minutes: ${SHOWTIME_FINAL_REMINDER_MINUTES:30}
+    showtime-reminder-scan-ms: ${SHOWTIME_REMINDER_SCAN_MS:60000}
   security:
     login-max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
     login-lock-seconds: ${LOGIN_LOCK_SECONDS:900}

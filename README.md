@@ -1317,3 +1317,78 @@ RC4 hardens the claim-result boundary instead of weakening coverage. The Staff r
 
 Because `v40.0.0-rc.3` is immutable, publish the next candidate as `v40.0.0-rc.4`; do not move RC1, RC2 or RC3 tags.
 
+
+## V41 - Notification Center & Engagement Automation 2.0
+
+V41 upgrades the existing V22 notification center without replacing its email/browser delivery model. The new inbox keeps active and archived notifications separate, persists `read_at` and `archived_at`, assigns `LOW` / `NORMAL` / `HIGH` priority, and keeps unread badge counts limited to active notifications. Existing deep links remain valid.
+
+Flyway migration `V41__notification_engagement_2.sql` adds notification priority/archive/read timestamps plus independent `loyalty_enabled` and `waitlist_enabled` preferences. Existing preference rows are backfilled safely by database defaults; no old migration is edited.
+
+Notification categories now distinguish `WAITLIST` and `LOYALTY` from generic booking/general traffic. Waitlist availability and final 30-minute showtime reminders are high priority. Promotion traffic is low priority. Old clients that do not send the new loyalty/waitlist preference fields remain compatible because the backend preserves the existing values when those fields are omitted.
+
+The customer API adds archive state while retaining the existing endpoints:
+
+```text
+GET  /api/notifications?view=ACTIVE
+GET  /api/notifications?view=ARCHIVED
+GET  /api/notifications/summary
+POST /api/notifications/{id}/read
+POST /api/notifications/{id}/archive
+POST /api/notifications/{id}/unarchive
+POST /api/notifications/read-all
+GET  /api/notifications/preferences
+PUT  /api/notifications/preferences
+```
+
+Showtime engagement reminders are now deduplicated at the database boundary so both backend replicas may scan safely. A confirmed, unchecked ticket can receive a 3-hour reminder and a separate final 30-minute reminder; each reminder has its own immutable dedupe key. The legacy `reminder_sent` column is retained for compatibility but is no longer the cross-replica dedupe mechanism.
+
+The hourly loyalty job now also creates engagement alerts for points entering the configured expiry window and for an unclaimed birthday reward on the member's birthday in `Asia/Ho_Chi_Minh`. These use `createOnce(...)`, so repeated scheduler scans or two application replicas do not create duplicate inbox rows.
+
+V41 configuration defaults:
+
+```env
+SHOWTIME_REMINDER_HOURS=3
+SHOWTIME_FINAL_REMINDER_MINUTES=30
+SHOWTIME_REMINDER_SCAN_MS=60000
+LOYALTY_EXPIRING_SOON_DAYS=30
+LOYALTY_EXPIRY_SCAN_MS=3600000
+```
+
+The `/notifications` UI now provides `Hộp thư` and `Đã lưu trữ` views, archive/restore actions, high-priority badges, filters for Waitlist and Loyalty, and independent preference toggles for those categories. `frontend/e2e/notification-engagement.spec.ts` creates a real notification through the authenticated API, verifies unread summary state, archives it, restores it, marks it read and re-reads the active API state.
+
+### V41 verification
+
+```powershell
+python .\tools\verify_v41_notification_engagement.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v41.ps1
+```
+
+Normal update remains non-destructive:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do **not** use `docker compose down -v` for a normal update.
+
+After the V40 stable line is complete and V41 `main` CI is green, release V41 with:
+
+```text
+GitHub -> Actions -> CineBooking Stable Release -> Run workflow
+branch: main
+version: 41.0.0
+rc_number: 1
+```
+
+Release lifecycle:
+
+```text
+main CI
+-> v41.0.0-rc.1
+-> full-stack smoke + 9 Playwright Chromium journeys
+-> v41.0.0
+-> GitHub Release
+```
+
+If an RC requires a source fix, commit the fix and increment `rc_number`. Never delete, move or force an existing RC/stable tag.
