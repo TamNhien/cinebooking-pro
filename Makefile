@@ -142,3 +142,10 @@ verify-v41:
 
 diagnose-v41:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v41.ps1
+
+
+verify-v42:
+	python tools/verify_v42_financial_ledger.py
+
+diagnose-v42:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v42.ps1

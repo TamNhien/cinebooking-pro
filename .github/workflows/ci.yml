@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V41 source regression
+    name: V26-V42 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -231,6 +231,9 @@ jobs:
 
       - name: Verify V41 notification and engagement automation
         run: python3 tools/verify_v41_notification_engagement.py
+
+      - name: Verify V42 financial ledger and reconciliation
+        run: python3 tools/verify_v42_financial_ledger.py
 
   compose-config:
     name: Docker Compose validation

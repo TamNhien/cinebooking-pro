@@ -124,7 +124,7 @@ check('V41 E2E restores notification through UI', 'Khôi phục' in e2e and 'not
 check('V41 E2E verifies final active notification is read', 'restored?.read' in e2e and 'toBe(true)' in e2e)
 check('V41 E2E checks new loyalty/waitlist preference labels', '🏆 Loyalty & thành viên' in e2e and '💺 Waitlist' in e2e)
 
-check('Integration test expects Flyway latest V41', 'isEqualTo("41")' in integration and 'flywayMigratesRealPostgresToV41NotificationEngagementSchemaAndDemoCatalog' in integration)
+check('Integration test expects Flyway V41 or newer', any(f'isEqualTo("{v}")' in integration for v in range(41,100)) and ('flywayMigratesRealPostgresToV41NotificationEngagementSchemaAndDemoCatalog' in integration or 'flywayMigratesRealPostgresToV42FinancialLedgerSchemaAndDemoCatalog' in integration))
 check('Integration test validates V41 notification columns', 'notificationV41Columns' in integration and "('priority','read_at','archived_at')" in integration)
 check('Integration test validates V41 preference columns', 'notificationV41PreferenceColumns' in integration and "('loyalty_enabled','waitlist_enabled')" in integration)
 check('Integration test covers notification dedupe', 'notificationV41ArchiveAndPrioritySummaryStayConsistent' in integration and 'assertThat(duplicate).isFalse()' in integration)
@@ -132,11 +132,11 @@ check('Integration test covers WAITLIST HIGH priority', 'category()).isEqualTo("
 check('Integration test covers archive summary semantics', 'archived.archivedCount()).isEqualTo(1)' in integration and 'archived.unreadCount()).isZero()' in integration)
 check('Integration test covers unarchive and read semantics', 'notifications.unarchive' in integration and 'notifications.read' in integration)
 
-check('Main CI source regression is upgraded to V41', 'V26-V41 source regression' in ci)
+check('Main CI source regression is V41 or newer', bool(re.search(r'V26-V(?:4[1-9]|[5-9][0-9]) source regression',ci)))
 check('Main CI runs V40 and V41 verifiers', 'verify_v40_loyalty_membership.py' in ci and 'verify_v41_notification_engagement.py' in ci)
-check('Standalone RC defaults to V41 candidate', 'default: "v41.0.0-rc.1"' in rc and 'cinebooking_v41_rc_${{ github.run_id }}' in rc)
+check('Standalone RC defaults to V41-or-newer candidate', bool(re.search(r'default: "v(?:4[1-9]|[5-9][0-9])\.0\.0-rc\.1"',rc)) and bool(re.search(r'cinebooking_v(?:4[1-9]|[5-9][0-9])_rc_\$\{\{ github\.run_id \}\}',rc)))
 check('Standalone RC E2E label includes V41', 'V39 + V40 + V41' in rc)
-check('Stable release defaults to V41', 'default: "41.0.0"' in release and 'cinebooking_v41_release_${{ github.run_id }}' in release and 'v41-release-test-secret' in release)
+check('Stable release defaults to V41-or-newer', bool(re.search(r'default: "(?:4[1-9]|[5-9][0-9])\.0\.0"',release)) and bool(re.search(r'cinebooking_v(?:4[1-9]|[5-9][0-9])_release_\$\{\{ github\.run_id \}\}',release)) and bool(re.search(r'v(?:4[1-9]|[5-9][0-9])-release-test-secret',release)))
 check('V40 verifier is forward-compatible with V41 lifecycle', 'V40-or-newer candidate' in v40 and 'V40-or-newer' in v40)
 check('V41 diagnostics chains V40 then V41 verifier', 'diagnose-v40.ps1' in diag and 'verify_v41_notification_engagement.py' in diag)
 check('Makefile exposes V41 verify and diagnose', 'verify-v41:' in make and 'diagnose-v41:' in make)

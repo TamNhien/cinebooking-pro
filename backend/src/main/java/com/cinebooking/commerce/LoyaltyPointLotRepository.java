@@ -15,4 +15,7 @@ public interface LoyaltyPointLotRepository extends JpaRepository<LoyaltyPointLot
     List<LoyaltyPointLot> findTop100ByExpiresAtLessThanEqualAndRemainingPointsGreaterThanOrderByExpiresAtAsc(Instant expiresAt,Integer remainingPoints);
     List<LoyaltyPointLot> findByRemainingPointsGreaterThan(Integer remainingPoints);
     List<LoyaltyPointLot> findByUserIdAndRemainingPointsGreaterThan(UUID userId,Integer remainingPoints);
+
+    @Query(value="select coalesce(sum(remaining_points),0) from loyalty_point_lot where user_id=:userId",nativeQuery=true)
+    Long sumRemainingPoints(@Param("userId") UUID userId);
 }

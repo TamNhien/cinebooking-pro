@@ -21,6 +21,7 @@ import com.cinebooking.payment.PaymentAttemptService;
 import com.cinebooking.payment.PaymentRepository;
 import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.notification.NotificationService;
+import com.cinebooking.finance.FinancialLedgerService;
 import com.cinebooking.domain.*;
 import com.cinebooking.common.ApiException;
 import org.testcontainers.containers.GenericContainer;
@@ -35,6 +36,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +55,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.admin.password=",
         "app.mail.enabled=false",
         "app.upload.dir=target/it-uploads",
-        "app.notifications.staff-shift-scan-ms=3600000"
+        "app.notifications.staff-shift-scan-ms=3600000",
+        "app.finance.auto-reconcile-enabled=false"
 })
 @AutoConfigureMockMvc
 class CineBookingIntegrationIT {
@@ -88,9 +91,10 @@ class CineBookingIntegrationIT {
     @Autowired PaymentRepository payments;
     @Autowired LoyaltyService loyalty;
     @Autowired NotificationService notifications;
+    @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV41NotificationEngagementSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV42FinancialLedgerSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -101,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(29);
-        assertThat(latest).isEqualTo("41");
-        assertThat(publicTables).isGreaterThanOrEqualTo(36);
+        assertThat(latest).isEqualTo("42");
+        assertThat(publicTables).isGreaterThanOrEqualTo(40);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -138,6 +142,12 @@ class CineBookingIntegrationIT {
         Integer notificationV41PreferenceColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='notification_preference' and column_name in ('loyalty_enabled','waitlist_enabled')", Integer.class);
         assertThat(notificationV41PreferenceColumns).isEqualTo(2);
+        Integer financialV42Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('financial_ledger_entry','financial_ledger_line','financial_reconciliation_run','financial_reconciliation_issue')", Integer.class);
+        assertThat(financialV42Tables).isEqualTo(4);
+        Integer financialV42Triggers = jdbc.queryForObject(
+                "select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_v42_financial_ledger_entry_immutable','trg_v42_financial_ledger_line_immutable','trg_v42_financial_ledger_balanced')", Integer.class);
+        assertThat(financialV42Triggers).isEqualTo(3);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);
@@ -166,6 +176,42 @@ class CineBookingIntegrationIT {
         assertThat(activeMovies).isGreaterThanOrEqualTo(8);
         assertThat(september30Movies).isGreaterThanOrEqualTo(8);
         assertThat(september30Showtimes).isGreaterThanOrEqualTo(16);
+    }
+
+    @Test
+    void financialV42LedgerIsIdempotentBalancedAndReconcilesCleanly() {
+        String stamp = UUID.randomUUID().toString().substring(0,8);
+        AppUser payer = customer("v42-finance-" + stamp + "@example.test", "V42 Finance");
+        Showtime showtime = showtimes.findAll().stream().filter(st -> st.getStartTime().isAfter(Instant.now())).findFirst().orElseThrow();
+        Booking booking = new Booking();
+        booking.setUserId(payer.getId()); booking.setPurchaserUserId(payer.getId()); booking.setShowtimeId(showtime.getId());
+        booking.setStatus(BookingStatus.CONFIRMED); booking.setTotalAmount(new BigDecimal("120000")); booking.setSeatAmount(new BigDecimal("120000"));
+        booking.setConcessionAmount(BigDecimal.ZERO); booking.setDiscountAmount(BigDecimal.ZERO); booking.setPointsRedeemed(0); booking.setConfirmedAt(Instant.now());
+        bookings.save(booking);
+
+        Payment payment = new Payment(); payment.setBookingId(booking.getId()); payment.setPayerUserId(payer.getId()); payment.setProvider("MOCK");
+        payment.setStatus(PaymentStatus.SUCCESS); payment.setAmount(new BigDecimal("120000")); payment.setPaidAt(Instant.now());
+        payments.save(payment);
+
+        finance.recordPaymentCapture(payment,booking);
+        finance.recordPaymentCapture(payment,booking);
+        Integer entryCount = jdbc.queryForObject("select count(*) from financial_ledger_entry where event_key=?",Integer.class,"PAYMENT_CAPTURE:"+payment.getId());
+        Integer lineCount = jdbc.queryForObject("select count(*) from financial_ledger_line l join financial_ledger_entry e on e.id=l.entry_id where e.event_key=?",Integer.class,"PAYMENT_CAPTURE:"+payment.getId());
+        BigDecimal debit = jdbc.queryForObject("select coalesce(sum(l.amount),0) from financial_ledger_line l join financial_ledger_entry e on e.id=l.entry_id where e.event_key=? and l.direction='DEBIT'",BigDecimal.class,"PAYMENT_CAPTURE:"+payment.getId());
+        BigDecimal credit = jdbc.queryForObject("select coalesce(sum(l.amount),0) from financial_ledger_line l join financial_ledger_entry e on e.id=l.entry_id where e.event_key=? and l.direction='CREDIT'",BigDecimal.class,"PAYMENT_CAPTURE:"+payment.getId());
+        assertThat(entryCount).isEqualTo(1); assertThat(lineCount).isEqualTo(2); assertThat(debit).isEqualByComparingTo("120000.00"); assertThat(credit).isEqualByComparingTo(debit);
+
+        LocalDate day=LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        var run=finance.reconcile(day,"v42-admin@example.test","127.0.0.1");
+        assertThat(run.status()).isEqualTo("CLEAN");
+        assertThat(run.issueCount()).isZero();
+        assertThat(run.paymentAmount()).isEqualByComparingTo(run.ledgerCaptureAmount());
+
+        LocalDate previous=day.minusDays(1);
+        var autoFirst=finance.reconcileScheduled(previous);
+        var autoReplay=finance.reconcileScheduled(previous);
+        assertThat(autoReplay.id()).isEqualTo(autoFirst.id());
+        assertThat(autoReplay.runKey()).isEqualTo("AUTO:"+previous);
     }
 
     @Test

@@ -18,6 +18,8 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByProviderInAndProviderOrderId(Collection<String> providers, String providerOrderId);
     List<Payment> findTop200ByOrderByCreatedAtDesc();
     List<Payment> findByStatusAndExpiresAtBefore(PaymentStatus status, Instant before);
+    List<Payment> findByPaidAtGreaterThanEqualAndPaidAtLessThanAndStatusIn(Instant from,Instant to,Collection<PaymentStatus> statuses);
+    List<Payment> findByRefundedAtGreaterThanEqualAndRefundedAtLessThanAndStatus(Instant from,Instant to,PaymentStatus status);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Payment p where p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") UUID id);

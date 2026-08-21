@@ -8,6 +8,7 @@ import com.cinebooking.commerce.InventoryService;
 import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
+import com.cinebooking.finance.FinancialLedgerService;
 import com.cinebooking.movie.ShowtimeRepository;
 import com.cinebooking.notification.NotificationService;
 import com.cinebooking.payment.PaymentRepository;
@@ -39,15 +40,16 @@ public class RefundService {
     private final SeatEventPublisher events;
     private final ShowtimeWaitlistService waitlist;
     private final RefundPolicy policy;
+    private final FinancialLedgerService finance;
 
     public RefundService(BookingRepository bookings, ShowtimeRepository showtimes, UserRepository users,
                          PaymentRepository payments, CommerceService commerce, InventoryService inventory,
                          LoyaltyService loyalty, NotificationService notifications, AuditService audit,
                          BookingSeatRepository bookingSeats, SeatEventPublisher events, ShowtimeWaitlistService waitlist,
-                         RefundPolicy policy) {
+                         RefundPolicy policy, FinancialLedgerService finance) {
         this.bookings=bookings; this.showtimes=showtimes; this.users=users; this.payments=payments; this.commerce=commerce;
         this.inventory=inventory; this.loyalty=loyalty; this.notifications=notifications; this.audit=audit;
-        this.bookingSeats=bookingSeats; this.events=events; this.waitlist=waitlist; this.policy=policy;
+        this.bookingSeats=bookingSeats; this.events=events; this.waitlist=waitlist; this.policy=policy; this.finance=finance;
     }
 
     public RefundQuote quote(UUID bookingId, String email) {
@@ -133,6 +135,7 @@ public class RefundService {
         p.setStatus(PaymentStatus.REFUNDED); p.setRefundedAmount(b.getRefundAmount()); p.setRefundedAt(now); p.setRefundReference(providerReference);
         p.setProviderMessage("Refund recorded: "+b.getRefundAmount()+" / "+p.getAmount()+"; policy="+b.getRefundPolicyCode());
         payments.save(p);
+        finance.recordRefund(p,b);
 
         List<UUID> seatIds=bookingSeats.findByBookingId(b.getId()).stream().map(BookingSeat::getSeatId).toList();
         bookingSeats.releaseByBookingId(b.getId());

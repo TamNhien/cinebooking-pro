@@ -6,6 +6,7 @@ import com.cinebooking.commerce.InventoryService;
 import com.cinebooking.commerce.LoyaltyService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
+import com.cinebooking.finance.FinancialLedgerService;
 import com.cinebooking.notification.NotificationService;
 import com.cinebooking.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,10 +31,11 @@ public class PaymentService {
     private final LoyaltyService loyalty;
     private final NotificationService notifications;
     private final InventoryService inventory;
+    private final FinancialLedgerService finance;
     private final boolean mockEnabled;
 
-    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyService loyalty,NotificationService notifications,InventoryService inventory,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled){
-        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyalty=loyalty;this.notifications=notifications;this.inventory=inventory;this.mockEnabled=mockEnabled;
+    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyService loyalty,NotificationService notifications,InventoryService inventory,FinancialLedgerService finance,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled){
+        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyalty=loyalty;this.notifications=notifications;this.inventory=inventory;this.finance=finance;this.mockEnabled=mockEnabled;
     }
 
     public PaymentStartResponse start(UUID bookingId,String email,String providerRaw,String ipAddress,String idempotencyKey){
@@ -200,22 +202,25 @@ public class PaymentService {
     @Transactional
     public PaymentResultResponse success(Payment input,String providerTxn,String responseCode,String message){
         Payment p=payments.findByIdForUpdate(input.getId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment"));
-        if(p.getStatus()==PaymentStatus.SUCCESS){awardLoyaltyIfNeeded(p);return result(p);}
+        if(p.getStatus()==PaymentStatus.SUCCESS){awardLoyaltyIfNeeded(p);finance.recordPaymentCapture(p,bookingService.entity(p.getBookingId()));return result(p);}
         if(p.getStatus()==PaymentStatus.REFUNDED)return result(p);
         Booking current=bookingService.entity(p.getBookingId());
         if(current.getStatus()!=BookingStatus.PENDING&&current.getStatus()!=BookingStatus.CONFIRMED){
             p.setStatus(PaymentStatus.REVIEW);p.setPaidAt(Instant.now());p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage("Gateway reported success after booking became "+current.getStatus()+"; manual review/refund required");payments.save(p);
+            finance.recordPaymentCapture(p,current);
             notifications.create(current.getUserId(),"PAYMENT_REVIEW","Thanh toán cần được kiểm tra","Cổng thanh toán đã báo thành công nhưng booking "+current.getId()+" không còn ở trạng thái chờ. CineBooking sẽ cần đối soát giao dịch.","/bookings");
             return result(p);
         }
         if(current.getExpiresAt()!=null&&current.getExpiresAt().isBefore(Instant.now())&&current.getStatus()!=BookingStatus.CONFIRMED){
             p.setStatus(PaymentStatus.REVIEW);p.setPaidAt(Instant.now());p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage("Gateway success arrived after payment window expired; manual review/refund required");payments.save(p);
+            finance.recordPaymentCapture(p,current);
             return result(p);
         }
         inventory.finalizeSale(p.getBookingId());
         Booking b=bookingService.confirm(p.getBookingId());
         p.setStatus(PaymentStatus.SUCCESS);p.setPaidAt(Instant.now());p.setFailedAt(null);p.setProviderTransactionId(providerTxn);p.setProviderResponseCode(responseCode);p.setProviderMessage(message);
         awardLoyaltyIfNeeded(p);payments.save(p);
+        finance.recordPaymentCapture(p,b);
         notifications.create(b.getUserId(),"PAYMENT_SUCCESS","Thanh toán thành công","Vé "+b.getId()+" đã được xác nhận. Bạn có thể mở QR vé trong mục Vé của tôi.","/ticket/"+b.getId());
         return new PaymentResultResponse(p.getId(),p.getBookingId(),p.getProvider(),p.getStatus().name(),b.getStatus().name());
     }

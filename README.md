@@ -1392,3 +1392,79 @@ main CI
 ```
 
 If an RC requires a source fix, commit the fix and increment `rc_number`. Never delete, move or force an existing RC/stable tag.
+
+## V42 - Financial Ledger & Reconciliation
+
+V42 adds an append-only double-entry financial ledger on top of the V37 payment gateway, V38 refund automation and V40 loyalty system. Payment/refund state remains in the existing domain tables; the new ledger is independent evidence used for financial operations and reconciliation instead of becoming a second mutable source of truth.
+The account codes are operational control accounts for CineBooking reconciliation, not a statutory/general-ledger chart of accounts; revenue recognition remains outside this demo system.
+
+Flyway migration `V42__financial_ledger_reconciliation.sql` creates `financial_ledger_entry`, `financial_ledger_line`, `financial_reconciliation_run` and `financial_reconciliation_issue`. Ledger entries use unique event keys (`PAYMENT_CAPTURE:<paymentId>` and `REFUND:<paymentId>`), so retries and duplicate callbacks cannot create duplicate accounting events. `financial_ledger_line` is double-entry: every positive VND event has equal DEBIT and CREDIT totals. PostgreSQL has an initially-deferred balance constraint trigger and explicit triggers that reject UPDATE/DELETE on both ledger tables, making the ledger append-only at the database boundary.
+
+V42 posts these operational accounting pairs:
+
+```text
+PAYMENT_CAPTURED
+  DEBIT  PAYMENT_CLEARING:<provider>
+  CREDIT CUSTOMER_FUNDS_CAPTURED
+
+REFUND_SETTLED
+  DEBIT  CUSTOMER_FUNDS_REFUNDED
+  CREDIT PAYMENT_CLEARING:<provider>
+```
+
+`SUCCESS`, paid `REVIEW`, and `REFUNDED` historical payments are backfilled by the V42 migration. Runtime capture recording is wired into `PaymentService`, including late gateway success that enters `REVIEW`; refund settlement recording is wired into `RefundService`. Event creation uses `INSERT ... ON CONFLICT (event_key) DO NOTHING`, and Java also validates debit equals credit before line persistence.
+
+The Admin Financial Operations API is:
+
+```text
+GET  /api/admin/finance?date=YYYY-MM-DD
+POST /api/admin/finance/reconcile?date=YYYY-MM-DD
+POST /api/admin/finance/issues/{id}/resolve
+```
+
+Reconciliation uses the CineBooking business day in `Asia/Ho_Chi_Minh`. For every paid `SUCCESS`, `REFUNDED`, or paid `REVIEW` payment it checks that the immutable capture event exists and matches the payment amount. For refunds it checks the refund event and amount. It also compares total captured/refunded amounts with the daily ledger and compares each customer `loyalty_points` balance with the remaining V40 `loyalty_point_lot` balance. Mismatches become durable `financial_reconciliation_issue` rows with `WARNING` or `CRITICAL` severity; resolving an issue records the actor and an audit event instead of deleting history.
+
+Automatic daily close runs at 01:10 in `Asia/Ho_Chi_Minh` for the previous business date. Both backend replicas may execute the scheduler, but the deterministic `AUTO:<businessDate>` run key is claimed with `ON CONFLICT DO NOTHING`, so only one reconciliation run is created. Safe defaults:
+
+```env
+FINANCE_AUTO_RECONCILE_ENABLED=true
+FINANCE_DAILY_CLOSE_CRON=0 10 1 * * *
+```
+
+The `/admin/finance` screen shows daily captured, refunded and net amounts, the latest reconciliation status, immutable ledger lines, open issues and recent reconciliation runs. `frontend/e2e/financial-ledger.spec.ts` creates its own customer/booking, completes a MOCK payment, verifies the concrete `PAYMENT_CAPTURE:<paymentId>` event with `DEBIT PAYMENT_CLEARING:MOCK` and `CREDIT CUSTOMER_FUNDS_CAPTURED`, then runs reconciliation and requires a `CLEAN` result.
+
+### V42 verification
+
+```powershell
+python .\tools\verify_v42_financial_ledger.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v42.ps1
+```
+
+Normal Docker update remains non-destructive:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Do not use `docker compose down -v` for normal updates because it removes persistent database volumes.
+
+After V41 is stable and V42 `main` CI is green, run **CineBooking Stable Release** from `main` with:
+
+```text
+version: 42.0.0
+rc_number: 1
+```
+
+The release path is:
+
+```text
+main CI
+-> v42.0.0-rc.1
+-> Docker smoke
+-> 10 Playwright Chromium journeys
+-> v42.0.0
+-> GitHub Release
+```
+
+If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
