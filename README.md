@@ -1,13 +1,96 @@
-# CineBooking Pro V40
+# CineBooking Pro V42.1
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V40 — Loyalty & Membership 2.0  
+> **Current release:** V42.1 — Analytics Export + Documentation Sync  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
 This repository intentionally keeps **all project documentation in this single `README.md`**.
+
+## Version history / changelog
+
+Bảng này là chỉ mục cập nhật chính thức theo source hiện tại. Mỗi bản mới phải thêm một dòng ở đây; không dùng roadmap tương lai để mô tả như tính năng đã tồn tại. Những version có migration ghi đúng tên migration; những version frontend/tooling không đổi schema được ghi `Không`.
+
+| Version | Cập nhật chính | Migration / mốc source |
+|---|---|---|
+| V1 | Khởi tạo schema lõi | `V1__init.sql` |
+| V2 | Seed dữ liệu demo ban đầu | `V2__seed_demo.sql` |
+| V3 | Hồ sơ người dùng + quên/đặt lại mật khẩu | `V3__user_profile_and_password_reset.sql` |
+| V4 | Bổ sung dữ liệu checkout/payment | `V4__payment_checkout_fields.sql` |
+| V5 | Backfill ghế mặc định | `V5__backfill_default_seats.sql` |
+| V6 | Engagement + loyalty nền tảng | `V6__engagement_and_loyalty.sql` |
+| V7 | Commerce, voucher, notification, analytics nền tảng | `V7__commerce_vouchers_notifications_analytics.sql` |
+| V8 | Check-in, refund, RBAC, audit vận hành | `V8__operations_checkin_refund_rbac_audit.sql` |
+| V9 | Tài khoản nhân viên | `V9__staff_accounts.sql` |
+| V10 | Ca làm + chấm công | `V10__staff_shifts_attendance.sql` |
+| V11 | Mobile QR check-in + sửa ca làm | `V11__mobile_qr_checkin_and_shift_fix.sql` |
+| V12 | Soft-delete nhân viên | `V12__staff_soft_delete.sql` |
+| V13 | Index phục vụ booking operations | `V13__booking_operations_indexes.sql` |
+| V14 | Nhả ghế khi booking hoàn tiền | `V14__release_refunded_seats.sql` |
+| V15 | Lifecycle booking PENDING | `V15__pending_booking_lifecycle.sql` |
+| V16 | Tăng tính nhất quán seat reservation | `V16__seat_reservation_consistency.sql` |
+| V17 | Bảo toàn `booking.created_at` | `V17__booking_created_at_integrity.sql` |
+| V18 | Dynamic pricing | `V18__dynamic_pricing.sql` |
+| V19 | Concession inventory | `V19__concession_inventory.sql` |
+| V20 | Analytics V2 + read-optimized indexes | `V20__analytics_v2_indexes.sql` |
+| V21 | Security sessions | `V21__security_sessions.sql` |
+| V22 | Notification Center V2 | `V22__notification_center_v2.sql` |
+| V23 | Leave + timesheet + attendance | `V23__attendance_leave_timesheet.sql` |
+| V24 | Booking idempotency + contention hardening | `V24__booking_idempotency_and_contention.sql` |
+| V25 | Recommendation engine | `V25__recommendation_engine.sql` |
+| V26 | PWA / offline-ticket compatibility | Không |
+| V27 | Data-safety, backup/verify/restore hardening | Không |
+| V28 | CI/runtime/tooling hardening | Không |
+| V29 | Demo catalog + lịch chiếu 09/2026 | `V29__demo_movies_and_showtimes_september_2026.sql` |
+| V30 | Movie Discovery + Showtime Calendar | Không |
+| V31 | Ticket Wallet + Calendar `.ics` | Không |
+| V32 | Sold-out Waitlist + seat alerts | `V32__showtime_waitlist.sql` |
+| V33 | Showtime Planner | Không |
+| V34 | Auditorium maintenance / blackout windows | `V34__auditorium_blackout_windows.sql` |
+| V35 | Automated Release Lifecycle | Không |
+| V36 | Secure Ticket Transfer + QR rotation | `V36__secure_ticket_transfer.sql` |
+| V37 | Payment Gateway Production Ready | `V37__payment_gateway_hardening.sql` |
+| V38 | Refund & Cancellation Automation | `V38__refund_cancellation_automation.sql` |
+| V39 | Seat Map & Booking UX 2.0 | Không |
+| V40 | Loyalty & Membership 2.0 | `V40__loyalty_membership_2.sql` |
+| V41 | Notification Center & Engagement Automation 2.0 | `V41__notification_engagement_2.sql` |
+| V42 | Financial Ledger & Reconciliation | `V42__financial_ledger_reconciliation.sql` |
+| **V42.1** | **Analytics export CSV/XLSX + đồng bộ README/version history** | **Không đổi schema** |
+
+### V42.1 - Analytics Export + Documentation Sync
+
+V42.1 hoàn thiện chức năng export ngay trên trang `/admin/analytics`. Manager/Admin có thể giữ nguyên bộ lọc 7/30/90/365 ngày và rạp hiện tại rồi tải báo cáo bằng hai nút **Xuất CSV** và **Xuất Excel**.
+
+API mới:
+
+```text
+GET /api/admin/analytics/export.csv?days=30&cinemaId=<optional-uuid>
+GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
+```
+
+- CSV dùng UTF-8 BOM để mở tiếng Việt ổn định trong Excel và chứa đầy đủ các section Analytics.
+- XLSX là workbook nhiều sheet: Tổng quan, Doanh thu ngày, Hiệu suất rạp, Top phim, Top suất chiếu, Khung giờ, Heatmap ghế, Nhân viên, Booking, Payment, Bắp nước và Payment provider.
+- Export dùng đúng dữ liệu từ `AdminAnalyticsService`, vì vậy số liệu tải xuống khớp với dashboard và bộ lọc hiện tại.
+- Không có migration mới; Flyway latest vẫn là V42.
+
+Các file chính thay đổi:
+
+```text
+backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java
+backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
+backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
+frontend/app/admin/analytics/page.tsx
+tools/verify_v42_1_analytics_export.py
+README.md
+```
+
+Kiểm tra source V42.1:
+
+```powershell
+python .\tools\verify_v42_1_analytics_export.py
+```
 
 ---
 
@@ -471,12 +554,18 @@ V1..V25   Core product/platform features
 V29       Demo catalog + September 2026 schedule
 V32       Showtime waitlist
 V34       Auditorium maintenance blackout windows
+V36       Secure ticket transfer
+V37       Payment gateway hardening
+V38       Refund/cancellation automation
+V40       Loyalty & Membership 2.0
+V41       Notification engagement 2.0
+V42       Financial ledger & reconciliation
 ```
 
-Sau V34, Flyway latest version phải là:
+V42.1 không có migration mới. Flyway latest version phải là:
 
 ```text
-34
+42
 ```
 
 Không sửa nội dung migration cũ đã được áp dụng. Luôn tạo migration mới.
@@ -783,14 +872,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V36
+CineBooking Pro V42.1
 ```
 
-Release-candidate label:
+Release target:
 
 ```text
-v36.0.0-rc.1
+v42.1.0
 ```
+
+V42.1 là patch không đổi schema database; Flyway latest vẫn là V42.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 

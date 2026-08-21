@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { api, currency } from "@/lib/api";
+import { api, apiBlob, currency } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import type {
   AnalyticsDashboard,
@@ -23,6 +23,7 @@ export default function AnalyticsPage(){
   const [data,setData]=useState<AnalyticsDashboard|null>(null);
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(true);
+  const [exporting,setExporting]=useState<"csv"|"xlsx"|null>(null);
 
   useEffect(()=>{
     const auth=getAuth();
@@ -58,6 +59,29 @@ export default function AnalyticsPage(){
     return [...map.entries()].map(([row,cells])=>[row,cells.sort((a,b)=>a.seatNumber-b.seatNumber)] as const);
   },[data]);
 
+  async function exportAnalytics(format:"csv"|"xlsx"){
+    setExporting(format);
+    setError("");
+    try{
+      const query=new URLSearchParams({days:String(days)});
+      if(cinemaId) query.set("cinemaId",cinemaId);
+      const blob=await apiBlob(`/admin/analytics/export.${format}?${query}`);
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      const today=new Date().toISOString().slice(0,10);
+      a.href=url;
+      a.download=`cinebooking-analytics-${days}d-${today}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }catch(e){
+      setError(e instanceof Error?e.message:"Không thể xuất báo cáo Analytics.");
+    }finally{
+      setExporting(null);
+    }
+  }
+
   return <div className="space-y-7 pb-16">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -73,6 +97,8 @@ export default function AnalyticsPage(){
           <option value="">Tất cả rạp</option>
           {cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <button className="btn btn-secondary" type="button" disabled={loading||!!exporting} onClick={()=>exportAnalytics("csv")}>{exporting==="csv"?"Đang xuất...":"Xuất CSV"}</button>
+        <button className="btn btn-primary" type="button" disabled={loading||!!exporting} onClick={()=>exportAnalytics("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel"}</button>
         <Link className="btn btn-secondary" href="/admin">← Admin</Link>
       </div>
     </div>
