@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV43StaffOperationsSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV44MaintenanceReliabilitySchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(29);
-        assertThat(latest).isEqualTo("43");
-        assertThat(publicTables).isGreaterThanOrEqualTo(42);
+        assertThat(latest).isEqualTo("44");
+        assertThat(publicTables).isGreaterThanOrEqualTo(45);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -154,6 +154,15 @@ class CineBookingIntegrationIT {
         Integer staffV43Indexes = jdbc.queryForObject(
                 "select count(*) from pg_indexes where schemaname='public' and indexname in ('uq_staff_handover_pending_attendance','idx_staff_incident_cinema_status_created')", Integer.class);
         assertThat(staffV43Indexes).isEqualTo(2);
+        Integer maintenanceV44Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('cinema_equipment_asset','maintenance_work_order','maintenance_work_order_event')", Integer.class);
+        assertThat(maintenanceV44Tables).isEqualTo(3);
+        Integer maintenanceV44Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_equipment_cinema_status','idx_maintenance_work_order_cinema_status_created','idx_maintenance_event_order_created')", Integer.class);
+        assertThat(maintenanceV44Indexes).isEqualTo(3);
+        Integer maintenanceV44Trigger = jdbc.queryForObject(
+                "select count(*) from pg_trigger where not tgisinternal and tgname='trg_v44_maintenance_event_immutable'", Integer.class);
+        assertThat(maintenanceV44Trigger).isEqualTo(1);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

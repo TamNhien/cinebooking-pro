@@ -1,8 +1,8 @@
-# CineBooking Pro V43
+# CineBooking Pro V44
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V43 — Staff Operations 2.0  
+> **Current release:** V44 — Cinema Maintenance & Asset Reliability 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -59,6 +59,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | V42 | Financial Ledger & Reconciliation | `V42__financial_ledger_reconciliation.sql` |
 | **V42.1** | **Analytics export CSV/XLSX + CI/Release wiring + đồng bộ README/version history** | **Không đổi schema** |
 | **V43** | **Staff Operations 2.0 + Analytics CSV/Excel chi tiết theo từng bảng** | **`V43__staff_operations_2.sql`** |
+| **V44** | **Cinema Maintenance & Asset Reliability 2.0: asset registry, SLA/work order, incident linkage, immutable history** | **`V44__cinema_maintenance_asset_reliability.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -211,6 +212,90 @@ branch: main
 version: 43.0.0
 rc_number: 1
 ```
+
+---
+
+### V44 - Cinema Maintenance & Asset Reliability 2.0
+
+V44 phát triển tiếp từ V34 blackout và V43 Staff Operations thành một **trung tâm bảo trì & độ tin cậy thiết bị** tại `/admin/maintenance`. Manager/Admin không chỉ khóa phòng mà còn quản lý tài sản kỹ thuật, work order, hạn bảo trì và SLA quá hạn theo từng rạp.
+
+Các cập nhật chính:
+
+- **Equipment asset registry:** đăng ký máy chiếu, âm thanh, HVAC, màn chiếu, POS, network, power, safety và thiết bị khác bằng mã tài sản duy nhất; có rạp/phòng, vendor, serial, ngày lắp, lần bảo trì gần nhất và ngày bảo trì kế tiếp.
+- **Asset health:** trạng thái `OPERATIONAL / DEGRADED / OUT_OF_SERVICE / MAINTENANCE`; dashboard đếm thiết bị suy giảm, ngừng hoạt động, đang bảo trì và thiết bị đến hạn service trong 14 ngày.
+- **Maintenance work order:** ưu tiên `LOW / MEDIUM / HIGH / CRITICAL`, phân công Staff/Manager cùng rạp, hạn xử lý, liên kết thiết bị/phòng và có thể nối trực tiếp một sự cố `OPEN` từ V43.
+- **Lifecycle có guard:** `OPEN -> IN_PROGRESS/BLOCKED/CANCELLED`, `IN_PROGRESS -> BLOCKED/RESOLVED/CANCELLED`, `BLOCKED -> IN_PROGRESS/CANCELLED`; `RESOLVED` và `CANCELLED` là terminal, không reopen bằng API. Các trạng thái `BLOCKED/RESOLVED/CANCELLED` bắt buộc ghi chú.
+- **SLA dashboard:** đếm work order đang mở, critical đang mở và overdue theo `due_at`; Manager chỉ xem/quản lý rạp được phân công, Admin có thể đổi rạp.
+- **Immutable maintenance history:** mọi create/plan/status change ghi `maintenance_work_order_event`; trigger PostgreSQL từ chối UPDATE/DELETE lịch sử này. Audit log hệ thống vẫn ghi các thao tác quản trị tương ứng.
+- **V34 compatibility:** Admin vẫn có phần khóa/mở phòng chiếu ngay trong màn hình V44; guard chống blackout trùng suất đang hoạt động và conflict với Showtime Planner được giữ nguyên.
+- **Navigation:** menu Manager/Admin có mục **Bảo trì & thiết bị**.
+
+Migration V44:
+
+```text
+backend/src/main/resources/db/migration/V44__cinema_maintenance_asset_reliability.sql
+```
+
+Các bảng mới:
+
+```text
+cinema_equipment_asset
+maintenance_work_order
+maintenance_work_order_event
+```
+
+API V44:
+
+```text
+GET  /api/admin/maintenance/cinemas
+GET  /api/admin/maintenance/auditoriums?cinemaId=<uuid>
+GET  /api/admin/maintenance/staff-options?cinemaId=<uuid>
+GET  /api/admin/maintenance/incident-options?cinemaId=<uuid>
+GET  /api/admin/maintenance/summary?cinemaId=<uuid>
+GET  /api/admin/maintenance/assets?cinemaId=<uuid>
+POST /api/admin/maintenance/assets
+PUT  /api/admin/maintenance/assets/{id}
+GET  /api/admin/maintenance/work-orders?cinemaId=<uuid>
+POST /api/admin/maintenance/work-orders
+PUT  /api/admin/maintenance/work-orders/{id}/plan
+POST /api/admin/maintenance/work-orders/{id}/transition
+GET  /api/admin/maintenance/work-orders/{id}/events
+```
+
+V44 verification:
+
+```powershell
+python .\tools\verify_v43_staff_operations.py
+python .\tools\verify_v43_analytics_excel_detail.py
+python .\tools\verify_v43_analytics_csv_detail.py
+python .\tools\verify_v44_maintenance_reliability.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v44.ps1
+```
+
+Release lifecycle V44:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V44 source regression
+→ Backend unit + Testcontainers integration
+→ V44 source gate
+→ Stable Release (manual)
+→ v44.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v44.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
+
+```text
+branch: main
+version: 44.0.0
+rc_number: 1
+```
+
+Nếu RC cần sửa source, commit/push fix rồi tăng `rc_number`; không di chuyển hoặc ghi đè tag RC/stable cũ.
 
 ---
 
@@ -992,16 +1077,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V43
+CineBooking Pro V44
 ```
 
 Release target:
 
 ```text
-v43.0.0
+v44.0.0
 ```
 
-V43 có migration `V43__staff_operations_2.sql`; Flyway latest là V43.
+V44 có migration `V44__cinema_maintenance_asset_reliability.sql`; Flyway latest là V44.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 

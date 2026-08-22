@@ -6,5 +6,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.*;
 public interface AuditoriumRepository extends JpaRepository<Auditorium, UUID> {
  List<Auditorium> findAllByOrderByNameAsc();
+ List<Auditorium> findByCinemaIdOrderByNameAsc(UUID cinemaId);
  @Lock(LockModeType.PESSIMISTIC_WRITE) @Query("select a from Auditorium a where a.id=:id") Optional<Auditorium> findByIdForUpdate(@Param("id") UUID id);
 }

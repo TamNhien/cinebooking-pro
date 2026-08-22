@@ -164,3 +164,12 @@ verify-v43:
 
 diagnose-v43:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v43.ps1
+
+verify-v44:
+	python tools/verify_v43_staff_operations.py
+	python tools/verify_v43_analytics_excel_detail.py
+	python tools/verify_v43_analytics_csv_detail.py
+	python tools/verify_v44_maintenance_reliability.py
+
+diagnose-v44:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v44.ps1

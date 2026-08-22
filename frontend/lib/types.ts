@@ -149,3 +149,12 @@ export type PricingQuote = {
 
 export type WaitlistStatus = { showtimeId:string; subscribed:boolean; status:"NONE"|"ACTIVE"|"NOTIFIED"|"CANCELLED"|"EXPIRED"; availableSeats:number; createdAt?:string; notifiedAt?:string };
 export type WaitlistItem = { id:string; showtimeId:string; movieTitle:string; showtimeStart:string; cinemaName:string; auditoriumName:string; status:"ACTIVE"|"NOTIFIED"|"CANCELLED"|"EXPIRED"; lastAvailableCount:number; createdAt:string; notifiedAt?:string };
+
+export type MaintenanceCinema = { id:string; name:string };
+export type MaintenanceAuditorium = { id:string; cinemaId:string; name:string };
+export type MaintenanceStaff = { userId:string; employeeCode:string; fullName:string; role:"STAFF"|"MANAGER" };
+export type MaintenanceIncident = { id:string; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; category:string; title:string; reportedByName:string; createdAt:string };
+export type MaintenanceSummary = { cinemaId:string; cinemaName:string; totalAssets:number; degradedAssets:number; outOfServiceAssets:number; maintenanceAssets:number; openWorkOrders:number; criticalOpenWorkOrders:number; overdueWorkOrders:number; serviceDueNext14Days:number; generatedAt:string };
+export type MaintenanceAsset = { id:string; cinemaId:string; cinemaName:string; auditoriumId?:string; auditoriumName?:string; assetCode:string; name:string; category:"PROJECTOR"|"AUDIO"|"HVAC"|"SCREEN"|"POS"|"NETWORK"|"POWER"|"SAFETY"|"OTHER"; status:"OPERATIONAL"|"DEGRADED"|"OUT_OF_SERVICE"|"MAINTENANCE"; vendor?:string; serialNumber?:string; installedOn?:string; lastServiceAt?:string; nextServiceDue?:string; note?:string; createdAt:string; updatedAt:string };
+export type MaintenanceWorkOrder = { id:string; cinemaId:string; cinemaName:string; auditoriumId?:string; auditoriumName?:string; assetId?:string; assetCode?:string; assetName?:string; sourceIncidentId?:string; title:string; description:string; priority:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; status:"OPEN"|"IN_PROGRESS"|"BLOCKED"|"RESOLVED"|"CANCELLED"; assignedTo?:string; assignedToName?:string; dueAt?:string; overdue:boolean; resolutionNote?:string; createdBy:string; createdByName:string; startedAt?:string; resolvedAt?:string; resolvedBy?:string; resolvedByName?:string; createdAt:string; updatedAt:string };
+export type MaintenanceWorkOrderEvent = { id:string; workOrderId:string; eventType:string; fromStatus?:string; toStatus?:string; note?:string; actorUserId:string; actorName:string; createdAt:string };
