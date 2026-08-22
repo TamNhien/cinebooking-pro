@@ -1,10 +1,10 @@
--- CineBooking demo seed/repair for the 49 tables shown in pgAdmin (V46 schema).
--- Adds/repairs 10 deterministic demo rows in every V46 application table, EXCEPT movie.
--- movie intentionally reuses the eight canonical films already shipped by V29; no "Phim Demo" rows are created.
+-- CineBooking realistic reference-data seed/repair for the 49 tables shown in pgAdmin (V46 schema).
+-- Adds/repairs 10 deterministic realistic rows in every V46 application table, EXCEPT movie.
+-- movie intentionally reuses the eight canonical films already shipped by V29; no synthetic movie rows are created.
 -- flyway_schema_history is intentionally NOT modified because it is Flyway system metadata.
 -- The runner copies this UTF-8 file into the PostgreSQL container and executes it there, avoiding Windows pipe/code-page corruption.
--- Re-running repairs previously corrupted DEMO45 human-readable text and does not duplicate deterministic rows.
--- Demo login users use password: Demo@123
+-- Re-running repairs prior placeholder/encoding data and does not duplicate deterministic rows.
+-- Reference accounts use the shared password CineBooking@123.
 
 BEGIN;
 SET LOCAL client_encoding = 'UTF8';
@@ -26,6 +26,101 @@ INSERT INTO seed45_movie_map(n, movie_id) VALUES
 (9,  '11111111-1111-1111-1111-111111111111'),
 (10, '22222222-2222-2222-2222-222222222222');
 
+
+CREATE TEMP TABLE seed_real_people(
+    n integer PRIMARY KEY,
+    email text NOT NULL,
+    full_name text NOT NULL,
+    phone text NOT NULL,
+    employee_code text NOT NULL,
+    job_title text NOT NULL
+) ON COMMIT DROP;
+INSERT INTO seed_real_people VALUES
+(1,'an.nguyen@cinebooking.local','Nguyễn Minh An','0903123456','CBM001','Quản lý rạp'),
+(2,'bao.tran@cinebooking.local','Trần Quốc Bảo','0904234567','CBS002','Giám sát ca'),
+(3,'nam.le@cinebooking.local','Lê Hoàng Nam','0905345678','CBS003','Nhân viên soát vé'),
+(4,'ha.pham@cinebooking.local','Phạm Thu Hà','0906456789','CBS004','Nhân viên quầy vé'),
+(5,'huy.vo@cinebooking.local','Võ Đức Huy','0907567890','CBS005','Nhân viên bắp nước'),
+(6,'lan.dang@cinebooking.local','Đặng Ngọc Lan','0908678901','CBS006','Nhân viên chăm sóc khách hàng'),
+(7,'khanh.bui@cinebooking.local','Bùi Gia Khánh','0909789012','CBS007','Kỹ thuật viên phòng chiếu'),
+(8,'vy.nguyen@cinebooking.local','Nguyễn Thảo Vy','0910890123','CBS008','Nhân viên vận hành'),
+(9,'phong.truong@cinebooking.local','Trương Quốc Phong','0911901234','CBS009','Nhân viên kho'),
+(10,'chau.ho@cinebooking.local','Hồ Minh Châu','0912012345','CBS010','Nhân viên hỗ trợ sảnh');
+
+CREATE TEMP TABLE seed_real_cinema(n integer PRIMARY KEY,name text NOT NULL,address text NOT NULL) ON COMMIT DROP;
+INSERT INTO seed_real_cinema VALUES
+(1,'CineHub Nguyễn Huệ','72 Nguyễn Huệ, Bến Nghé, Quận 1, TP.HCM'),
+(2,'CineHub Landmark 81','720A Điện Biên Phủ, Phường Thạnh Mỹ Tây, TP.HCM'),
+(3,'CineHub Thảo Điền','159 Võ Nguyên Giáp, Phường An Khánh, TP.HCM'),
+(4,'CineHub Crescent Mall','101 Tôn Dật Tiên, Phường Tân Mỹ, TP.HCM'),
+(5,'CineHub Emart Gò Vấp','366 Phan Văn Trị, Phường An Nhơn, TP.HCM'),
+(6,'CineHub Cộng Hòa','20 Cộng Hòa, Phường Bảy Hiền, TP.HCM'),
+(7,'CineHub Aeon Bình Tân','1 Đường số 17A, Phường Bình Trị Đông, TP.HCM'),
+(8,'CineHub Vạn Hạnh','11 Sư Vạn Hạnh, Phường Hòa Hưng, TP.HCM'),
+(9,'CineHub Gigamall','240 Phạm Văn Đồng, Phường Hiệp Bình, TP.HCM'),
+(10,'CineHub Nguyễn Trãi','190 Hồng Bàng, Phường Chợ Lớn, TP.HCM');
+
+CREATE TEMP TABLE seed_real_auditorium(n integer PRIMARY KEY,name text NOT NULL) ON COMMIT DROP;
+INSERT INTO seed_real_auditorium VALUES
+(1,'Phòng 01 - Standard'),(2,'Phòng 02 - Standard'),(3,'Phòng 03 - VIP'),
+(4,'Phòng 04 - Dolby Atmos'),(5,'Phòng 05 - Standard'),(6,'Phòng 06 - Couple'),
+(7,'Phòng 07 - VIP'),(8,'Phòng 08 - Standard'),(9,'Phòng 09 - Premium'),(10,'Phòng 10 - Standard');
+
+CREATE TEMP TABLE seed_real_product(n integer PRIMARY KEY,name text NOT NULL,description text NOT NULL,price numeric(12,2) NOT NULL) ON COMMIT DROP;
+INSERT INTO seed_real_product VALUES
+(1,'Bắp Caramel Vừa','Bắp rang caramel cỡ vừa',49000),
+(2,'Bắp Phô Mai Lớn','Bắp rang phủ phô mai cỡ lớn',69000),
+(3,'Bắp Ngọt Lớn','Bắp rang vị ngọt cỡ lớn',55000),
+(4,'Coca-Cola Lớn','Nước ngọt Coca-Cola cỡ lớn',39000),
+(5,'Sprite Lớn','Nước ngọt Sprite cỡ lớn',39000),
+(6,'Fanta Cam Lớn','Nước ngọt Fanta cam cỡ lớn',39000),
+(7,'Nước Suối Dasani','Nước suối Dasani 500 ml',25000),
+(8,'Combo Solo','1 bắp vừa + 1 nước lớn',89000),
+(9,'Combo Couple Plus','1 bắp lớn + 2 nước lớn',149000),
+(10,'Combo Family','2 bắp lớn + 4 nước lớn',219000);
+
+CREATE TEMP TABLE seed_real_voucher(n integer PRIMARY KEY,code text NOT NULL,name text NOT NULL) ON COMMIT DROP;
+INSERT INTO seed_real_voucher VALUES
+(1,'CBMEMBER10K','Ưu đãi thành viên 10.000đ'),
+(2,'CBWEEKEND10K','Ưu đãi cuối tuần 10.000đ'),
+(3,'CBBIRTHDAY10K','Quà sinh nhật 10.000đ'),
+(4,'CBMOVIE10K','Ưu đãi vé xem phim 10.000đ'),
+(5,'CBCOMBO10K','Ưu đãi bắp nước 10.000đ'),
+(6,'CBAPP10K','Ưu đãi đặt vé trực tuyến 10.000đ'),
+(7,'CBLOYAL10K','Ưu đãi khách hàng thân thiết 10.000đ'),
+(8,'CBEVENING10K','Ưu đãi suất tối 10.000đ'),
+(9,'CBSTUDENT10K','Ưu đãi học sinh sinh viên 10.000đ'),
+(10,'CBFAMILY10K','Ưu đãi gia đình 10.000đ');
+
+CREATE TEMP TABLE seed_real_asset(
+    n integer PRIMARY KEY,asset_code text NOT NULL,name text NOT NULL,category text NOT NULL,
+    vendor text NOT NULL,serial_number text NOT NULL,note text NOT NULL,work_title text NOT NULL,work_description text NOT NULL
+) ON COMMIT DROP;
+INSERT INTO seed_real_asset VALUES
+(1,'PRJ-NH-001','Máy chiếu Barco SP4K-15','PROJECTOR','Barco','BARCO-SP4K-15001','Thiết bị trình chiếu chính của Phòng 01','Vệ sinh và cân chỉnh máy chiếu Barco','Kiểm tra bộ lọc, độ sáng, màu sắc và cân chỉnh khung hình.'),
+(2,'AUD-NH-001','Bộ xử lý âm thanh Dolby CP950','AUDIO','Dolby Laboratories','DOLBY-CP950-002','Bộ xử lý âm thanh trung tâm của Phòng 02','Kiểm tra hệ thống âm thanh Dolby','Đo mức âm lượng, kiểm tra kênh loa và cấu hình Dolby CP950.'),
+(3,'HVAC-NH-001','Dàn lạnh Daikin VRV','HVAC','Daikin','DAIKIN-VRV-003','Điều hòa không khí khu vực Phòng 03','Bảo dưỡng dàn lạnh Daikin VRV','Vệ sinh lưới lọc, kiểm tra nhiệt độ gió và đường thoát nước.'),
+(4,'SCR-NH-001','Màn chiếu Harkness Perlux 180+','SCREEN','Harkness','HARKNESS-004','Màn chiếu chính của Phòng 04','Kiểm tra bề mặt màn chiếu','Kiểm tra độ phẳng, vết bẩn và hệ thống căng màn.'),
+(5,'POS-NH-001','Máy POS Sunmi T2','POS','Sunmi','SUNMI-T2-005','Thiết bị thanh toán tại quầy vé','Kiểm tra máy POS quầy vé','Kiểm tra kết nối mạng, máy in hóa đơn và nguồn điện.'),
+(6,'NET-NH-001','Switch Cisco CBS350','NETWORK','Cisco','CBS350-006','Switch mạng nội bộ khu vực phòng chiếu','Kiểm tra switch mạng Cisco','Rà soát cổng mạng, lỗi CRC và trạng thái uplink.'),
+(7,'PWR-NH-001','UPS APC Smart-UPS SRT','POWER','APC','APC-SRT-007','Nguồn dự phòng cho hệ thống trình chiếu','Kiểm tra UPS phòng kỹ thuật','Kiểm tra pin, tải sử dụng và thời gian lưu điện.'),
+(8,'PRJ-NH-002','Máy chiếu Christie CP4415-RGB','PROJECTOR','Christie','CHR-CP4415-008','Máy chiếu laser của Phòng 08','Cân chỉnh máy chiếu Christie','Kiểm tra quang học, độ hội tụ và cân chỉnh màu RGB.'),
+(9,'AUD-NH-002','Amplifier Crown DCi 4|300N','AUDIO','Crown','CROWN-DCI-009','Amplifier công suất của Phòng 09','Kiểm tra amplifier Crown','Kiểm tra nhiệt độ, tín hiệu đầu vào và tải loa.'),
+(10,'SAFE-NH-001','Tủ trung tâm báo cháy Hochiki','SAFETY','Hochiki','HCH-FACP-010','Tủ báo cháy khu vực phòng chiếu','Kiểm tra hệ thống báo cháy','Kiểm tra nguồn dự phòng, đầu báo và lịch sử cảnh báo.');
+
+CREATE TEMP TABLE seed_real_device(n integer PRIMARY KEY,label text NOT NULL,device_name text NOT NULL,user_agent text NOT NULL) ON COMMIT DROP;
+INSERT INTO seed_real_device VALUES
+(1,'Laptop cá nhân','Brave · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36'),
+(2,'Máy tính văn phòng','Edge · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36 Edg/151.0'),
+(3,'Điện thoại cá nhân','Chrome · Android','Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 Chrome/151.0 Mobile Safari/537.36'),
+(4,'MacBook cá nhân','Safari · macOS','Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15'),
+(5,'iPhone cá nhân','Safari · iPhone','Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'),
+(6,'Máy tính kỹ thuật','Firefox · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0'),
+(7,'Máy tính quầy vé','Chrome · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36'),
+(8,'Máy tính quản lý','Brave · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36'),
+(9,'Điện thoại công việc','Samsung Internet · Android','Mozilla/5.0 (Linux; Android 15; SM-S928B) AppleWebKit/537.36 Chrome/151.0 Mobile Safari/537.36 SamsungBrowser/28.0'),
+(10,'Laptop dự phòng','Edge · Windows','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36 Edg/151.0');
+
 DO $$
 DECLARE canonical_count integer;
 BEGIN
@@ -34,7 +129,7 @@ BEGIN
       FROM seed45_movie_map m
       JOIN movie existing ON existing.id = m.movie_id;
     IF canonical_count <> 8 THEN
-        RAISE EXCEPTION 'DEMO45 seed requires the eight canonical V29 movies; found %/8', canonical_count;
+        RAISE EXCEPTION 'Reference seed requires the eight canonical V29 movies; found %/8', canonical_count;
     END IF;
 END $$;
 
@@ -47,11 +142,11 @@ INSERT INTO app_user(
 )
 SELECT
     md5('seed45:user:' || n)::uuid,
-    format('demo45.user%s@cinebooking.local', to_char(n,'FM00')),
-    '$2y$10$ifjK2UI9mdBGHFZhXNWOJe2YcXDVTdduBvxXMsinQkZhBbeR.h97W',
-    format('Nhân viên mẫu %s', to_char(n,'FM00')),
+    (SELECT email FROM seed_real_people WHERE seed_real_people.n = g.n),
+    '$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe',
+    (SELECT full_name FROM seed_real_people WHERE seed_real_people.n = g.n),
     CASE WHEN n = 1 THEN 'MANAGER' ELSE 'STAFF' END,
-    format('090900%s', lpad(n::text,4,'0')),
+    (SELECT phone FROM seed_real_people WHERE seed_real_people.n = g.n),
     TRUE,
     1000 + n * 10,
     CASE WHEN n <= 2 THEN 'SILVER' ELSE 'BRONZE' END,
@@ -68,8 +163,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO cinema(id,name,address)
 SELECT
     md5('seed45:cinema:' || n)::uuid,
-    format('CineBooking Demo %s', to_char(n,'FM00')),
-    format('%s Đường Điện Ảnh, Quận %s, TP.HCM', 100 + n, ((n - 1) % 10) + 1)
+    (SELECT name FROM seed_real_cinema WHERE seed_real_cinema.n = g.n),
+    (SELECT address FROM seed_real_cinema WHERE seed_real_cinema.n = g.n)
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
@@ -80,15 +175,15 @@ INSERT INTO auditorium(id,cinema_id,name)
 SELECT
     md5('seed45:auditorium:' || n)::uuid,
     md5('seed45:cinema:1')::uuid,
-    format('Phòng Demo %s', to_char(n,'FM00'))
+    (SELECT name FROM seed_real_auditorium WHERE seed_real_auditorium.n = g.n)
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- 04. movie (reuse the 8 canonical V29 movies; add 0 demo movies)
 -- -----------------------------------------------------------------------------
--- Repair references created by the previous DEMO45 seed, then remove those old
--- synthetic "Phim Demo" movie rows. The new seed always points at the eight
+-- Repair references created by earlier placeholder seed runs, then remove those old
+-- synthetic placeholder movie rows. The current seed always points at the eight
 -- canonical movies from V29 through seed45_movie_map.
 UPDATE showtime target
 SET movie_id = mapped.movie_id
@@ -148,16 +243,16 @@ ON CONFLICT DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- 07. staff_profile (10)
--- All demo staff are attached to cinema 01 so handovers are semantically valid.
+-- All reference staff are attached to cinema 01 so handovers are semantically valid.
 -- -----------------------------------------------------------------------------
 INSERT INTO staff_profile(
     user_id,employee_code,cinema_id,job_title,employment_status,hire_date,deleted_at,created_at,updated_at
 )
 SELECT
     md5('seed45:user:' || n)::uuid,
-    format('DEMO45-%s', to_char(n,'FM00')),
+    (SELECT employee_code FROM seed_real_people WHERE seed_real_people.n = g.n),
     md5('seed45:cinema:1')::uuid,
-    CASE WHEN n = 1 THEN 'Quản lý rạp mẫu' ELSE 'Nhân viên vận hành mẫu' END,
+    (SELECT job_title FROM seed_real_people WHERE seed_real_people.n = g.n),
     'ACTIVE',
     CURRENT_DATE - (365 + n),
     NULL,
@@ -180,7 +275,7 @@ SELECT
     TIME '16:00',
     TIME '23:00',
     'COMPLETED',
-    format('Ca làm mẫu số %s', n),
+    (ARRAY['Ca tối - sảnh chính','Ca tối - quầy vé','Ca tối - cổng soát vé','Ca tối - quầy bắp nước','Ca tối - khu vực chờ','Ca tối - chăm sóc khách hàng','Ca tối - phòng kỹ thuật','Ca tối - vận hành rạp','Ca tối - kho hàng','Ca tối - hỗ trợ sảnh'])[n],
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' days')::interval
@@ -231,11 +326,11 @@ SELECT
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval,
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval + INTERVAL '5 minutes',
     100000,50000,10000,0,
-    format('DEMO45V%s', to_char(n,'FM00')),
+    (SELECT code FROM seed_real_voucher WHERE seed_real_voucher.n = g.n),
     FALSE,TRUE,
     CURRENT_TIMESTAMP - (n || ' days')::interval + INTERVAL '19 hours 5 minutes',
     md5('seed45:user:' || n)::uuid,
-    format('seed45-booking-%s', to_char(n,'FM00')),
+    format('cb-booking-202608-%s', to_char(n,'FM00')),
     md5('seed45:request:' || n) || md5('seed45:request2:' || n),
     1,0,FALSE
 FROM generate_series(1,10) AS g(n)
@@ -264,9 +359,9 @@ INSERT INTO concession_product(
 )
 SELECT
     md5('seed45:product:' || n)::uuid,
-    format('Sản phẩm Demo %s', to_char(n,'FM00')),
-    format('Bắp/nước mẫu số %s', n),
-    50000,
+    (SELECT name FROM seed_real_product WHERE seed_real_product.n = g.n),
+    (SELECT description FROM seed_real_product WHERE seed_real_product.n = g.n),
+    (SELECT price FROM seed_real_product WHERE seed_real_product.n = g.n),
     NULL,TRUE,n,TRUE,220,0,20,CURRENT_TIMESTAMP - (n || ' days')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -279,8 +374,8 @@ SELECT
     md5('seed45:booking-concession:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:product:' || n)::uuid,
-    format('Sản phẩm Demo %s', to_char(n,'FM00')),
-    50000,1,50000
+    (SELECT name FROM seed_real_product WHERE seed_real_product.n = g.n),
+    (SELECT price FROM seed_real_product WHERE seed_real_product.n = g.n),1,(SELECT price FROM seed_real_product WHERE seed_real_product.n = g.n)
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
@@ -293,8 +388,8 @@ INSERT INTO voucher(
 )
 SELECT
     md5('seed45:voucher:' || n)::uuid,
-    format('DEMO45V%s', to_char(n,'FM00')),
-    format('Voucher Demo %s', to_char(n,'FM00')),
+    (SELECT code FROM seed_real_voucher WHERE seed_real_voucher.n = g.n),
+    (SELECT name FROM seed_real_voucher WHERE seed_real_voucher.n = g.n),
     'FIXED',10000,100000,NULL,
     CURRENT_TIMESTAMP - INTERVAL '30 days',
     CURRENT_TIMESTAMP + INTERVAL '180 days',
@@ -330,12 +425,12 @@ SELECT
     md5('seed45:payment:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
-    CASE WHEN n % 2 = 0 THEN 'VNPAY' ELSE 'MOMO' END,
+    'MOCK',
     'SUCCESS',140000,
-    format('DEMO45-TXN-%s', to_char(n,'FM00')),
-    format('DEMO45-ORDER-%s', to_char(n,'FM00')),
-    format('demo45-payment-%s', to_char(n,'FM00')),
-    '00','Giao dịch mẫu thành công',
+    format('MOCK-TXN-20260822-%s', to_char(n,'FM00')),
+    format('CB-ORD-20260822-%s', to_char(n,'FM00')),
+    format('cb-payment-20260822-%s', to_char(n,'FM00')),
+    '00','Thanh toán MOCK thành công',
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval,
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval + INTERVAL '5 minutes',
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval + INTERVAL '5 minutes',
@@ -352,11 +447,11 @@ INSERT INTO payment_webhook_event(
 )
 SELECT
     md5('seed45:webhook:' || n)::uuid,
-    CASE WHEN n % 2 = 0 THEN 'VNPAY' ELSE 'MOMO' END,
-    format('DEMO45-WEBHOOK-%s', to_char(n,'FM00')),
+    'MOCK',
+    format('MOCK-EVENT-20260822-%s', to_char(n,'FM00')),
     md5('seed45:payment:' || n)::uuid,
     md5('seed45:payload:' || n) || md5('seed45:payload2:' || n),
-    TRUE,'0','00','Webhook mẫu đã xử lý',
+    TRUE,'0','00','Xác nhận thanh toán nội bộ đã xử lý',
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' days')::interval + INTERVAL '1 second'
 FROM generate_series(1,10) AS g(n)
@@ -373,7 +468,7 @@ SELECT
     md5('seed45:user:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     'EARN',140,
-    format('Tích điểm từ booking demo %s', to_char(n,'FM00')),
+    format('Tích điểm từ giao dịch vé %s', to_char(n,'FM00')),
     CURRENT_TIMESTAMP + INTERVAL '365 days',
     1000 + n * 10,
     'BOOKING',
@@ -408,9 +503,9 @@ INSERT INTO loyalty_reward(
 )
 SELECT
     md5('seed45:reward:' || n)::uuid,
-    format('DEMO45R%s', to_char(n,'FM00')),
-    format('Phần thưởng Demo %s', to_char(n,'FM00')),
-    'Voucher đổi điểm dữ liệu mẫu',
+    format('CBRWD%s', to_char(n,'FM000')),
+    (ARRAY['Voucher thành viên 10.000đ','Voucher cuối tuần 10.000đ','Voucher sinh nhật 10.000đ','Voucher đặt vé trực tuyến 10.000đ','Voucher bắp nước 10.000đ','Voucher suất tối 10.000đ','Voucher khách hàng thân thiết 10.000đ','Voucher gia đình 10.000đ','Voucher học sinh sinh viên 10.000đ','Voucher tri ân 10.000đ'])[n],
+    'Voucher đổi bằng điểm thành viên',
     'VOUCHER',100 + n * 10,'FIXED',10000,
     100000,NULL,30,NULL,NULL,TRUE,n,
     CURRENT_TIMESTAMP - (n || ' days')::interval
@@ -428,7 +523,7 @@ SELECT
     md5('seed45:user:' || n)::uuid,
     md5('seed45:reward:' || n)::uuid,
     md5('seed45:voucher:' || n)::uuid,
-    format('DEMO45-REWARD-%s', to_char(n,'FM00')),
+    format('CB-REWARD-%s', to_char(n,'FM000')),
     100 + n * 10,
     'ISSUED',
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
@@ -447,8 +542,8 @@ SELECT
     md5('seed45:inventory:' || n)::uuid,
     md5('seed45:product:' || n)::uuid,
     NULL,'RESTOCK',20,0,220,0,
-    'demo45.user01@cinebooking.local',
-    format('Nhập kho mẫu lần %s', n),
+    'an.nguyen@cinebooking.local',
+    (ARRAY['Nhập bắp caramel','Nhập bắp phô mai','Nhập bắp ngọt','Nhập Coca-Cola','Nhập Sprite','Nhập Fanta cam','Nhập nước suối','Bổ sung Combo Solo','Bổ sung Combo Couple Plus','Bổ sung Combo Family'])[n],
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -474,7 +569,7 @@ SELECT
     md5('seed45:user:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     3 + (n % 3),
-    format('Đánh giá mẫu cho phim số %s.', n),
+    (ARRAY['Nội dung cuốn hút, nhịp phim tốt.','Hình ảnh đẹp và âm thanh ấn tượng.','Diễn xuất tự nhiên, câu chuyện dễ theo dõi.','Phim phù hợp để xem cùng gia đình.','Phần âm nhạc tạo cảm xúc tốt.','Kịch bản có nhiều chi tiết thú vị.','Trải nghiệm phòng chiếu rất tốt.','Phim có tiết tấu ổn và kết thúc hợp lý.','Hình ảnh điện ảnh, đáng xem tại rạp.','Một lựa chọn giải trí tốt cho cuối tuần.'])[n],
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -489,7 +584,7 @@ SELECT
     md5('seed45:user:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     CASE WHEN n % 2 = 0 THEN 'CLICK' ELSE 'VIEW' END,
-    'DEMO45',
+    'HOME_RECOMMENDATION',
     CURRENT_TIMESTAMP - (n || ' minutes')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -503,7 +598,7 @@ INSERT INTO pricing_rule(
 )
 SELECT
     md5('seed45:pricing:' || n)::uuid,
-    format('Quy tắc giá Demo %s', to_char(n,'FM00')),
+    (ARRAY['Ưu đãi suất tối thứ Hai','Ưu đãi suất tối thứ Ba','Khung giờ vàng giữa tuần','Phụ thu ghế VIP buổi tối','Ưu đãi suất sớm','Giá cuối tuần buổi tối','Ưu đãi thành viên buổi tối','Khung giờ thấp điểm','Phụ thu suất công chiếu','Ưu đãi đặt vé trực tuyến'])[n],
     md5('seed45:cinema:1')::uuid,
     md5('seed45:auditorium:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
@@ -566,14 +661,14 @@ INSERT INTO user_notification(
 SELECT
     md5('seed45:notification:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
-    'DEMO45',
-    format('Thông báo mẫu %s', to_char(n,'FM00')),
-    format('Nội dung thông báo mẫu số %s.', n),
+    'BOOKING_UPDATE',
+    (ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[n],
+    (ARRAY['Booking của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[n],
     '/bookings',
     (n % 2 = 0),
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
     'GENERAL',TRUE,'SKIPPED',NULL,NULL,
-    format('seed45-notification-%s', to_char(n,'FM00')),
+    format('booking-notification-%s', to_char(n,'FM00')),
     CASE WHEN n % 3 = 0 THEN 'HIGH' ELSE 'NORMAL' END,
     CASE WHEN n % 2 = 0 THEN CURRENT_TIMESTAMP - (n || ' hours')::interval ELSE NULL END,
     NULL
@@ -590,8 +685,8 @@ SELECT
     md5('seed45:session:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
     md5('seed45:refresh:' || n) || md5('seed45:refresh2:' || n),
-    format('Thiết bị Demo %s', to_char(n,'FM00')),
-    'CineBooking Demo Seed/45',
+    (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
+    (SELECT user_agent FROM seed_real_device WHERE seed_real_device.n = g.n),
     format('192.168.45.%s', n),
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
@@ -628,11 +723,11 @@ SELECT
     CURRENT_DATE + 10 + n,
     CURRENT_DATE + 10 + n,
     CASE WHEN n % 2 = 0 THEN 'VACATION' ELSE 'PERSONAL' END,
-    format('Đơn nghỉ mẫu số %s', n),
+    (ARRAY['Nghỉ phép gia đình','Khám sức khỏe định kỳ','Giải quyết việc cá nhân','Nghỉ phép năm','Chăm sóc người thân','Tham gia khóa học','Nghỉ bù sau ca lễ','Làm thủ tục hành chính','Nghỉ phép cá nhân','Khám sức khỏe'])[n],
     'APPROVED',
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP,
-    'Dữ liệu mẫu đã duyệt',
+    'Đã duyệt theo lịch nhân sự của rạp',
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP
 FROM generate_series(1,10) AS g(n)
@@ -664,11 +759,11 @@ INSERT INTO audit_log(id,actor_user_id,actor_email,action,entity_type,entity_id,
 SELECT
     md5('seed45:audit:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
-    format('demo45.user%s@cinebooking.local', to_char(n,'FM00')),
-    'DEMO45_SEED',
+    (SELECT email FROM seed_real_people WHERE seed_real_people.n = g.n),
+    'BOOKING_CONFIRMED',
     'BOOKING',
     md5('seed45:booking:' || n)::uuid::text,
-    format('Bản ghi audit mẫu số %s', n),
+    format('Booking %s đã được xác nhận và ghi nhận thanh toán.', to_char(n,'FM00')),
     format('172.45.0.%s', n),
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -689,12 +784,12 @@ SELECT
     md5('seed45:user:' || n)::uuid,
     CASE WHEN n % 3 = 0 THEN 'EQUIPMENT' WHEN n % 3 = 1 THEN 'CUSTOMER' ELSE 'SAFETY' END,
     CASE WHEN n % 4 = 0 THEN 'HIGH' ELSE 'MEDIUM' END,
-    format('Sự cố mẫu %s', to_char(n,'FM00')),
-    format('Mô tả sự cố vận hành mẫu số %s.', n),
+    (ARRAY['Máy POS mất kết nối','Khách để quên tài sản','Cửa thoát hiểm khó đóng','Máy chiếu giảm độ sáng','Quầy bắp nước mất điện tạm thời','Khách cần hỗ trợ đổi vị trí ghế','Nhiệt độ phòng chiếu cao','Âm thanh kênh trái bị nhỏ','Máy quét QR phản hồi chậm','Lối đi có vật cản'])[n],
+    (ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi check-in.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[n],
     'RESOLVED',
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
-    'Đã xử lý trong dữ liệu mẫu',
+    'Sự cố đã được xử lý và ghi nhận trong ca trực',
     CURRENT_TIMESTAMP - ((n + 1) || ' hours')::interval,
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -714,7 +809,7 @@ SELECT
     md5('seed45:attendance:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
     md5('seed45:user:' || CASE WHEN n = 10 THEN 1 ELSE n + 1 END)::uuid,
-    format('Bàn giao ca mẫu số %s, không còn tồn đọng.', n),
+    (ARRAY['Bàn giao quầy vé, không còn giao dịch chờ.','Bàn giao cổng soát vé, thiết bị hoạt động bình thường.','Bàn giao quầy bắp nước, tồn kho đã đối chiếu.','Bàn giao phòng kỹ thuật, hệ thống ổn định.','Bàn giao khu vực sảnh, không còn yêu cầu tồn đọng.','Bàn giao chăm sóc khách hàng, các trường hợp đã cập nhật.','Bàn giao phòng chiếu, lịch suất tiếp theo đã kiểm tra.','Bàn giao vận hành, checklist cuối ca đã hoàn tất.','Bàn giao kho, số lượng hàng đã đối soát.','Bàn giao ca tối, không còn công việc khẩn cấp.'])[n],
     'ACCEPTED',
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
     CURRENT_TIMESTAMP - (n || ' hours')::interval + INTERVAL '5 minutes',
@@ -731,7 +826,7 @@ SELECT
     md5('seed45:auditorium:' || n)::uuid,
     CURRENT_TIMESTAMP + (n || ' days')::interval,
     CURRENT_TIMESTAMP + (n || ' days')::interval + INTERVAL '2 hours',
-    format('Bảo trì phòng mẫu %s', to_char(n,'FM00')),
+    (ARRAY['Vệ sinh máy chiếu định kỳ','Kiểm tra hệ thống âm thanh','Bảo dưỡng điều hòa phòng chiếu','Vệ sinh màn chiếu','Kiểm tra nguồn điện phòng chiếu','Kiểm tra mạng nội bộ','Bảo trì ghế và lối đi','Cân chỉnh máy chiếu laser','Đo kiểm âm thanh định kỳ','Kiểm tra hệ thống an toàn'])[n],
     CURRENT_TIMESTAMP
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -747,16 +842,16 @@ SELECT
     md5('seed45:asset:' || n)::uuid,
     md5('seed45:cinema:1')::uuid,
     md5('seed45:auditorium:' || n)::uuid,
-    format('DEMO45-ASSET-%s', to_char(n,'FM00')),
-    format('Máy chiếu Demo %s', to_char(n,'FM00')),
-    'PROJECTOR',
+    (SELECT asset_code FROM seed_real_asset WHERE seed_real_asset.n = g.n),
+    (SELECT name FROM seed_real_asset WHERE seed_real_asset.n = g.n),
+    (SELECT category FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     CASE WHEN n % 4 = 0 THEN 'DEGRADED' ELSE 'OPERATIONAL' END,
-    'CineTech Demo',
-    format('SN-DEMO45-%s', lpad(n::text,4,'0')),
+    (SELECT vendor FROM seed_real_asset WHERE seed_real_asset.n = g.n),
+    (SELECT serial_number FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     CURRENT_DATE - (365 + n * 10),
     CURRENT_TIMESTAMP - INTERVAL '30 days',
     CURRENT_DATE + (10 + n),
-    'Thiết bị dữ liệu mẫu',
+    (SELECT note FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     CURRENT_TIMESTAMP - INTERVAL '365 days',
     CURRENT_TIMESTAMP
 FROM generate_series(1,10) AS g(n)
@@ -775,8 +870,8 @@ SELECT
     md5('seed45:auditorium:' || n)::uuid,
     md5('seed45:asset:' || n)::uuid,
     NULL,
-    format('Work order Demo %s', to_char(n,'FM00')),
-    format('Kiểm tra định kỳ thiết bị mẫu số %s.', n),
+    (SELECT work_title FROM seed_real_asset WHERE seed_real_asset.n = g.n),
+    (SELECT work_description FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     CASE WHEN n % 4 = 0 THEN 'HIGH' ELSE 'MEDIUM' END,
     'OPEN',
     md5('seed45:user:' || n)::uuid,
@@ -799,7 +894,7 @@ SELECT
     md5('seed45:work-event:' || n)::uuid,
     md5('seed45:work-order:' || n)::uuid,
     'CREATED',NULL,'OPEN',
-    format('Khởi tạo work order mẫu %s', n),
+    format('Khởi tạo phiếu bảo trì thiết bị %s', to_char(n,'FM00')),
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -813,13 +908,13 @@ INSERT INTO financial_ledger_entry(
 )
 SELECT
     md5('seed45:ledger-entry:' || n)::uuid,
-    format('DEMO45:PAYMENT_CAPTURE:%s', to_char(n,'FM00')),
+    format('PAYMENT_CAPTURE:20260822:%s', to_char(n,'FM00')),
     'PAYMENT_CAPTURED',
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:payment:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
-    'DEMO45',
-    format('Bút toán thanh toán mẫu %s', to_char(n,'FM00')),
+    'PAYMENT_SERVICE',
+    format('Ghi nhận thanh toán booking %s', to_char(n,'FM00')),
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' days')::interval
 FROM generate_series(1,10) AS g(n)
@@ -828,13 +923,13 @@ ON CONFLICT DO NOTHING;
 -- -----------------------------------------------------------------------------
 -- 42. financial_ledger_line (20 = 2 balanced lines for each of 10 entries)
 -- Double-entry accounting requires two lines per entry, so this table intentionally
--- gets 20 rows instead of 10 to keep all 10 demo ledger entries balanced.
+-- gets 20 rows instead of 10 to keep all 10 reference ledger entries balanced.
 -- -----------------------------------------------------------------------------
 INSERT INTO financial_ledger_line(id,entry_id,account_code,direction,amount,currency,created_at)
 SELECT
     md5('seed45:ledger-line:debit:' || n)::uuid,
     md5('seed45:ledger-entry:' || n)::uuid,
-    'PAYMENT_CLEARING:DEMO45','DEBIT',140000,'VND',CURRENT_TIMESTAMP - (n || ' days')::interval
+    'PAYMENT_CLEARING:MOCK','DEBIT',140000,'VND',CURRENT_TIMESTAMP - (n || ' days')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
@@ -856,10 +951,10 @@ INSERT INTO financial_reconciliation_run(
 )
 SELECT
     md5('seed45:recon-run:' || n)::uuid,
-    format('DEMO45-RECON-%s', to_char(n,'FM00')),
+    format('RECON-202608-%s', to_char(n,'FM00')),
     CURRENT_DATE - n,
     'ISSUES',1,140000,140000,0,0,0,1,1,1,
-    'demo45.user01@cinebooking.local',
+    'an.nguyen@cinebooking.local',
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' days')::interval + INTERVAL '1 minute'
 FROM generate_series(1,10) AS g(n)
@@ -875,17 +970,17 @@ INSERT INTO financial_reconciliation_issue(
 SELECT
     md5('seed45:recon-issue:' || n)::uuid,
     md5('seed45:recon-run:' || n)::uuid,
-    'DEMO45_LOYALTY_CHECK','WARNING','USER',
+    'LOYALTY_BALANCE_MISMATCH','WARNING','USER',
     md5('seed45:user:' || n)::uuid::text,
     1000,990,
-    format('Sai lệch mẫu cho user %s', to_char(n,'FM00')),
+    format('Chênh lệch điểm thành viên cần đối soát cho tài khoản %s', to_char(n,'FM00')),
     'OPEN',CURRENT_TIMESTAMP - (n || ' days')::interval,NULL,NULL
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- 45. customer_support_case (10)
--- V45 support cases use existing deterministic DEMO45 users/bookings/cinema.
+-- V45 support cases use the existing deterministic reference users/bookings/cinema.
 -- -----------------------------------------------------------------------------
 INSERT INTO customer_support_case(
     id,case_number,user_id,booking_id,cinema_id,category,priority,status,subject,description,
@@ -894,18 +989,18 @@ INSERT INTO customer_support_case(
 )
 SELECT
     md5('seed45:support-case:' || n)::uuid,
-    format('CB-DEMO45-%s', to_char(n,'FM00')),
+    format('CB-SUP-202608-%s', to_char(n,'FM0000')),
     md5('seed45:user:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:cinema:1')::uuid,
     (ARRAY['BOOKING','PAYMENT','REFUND','TICKET','CINEMA_EXPERIENCE','STAFF','OTHER'])[((n - 1) % 7) + 1],
     (ARRAY['LOW','MEDIUM','HIGH','CRITICAL'])[((n - 1) % 4) + 1],
     (ARRAY['OPEN','IN_PROGRESS','WAITING_CUSTOMER','RESOLVED','CLOSED'])[((n - 1) % 5) + 1],
-    format('Yêu cầu hỗ trợ mẫu %s', to_char(n,'FM00')),
-    format('Khách hàng cần hỗ trợ cho booking mẫu số %s. Đây là dữ liệu kiểm thử V45.', n),
+    (ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[n],
+    (ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[n],
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP + ((12 + n * 6) || ' hours')::interval,
-    CASE WHEN ((n - 1) % 5) + 1 IN (4,5) THEN format('Đã xử lý yêu cầu hỗ trợ mẫu %s', to_char(n,'FM00')) ELSE NULL END,
+    CASE WHEN ((n - 1) % 5) + 1 IN (4,5) THEN format('Yêu cầu hỗ trợ %s đã được xử lý', to_char(n,'FM00')) ELSE NULL END,
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
     CASE WHEN ((n - 1) % 5) + 1 = 1 THEN NULL ELSE CURRENT_TIMESTAMP - ((n - 1) || ' hours')::interval END,
     CASE WHEN ((n - 1) % 5) + 1 IN (4,5) THEN CURRENT_TIMESTAMP - ((n - 2) || ' hours')::interval ELSE NULL END,
@@ -936,7 +1031,7 @@ SELECT
     (ARRAY['OPEN','IN_PROGRESS','WAITING_CUSTOMER','RESOLVED','CLOSED'])[((n - 1) % 5) + 1],
     'CUSTOMER',
     CASE ((n - 1) % 5) + 1
-        WHEN 1 THEN format('Đã tạo yêu cầu hỗ trợ mẫu %s.', to_char(n,'FM00'))
+        WHEN 1 THEN format('Đã tạo yêu cầu hỗ trợ %s.', to_char(n,'FM00'))
         WHEN 2 THEN 'CineBooking đã tiếp nhận và đang xử lý yêu cầu.'
         WHEN 3 THEN 'CineBooking đang chờ khách hàng bổ sung thông tin.'
         WHEN 4 THEN 'Yêu cầu hỗ trợ đã được giải quyết.'
@@ -949,7 +1044,7 @@ ON CONFLICT DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- 47. trusted_device (10)
--- V46 account-protection demo devices for the deterministic DEMO45 users.
+-- V46 account-protection devices for the deterministic reference users.
 -- -----------------------------------------------------------------------------
 INSERT INTO trusted_device(
     id,user_id,device_fingerprint,label,device_name,user_agent,first_ip,last_ip,trusted_at,last_seen_at,revoked_at
@@ -958,9 +1053,9 @@ SELECT
     md5('seed46:trusted-device:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
     md5('seed46:fingerprint:a:' || n) || md5('seed46:fingerprint:b:' || n),
-    format('Thiết bị tin cậy Demo %s', to_char(n,'FM00')),
-    format('Chrome · Windows Demo %s', to_char(n,'FM00')),
-    format('Mozilla/5.0 CineBooking-V46-Demo/%s', n),
+    (SELECT label FROM seed_real_device WHERE seed_real_device.n = g.n),
+    (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
+    (SELECT user_agent FROM seed_real_device WHERE seed_real_device.n = g.n),
     format('10.46.0.%s', n),
     format('10.46.1.%s', n),
     CURRENT_TIMESTAMP - (n || ' days')::interval,
@@ -982,10 +1077,10 @@ SELECT
     (ARRAY['NEW_DEVICE','CREDENTIAL_ATTACK','PASSWORD_CHANGED','PASSWORD_RESET','SESSION_REVOKED'])[((n - 1) % 5) + 1],
     (ARRAY['MEDIUM','HIGH','MEDIUM','HIGH','LOW'])[((n - 1) % 5) + 1],
     (ARRAY[45,80,50,75,35])[((n - 1) % 5) + 1],
-    format('Cảnh báo bảo mật Demo %s', to_char(n,'FM00')),
-    format('Sự kiện bảo mật mẫu V46 số %s dùng để kiểm tra dashboard và luồng xác nhận.', n),
+    (ARRAY['Đăng nhập từ thiết bị chưa tin cậy','Phát hiện nhiều lần đăng nhập thất bại','Mật khẩu tài khoản vừa được thay đổi','Mật khẩu đã được đặt lại','Phiên đăng nhập đã bị thu hồi','Đăng nhập từ thiết bị mới','Phát hiện đăng nhập thất bại liên tiếp','Mật khẩu vừa được cập nhật','Yêu cầu đặt lại mật khẩu đã hoàn tất','Một phiên đăng nhập đã bị thu hồi'])[n],
+    (ARRAY['Hệ thống ghi nhận đăng nhập từ một thiết bị chưa nằm trong danh sách tin cậy.','Hệ thống phát hiện nhiều lần nhập sai mật khẩu trong thời gian ngắn.','Mật khẩu tài khoản đã được thay đổi sau khi xác thực thành công.','Quy trình đặt lại mật khẩu đã hoàn tất và các phiên cũ được rà soát.','Một phiên đăng nhập đã bị thu hồi theo yêu cầu của người dùng.','Hệ thống ghi nhận phiên đăng nhập mới cần được xác nhận.','Nhiều yêu cầu đăng nhập thất bại đã bị giới hạn theo chính sách bảo mật.','Mật khẩu tài khoản vừa được cập nhật từ trang bảo mật.','Mật khẩu mới đã được thiết lập từ liên kết khôi phục hợp lệ.','Người dùng đã thu hồi một phiên không còn sử dụng.'])[n],
     format('10.46.2.%s', n),
-    format('Chrome · Windows Demo %s', to_char(n,'FM00')),
+    (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
     md5('seed45:session:' || n)::uuid,
     CASE WHEN n % 3 = 0 THEN CURRENT_TIMESTAMP - (n || ' minutes')::interval ELSE NULL END,
     CASE WHEN n % 3 = 0 THEN md5('seed45:user:' || n)::uuid ELSE NULL END,
@@ -1007,128 +1102,144 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
--- UTF-8 repair for rows created by earlier DEMO45 runs
+-- UTF-8 and reference-data refresh for rows created by earlier seed runs
 -- -----------------------------------------------------------------------------
--- Earlier Windows PowerShell versions could transcode UTF-8 when piping SQL to
--- docker/psql, storing '?' in place of Vietnamese characters. Refresh every
--- human-readable seeded value from the UTF-8 source.
-UPDATE app_user u SET full_name = format('Nhân viên mẫu %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE u.id = md5('seed45:user:' || g.n)::uuid;
+-- Existing deterministic rows are refreshed in place so previously inserted
+-- placeholder labels and unconfigured gateway providers disappear without
+-- deleting user data or rebuilding the PostgreSQL volume.
+UPDATE app_user u SET email=p.email, full_name=p.full_name, phone=p.phone, password_hash='$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe'
+FROM seed_real_people p WHERE u.id = md5('seed45:user:' || p.n)::uuid;
 
-UPDATE cinema c SET
-    name = format('CineBooking Demo %s', to_char(g.n,'FM00')),
-    address = format('%s Đường Điện Ảnh, Quận %s, TP.HCM', 100 + g.n, ((g.n - 1) % 10) + 1)
-FROM generate_series(1,10) g(n) WHERE c.id = md5('seed45:cinema:' || g.n)::uuid;
+UPDATE cinema c SET name=m.name, address=m.address
+FROM seed_real_cinema m WHERE c.id = md5('seed45:cinema:' || m.n)::uuid;
 
-UPDATE auditorium a SET name = format('Phòng Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE a.id = md5('seed45:auditorium:' || g.n)::uuid;
+UPDATE auditorium a SET name=m.name
+FROM seed_real_auditorium m WHERE a.id = md5('seed45:auditorium:' || m.n)::uuid;
 
-UPDATE staff_profile p SET job_title = CASE WHEN g.n = 1 THEN 'Quản lý rạp mẫu' ELSE 'Nhân viên vận hành mẫu' END
-FROM generate_series(1,10) g(n) WHERE p.user_id = md5('seed45:user:' || g.n)::uuid;
+UPDATE staff_profile sp SET employee_code=p.employee_code, job_title=p.job_title
+FROM seed_real_people p WHERE sp.user_id = md5('seed45:user:' || p.n)::uuid;
 
-UPDATE staff_shift s SET note = format('Ca làm mẫu số %s', g.n)
+UPDATE staff_shift s SET note=(ARRAY['Ca tối - sảnh chính','Ca tối - quầy vé','Ca tối - cổng soát vé','Ca tối - quầy bắp nước','Ca tối - khu vực chờ','Ca tối - chăm sóc khách hàng','Ca tối - phòng kỹ thuật','Ca tối - vận hành rạp','Ca tối - kho hàng','Ca tối - hỗ trợ sảnh'])[g.n]
 FROM generate_series(1,10) g(n) WHERE s.id = md5('seed45:shift:' || g.n)::uuid;
 
-UPDATE concession_product p SET
-    name = format('Sản phẩm Demo %s', to_char(g.n,'FM00')),
-    description = format('Bắp/nước mẫu số %s', g.n)
-FROM generate_series(1,10) g(n) WHERE p.id = md5('seed45:product:' || g.n)::uuid;
+UPDATE booking b SET
+    voucher_code=v.code,
+    idempotency_key=format('cb-booking-202608-%s', to_char(v.n,'FM00'))
+FROM seed_real_voucher v WHERE b.id = md5('seed45:booking:' || v.n)::uuid;
 
-UPDATE booking_concession bc SET product_name = format('Sản phẩm Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE bc.id = md5('seed45:booking-concession:' || g.n)::uuid;
+UPDATE concession_product p SET name=m.name, description=m.description, price=m.price
+FROM seed_real_product m WHERE p.id = md5('seed45:product:' || m.n)::uuid;
+UPDATE booking_concession bc SET product_name=m.name, unit_price=m.price, subtotal=m.price
+FROM seed_real_product m WHERE bc.id = md5('seed45:booking-concession:' || m.n)::uuid;
 
-UPDATE voucher v SET name = format('Voucher Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE v.id = md5('seed45:voucher:' || g.n)::uuid;
+UPDATE voucher v SET code=m.code, name=m.name
+FROM seed_real_voucher m WHERE v.id = md5('seed45:voucher:' || m.n)::uuid;
 
-UPDATE payment p SET provider_message = 'Giao dịch mẫu thành công'
-WHERE p.id IN (SELECT md5('seed45:payment:' || n)::uuid FROM generate_series(1,10) g(n));
+UPDATE payment p SET
+    provider='MOCK',
+    provider_transaction_id=format('MOCK-TXN-20260822-%s', to_char(g.n,'FM00')),
+    provider_order_id=format('CB-ORD-20260822-%s', to_char(g.n,'FM00')),
+    client_idempotency_key=format('cb-payment-20260822-%s', to_char(g.n,'FM00')),
+    provider_response_code='00',
+    provider_message='Thanh toán MOCK thành công'
+FROM generate_series(1,10) g(n) WHERE p.id = md5('seed45:payment:' || g.n)::uuid;
 
-UPDATE payment_webhook_event e SET response_message = 'Webhook mẫu đã xử lý'
-WHERE e.id IN (SELECT md5('seed45:webhook:' || n)::uuid FROM generate_series(1,10) g(n));
+UPDATE payment_webhook_event e SET
+    provider='MOCK',
+    event_key=format('MOCK-EVENT-20260822-%s', to_char(g.n,'FM00')),
+    result_code='0',response_code='00',response_message='Xác nhận thanh toán nội bộ đã xử lý'
+FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:webhook:' || g.n)::uuid;
 
-UPDATE loyalty_transaction t SET description = format('Tích điểm từ booking demo %s', to_char(g.n,'FM00'))
+UPDATE loyalty_transaction t SET description=format('Tích điểm từ giao dịch vé %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE t.id = md5('seed45:loyalty-tx:' || g.n)::uuid;
 
 UPDATE loyalty_reward r SET
-    name = format('Phần thưởng Demo %s', to_char(g.n,'FM00')),
-    description = 'Voucher đổi điểm dữ liệu mẫu'
+    code=format('CBRWD%s', to_char(g.n,'FM000')),
+    name=(ARRAY['Voucher thành viên 10.000đ','Voucher cuối tuần 10.000đ','Voucher sinh nhật 10.000đ','Voucher đặt vé trực tuyến 10.000đ','Voucher bắp nước 10.000đ','Voucher suất tối 10.000đ','Voucher khách hàng thân thiết 10.000đ','Voucher gia đình 10.000đ','Voucher học sinh sinh viên 10.000đ','Voucher tri ân 10.000đ'])[g.n],
+    description='Voucher đổi bằng điểm thành viên'
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:reward:' || g.n)::uuid;
+UPDATE loyalty_reward_redemption r SET redemption_code=format('CB-REWARD-%s', to_char(g.n,'FM000'))
+FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:reward-redemption:' || g.n)::uuid;
 
-UPDATE inventory_movement i SET note = format('Nhập kho mẫu lần %s', g.n)
+UPDATE inventory_movement i SET actor_email='an.nguyen@cinebooking.local', note=(ARRAY['Nhập bắp caramel','Nhập bắp phô mai','Nhập bắp ngọt','Nhập Coca-Cola','Nhập Sprite','Nhập Fanta cam','Nhập nước suối','Bổ sung Combo Solo','Bổ sung Combo Couple Plus','Bổ sung Combo Family'])[g.n]
 FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:inventory:' || g.n)::uuid;
 
-UPDATE movie_review r SET comment = format('Đánh giá mẫu cho phim số %s.', g.n)
+UPDATE movie_review r SET comment=(ARRAY['Nội dung cuốn hút, nhịp phim tốt.','Hình ảnh đẹp và âm thanh ấn tượng.','Diễn xuất tự nhiên, câu chuyện dễ theo dõi.','Phim phù hợp để xem cùng gia đình.','Phần âm nhạc tạo cảm xúc tốt.','Kịch bản có nhiều chi tiết thú vị.','Trải nghiệm phòng chiếu rất tốt.','Phim có tiết tấu ổn và kết thúc hợp lý.','Hình ảnh điện ảnh, đáng xem tại rạp.','Một lựa chọn giải trí tốt cho cuối tuần.'])[g.n]
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:review:' || g.n)::uuid;
-
-UPDATE pricing_rule p SET name = format('Quy tắc giá Demo %s', to_char(g.n,'FM00'))
+UPDATE recommendation_event r SET source='HOME_RECOMMENDATION'
+FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:recommendation:' || g.n)::uuid;
+UPDATE pricing_rule p SET name=(ARRAY['Ưu đãi suất tối thứ Hai','Ưu đãi suất tối thứ Ba','Khung giờ vàng giữa tuần','Phụ thu ghế VIP buổi tối','Ưu đãi suất sớm','Giá cuối tuần buổi tối','Ưu đãi thành viên buổi tối','Khung giờ thấp điểm','Phụ thu suất công chiếu','Ưu đãi đặt vé trực tuyến'])[g.n]
 FROM generate_series(1,10) g(n) WHERE p.id = md5('seed45:pricing:' || g.n)::uuid;
 
 UPDATE user_notification n SET
-    title = format('Thông báo mẫu %s', to_char(g.n,'FM00')),
-    message = format('Nội dung thông báo mẫu số %s.', g.n)
+    notification_type='BOOKING_UPDATE',
+    title=(ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[g.n],
+    message=(ARRAY['Booking của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[g.n],
+    dedupe_key=format('booking-notification-%s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE n.id = md5('seed45:notification:' || g.n)::uuid;
 
-UPDATE auth_session s SET device_name = format('Thiết bị Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE s.id = md5('seed45:session:' || g.n)::uuid;
+UPDATE auth_session s SET device_name=d.device_name, user_agent=d.user_agent
+FROM seed_real_device d WHERE s.id = md5('seed45:session:' || d.n)::uuid;
 
 UPDATE staff_leave_request r SET
-    reason = format('Đơn nghỉ mẫu số %s', g.n),
-    review_note = 'Dữ liệu mẫu đã duyệt'
+    reason=(ARRAY['Nghỉ phép gia đình','Khám sức khỏe định kỳ','Giải quyết việc cá nhân','Nghỉ phép năm','Chăm sóc người thân','Tham gia khóa học','Nghỉ bù sau ca lễ','Làm thủ tục hành chính','Nghỉ phép cá nhân','Khám sức khỏe'])[g.n],
+    review_note='Đã duyệt theo lịch nhân sự của rạp'
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:leave:' || g.n)::uuid;
 
-UPDATE audit_log a SET details = format('Bản ghi audit mẫu số %s', g.n)
-FROM generate_series(1,10) g(n) WHERE a.id = md5('seed45:audit:' || g.n)::uuid;
+UPDATE audit_log a SET actor_email=p.email, action='BOOKING_CONFIRMED', details=format('Booking %s đã được xác nhận và ghi nhận thanh toán.', to_char(p.n,'FM00'))
+FROM seed_real_people p WHERE a.id = md5('seed45:audit:' || p.n)::uuid;
 
 UPDATE staff_incident i SET
-    title = format('Sự cố mẫu %s', to_char(g.n,'FM00')),
-    description = format('Mô tả sự cố vận hành mẫu số %s.', g.n),
-    resolution_note = 'Đã xử lý trong dữ liệu mẫu'
+    title=(ARRAY['Máy POS mất kết nối','Khách để quên tài sản','Cửa thoát hiểm khó đóng','Máy chiếu giảm độ sáng','Quầy bắp nước mất điện tạm thời','Khách cần hỗ trợ đổi vị trí ghế','Nhiệt độ phòng chiếu cao','Âm thanh kênh trái bị nhỏ','Máy quét QR phản hồi chậm','Lối đi có vật cản'])[g.n],
+    description=(ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi check-in.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[g.n],
+    resolution_note='Sự cố đã được xử lý và ghi nhận trong ca trực'
 FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:incident:' || g.n)::uuid;
 
-UPDATE staff_shift_handover h SET summary = format('Bàn giao ca mẫu số %s, không còn tồn đọng.', g.n)
+UPDATE staff_shift_handover h SET summary=(ARRAY['Bàn giao quầy vé, không còn giao dịch chờ.','Bàn giao cổng soát vé, thiết bị hoạt động bình thường.','Bàn giao quầy bắp nước, tồn kho đã đối chiếu.','Bàn giao phòng kỹ thuật, hệ thống ổn định.','Bàn giao khu vực sảnh, không còn yêu cầu tồn đọng.','Bàn giao chăm sóc khách hàng, các trường hợp đã cập nhật.','Bàn giao phòng chiếu, lịch suất tiếp theo đã kiểm tra.','Bàn giao vận hành, checklist cuối ca đã hoàn tất.','Bàn giao kho, số lượng hàng đã đối soát.','Bàn giao ca tối, không còn công việc khẩn cấp.'])[g.n]
 FROM generate_series(1,10) g(n) WHERE h.id = md5('seed45:handover:' || g.n)::uuid;
 
-UPDATE auditorium_blackout b SET reason = format('Bảo trì phòng mẫu %s', to_char(g.n,'FM00'))
+UPDATE auditorium_blackout b SET reason=(ARRAY['Vệ sinh máy chiếu định kỳ','Kiểm tra hệ thống âm thanh','Bảo dưỡng điều hòa phòng chiếu','Vệ sinh màn chiếu','Kiểm tra nguồn điện phòng chiếu','Kiểm tra mạng nội bộ','Bảo trì ghế và lối đi','Cân chỉnh máy chiếu laser','Đo kiểm âm thanh định kỳ','Kiểm tra hệ thống an toàn'])[g.n]
 FROM generate_series(1,10) g(n) WHERE b.id = md5('seed45:blackout:' || g.n)::uuid;
 
-UPDATE cinema_equipment_asset a SET
-    name = format('Máy chiếu Demo %s', to_char(g.n,'FM00')),
-    note = 'Thiết bị dữ liệu mẫu'
-FROM generate_series(1,10) g(n) WHERE a.id = md5('seed45:asset:' || g.n)::uuid;
+UPDATE cinema_equipment_asset a SET asset_code=m.asset_code,name=m.name,category=m.category,vendor=m.vendor,serial_number=m.serial_number,note=m.note
+FROM seed_real_asset m WHERE a.id = md5('seed45:asset:' || m.n)::uuid;
+UPDATE maintenance_work_order w SET title=m.work_title,description=m.work_description
+FROM seed_real_asset m WHERE w.id = md5('seed45:work-order:' || m.n)::uuid;
 
-UPDATE maintenance_work_order w SET
-    title = format('Work order Demo %s', to_char(g.n,'FM00')),
-    description = format('Kiểm tra định kỳ thiết bị mẫu số %s.', g.n)
-FROM generate_series(1,10) g(n) WHERE w.id = md5('seed45:work-order:' || g.n)::uuid;
-
-UPDATE financial_reconciliation_issue i SET message = format('Sai lệch mẫu cho user %s', to_char(g.n,'FM00'))
+UPDATE financial_reconciliation_run r SET run_key=format('RECON-202608-%s', to_char(g.n,'FM00')), started_by='an.nguyen@cinebooking.local'
+FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:recon-run:' || g.n)::uuid;
+UPDATE financial_reconciliation_issue i SET issue_type='LOYALTY_BALANCE_MISMATCH', message=format('Chênh lệch điểm thành viên cần đối soát cho tài khoản %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:recon-issue:' || g.n)::uuid;
 
 UPDATE customer_support_case c SET
-    subject = format('Yêu cầu hỗ trợ mẫu %s', to_char(g.n,'FM00')),
-    description = format('Khách hàng cần hỗ trợ cho booking mẫu số %s. Đây là dữ liệu kiểm thử V45.', g.n),
-    resolution_note = CASE WHEN c.status IN ('RESOLVED','CLOSED') THEN format('Đã xử lý yêu cầu hỗ trợ mẫu %s', to_char(g.n,'FM00')) ELSE NULL END
+    case_number=format('CB-SUP-202608-%s', to_char(g.n,'FM0000')),
+    subject=(ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[g.n],
+    description=(ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[g.n],
+    resolution_note=CASE WHEN c.status IN ('RESOLVED','CLOSED') THEN format('Yêu cầu hỗ trợ %s đã được xử lý', to_char(g.n,'FM00')) ELSE NULL END
 FROM generate_series(1,10) g(n) WHERE c.id = md5('seed45:support-case:' || g.n)::uuid;
 
-UPDATE trusted_device d SET
-    label = format('Thiết bị tin cậy Demo %s', to_char(g.n,'FM00')),
-    device_name = format('Chrome · Windows Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE d.id = md5('seed46:trusted-device:' || g.n)::uuid;
-
+UPDATE trusted_device d SET label=m.label,device_name=m.device_name,user_agent=m.user_agent
+FROM seed_real_device m WHERE d.id = md5('seed46:trusted-device:' || m.n)::uuid;
 UPDATE security_alert a SET
-    title = format('Cảnh báo bảo mật Demo %s', to_char(g.n,'FM00')),
-    details = format('Sự kiện bảo mật mẫu V46 số %s dùng để kiểm tra dashboard và luồng xác nhận.', g.n),
-    device_name = format('Chrome · Windows Demo %s', to_char(g.n,'FM00'))
-FROM generate_series(1,10) g(n) WHERE a.id = md5('seed46:security-alert:' || g.n)::uuid;
+    title=(ARRAY['Đăng nhập từ thiết bị chưa tin cậy','Phát hiện nhiều lần đăng nhập thất bại','Mật khẩu tài khoản vừa được thay đổi','Mật khẩu đã được đặt lại','Phiên đăng nhập đã bị thu hồi','Đăng nhập từ thiết bị mới','Phát hiện đăng nhập thất bại liên tiếp','Mật khẩu vừa được cập nhật','Yêu cầu đặt lại mật khẩu đã hoàn tất','Một phiên đăng nhập đã bị thu hồi'])[g.n],
+    details=(ARRAY['Hệ thống ghi nhận đăng nhập từ một thiết bị chưa nằm trong danh sách tin cậy.','Hệ thống phát hiện nhiều lần nhập sai mật khẩu trong thời gian ngắn.','Mật khẩu tài khoản đã được thay đổi sau khi xác thực thành công.','Quy trình đặt lại mật khẩu đã hoàn tất và các phiên cũ được rà soát.','Một phiên đăng nhập đã bị thu hồi theo yêu cầu của người dùng.','Hệ thống ghi nhận phiên đăng nhập mới cần được xác nhận.','Nhiều yêu cầu đăng nhập thất bại đã bị giới hạn theo chính sách bảo mật.','Mật khẩu tài khoản vừa được cập nhật từ trang bảo mật.','Mật khẩu mới đã được thiết lập từ liên kết khôi phục hợp lệ.','Người dùng đã thu hồi một phiên không còn sử dụng.'])[g.n],
+    device_name=m.device_name
+FROM generate_series(1,10) g(n) JOIN seed_real_device m ON m.n=g.n
+WHERE a.id = md5('seed46:security-alert:' || g.n)::uuid;
 
--- Immutable event/ledger tables need trigger bypass only for repair of our own deterministic demo rows.
+-- Immutable event/ledger tables need trigger bypass only for refresh of our own deterministic reference rows.
 SET LOCAL session_replication_role = replica;
-UPDATE maintenance_work_order_event e SET note = format('Khởi tạo work order mẫu %s', g.n)
+UPDATE maintenance_work_order_event e SET note=format('Khởi tạo phiếu bảo trì thiết bị %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:work-event:' || g.n)::uuid;
-UPDATE financial_ledger_entry e SET description = format('Bút toán thanh toán mẫu %s', to_char(g.n,'FM00'))
+UPDATE financial_ledger_entry e SET
+    event_key=format('PAYMENT_CAPTURE:20260822:%s', to_char(g.n,'FM00')),
+    source='PAYMENT_SERVICE',
+    description=format('Ghi nhận thanh toán booking %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:ledger-entry:' || g.n)::uuid;
-UPDATE customer_support_case_event e SET message = CASE ((g.n - 1) % 5) + 1
-    WHEN 1 THEN format('Đã tạo yêu cầu hỗ trợ mẫu %s.', to_char(g.n,'FM00'))
+UPDATE financial_ledger_line l SET account_code='PAYMENT_CLEARING:MOCK'
+WHERE l.id IN (SELECT md5('seed45:ledger-line:debit:' || n)::uuid FROM generate_series(1,10) g(n));
+UPDATE customer_support_case_event e SET message=CASE ((g.n - 1) % 5) + 1
+    WHEN 1 THEN format('Đã tạo yêu cầu hỗ trợ %s.', to_char(g.n,'FM00'))
     WHEN 2 THEN 'CineBooking đã tiếp nhận và đang xử lý yêu cầu.'
     WHEN 3 THEN 'CineBooking đang chờ khách hàng bổ sung thông tin.'
     WHEN 4 THEN 'Yêu cầu hỗ trợ đã được giải quyết.'
@@ -1137,9 +1248,9 @@ END
 FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:support-event:' || g.n)::uuid;
 SET LOCAL session_replication_role = origin;
 
--- Fail the seed if any human-readable DEMO45 field is still visibly corrupted.
+-- Fail if seeded reference rows still contain broken UTF-8, placeholder labels, or unconfigured gateway names.
 DO $$
-DECLARE bad_count bigint; demo_movie_count bigint;
+DECLARE bad_count bigint; placeholder_count bigint; gateway_count bigint; demo_movie_count bigint;
 BEGIN
     SELECT COUNT(*) INTO bad_count FROM (
         SELECT full_name AS v FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
@@ -1171,7 +1282,40 @@ BEGIN
     ) text_values WHERE v LIKE '%?%';
 
     IF bad_count <> 0 THEN
-        RAISE EXCEPTION 'DEMO45 UTF-8 repair failed: % human-readable values still contain ?', bad_count;
+        RAISE EXCEPTION 'UTF-8 refresh failed: % human-readable values still contain ?', bad_count;
+    END IF;
+
+    SELECT COUNT(*) INTO placeholder_count FROM (
+        SELECT email AS v FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT full_name FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT name FROM cinema WHERE id IN (SELECT md5('seed45:cinema:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT name FROM auditorium WHERE id IN (SELECT md5('seed45:auditorium:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT employee_code FROM staff_profile WHERE user_id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT name FROM concession_product WHERE id IN (SELECT md5('seed45:product:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT name FROM voucher WHERE id IN (SELECT md5('seed45:voucher:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT title FROM staff_incident WHERE id IN (SELECT md5('seed45:incident:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT name FROM cinema_equipment_asset WHERE id IN (SELECT md5('seed45:asset:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT title FROM maintenance_work_order WHERE id IN (SELECT md5('seed45:work-order:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT subject FROM customer_support_case WHERE id IN (SELECT md5('seed45:support-case:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT label FROM trusted_device WHERE id IN (SELECT md5('seed46:trusted-device:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT title FROM security_alert WHERE id IN (SELECT md5('seed46:security-alert:' || n)::uuid FROM generate_series(1,10) g(n))
+    ) values_to_check
+    WHERE lower(v) LIKE '%demo%' OR lower(v) LIKE '%mẫu%';
+    IF placeholder_count <> 0 THEN
+        RAISE EXCEPTION 'Reference-data refresh failed: % placeholder values containing demo/mẫu remain', placeholder_count;
+    END IF;
+
+    SELECT COUNT(*) INTO gateway_count
+    FROM payment p
+    WHERE p.id IN (SELECT md5('seed45:payment:' || n)::uuid FROM generate_series(1,10) g(n))
+      AND p.provider IN ('VNPAY','VNPAY_QR','MOMO','MOMO_QR');
+    gateway_count := gateway_count + (
+        SELECT COUNT(*) FROM payment_webhook_event e
+        WHERE e.id IN (SELECT md5('seed45:webhook:' || n)::uuid FROM generate_series(1,10) g(n))
+          AND e.provider IN ('VNPAY','VNPAY_QR','MOMO','MOMO_QR')
+    );
+    IF gateway_count <> 0 THEN
+        RAISE EXCEPTION 'Reference-data refresh failed: % seeded VNPAY/MOMO rows remain', gateway_count;
     END IF;
 
     SELECT COUNT(*) INTO demo_movie_count
@@ -1179,7 +1323,7 @@ BEGIN
     WHERE id IN (SELECT md5('seed45:movie:' || n)::uuid FROM generate_series(1,10) g(n))
        OR title LIKE 'Phim Demo %';
     IF demo_movie_count <> 0 THEN
-        RAISE EXCEPTION 'DEMO45 movie cleanup failed: % synthetic demo movies remain', demo_movie_count;
+        RAISE EXCEPTION 'Movie cleanup failed: % synthetic placeholder movies remain', demo_movie_count;
     END IF;
 END $$;
 

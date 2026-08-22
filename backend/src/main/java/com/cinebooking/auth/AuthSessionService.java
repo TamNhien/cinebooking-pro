@@ -52,7 +52,7 @@ public class AuthSessionService {
         Instant now=Instant.now();
         AuthSession s=new AuthSession();
         s.setUserId(user.getId()); s.setRefreshTokenHash(hash(rawRefresh));
-        s.setUserAgent(clean(request.getHeader("User-Agent"),500)); s.setDeviceName(deviceName(request.getHeader("User-Agent")));
+        s.setUserAgent(clean(request.getHeader("User-Agent"),500)); s.setDeviceName(ClientDeviceDetector.deviceName(request));
         s.setIpAddress(ip(request)); s.setCreatedAt(now); s.setLastSeenAt(now); s.setExpiresAt(now.plus(Duration.ofDays(refreshDays)));
         sessions.save(s); setRefreshCookie(response,rawRefresh,Duration.ofDays(refreshDays));
         return authResponse(user,s);
@@ -68,7 +68,7 @@ public class AuthSessionService {
         if(!user.isAccountEnabled()){ revoke(s,"ACCOUNT_DISABLED"); clearRefreshCookie(response); throw new ApiException(HttpStatus.UNAUTHORIZED,"Tài khoản đã bị vô hiệu hoá"); }
         String rotated=randomToken();
         s.setRefreshTokenHash(hash(rotated)); s.setLastSeenAt(Instant.now());
-        s.setIpAddress(ip(request)); s.setUserAgent(clean(request.getHeader("User-Agent"),500)); s.setDeviceName(deviceName(request.getHeader("User-Agent")));
+        s.setIpAddress(ip(request)); s.setUserAgent(clean(request.getHeader("User-Agent"),500)); s.setDeviceName(ClientDeviceDetector.deviceName(request));
         sessions.save(s); setRefreshCookie(response,rotated,Duration.between(Instant.now(),s.getExpiresAt()));
         return authResponse(user,s);
     }
@@ -143,5 +143,4 @@ public class AuthSessionService {
     public void clearRefreshCookie(HttpServletResponse response){ResponseCookie c=ResponseCookie.from(cookieName,"").httpOnly(true).secure(cookieSecure).sameSite("Lax").path("/api/auth").maxAge(0).build();response.addHeader(HttpHeaders.SET_COOKIE,c.toString());}
     public static String ip(HttpServletRequest r){String x=r.getHeader("X-Forwarded-For");return x==null||x.isBlank()?r.getRemoteAddr():x.split(",")[0].trim();}
     private String clean(String v,int max){if(v==null||v.isBlank())return null;v=v.trim();return v.length()<=max?v:v.substring(0,max);}
-    private String deviceName(String ua){if(ua==null||ua.isBlank())return "Thiết bị không xác định";String u=ua.toLowerCase(Locale.ROOT);String browser=u.contains("edg/")?"Edge":u.contains("firefox/")?"Firefox":u.contains("chrome/")?"Chrome":u.contains("safari/")?"Safari":"Trình duyệt";String os=u.contains("windows")?"Windows":u.contains("android")?"Android":u.contains("iphone")||u.contains("ipad")?"iOS/iPadOS":u.contains("mac os")?"macOS":u.contains("linux")?"Linux":"Thiết bị";return browser+" · "+os;}
 }

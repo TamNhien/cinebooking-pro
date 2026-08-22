@@ -217,3 +217,13 @@ seed-demo-v46:
 
 check-seed-demo-v46:
 	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-49-table-counts.ps1
+
+
+verify-reference-v46:
+	python tools/verify_reference_data_49.py
+
+seed-reference-v46:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-49-tables.ps1
+
+check-reference-v46:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-49-table-counts.ps1

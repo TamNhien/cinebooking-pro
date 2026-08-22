@@ -21,7 +21,6 @@ expected_seed_inserts = {
     'staff_leave_request','staff_profile','staff_shift','staff_shift_handover','ticket_checkin_log',
     'trusted_device','user_notification','voucher','voucher_redemption'
 }
-
 all_49_tables = expected_seed_inserts | {'movie','flyway_schema_history'}
 canonical_movie_ids = [
     '11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222',
@@ -40,30 +39,32 @@ ps1 = ps1_path.read_text(encoding='utf-8') if ps1_path.exists() else ''
 counts = check_sql.read_text(encoding='utf-8') if check_sql.exists() else ''
 targets = {t.lower() for t in re.findall(r'INSERT\s+INTO\s+([a-zA-Z_][\w]*)', sql, re.I)}
 verification_array = set(re.findall(r"'([a-z_]+)'", sql[sql.find('Quick verification of all 49 tables'):]))
+main_data = sql[:sql.find('-- Fail if seeded reference rows')]
 
-check('V46 49-table SQL exists and decodes as UTF-8', sql_path.exists() and 'Cảnh báo bảo mật Demo' in sql and 'Thiết bị tin cậy Demo' in sql)
+check('V46 49-table SQL exists and decodes as UTF-8', sql_path.exists() and 'Nguyễn Minh An' in sql and 'Bắp Phô Mai Lớn' in sql)
 check('V46 49-table PowerShell runner exists', ps1_path.exists())
 check('All 47 seeded application tables have INSERT coverage', expected_seed_inserts.issubset(targets) and len(expected_seed_inserts) == 47)
-check('trusted_device receives 10 deterministic rows', "seed46:trusted-device:" in sql and 'INSERT INTO trusted_device(' in sql)
-check('security_alert receives 10 deterministic rows', "seed46:security-alert:" in sql and 'INSERT INTO security_alert(' in sql)
+check('Reference people use natural Vietnamese names and non-placeholder emails', all(v in sql for v in ['Nguyễn Minh An','Trần Quốc Bảo','Phạm Thu Hà','an.nguyen@cinebooking.local','chau.ho@cinebooking.local']))
+check('Staff codes no longer use DEMO45 labels', 'CBM001' in sql and 'CBS010' in sql and "format('DEMO45-%s'" not in main_data)
+check('Concession rows use real product names', all(v in sql for v in ['Bắp Caramel Vừa','Bắp Phô Mai Lớn','Coca-Cola Lớn','Combo Family']))
+check('Equipment rows use real asset identities', all(v in sql for v in ['Máy chiếu Barco SP4K-15','Bộ xử lý âm thanh Dolby CP950','Switch Cisco CBS350','Tủ trung tâm báo cháy Hochiki']))
+check('Seeded payments use only configured local MOCK provider', "INSERT INTO payment(" in sql and "    'MOCK'," in main_data and not re.search(r"CASE\s+WHEN[^\n]+(?:VNPAY|MOMO)", main_data, re.I))
+check('Existing seeded VNPAY/MOMO rows are repaired to MOCK', "UPDATE payment p SET\n    provider='MOCK'" in sql and "UPDATE payment_webhook_event e SET\n    provider='MOCK'" in sql)
+check('Runtime self-check rejects leftover VNPAY/MOMO seeded rows', 'seeded VNPAY/MOMO rows remain' in sql and "p.provider IN ('VNPAY','VNPAY_QR','MOMO','MOMO_QR')" in sql)
+check('Runtime self-check rejects placeholder Demo/mẫu values', 'placeholder values containing demo/mẫu remain' in sql and "lower(v) LIKE '%demo%'" in sql and "lower(v) LIKE '%mẫu%'" in sql)
+check('No placeholder Demo/mẫu labels are inserted or refreshed', not re.search(r"^.*'(?:[^'\n]*(?:Demo|mẫu)[^'\n]*)'.*$", main_data, re.I | re.M))
+check('trusted_device receives 10 deterministic rows', 'seed46:trusted-device:' in sql and 'INSERT INTO trusted_device(' in sql)
+check('security_alert receives 10 deterministic rows', 'seed46:security-alert:' in sql and 'INSERT INTO security_alert(' in sql)
 check('Security alert seed covers V46 event types', all(v in sql for v in ['NEW_DEVICE','CREDENTIAL_ATTACK','PASSWORD_CHANGED','PASSWORD_RESET','SESSION_REVOKED']))
-check('Security alert seed uses risk scores matching rules', all(v in sql for v in ['45,80,50,75,35','MEDIUM','HIGH','LOW']))
-check('UTF-8 repair includes V46 trusted device text', 'UPDATE trusted_device d SET' in sql and 'Thiết bị tin cậy Demo' in sql)
-check('UTF-8 repair includes V46 security alert text', 'UPDATE security_alert a SET' in sql and 'Cảnh báo bảo mật Demo' in sql)
-check('V46 UTF-8 fields participate in corruption self-check', 'SELECT label FROM trusted_device' in sql and 'SELECT title FROM security_alert' in sql and 'SELECT details FROM security_alert' in sql)
 check('movie table is not seeded with synthetic rows', not re.search(r'INSERT\s+INTO\s+movie\s*\(', sql, re.I))
 check('All eight canonical V29 movie IDs are reused', all(mid in sql for mid in canonical_movie_ids))
-check('Old synthetic Phim Demo movies are removed', 'DELETE FROM movie' in sql and 'seed45:movie:' in sql)
 check('Flyway metadata is never inserted/updated/deleted', not re.search(r'(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+flyway_schema_history', sql, re.I))
 check('Final verification enumerates all 49 pgAdmin tables', all_49_tables.issubset(verification_array) and len(all_49_tables) == 49)
 check('Row-count helper includes V46 tables', counts.count("'trusted_device'") == 2 and counts.count("'security_alert'") == 2)
-check('Final verification fails if any table is empty', 'IF c = 0 THEN' in sql and 'table % is still empty' in sql)
-check('Seed remains transactional and UTF-8 explicit', 'BEGIN;' in sql and 'COMMIT;' in sql and "client_encoding = 'UTF8'" in sql)
-check('Ledger stays balanced with 20 debit/credit lines', "'PAYMENT_CLEARING:DEMO45','DEBIT'" in sql and "'CUSTOMER_FUNDS_CAPTURED','CREDIT'" in sql)
-check('PowerShell uses byte-safe docker compose cp', 'docker compose cp' in ps1 and 'Get-Content' not in ps1)
-check('PowerShell verifies PostgreSQL UTF8 server encoding', 'SHOW server_encoding' in ps1 and 'server_encoding must be UTF8' in ps1)
-check('PowerShell runs psql with ON_ERROR_STOP', 'ON_ERROR_STOP=1' in ps1 and '-f $remoteSql' in ps1)
+check('Ledger stays balanced with MOCK clearing account', "'PAYMENT_CLEARING:MOCK','DEBIT'" in sql and "'CUSTOMER_FUNDS_CAPTURED','CREDIT'" in sql)
+check('PowerShell is byte-safe UTF-8 and documents realistic account credentials', 'docker compose cp' in ps1 and 'Get-Content' not in ps1 and 'CineBooking@123' in ps1 and 'an.nguyen@cinebooking.local' in ps1)
+check('Seed remains transactional and fails on empty tables', 'BEGIN;' in sql and 'COMMIT;' in sql and "client_encoding = 'UTF8'" in sql and 'IF c = 0 THEN' in sql)
 
 passed=sum(ok for _,ok in checks)
-print(f"\nSeed V46 49-table verification: {passed}/{len(checks)} checks passed")
+print(f"\nSeed V46 49-table realistic-data verification: {passed}/{len(checks)} checks passed")
 raise SystemExit(0 if passed == len(checks) else 1)

@@ -11,7 +11,7 @@ export default function SecurityCenter(){
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
   async function load(){
-    try{const [o,d,a]=await Promise.all([api<SecurityOverviewV46>("/me/security/overview"),api<TrustedDeviceV46[]>("/me/security/trusted-devices"),api<SecurityAlertV46[]>("/me/security/alerts")]);setOverview(o);setDevices(d);setAlerts(a);}catch(e){setMsg((e as Error).message);}
+    try{await api("/me/security/client-context",{method:"PATCH"});const [o,d,a]=await Promise.all([api<SecurityOverviewV46>("/me/security/overview"),api<TrustedDeviceV46[]>("/me/security/trusted-devices"),api<SecurityAlertV46[]>("/me/security/alerts")]);setOverview(o);setDevices(d);setAlerts(a);}catch(e){setMsg((e as Error).message);}
   }
   useEffect(()=>{void load();},[]);
   async function trust(){setBusy(true);try{await api("/me/security/trusted-devices/current",{method:"POST",body:JSON.stringify({label:label.trim()||null})});setLabel("");setMsg("Đã đánh dấu thiết bị hiện tại là tin cậy.");await load();}catch(e){setMsg((e as Error).message);}finally{setBusy(false);}}

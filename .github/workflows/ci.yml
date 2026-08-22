@@ -259,7 +259,7 @@ jobs:
       - name: Verify V46 security and account protection 2.0
         run: python3 tools/verify_v46_security_account_protection.py
 
-      - name: Verify V46 49-table UTF-8 demo seed coverage
+      - name: Verify V46 49-table realistic reference data
         run: python3 tools/verify_seed_demo_49.py
 
   compose-config:

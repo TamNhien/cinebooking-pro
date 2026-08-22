@@ -5,6 +5,36 @@ import type { AuthResponse } from "./types";
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 let refreshPromise: Promise<AuthResponse | null> | null = null;
 
+type BraveNavigator = Navigator & {
+  brave?: { isBrave?: () => Promise<boolean> };
+};
+
+let browserHintPromise: Promise<string | null> | null = null;
+
+async function detectBrowserHint(): Promise<string | null> {
+  if (typeof navigator === "undefined") return null;
+  const nav = navigator as BraveNavigator;
+  try {
+    if (nav.brave?.isBrave && (await nav.brave.isBrave())) return "Brave";
+  } catch {}
+
+  const ua = navigator.userAgent || "";
+  if (/Edg\//i.test(ua)) return "Edge";
+  if (/OPR\/|Opera/i.test(ua)) return "Opera";
+  if (/Vivaldi\//i.test(ua)) return "Vivaldi";
+  if (/SamsungBrowser\//i.test(ua)) return "Samsung Internet";
+  if (/Firefox\/|FxiOS\//i.test(ua)) return "Firefox";
+  if (/Chrome\/|CriOS\//i.test(ua)) return "Chrome";
+  if (/Safari\//i.test(ua)) return "Safari";
+  return null;
+}
+
+async function addClientIdentity(headers: Headers) {
+  browserHintPromise ??= detectBrowserHint();
+  const browser = await browserHintPromise;
+  if (browser) headers.set("X-CineBooking-Browser", browser);
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -29,8 +59,11 @@ async function refreshAccessToken(): Promise<AuthResponse | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
+      const headers = new Headers();
+      await addClientIdentity(headers);
       const res = await fetch(`${BASE}/auth/refresh`, {
         method: "POST",
+        headers,
         credentials: "include",
         cache: "no-store",
       });
@@ -56,6 +89,7 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   const t = token();
   if (t && !publicAuthCall) headers.set("Authorization", `Bearer ${t}`);
 
+  await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });
   if (!res.ok) {
     const msg = await parseError(res);
@@ -82,6 +116,7 @@ export async function apiBlob(path: string, init: RequestInit = {}, retry = true
   const t = token();
   if (t) headers.set("Authorization", `Bearer ${t}`);
 
+  await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });
   if (!res.ok) {
     const msg = await parseError(res);
@@ -101,7 +136,9 @@ export async function apiBlob(path: string, init: RequestInit = {}, retry = true
 
 export async function logoutSession() {
   try {
-    await fetch(`${BASE}/auth/logout`, { method: "POST", credentials: "include", cache: "no-store" });
+    const headers = new Headers();
+    await addClientIdentity(headers);
+    await fetch(`${BASE}/auth/logout`, { method: "POST", headers, credentials: "include", cache: "no-store" });
   } catch {}
   clearAuth();
 }

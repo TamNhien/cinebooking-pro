@@ -3,11 +3,11 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
-Write-Host "=== CineBooking V46: seed/repair DEMO45 across all 49 pgAdmin tables ===" -ForegroundColor Cyan
+Write-Host "=== CineBooking V46: realistic reference data across all 49 pgAdmin tables ===" -ForegroundColor Cyan
 Write-Host "UTF-8 safe mode: SQL is copied into PostgreSQL container; no PowerShell text pipe is used." -ForegroundColor Cyan
-Write-Host "Movies: reuse the 8 canonical V29 movies; no Phim Demo rows are created." -ForegroundColor Yellow
+Write-Host "Movies: reuse the 8 canonical V29 movies; no synthetic movies are created." -ForegroundColor Yellow
 Write-Host "flyway_schema_history: real Flyway rows only; never seeded." -ForegroundColor Yellow
-Write-Host "V46 security: trusted_device + security_alert receive 10 demo rows each." -ForegroundColor Cyan
+Write-Host "V46 security: trusted_device + security_alert receive 10 realistic reference rows each." -ForegroundColor Cyan
 
 $compose = docker compose ps --status running --services
 if ($LASTEXITCODE -ne 0) {
@@ -32,7 +32,7 @@ if (-not (Test-Path $sql)) {
     throw "Seed SQL not found: $sql"
 }
 
-$remoteSql = '/tmp/cinebooking-seed-demo49-utf8.sql'
+$remoteSql = '/tmp/cinebooking-reference49-utf8.sql'
 try {
     docker compose cp $sql "postgres:$remoteSql"
     if ($LASTEXITCODE -ne 0) {
@@ -50,11 +50,11 @@ finally {
 
 Write-Host "Seed/repair completed successfully." -ForegroundColor Green
 Write-Host "All 49 pgAdmin tables now have data; Flyway history remains genuine." -ForegroundColor Green
-Write-Host "customer_support_case: 10 deterministic demo cases." -ForegroundColor Green
-Write-Host "customer_support_case_event: 10 immutable demo events." -ForegroundColor Green
-Write-Host "trusted_device: 10 deterministic demo devices." -ForegroundColor Green
-Write-Host "security_alert: 10 risk-scored demo alerts." -ForegroundColor Green
-Write-Host "Vietnamese DEMO45 text was refreshed from UTF-8 source." -ForegroundColor Green
-Write-Host "Synthetic Phim Demo rows are absent; relations reuse the 8 canonical movies." -ForegroundColor Green
-Write-Host "Demo accounts: demo45.user01@cinebooking.local ... demo45.user10@cinebooking.local" -ForegroundColor Green
-Write-Host "Demo password: Demo@123" -ForegroundColor Green
+Write-Host "customer_support_case: 10 realistic support cases." -ForegroundColor Green
+Write-Host "customer_support_case_event: 10 immutable support events." -ForegroundColor Green
+Write-Host "trusted_device: 10 realistic device records." -ForegroundColor Green
+Write-Host "security_alert: 10 risk-scored security alerts." -ForegroundColor Green
+Write-Host "Vietnamese reference data was refreshed from UTF-8 source." -ForegroundColor Green
+Write-Host "No synthetic movie rows are added; relations reuse the 8 canonical movies." -ForegroundColor Green
+Write-Host "Reference accounts: an.nguyen@cinebooking.local ... chau.ho@cinebooking.local" -ForegroundColor Green
+Write-Host "Shared password: CineBooking@123" -ForegroundColor Green

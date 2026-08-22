@@ -390,8 +390,10 @@ Các cập nhật chính:
 - **High-risk notification:** cảnh báo HIGH/CRITICAL tạo notification cho người dùng và link về `/security`.
 - **Password hardening:** đổi mật khẩu tạo security alert và đăng xuất các thiết bị khác; reset mật khẩu tạo HIGH alert và thu hồi toàn bộ session cũ.
 - **Customer Security Center:** `/security` có KPI session/trusted-device/alert, danh sách thiết bị tin cậy, cảnh báo và thao tác acknowledge.
+- **Brave-aware browser identity patch:** frontend xác minh `navigator.brave.isBrave()` rồi gửi header hiển thị `X-CineBooking-Browser`; backend chỉ chấp nhận whitelist browser names, đồng bộ lại session/trusted-device/security-alert hiện tại và vẫn fallback User-Agent cho Chrome/Edge/Firefox/Safari/Opera/Vivaldi. Browser hint chỉ dùng cho metadata hiển thị/fingerprint phụ, không dùng làm bằng chứng xác thực hay phân quyền.
 - **Admin Security Operations:** `/admin/security` hiển thị cảnh báo 24h, alert chưa xác nhận, high-risk và tổng trusted device đang active.
-- **V46 demo seed:** schema có 49 bảng trong pgAdmin; `trusted_device` và `security_alert` được seed 10 dòng UTF-8 mỗi bảng, vẫn không tạo `Phim Demo`.
+- **V46 realistic reference seed:** schema có 49 bảng trong pgAdmin; dữ liệu hiển thị dùng tên tự nhiên, payment tham chiếu chỉ dùng `MOCK`, `trusted_device` và `security_alert` có 10 dòng UTF-8 mỗi bảng, và quan hệ phim vẫn tái sử dụng 8 phim V29 hiện có.
+- **RC E2E logout compatibility:** security journey chờ trạng thái đăng xuất rồi điều hướng rõ ràng về `/login`, phù hợp với UI hiện tại vốn đưa người dùng về trang chủ sau khi logout.
 
 Migration V46:
 
@@ -409,6 +411,7 @@ security_alert
 API người dùng:
 
 ```text
+PATCH  /api/me/security/client-context
 GET    /api/me/security/overview
 GET    /api/me/security/trusted-devices
 POST   /api/me/security/trusted-devices/current
@@ -430,8 +433,8 @@ V46 verification:
 
 ```powershell
 python .\tools\verify_v45_customer_support.py
-python .\tools\verify_v46_security_account_protection.py
-python .\tools\verify_seed_demo_49.py
+python .\tools\verify_v46_security_account_protection.py   # includes Brave-over-Chrome UA checks
+python .\tools\verify_reference_data_49.py
 powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v46.ps1
 ```
 
@@ -1920,21 +1923,23 @@ main CI
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
 
-## Demo seed — UTF-8-safe sample data for all 49 pgAdmin tables
+## Reference seed — UTF-8-safe realistic data for all 49 pgAdmin tables
 
-The V46 schema now contains **49 pgAdmin tables**: 48 application tables plus `flyway_schema_history`. V46 adds `trusted_device` and `security_alert`; the current UTF-8 seed adds ten deterministic rows to both new tables while keeping the V45 support data and validating that no table is left empty.
+The V46 schema contains **49 pgAdmin tables**: 48 application tables plus `flyway_schema_history`. The reference seed keeps every application table populated while replacing placeholder `Demo`/`mẫu` values with realistic Vietnamese names, cinema branches, staff roles, concession products, maintenance assets, support cases, device labels and security events.
 
-`movie` is deliberately not populated with synthetic `Phim Demo` rows. All seeded movie relations reuse the eight canonical V29 films already present in the database. `flyway_schema_history` is never inserted, updated or deleted; its genuine Flyway migration rows satisfy the table-data check. `financial_ledger_line` intentionally receives twenty rows (balanced debit/credit lines for ten ledger entries).
+`movie` is deliberately not populated with synthetic rows. All seeded movie relations reuse the eight canonical V29 films already present in the database. `flyway_schema_history` is never inserted, updated or deleted; its genuine Flyway migration rows satisfy the table-data check. `financial_ledger_line` intentionally receives twenty rows so every payment capture remains balanced with one debit and one credit line.
 
-The UTF-8-safe runner copies SQL byte-for-byte into the PostgreSQL container and executes `psql -f`, avoiding Windows PowerShell code-page conversion. It also repairs earlier DEMO45 Vietnamese text such as `Máy chiếu`, `Phòng`, support subjects/messages and other human-readable fields.
+Reference payment history uses **`MOCK` only** because the local environment does not have active VNPay/MoMo credentials. Existing deterministic seed rows previously marked `VNPAY` or `MOMO` are repaired in place to `MOCK`; the application gateway code remains available for future configuration, but the reference database no longer pretends those gateways were used.
+
+The UTF-8-safe runner copies SQL byte-for-byte into the PostgreSQL container and executes `psql -f`, avoiding Windows PowerShell code-page conversion. Re-running it updates existing deterministic reference rows in place, including records created by earlier seed versions.
 
 Run from the repository root on Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-49-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-49-tables.ps1
 ```
 
-The former command remains as a compatibility alias:
+The older V45 command remains a compatibility alias:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
@@ -1949,7 +1954,7 @@ python .\tools\verify_seed_demo_49.py
 Inspect exact row counts for all 49 tables:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\check-demo-49-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-reference-49-table-counts.ps1
 ```
 
-The seed aborts if PostgreSQL is not UTF-8, if a checked DEMO45 text value still contains `?`, if the eight canonical movies are unavailable, if synthetic `Phim Demo` rows remain, or if any of the 49 pgAdmin tables is still empty after seeding. Demo accounts remain `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, password `Demo@123`.
+The seed aborts if PostgreSQL is not UTF-8, if checked text still contains encoding corruption, if seeded human-readable values still contain placeholder `Demo`/`mẫu`, if deterministic payment rows still use VNPay/MoMo, if the eight canonical movies are unavailable, if synthetic movie rows remain, or if any of the 49 pgAdmin tables is empty. Reference accounts run from `an.nguyen@cinebooking.local` through `chau.ho@cinebooking.local`; the shared password is `CineBooking@123`.
