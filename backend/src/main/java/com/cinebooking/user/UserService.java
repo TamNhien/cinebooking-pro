@@ -3,6 +3,7 @@ package com.cinebooking.user;
 import com.cinebooking.auth.AuthSessionService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.common.PasswordPolicy;
+import com.cinebooking.security.SecurityProtectionService;
 import com.cinebooking.domain.AppUser;
 import com.cinebooking.domain.Role;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,8 @@ public class UserService {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final AuthSessionService sessions;
-    public UserService(UserRepository users, PasswordEncoder encoder, AuthSessionService sessions){this.users=users;this.encoder=encoder;this.sessions=sessions;}
+    private final SecurityProtectionService protection;
+    public UserService(UserRepository users, PasswordEncoder encoder, AuthSessionService sessions, SecurityProtectionService protection){this.users=users;this.encoder=encoder;this.sessions=sessions;this.protection=protection;}
 
     public UserResponse me(String email){return dto(findByEmail(email));}
 
@@ -43,6 +45,7 @@ public class UserService {
         if(encoder.matches(req.newPassword(),u.getPasswordHash())) throw new ApiException(HttpStatus.BAD_REQUEST,"Mật khẩu mới phải khác mật khẩu hiện tại");
         u.setPasswordHash(encoder.encode(req.newPassword())); users.save(u);
         sessions.revokeAllExcept(u.getId(), currentSessionId, "PASSWORD_CHANGED", email);
+        protection.passwordChanged(u.getId(), false);
     }
 
     public List<UserResponse> adminList(){return users.findAllByOrderByCreatedAtDesc().stream().filter(u->u.getRole()==Role.USER||u.getRole()==Role.ADMIN).map(this::dto).toList();}

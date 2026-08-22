@@ -5,6 +5,7 @@ import com.cinebooking.domain.AppUser;
 import com.cinebooking.domain.PasswordResetToken;
 import com.cinebooking.user.PasswordResetTokenRepository;
 import com.cinebooking.user.UserRepository;
+import com.cinebooking.security.SecurityProtectionService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class PasswordResetService {
     private final JavaMailSender mailSender;
     private final SecureRandom random = new SecureRandom();
     private final AuthSessionService sessions;
+    private final SecurityProtectionService protection;
 
     @Value("${app.frontend-url}") private String frontendUrl;
     @Value("${app.auth.reset-token-minutes:30}") private long ttlMinutes;
@@ -45,13 +47,15 @@ public class PasswordResetService {
             PasswordResetTokenRepository tokens,
             PasswordEncoder encoder,
             ObjectProvider<JavaMailSender> mailSender,
-            AuthSessionService sessions
+            AuthSessionService sessions,
+            SecurityProtectionService protection
     ) {
         this.users = users;
         this.tokens = tokens;
         this.encoder = encoder;
         this.mailSender = mailSender.getIfAvailable();
         this.sessions = sessions;
+        this.protection = protection;
     }
 
     @Transactional
@@ -108,6 +112,7 @@ public class PasswordResetService {
         token.setUsedAt(Instant.now());
         tokens.save(token);
         sessions.revokeAllForUser(user.getId(), "PASSWORD_RESET", user.getEmail());
+        protection.passwordChanged(user.getId(), true);
     }
 
     private void sendMail(AppUser user, String url) throws Exception {

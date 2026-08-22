@@ -1,8 +1,8 @@
-# CineBooking Pro V45
+# CineBooking Pro V46
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V45 — Customer Support & Service Recovery 2.0  
+> **Current release:** V46 — Security & Account Protection 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -61,6 +61,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V43** | **Staff Operations 2.0 + Analytics CSV/Excel chi tiết theo từng bảng** | **`V43__staff_operations_2.sql`** |
 | **V44** | **Cinema Maintenance & Asset Reliability 2.0: asset registry, SLA/work order, incident linkage, immutable history** | **`V44__cinema_maintenance_asset_reliability.sql`** |
 | **V45** | **Customer Support & Service Recovery 2.0: ticket/case management, SLA, customer conversation, manager triage, immutable history** | **`V45__customer_support_service_recovery.sql`** |
+| **V46** | **Security & Account Protection 2.0: trusted devices, risk-scored alerts, dual email/IP brute-force protection, security dashboards** | **`V46__security_account_protection_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -374,6 +375,82 @@ git push main
 ```
 
 Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 45.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
+
+---
+
+### V46 - Security & Account Protection 2.0
+
+V46 nâng lớp bảo mật V21 thành **Security Center** cho người dùng và **Security Operations** cho Admin. Hệ thống theo dõi thiết bị tin cậy, tạo cảnh báo có risk score khi đăng nhập từ thiết bị mới hoặc khi brute-force chạm ngưỡng, đồng thời ghi nhận đổi/đặt lại mật khẩu để người dùng chủ động kiểm tra tài khoản.
+
+Các cập nhật chính:
+
+- **Trusted devices:** người dùng có thể đánh dấu phiên hiện tại là thiết bị tin cậy, đặt nhãn, theo dõi IP đầu/cuối và thu hồi trust bất kỳ lúc nào.
+- **Risk-scored alerts:** `NEW_DEVICE`, `CREDENTIAL_ATTACK`, `PASSWORD_CHANGED`, `PASSWORD_RESET`, `SESSION_REVOKED`; severity `LOW / MEDIUM / HIGH / CRITICAL` và risk score 0-100.
+- **Dual brute-force protection:** rate limit theo cả email và IP qua Redis; email mặc định khóa sau 5 lần sai, IP mặc định 20 lần trong cửa sổ khóa.
+- **High-risk notification:** cảnh báo HIGH/CRITICAL tạo notification cho người dùng và link về `/security`.
+- **Password hardening:** đổi mật khẩu tạo security alert và đăng xuất các thiết bị khác; reset mật khẩu tạo HIGH alert và thu hồi toàn bộ session cũ.
+- **Customer Security Center:** `/security` có KPI session/trusted-device/alert, danh sách thiết bị tin cậy, cảnh báo và thao tác acknowledge.
+- **Admin Security Operations:** `/admin/security` hiển thị cảnh báo 24h, alert chưa xác nhận, high-risk và tổng trusted device đang active.
+- **V46 demo seed:** schema có 49 bảng trong pgAdmin; `trusted_device` và `security_alert` được seed 10 dòng UTF-8 mỗi bảng, vẫn không tạo `Phim Demo`.
+
+Migration V46:
+
+```text
+backend/src/main/resources/db/migration/V46__security_account_protection_2.sql
+```
+
+Các bảng mới:
+
+```text
+trusted_device
+security_alert
+```
+
+API người dùng:
+
+```text
+GET    /api/me/security/overview
+GET    /api/me/security/trusted-devices
+POST   /api/me/security/trusted-devices/current
+DELETE /api/me/security/trusted-devices/{id}
+GET    /api/me/security/alerts
+PATCH  /api/me/security/alerts/{id}/acknowledge
+```
+
+API Admin:
+
+```text
+GET /api/admin/security/overview
+GET /api/admin/security/alerts
+GET /api/admin/security/users/{userId}/sessions
+DELETE /api/admin/security/users/{userId}/sessions
+```
+
+V46 verification:
+
+```powershell
+python .\tools\verify_v45_customer_support.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_seed_demo_49.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v46.ps1
+```
+
+Release lifecycle V46:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V46 source regression
+→ Backend unit + Testcontainers integration
+→ V46 source gate
+→ Stable Release (manual)
+→ v46.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v46.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 46.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
 
 ---
 
@@ -1155,16 +1232,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V45
+CineBooking Pro V46
 ```
 
 Release target:
 
 ```text
-v45.0.0
+v46.0.0
 ```
 
-V45 có migration `V45__customer_support_service_recovery.sql`; Flyway latest là V45.
+V46 có migration `V46__security_account_protection_2.sql`; Flyway latest là V46.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 
@@ -1843,9 +1920,9 @@ main CI
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
 
-## Demo seed — UTF-8-safe sample data for all 47 pgAdmin tables
+## Demo seed — UTF-8-safe sample data for all 49 pgAdmin tables
 
-The V45 schema now contains **47 pgAdmin tables**: 46 application tables plus `flyway_schema_history`. The previous seed already covered the V44-era tables but did not seed the two V45 support tables. The current seed therefore adds ten deterministic rows to both `customer_support_case` and `customer_support_case_event` and validates that no table is left empty.
+The V46 schema now contains **49 pgAdmin tables**: 48 application tables plus `flyway_schema_history`. V46 adds `trusted_device` and `security_alert`; the current UTF-8 seed adds ten deterministic rows to both new tables while keeping the V45 support data and validating that no table is left empty.
 
 `movie` is deliberately not populated with synthetic `Phim Demo` rows. All seeded movie relations reuse the eight canonical V29 films already present in the database. `flyway_schema_history` is never inserted, updated or deleted; its genuine Flyway migration rows satisfy the table-data check. `financial_ledger_line` intentionally receives twenty rows (balanced debit/credit lines for ten ledger entries).
 
@@ -1854,7 +1931,7 @@ The UTF-8-safe runner copies SQL byte-for-byte into the PostgreSQL container and
 Run from the repository root on Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-47-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-49-tables.ps1
 ```
 
 The former command remains as a compatibility alias:
@@ -1866,13 +1943,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
 Static verification:
 
 ```powershell
-python .\tools\verify_seed_demo_47.py
+python .\tools\verify_seed_demo_49.py
 ```
 
-Inspect exact row counts for all 47 tables:
+Inspect exact row counts for all 49 tables:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\check-demo-47-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-49-table-counts.ps1
 ```
 
-The seed aborts if PostgreSQL is not UTF-8, if a checked DEMO45 text value still contains `?`, if the eight canonical movies are unavailable, if synthetic `Phim Demo` rows remain, or if any of the 47 pgAdmin tables is still empty after seeding. Demo accounts remain `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, password `Demo@123`.
+The seed aborts if PostgreSQL is not UTF-8, if a checked DEMO45 text value still contains `?`, if the eight canonical movies are unavailable, if synthetic `Phim Demo` rows remain, or if any of the 49 pgAdmin tables is still empty after seeding. Demo accounts remain `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, password `Demo@123`.

@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V45 source regression
+    name: V26-V46 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -255,6 +255,12 @@ jobs:
 
       - name: Verify V45 47-table UTF-8 demo seed coverage
         run: python3 tools/verify_seed_demo_47.py
+
+      - name: Verify V46 security and account protection 2.0
+        run: python3 tools/verify_v46_security_account_protection.py
+
+      - name: Verify V46 49-table UTF-8 demo seed coverage
+        run: python3 tools/verify_seed_demo_49.py
 
   compose-config:
     name: Docker Compose validation

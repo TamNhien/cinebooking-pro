@@ -1,0 +1,99 @@
+package com.cinebooking.security;
+
+import com.cinebooking.auth.AuthSessionRepository;
+import com.cinebooking.common.ApiException;
+import com.cinebooking.domain.*;
+import com.cinebooking.notification.NotificationService;
+import com.cinebooking.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+
+import static com.cinebooking.security.SecurityProtectionDtos.*;
+
+@Service
+public class SecurityProtectionService {
+    private final TrustedDeviceRepository devices;
+    private final SecurityAlertRepository alerts;
+    private final AuthSessionRepository sessions;
+    private final UserRepository users;
+    private final NotificationService notifications;
+
+    public SecurityProtectionService(TrustedDeviceRepository devices,SecurityAlertRepository alerts,AuthSessionRepository sessions,UserRepository users,NotificationService notifications){
+        this.devices=devices;this.alerts=alerts;this.sessions=sessions;this.users=users;this.notifications=notifications;
+    }
+
+    @Transactional
+    public void successfulLogin(AppUser user,UUID sessionId,HttpServletRequest request){
+        AuthSession session=sessions.findById(sessionId).orElse(null); if(session==null)return;
+        String fingerprint=fingerprint(session.getUserAgent());
+        TrustedDevice trusted=devices.findByUserIdAndDeviceFingerprint(user.getId(),fingerprint).filter(TrustedDevice::active).orElse(null);
+        if(trusted!=null){trusted.setLastSeenAt(Instant.now());trusted.setLastIp(session.getIpAddress());trusted.setDeviceName(session.getDeviceName());devices.save(trusted);return;}
+        createAlert(user.getId(),"NEW_DEVICE",SecurityRiskRules.severity("NEW_DEVICE"),SecurityRiskRules.score("NEW_DEVICE"),"Đăng nhập từ thiết bị chưa tin cậy","CineBooking phát hiện phiên đăng nhập mới. Nếu không phải bạn, hãy thu hồi phiên và đổi mật khẩu.",session.getIpAddress(),session.getDeviceName(),sessionId,true);
+    }
+
+    @Transactional(propagation=Propagation.REQUIRES_NEW)
+    public void credentialAttack(String email,String ip,String userAgent){
+        users.findByEmailIgnoreCase(email).ifPresent(user->createAlert(user.getId(),"CREDENTIAL_ATTACK",SecurityRiskRules.severity("CREDENTIAL_ATTACK"),SecurityRiskRules.score("CREDENTIAL_ATTACK"),"Nhiều lần đăng nhập thất bại","Cơ chế chống brute-force đã kích hoạt giới hạn đăng nhập cho tài khoản hoặc địa chỉ mạng.",ip,deviceName(userAgent),null,true));
+    }
+
+    @Transactional public void passwordChanged(UUID userId,boolean reset){
+        createAlert(userId,reset?"PASSWORD_RESET":"PASSWORD_CHANGED",SecurityRiskRules.severity(reset?"PASSWORD_RESET":"PASSWORD_CHANGED"),SecurityRiskRules.score(reset?"PASSWORD_RESET":"PASSWORD_CHANGED"),reset?"Mật khẩu đã được đặt lại":"Mật khẩu đã được thay đổi",reset?"Mật khẩu được đặt lại qua quy trình khôi phục. Tất cả phiên cũ đã bị thu hồi.":"Mật khẩu tài khoản vừa được thay đổi. Các thiết bị khác đã bị đăng xuất.",null,null,null,true);
+    }
+
+    public SecurityOverview overview(UUID userId){
+        long activeSessions=sessions.findByUserIdOrderByLastSeenAtDesc(userId).stream().filter(AuthSession::active).count();
+        return new SecurityOverview(activeSessions,devices.countByUserIdAndRevokedAtIsNull(userId),alerts.countByUserIdAndAcknowledgedAtIsNull(userId),alerts.countByUserIdAndAcknowledgedAtIsNullAndSeverityIn(userId,List.of("HIGH","CRITICAL")),Instant.now());
+    }
+
+    public List<TrustedDeviceView> trustedDevices(UUID userId){return devices.findByUserIdOrderByLastSeenAtDesc(userId).stream().map(this::deviceView).toList();}
+    public List<SecurityAlertView> alerts(UUID userId){return alerts.findTop100ByUserIdOrderByCreatedAtDesc(userId).stream().map(this::alertView).toList();}
+
+    @Transactional
+    public TrustedDeviceView trustCurrent(UUID userId,UUID currentSessionId,String label){
+        if(currentSessionId==null)throw new ApiException(HttpStatus.BAD_REQUEST,"Không xác định được phiên hiện tại");
+        AuthSession session=sessions.findById(currentSessionId).filter(s->s.getUserId().equals(userId)&&s.active()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Phiên hiện tại không còn hoạt động"));
+        String fp=fingerprint(session.getUserAgent()); Instant now=Instant.now();
+        TrustedDevice d=devices.findByUserIdAndDeviceFingerprint(userId,fp).orElseGet(TrustedDevice::new);
+        d.setUserId(userId);d.setDeviceFingerprint(fp);d.setLabel(clean(label,session.getDeviceName()));d.setDeviceName(session.getDeviceName());d.setUserAgent(session.getUserAgent());
+        if(d.getFirstIp()==null)d.setFirstIp(session.getIpAddress());d.setLastIp(session.getIpAddress());d.setLastSeenAt(now);d.setRevokedAt(null);
+        return deviceView(devices.save(d));
+    }
+
+    @Transactional
+    public void revokeTrustedDevice(UUID userId,UUID deviceId){
+        TrustedDevice d=devices.findById(deviceId).filter(x->x.getUserId().equals(userId)).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy thiết bị tin cậy"));
+        if(d.getRevokedAt()==null){d.setRevokedAt(Instant.now());devices.save(d);}
+    }
+
+    @Transactional
+    public SecurityAlertView acknowledge(UUID userId,UUID alertId){
+        SecurityAlert a=alerts.findById(alertId).filter(x->x.getUserId().equals(userId)).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy cảnh báo bảo mật"));
+        if(a.getAcknowledgedAt()==null){a.setAcknowledgedAt(Instant.now());a.setAcknowledgedBy(userId);alerts.save(a);}return alertView(a);
+    }
+
+    public AdminSecuritySummary adminSummary(){
+        return new AdminSecuritySummary(alerts.countByCreatedAtAfter(Instant.now().minus(24, ChronoUnit.HOURS)),alerts.countByAcknowledgedAtIsNull(),alerts.countByAcknowledgedAtIsNullAndSeverityIn(List.of("HIGH","CRITICAL")),devices.countByRevokedAtIsNull(),Instant.now());
+    }
+    public List<AdminSecurityAlertView> adminAlerts(){return alerts.findTop200ByOrderByCreatedAtDesc().stream().map(this::adminAlertView).toList();}
+
+    private SecurityAlert createAlert(UUID userId,String type,String severity,int risk,String title,String details,String ip,String deviceName,UUID sessionId,boolean notify){
+        SecurityAlert a=new SecurityAlert();a.setUserId(userId);a.setEventType(type);a.setSeverity(severity);a.setRiskScore(risk);a.setTitle(title);a.setDetails(details);a.setIpAddress(ip);a.setDeviceName(deviceName);a.setRelatedSessionId(sessionId);alerts.save(a);
+        if(notify && ("HIGH".equals(severity)||"CRITICAL".equals(severity)))notifications.createOnce(userId,"SECURITY_ALERT",title,details,"/security","SECURITY_ALERT:"+a.getId());
+        return a;
+    }
+    private TrustedDeviceView deviceView(TrustedDevice d){return new TrustedDeviceView(d.getId(),d.getLabel(),d.getDeviceName(),d.getFirstIp(),d.getLastIp(),d.getTrustedAt(),d.getLastSeenAt(),d.getRevokedAt(),d.active());}
+    private AdminSecurityAlertView adminAlertView(SecurityAlert a){AppUser u=users.findById(a.getUserId()).orElse(null);return new AdminSecurityAlertView(a.getId(),a.getUserId(),u==null?"—":u.getEmail(),u==null?"—":u.getFullName(),a.getEventType(),a.getSeverity(),a.getRiskScore()==null?0:a.getRiskScore(),a.getTitle(),a.getDetails(),a.getIpAddress(),a.getDeviceName(),a.getRelatedSessionId(),a.getAcknowledgedAt(),a.getCreatedAt());}
+    private SecurityAlertView alertView(SecurityAlert a){return new SecurityAlertView(a.getId(),a.getEventType(),a.getSeverity(),a.getRiskScore()==null?0:a.getRiskScore(),a.getTitle(),a.getDetails(),a.getIpAddress(),a.getDeviceName(),a.getRelatedSessionId(),a.getAcknowledgedAt(),a.getCreatedAt());}
+    private String fingerprint(String userAgent){String normalized=userAgent==null?"unknown":userAgent.trim().toLowerCase(Locale.ROOT);try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(normalized.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
+    private String deviceName(String ua){if(ua==null||ua.isBlank())return "Thiết bị không xác định";String u=ua.toLowerCase(Locale.ROOT);String browser=u.contains("edg/")?"Edge":u.contains("firefox/")?"Firefox":u.contains("chrome/")?"Chrome":u.contains("safari/")?"Safari":"Trình duyệt";String os=u.contains("windows")?"Windows":u.contains("android")?"Android":u.contains("iphone")||u.contains("ipad")?"iOS/iPadOS":u.contains("mac os")?"macOS":u.contains("linux")?"Linux":"Thiết bị";return browser+" · "+os;}
+    private String clean(String label,String fallback){return label==null||label.isBlank()?fallback:label.trim();}
+}

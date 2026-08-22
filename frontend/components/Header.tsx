@@ -123,6 +123,7 @@ export default function Header(){
               <Link onClick={close} href="/favorites">❤️ {en?"Favorites":"Yêu thích"}</Link>
               <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
+              <Link onClick={close} href="/security">🛡 {en?"Security":"Bảo mật"}</Link>
               <Link onClick={close} href="/notifications">🔔 {en?"Notifications":"Thông báo"}{unread>0?` (${unread})`:""}</Link>
               <Link onClick={close} href="/support">🎧 {en?"Support":"Hỗ trợ"}</Link>
             </div>}
@@ -165,6 +166,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/analytics">📈 Analytics</Link>
               <Link onClick={close} href="/admin/maintenance">🛠 {en?"Maintenance & assets":"Bảo trì & thiết bị"}</Link>
               <Link onClick={close} href="/admin/support">🎧 {en?"Customer support":"Hỗ trợ khách hàng"}</Link>
+              <Link onClick={close} href="/admin/security">🛡 {en?"Security operations":"Security Operations"}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {en?"Refunds":"Hoàn vé"}</Link>
               <Link onClick={close} href="/admin/audit">🛡 Audit log</Link>
             </div>}
@@ -190,6 +192,7 @@ export default function Header(){
           {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
           {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
+          {auth&&<Link href="/security" className="nav-link">{en?"Security":"Bảo mật"}</Link>}
           {auth&&<Link href="/support" className="nav-link">{en?"Support":"Hỗ trợ"}</Link>}
           {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link">Ca làm</Link>}
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link">Check-in</Link>}
@@ -218,6 +221,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/security">Security Operations</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Audit log</Link>
               </div>}

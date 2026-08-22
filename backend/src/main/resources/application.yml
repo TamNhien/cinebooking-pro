@@ -110,6 +110,7 @@ app:
     daily-close-cron: "${FINANCE_DAILY_CLOSE_CRON:0 10 1 * * *}"
   security:
     login-max-attempts: ${LOGIN_MAX_ATTEMPTS:5}
+    login-ip-max-attempts: ${LOGIN_IP_MAX_ATTEMPTS:20}
     login-lock-seconds: ${LOGIN_LOCK_SECONDS:900}
     refresh-token-days: ${REFRESH_TOKEN_DAYS:30}
     refresh-cookie-secure: ${REFRESH_COOKIE_SECURE:false}

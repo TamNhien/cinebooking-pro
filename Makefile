@@ -195,3 +195,25 @@ seed-demo-v45:
 
 check-seed-demo-v45:
 	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-47-table-counts.ps1
+
+
+verify-v46:
+	python tools/verify_v43_staff_operations.py
+	python tools/verify_v43_analytics_excel_detail.py
+	python tools/verify_v43_analytics_csv_detail.py
+	python tools/verify_v44_maintenance_reliability.py
+	python tools/verify_v45_customer_support.py
+	python tools/verify_v46_security_account_protection.py
+	python tools/verify_seed_demo_49.py
+
+diagnose-v46:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v46.ps1
+
+verify-seed-demo-v46:
+	python tools/verify_seed_demo_49.py
+
+seed-demo-v46:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-49-tables.ps1
+
+check-seed-demo-v46:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-49-table-counts.ps1

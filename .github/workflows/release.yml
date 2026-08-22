@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Stable semantic version without v prefix (example: 45.0.0)"
+        description: "Stable semantic version without v prefix (example: 46.0.0)"
         required: true
-        default: "45.0.0"
+        default: "46.0.0"
       rc_number:
         description: "Release-candidate sequence number"
         required: true
@@ -162,21 +162,23 @@ jobs:
       VCS_REF: ${{ github.sha }}
       HTTP_PORT: "18080"
       POSTGRES_PORT: "15433"
-      COMPOSE_PROJECT_NAME: cinebooking_v45_release_${{ github.run_id }}
-      JWT_SECRET: v45-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
+      COMPOSE_PROJECT_NAME: cinebooking_v46_release_${{ github.run_id }}
+      JWT_SECRET: v46-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
     steps:
       - name: Checkout exact RC commit
         uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
-      - name: Verify V45 source gate
+      - name: Verify V46 source gate
         run: |
           python3 tools/verify_v43_staff_operations.py
           python3 tools/verify_v43_analytics_excel_detail.py
           python3 tools/verify_v43_analytics_csv_detail.py
           python3 tools/verify_v44_maintenance_reliability.py
           python3 tools/verify_v45_customer_support.py
+          python3 tools/verify_v46_security_account_protection.py
+          python3 tools/verify_seed_demo_49.py
 
       - name: Docker diagnostics
         run: |

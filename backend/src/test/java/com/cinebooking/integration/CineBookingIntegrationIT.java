@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV45CustomerSupportSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV46SecurityAccountProtectionSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("45");
-        assertThat(publicTables).isGreaterThanOrEqualTo(47);
+        assertThat(latest).isEqualTo("46");
+        assertThat(publicTables).isGreaterThanOrEqualTo(49);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -172,6 +172,12 @@ class CineBookingIntegrationIT {
         Integer supportV45Trigger = jdbc.queryForObject(
                 "select count(*) from pg_trigger where not tgisinternal and tgname='trg_v45_support_event_immutable'", Integer.class);
         assertThat(supportV45Trigger).isEqualTo(1);
+        Integer securityV46Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('trusted_device','security_alert')", Integer.class);
+        assertThat(securityV46Tables).isEqualTo(2);
+        Integer securityV46Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_trusted_device_user_active','idx_security_alert_user_created','idx_security_alert_unacknowledged')", Integer.class);
+        assertThat(securityV46Indexes).isEqualTo(3);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

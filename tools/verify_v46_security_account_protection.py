@@ -1,0 +1,49 @@
+from pathlib import Path
+import sys
+ROOT=Path(__file__).resolve().parents[1]
+checks=[]
+def has(path,*needles):
+    p=ROOT/path
+    if not p.exists(): return False
+    text=p.read_text(encoding="utf-8")
+    return all(x in text for x in needles)
+def ok(label,cond):
+    checks.append((label,bool(cond)));print(f"[ {'OK' if cond else 'FAIL'} ] {label}")
+
+ok("V46 migration creates trusted-device and security-alert tables",has("backend/src/main/resources/db/migration/V46__security_account_protection_2.sql","CREATE TABLE trusted_device","CREATE TABLE security_alert"))
+ok("V46 migration constrains alert type severity and risk",has("backend/src/main/resources/db/migration/V46__security_account_protection_2.sql","ck_security_alert_type","ck_security_alert_severity","ck_security_alert_risk"))
+ok("V46 migration indexes active trusted devices and unacknowledged alerts",has("backend/src/main/resources/db/migration/V46__security_account_protection_2.sql","idx_trusted_device_user_active","idx_security_alert_unacknowledged"))
+ok("TrustedDevice entity exists",has("backend/src/main/java/com/cinebooking/domain/TrustedDevice.java","@Table(name=\"trusted_device\"","deviceFingerprint","revokedAt","active()"))
+ok("SecurityAlert entity exists",has("backend/src/main/java/com/cinebooking/domain/SecurityAlert.java","@Table(name=\"security_alert\")","riskScore","acknowledgedAt","relatedSessionId"))
+ok("V46 repositories expose user-scoped trusted devices and alerts",has("backend/src/main/java/com/cinebooking/security/TrustedDeviceRepository.java","findByUserIdAndDeviceFingerprint","countByRevokedAtIsNull") and has("backend/src/main/java/com/cinebooking/security/SecurityAlertRepository.java","findTop100ByUserIdOrderByCreatedAtDesc","countByAcknowledgedAtIsNullAndSeverityIn"))
+ok("Security risk rules define deterministic scores",has("backend/src/main/java/com/cinebooking/security/SecurityRiskRules.java","CREDENTIAL_ATTACK","PASSWORD_RESET","NEW_DEVICE","score(String eventType)"))
+ok("Security protection service detects untrusted login",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionService.java","successfulLogin","NEW_DEVICE","findByUserIdAndDeviceFingerprint"))
+ok("Security protection service records brute-force alerts in a new transaction",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionService.java","Propagation.REQUIRES_NEW","credentialAttack","CREDENTIAL_ATTACK"))
+ok("Security protection service manages trusted-device lifecycle",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionService.java","trustCurrent","revokeTrustedDevice","setDeviceFingerprint"))
+ok("Security protection service supports alert acknowledgement",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionService.java","acknowledge","setAcknowledgedAt","setAcknowledgedBy"))
+ok("Security protection service exposes user and admin summaries",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionService.java","SecurityOverview","AdminSecuritySummary","adminSummary"))
+ok("Login rate limiting covers email and IP",has("backend/src/main/java/com/cinebooking/auth/LoginRateLimitService.java","login-ip-max-attempts","emailKey","ipKey","assertAllowed(String email,String ip)"))
+ok("Auth login integrates V46 risk detection",has("backend/src/main/java/com/cinebooking/auth/AuthService.java","protection.credentialAttack","protection.successfulLogin","limiter.assertAllowed(email,ip)"))
+ok("Password changes create V46 security alerts",has("backend/src/main/java/com/cinebooking/user/UserService.java","protection.passwordChanged(u.getId(), false)"))
+ok("Password resets create V46 high-risk alerts",has("backend/src/main/java/com/cinebooking/auth/PasswordResetService.java","protection.passwordChanged(user.getId(), true)"))
+ok("Customer security API exposes overview devices and alerts",has("backend/src/main/java/com/cinebooking/security/SecurityProtectionController.java","/overview","/trusted-devices/current","/alerts/{id}/acknowledge"))
+ok("Admin security API exposes overview and alerts",has("backend/src/main/java/com/cinebooking/auth/AdminSecurityController.java","/overview","/alerts","SecurityProtectionService"))
+ok("Security risk unit tests cover high medium and fallback",has("backend/src/test/java/com/cinebooking/security/SecurityRiskRulesTest.java","credentialAttackIsHighRisk","newDeviceIsMediumRisk","unknownEventFallsBackToLow"))
+ok("Customer security frontend exists",has("frontend/app/security/page.tsx","Trung tâm bảo mật tài khoản","Tin cậy thiết bị hiện tại","Cảnh báo bảo mật"))
+ok("Admin security frontend exists",has("frontend/app/admin/security/page.tsx","Security Operations","Rủi ro cao","admin-security-alert"))
+ok("Frontend types include V46 security contracts",has("frontend/lib/types.ts","SecurityOverviewV46","TrustedDeviceV46","SecurityAlertV46","AdminSecuritySummaryV46"))
+ok("Header links customer and admin security centers",has("frontend/components/Header.tsx","href=\"/security\"","href=\"/admin/security\""))
+ok("Admin dashboard links Security Operations",has("frontend/app/admin/page.tsx","/admin/security","Security Operations"))
+ok("V46 Playwright covers trust-device and admin alert journey",has("frontend/e2e/security-account-protection.spec.ts","V46 user trusts a device","Laptop E2E V46","Security Operations"))
+ok("Integration test expects Flyway latest V46",has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"46\")","trusted_device","security_alert","idx_security_alert_unacknowledged"))
+ok("README identifies V46 release",has("README.md","# CineBooking Pro V46","Current release:** V46","Security & Account Protection 2.0"))
+ok("Main CI includes V46 source regression",has(".github/workflows/ci.yml","V26-V46 source regression","verify_v46_security_account_protection.py","verify_seed_demo_49.py"))
+ok("Standalone RC defaults to v46.0.0-rc.1",has(".github/workflows/release-candidate.yml","v46.0.0-rc.1","Verify V46 source gate","verify_v46_security_account_protection.py"))
+ok("Stable release defaults to 46.0.0",has(".github/workflows/release.yml","default: \"46.0.0\"","Verify V46 source gate","verify_v46_security_account_protection.py"))
+ok("Makefile exposes V46 verify diagnose and seed targets",has("Makefile","verify-v46:","diagnose-v46:","seed-demo-v46:","check-seed-demo-v46:"))
+ok("V46 diagnostics chains V45 V46 and 49-table seed",has("tools/diagnose-v46.ps1","verify_v45_customer_support.py","verify_v46_security_account_protection.py","verify_seed_demo_49.py","V46 source diagnostics passed."))
+ok("V46 seed covers all 49 pgAdmin tables",has("tools/seed-demo-49-tables-10-rows.sql","INSERT INTO trusted_device(","INSERT INTO security_alert(","Quick verification of all 49 tables") and has("tools/verify_seed_demo_49.py","Seed V46 49-table verification"))
+
+passed=sum(1 for _,v in checks if v);total=len(checks)
+print(f"\nV46 verification: {passed}/{total} checks passed")
+sys.exit(0 if passed==total else 1)
