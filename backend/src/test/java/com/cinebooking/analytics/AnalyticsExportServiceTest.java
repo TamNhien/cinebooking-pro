@@ -63,20 +63,20 @@ class AnalyticsExportServiceTest {
             assertThat(csv).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
             String text = new String(csv, StandardCharsets.UTF_8);
             assertThat(text)
-                    .contains("Khoảng dữ liệu,30 ngày")
-                    .contains("Rạp,Tất cả rạp")
+                    .contains("\"Khoảng dữ liệu\",\"30 ngày\"")
+                    .contains("\"Rạp\",\"Tất cả rạp\"")
                     .contains("Ngày xuất");
         }
 
         assertThat(new String(entries.get("02-doanh-thu-theo-ngay.csv"), StandardCharsets.UTF_8))
                 .contains("CineBooking Analytics V2 - DOANH THU THEO NGÀY")
-                .contains("Ngày,Doanh thu,Booking,Vé,Check-in")
-                .contains("2026-08-21,1234567,12,24,19");
+                .contains("\"Ngày\",\"Doanh thu\",\"Booking\",\"Vé\",\"Check-in\"")
+                .contains("\"2026-08-21\",\"1234567\",\"12\",\"24\",\"19\"");
 
         assertThat(new String(entries.get("12-phuong-thuc-thanh-toan.csv"), StandardCharsets.UTF_8))
                 .contains("CineBooking Analytics V2 - PHƯƠNG THỨC THANH TOÁN")
-                .contains("Provider,Doanh thu,Giao dịch")
-                .contains("MOCK,1234567,12");
+                .contains("\"Provider\",\"Doanh thu\",\"Giao dịch\"")
+                .contains("\"MOCK\",\"1234567\",\"12\"");
     }
 
     @Test
