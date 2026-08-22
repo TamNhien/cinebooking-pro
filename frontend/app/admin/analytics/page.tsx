@@ -23,7 +23,7 @@ export default function AnalyticsPage(){
   const [data,setData]=useState<AnalyticsDashboard|null>(null);
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(true);
-  const [exporting,setExporting]=useState<"csv"|"xlsx"|null>(null);
+  const [exporting,setExporting]=useState<"csvzip"|"xlsx"|null>(null);
 
   useEffect(()=>{
     const auth=getAuth();
@@ -59,18 +59,21 @@ export default function AnalyticsPage(){
     return [...map.entries()].map(([row,cells])=>[row,cells.sort((a,b)=>a.seatNumber-b.seatNumber)] as const);
   },[data]);
 
-  async function exportAnalytics(format:"csv"|"xlsx"){
-    setExporting(format);
+  async function downloadExport(kind:"csvzip"|"xlsx"){
+    setExporting(kind);
     setError("");
     try{
       const query=new URLSearchParams({days:String(days)});
       if(cinemaId) query.set("cinemaId",cinemaId);
-      const blob=await apiBlob(`/admin/analytics/export.${format}?${query}`);
+      const endpoint=kind==="csvzip"?"/admin/analytics/export-csv.zip":"/admin/analytics/export.xlsx";
+      const blob=await apiBlob(`${endpoint}?${query}`);
       const url=URL.createObjectURL(blob);
       const a=document.createElement("a");
       const today=new Date().toISOString().slice(0,10);
       a.href=url;
-      a.download=`cinebooking-analytics-${days}d-${today}.${format}`;
+      a.download=kind==="csvzip"
+        ?`cinebooking-analytics-${days}d-${today}-csv-tables.zip`
+        :`cinebooking-analytics-${days}d-${today}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -87,7 +90,7 @@ export default function AnalyticsPage(){
       <div>
         <p className="section-kicker">ANALYTICS V2</p>
         <h1 className="text-3xl font-black">Doanh thu & hiệu suất vận hành</h1>
-        <p className="mt-1 max-w-3xl text-slate-400">Theo dõi doanh thu, tỷ lệ lấp đầy ghế, thanh toán, hoàn vé, giờ cao điểm, vị trí ghế được chọn nhiều và hiệu suất check-in nhân viên. Excel chi tiết tách mỗi bảng Analytics thành một worksheet riêng và lặp lại bộ lọc báo cáo trên từng sheet.</p>
+        <p className="mt-1 max-w-3xl text-slate-400">Theo dõi doanh thu, tỷ lệ lấp đầy ghế, thanh toán, hoàn vé, giờ cao điểm, vị trí ghế được chọn nhiều và hiệu suất check-in nhân viên. CSV chi tiết tải một gói ZIP gồm một file CSV riêng cho từng bảng; Excel chi tiết tách mỗi bảng Analytics thành một worksheet riêng. Cả hai đều lặp lại bộ lọc báo cáo cho từng bảng.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <select className="input !w-auto min-w-36" value={days} onChange={e=>setDays(Number(e.target.value))}>
@@ -97,8 +100,8 @@ export default function AnalyticsPage(){
           <option value="">Tất cả rạp</option>
           {cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button className="btn btn-secondary" type="button" disabled={loading||!!exporting} onClick={()=>exportAnalytics("csv")}>{exporting==="csv"?"Đang xuất...":"Xuất CSV"}</button>
-        <button className="btn btn-primary" type="button" title="Mỗi bảng Analytics được xuất thành một worksheet riêng" disabled={loading||!!exporting} onClick={()=>exportAnalytics("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>
+        <button className="btn btn-secondary" type="button" title="Tải ZIP gồm một file CSV UTF-8 riêng cho từng bảng Analytics" disabled={loading||!!exporting} onClick={()=>downloadExport("csvzip")}>{exporting==="csvzip"?"Đang xuất...":"Xuất CSV theo từng bảng"}</button>
+        <button className="btn btn-primary" type="button" title="Mỗi bảng Analytics được xuất thành một worksheet riêng" disabled={loading||!!exporting} onClick={()=>downloadExport("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>
         <Link className="btn btn-secondary" href="/admin">← Admin</Link>
       </div>
     </div>

@@ -43,6 +43,7 @@ jobs:
         run: |
           python3 tools/verify_v43_staff_operations.py
           python3 tools/verify_v43_analytics_excel_detail.py
+          python3 tools/verify_v43_analytics_csv_detail.py
 
       - name: Docker diagnostics
         run: |

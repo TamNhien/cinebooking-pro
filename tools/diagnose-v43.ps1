@@ -8,6 +8,8 @@ python .\tools\verify_v43_staff_operations.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 python .\tools\verify_v43_analytics_excel_detail.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python .\tools\verify_v43_analytics_csv_detail.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if (Get-Command docker -ErrorAction SilentlyContinue) {
   docker compose config --quiet
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

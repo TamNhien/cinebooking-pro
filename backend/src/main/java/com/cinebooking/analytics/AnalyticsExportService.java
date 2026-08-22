@@ -82,6 +82,87 @@ public class AnalyticsExportService {
         return out.toString().getBytes(StandardCharsets.UTF_8);
     }
 
+
+    /**
+     * Creates a ZIP package with one UTF-8 BOM CSV file per Analytics table.
+     * CSV itself has no worksheet concept, so this is the closest equivalent to the detailed XLSX export.
+     * Every file repeats the active report period, cinema filter and export timestamp.
+     */
+    public byte[] csvZip(Dashboard dashboard, int requestedDays, UUID cinemaId) {
+        int days = normalizeDays(requestedDays);
+        String cinema = cinemaLabel(dashboard, cinemaId);
+        String generatedAt = DATE_TIME.format(Instant.now());
+
+        List<CsvTable> tables = List.of(
+                csvTable("01-tong-quan.csv", "TỔNG QUAN", new String[]{"Chỉ số", "Giá trị"}, List.of(
+                        new Object[]{"Doanh thu", dashboard.kpi().revenue()},
+                        new Object[]{"Booking xác nhận", dashboard.kpi().confirmedBookings()},
+                        new Object[]{"Vé đã bán", dashboard.kpi().tickets()},
+                        new Object[]{"Doanh thu bắp nước", dashboard.kpi().concessionRevenue()},
+                        new Object[]{"Giá trị đơn trung bình", dashboard.kpi().averageOrderValue()},
+                        new Object[]{"Tỷ lệ lấp đầy (%)", dashboard.kpi().occupancyRate()},
+                        new Object[]{"Thanh toán thành công (%)", dashboard.kpi().paymentSuccessRate()},
+                        new Object[]{"Tỷ lệ hoàn vé (%)", dashboard.kpi().refundRate()},
+                        new Object[]{"Check-in", dashboard.kpi().checkIns()},
+                        new Object[]{"Người dùng", dashboard.kpi().users()},
+                        new Object[]{"Người dùng mới", dashboard.kpi().newUsers()}
+                )),
+                csvTable("02-doanh-thu-theo-ngay.csv", "DOANH THU THEO NGÀY", new String[]{"Ngày", "Doanh thu", "Booking", "Vé", "Check-in"},
+                        dashboard.dailyRevenue().stream().map(x -> new Object[]{x.day(), x.revenue(), x.bookings(), x.tickets(), x.checkIns()}).toList()),
+                csvTable("03-hieu-suat-theo-rap.csv", "HIỆU SUẤT THEO RẠP", new String[]{"Rạp", "Doanh thu", "Booking", "Vé", "Sức chứa", "Lấp đầy (%)"},
+                        dashboard.cinemaPerformance().stream().map(x -> new Object[]{x.cinemaName(), x.revenue(), x.bookings(), x.tickets(), x.capacity(), x.occupancyRate()}).toList()),
+                csvTable("04-top-phim.csv", "TOP PHIM", new String[]{"Phim", "Doanh thu", "Booking"},
+                        dashboard.topMovies().stream().map(x -> new Object[]{x.name(), x.value(), x.count()}).toList()),
+                csvTable("05-top-suat-chieu.csv", "TOP SUẤT CHIẾU", new String[]{"Phim", "Rạp", "Phòng", "Bắt đầu", "Doanh thu", "Vé", "Sức chứa", "Lấp đầy (%)"},
+                        dashboard.topShowtimes().stream().map(x -> new Object[]{x.movieTitle(), x.cinemaName(), x.auditoriumName(), formatInstant(x.startTime()), x.revenue(), x.tickets(), x.capacity(), x.occupancyRate()}).toList()),
+                csvTable("06-nhu-cau-theo-gio.csv", "NHU CẦU THEO GIỜ", new String[]{"Giờ", "Booking", "Vé", "Doanh thu"},
+                        dashboard.hourlyDemand().stream().map(x -> new Object[]{String.format("%02d:00", x.hour()), x.bookings(), x.tickets(), x.revenue()}).toList()),
+                csvTable("07-heatmap-ghe.csv", "HEATMAP GHẾ", new String[]{"Hàng", "Ghế", "Lượt chọn", "Doanh thu"},
+                        dashboard.seatHeatmap().stream().map(x -> new Object[]{x.rowLabel(), x.seatNumber(), x.bookings(), x.revenue()}).toList()),
+                csvTable("08-hieu-suat-nhan-vien.csv", "HIỆU SUẤT NHÂN VIÊN", new String[]{"Mã NV", "Họ tên", "Rạp", "Vé check-in"},
+                        dashboard.staffPerformance().stream().map(x -> new Object[]{x.employeeCode(), x.fullName(), x.cinemaName(), x.checkedTickets()}).toList()),
+                csvTable("09-trang-thai-booking.csv", "TRẠNG THÁI BOOKING", new String[]{"Trạng thái", "Số lượng"},
+                        dashboard.bookingStatuses().stream().map(x -> new Object[]{x.status(), x.count()}).toList()),
+                csvTable("10-trang-thai-payment.csv", "TRẠNG THÁI PAYMENT", new String[]{"Trạng thái", "Số lượng"},
+                        dashboard.paymentStatuses().stream().map(x -> new Object[]{x.status(), x.count()}).toList()),
+                csvTable("11-top-bap-nuoc.csv", "TOP BẮP NƯỚC", new String[]{"Sản phẩm", "Doanh thu", "Số lượng"},
+                        dashboard.topConcessions().stream().map(x -> new Object[]{x.name(), x.value(), x.count()}).toList()),
+                csvTable("12-phuong-thuc-thanh-toan.csv", "PHƯƠNG THỨC THANH TOÁN", new String[]{"Provider", "Doanh thu", "Giao dịch"},
+                        dashboard.paymentProviders().stream().map(x -> new Object[]{x.name(), x.value(), x.count()}).toList())
+        );
+
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
+            for (CsvTable table : tables) {
+                ZipEntry entry = new ZipEntry(table.filename());
+                zip.putNextEntry(entry);
+                zip.write(detailedCsv(table, days, cinema, generatedAt));
+                zip.closeEntry();
+            }
+            zip.finish();
+            return bytes.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("Không thể tạo gói CSV Analytics chi tiết.", e);
+        }
+    }
+
+    private CsvTable csvTable(String filename, String title, String[] headers, List<Object[]> rows) {
+        return new CsvTable(filename, title, headers, rows);
+    }
+
+    private byte[] detailedCsv(CsvTable table, int days, String cinema, String generatedAt) {
+        StringBuilder out = new StringBuilder();
+        out.append('\uFEFF');
+        csvRow(out, "CineBooking Analytics V2 - " + table.title());
+        csvRow(out, "Khoảng dữ liệu", days + " ngày");
+        csvRow(out, "Rạp", cinema);
+        csvRow(out, "Ngày xuất", generatedAt);
+        blank(out);
+        csvRow(out, (Object[]) table.headers());
+        for (Object[] row : table.rows()) csvRow(out, row);
+        return out.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
     /**
      * Creates one detailed worksheet for every Analytics table that is also present in the CSV export.
      * Each worksheet repeats the active report filters so a sheet can be shared/printed independently.
@@ -383,5 +464,7 @@ public class AnalyticsExportService {
 
     private record StyledValue(Object value, int style) {}
     private record Cell(Object value, int style) {}
+    private record CsvTable(String filename, String title, String[] headers, List<Object[]> rows) {}
+
     private record Sheet(String name, List<List<Cell>> rows, int headerRow) {}
 }

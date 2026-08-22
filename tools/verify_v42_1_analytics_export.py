@@ -42,7 +42,13 @@ check(
 )
 check(
     "Admin Analytics UI exposes both export actions",
-    all(x in ui for x in ['apiBlob', 'Xuất CSV', 'Xuất Excel', '/admin/analytics/export.${format}']),
+    'apiBlob' in ui
+    and 'Xuất CSV' in ui
+    and 'Xuất Excel' in ui
+    and (
+        '/admin/analytics/export.${format}' in ui
+        or ('/admin/analytics/export-csv.zip' in ui and '/admin/analytics/export.xlsx' in ui)
+    ),
 )
 check(
     "Backend export tests cover UTF-8 CSV and OpenXML XLSX",

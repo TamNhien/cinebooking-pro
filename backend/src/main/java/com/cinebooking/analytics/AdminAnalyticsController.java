@@ -47,6 +47,16 @@ public class AdminAnalyticsController {
         return download(file, "text/csv;charset=UTF-8", filename(days, "csv"));
     }
 
+    @GetMapping(value = "/export-csv.zip", produces = "application/zip")
+    public ResponseEntity<byte[]> exportCsvZip(
+            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(required = false) UUID cinemaId
+    ) {
+        Dashboard dashboard = service.dashboard(days, cinemaId);
+        byte[] file = exportService.csvZip(dashboard, days, cinemaId);
+        return download(file, "application/zip", csvTablesFilename(days));
+    }
+
     @GetMapping(value = "/export.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     public ResponseEntity<byte[]> exportXlsx(
             @RequestParam(defaultValue = "30") int days,
@@ -65,6 +75,11 @@ public class AdminAnalyticsController {
                 .build());
         headers.setContentLength(content.length);
         return ResponseEntity.ok().headers(headers).body(content);
+    }
+
+    private String csvTablesFilename(int requestedDays) {
+        int days = Math.max(7, Math.min(requestedDays, 365));
+        return "cinebooking-analytics-" + days + "d-" + LocalDate.now(BUSINESS_ZONE) + "-csv-tables.zip";
     }
 
     private String filename(int requestedDays, String extension) {

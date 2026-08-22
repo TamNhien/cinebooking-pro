@@ -37,6 +37,49 @@ class AnalyticsExportServiceTest {
     }
 
     @Test
+    void csvZipCreatesOneUtf8CsvPerAnalyticsTable() throws Exception {
+        byte[] csvZip = service.csvZip(sampleDashboard(), 30, null);
+
+        assertThat(csvZip).startsWith((byte) 'P', (byte) 'K');
+        Map<String, byte[]> entries = unzipBinaryEntries(csvZip);
+
+        assertThat(entries).hasSize(12);
+        assertThat(entries.keySet()).containsExactlyInAnyOrder(
+                "01-tong-quan.csv",
+                "02-doanh-thu-theo-ngay.csv",
+                "03-hieu-suat-theo-rap.csv",
+                "04-top-phim.csv",
+                "05-top-suat-chieu.csv",
+                "06-nhu-cau-theo-gio.csv",
+                "07-heatmap-ghe.csv",
+                "08-hieu-suat-nhan-vien.csv",
+                "09-trang-thai-booking.csv",
+                "10-trang-thai-payment.csv",
+                "11-top-bap-nuoc.csv",
+                "12-phuong-thuc-thanh-toan.csv"
+        );
+
+        for (byte[] csv : entries.values()) {
+            assertThat(csv).startsWith((byte) 0xEF, (byte) 0xBB, (byte) 0xBF);
+            String text = new String(csv, StandardCharsets.UTF_8);
+            assertThat(text)
+                    .contains("Khoảng dữ liệu,30 ngày")
+                    .contains("Rạp,Tất cả rạp")
+                    .contains("Ngày xuất");
+        }
+
+        assertThat(new String(entries.get("02-doanh-thu-theo-ngay.csv"), StandardCharsets.UTF_8))
+                .contains("CineBooking Analytics V2 - DOANH THU THEO NGÀY")
+                .contains("Ngày,Doanh thu,Booking,Vé,Check-in")
+                .contains("2026-08-21,1234567,12,24,19");
+
+        assertThat(new String(entries.get("12-phuong-thuc-thanh-toan.csv"), StandardCharsets.UTF_8))
+                .contains("CineBooking Analytics V2 - PHƯƠNG THỨC THANH TOÁN")
+                .contains("Provider,Doanh thu,Giao dịch")
+                .contains("MOCK,1234567,12");
+    }
+
+    @Test
     void xlsxCreatesOneDetailedWorksheetPerCsvTable() throws Exception {
         byte[] xlsx = service.xlsx(sampleDashboard(), 30, null);
 
@@ -97,6 +140,17 @@ class AnalyticsExportServiceTest {
                 .contains("MOCK")
                 .contains("Giao dịch")
                 .contains("<autoFilter ref=\"A6:C7\"/>");
+    }
+
+    private Map<String, byte[]> unzipBinaryEntries(byte[] zipBytes) throws Exception {
+        Map<String, byte[]> entries = new HashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(zipBytes), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                entries.put(entry.getName(), zip.readAllBytes());
+            }
+        }
+        return entries;
     }
 
     private Map<String, String> unzipTextEntries(byte[] xlsx) throws Exception {
