@@ -65,7 +65,18 @@ public class CustomerSupportService {
 
     public List<SupportCinema> cinemaOptions(String email){AppUser actor=manager(email);if(actor.getRole()==Role.ADMIN)return cinemas.findAllByOrderByNameAsc().stream().map(c->new SupportCinema(c.getId(),c.getName())).toList();Cinema c=cinema(managerCinema(actor));return List.of(new SupportCinema(c.getId(),c.getName()));}
 
-    public List<SupportStaff> staffOptions(String email,UUID requestedCinema){AppUser actor=manager(email);UUID cinemaId=resolveCinema(actor,requestedCinema);List<SupportStaff> out=new ArrayList<>();for(StaffProfile p:profiles.findAllByDeletedAtIsNullOrderByEmployeeCodeAsc()){if(!Objects.equals(p.getCinemaId(),cinemaId)||!"ACTIVE".equals(p.getEmploymentStatus()))continue;AppUser u=users.findById(p.getUserId()).orElse(null);if(u!=null&&u.isAccountEnabled()&&u.getRole()==Role.MANAGER)out.add(new SupportStaff(u.getId(),p.getEmployeeCode(),u.getFullName(),u.getRole().name()));}return out;}
+    public List<SupportStaff> staffOptions(String email,UUID requestedCinema){
+        AppUser actor=manager(email);UUID managerCinemaId=actor.getRole()==Role.MANAGER?managerCinema(actor):null;List<SupportStaff> out=new ArrayList<>();
+        for(StaffProfile p:profiles.findAllByDeletedAtIsNullOrderByEmployeeCodeAsc()){
+            if(!"ACTIVE".equals(p.getEmploymentStatus()))continue;
+            if(actor.getRole()==Role.MANAGER&&!Objects.equals(p.getCinemaId(),managerCinemaId))continue;
+            AppUser u=users.findById(p.getUserId()).orElse(null);
+            if(u==null||!u.isAccountEnabled()||(u.getRole()!=Role.STAFF&&u.getRole()!=Role.MANAGER))continue;
+            String cinemaName=p.getCinemaId()==null?"Chưa phân rạp":cinemas.findById(p.getCinemaId()).map(Cinema::getName).orElse("-");
+            out.add(new SupportStaff(u.getId(),p.getEmployeeCode(),u.getFullName(),u.getRole().name(),p.getCinemaId(),cinemaName));
+        }
+        return out;
+    }
 
     public SupportSummary summary(String email,UUID requestedCinema){AppUser actor=manager(email);UUID cinemaId=resolveCinema(actor,requestedCinema);Cinema c=cinema(cinemaId);Set<String> open=SupportCaseRules.openStatuses();Instant now=Instant.now();return new SupportSummary(cinemaId,c.getName(),cases.countByCinemaIdAndStatusIn(cinemaId,open),cases.countByCinemaIdAndStatus(cinemaId,"WAITING_CUSTOMER"),cases.countByCinemaIdAndPriorityAndStatusIn(cinemaId,"CRITICAL",open),cases.countByCinemaIdAndSlaDueAtBeforeAndStatusIn(cinemaId,now,open),now);}
 
@@ -76,7 +87,12 @@ public class CustomerSupportService {
     @Transactional
     public CaseResponse plan(UUID id,CasePlanRequest req,String email,String ip){
         AppUser actor=manager(email);CustomerSupportCase c=adminCase(id,actor);String priority=upper(req.priority());if(!PRIORITIES.contains(priority))throw new ApiException(HttpStatus.BAD_REQUEST,"Mức ưu tiên không hợp lệ");
-        if(req.assignedTo()!=null){AppUser a=users.findById(req.assignedTo()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy người phụ trách"));StaffProfile p=profiles.findById(a.getId()).orElseThrow(()->new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách chưa có hồ sơ nhân viên"));if(a.getRole()!=Role.MANAGER||!a.isAccountEnabled()||!"ACTIVE".equals(p.getEmploymentStatus()))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải là Manager đang hoạt động");if(c.getCinemaId()==null||!Objects.equals(c.getCinemaId(),p.getCinemaId()))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải thuộc cùng rạp của yêu cầu");}
+        if(req.assignedTo()!=null){
+            AppUser a=users.findById(req.assignedTo()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy người phụ trách"));
+            StaffProfile p=profiles.findById(a.getId()).orElseThrow(()->new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách chưa có hồ sơ nhân viên"));
+            if((a.getRole()!=Role.MANAGER&&a.getRole()!=Role.STAFF)||!a.isAccountEnabled()||!"ACTIVE".equals(p.getEmploymentStatus()))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải là Staff/Manager đang hoạt động");
+            if(actor.getRole()==Role.MANAGER&&(c.getCinemaId()==null||!Objects.equals(c.getCinemaId(),p.getCinemaId())))throw new ApiException(HttpStatus.BAD_REQUEST,"Manager chỉ phân công nhân sự thuộc cùng rạp của yêu cầu");
+        }
         boolean changed=!Objects.equals(c.getPriority(),priority)||!Objects.equals(c.getAssignedTo(),req.assignedTo());c.setPriority(priority);c.setAssignedTo(req.assignedTo());if(changed&&SupportCaseRules.isOpen(c.getStatus()))c.setSlaDueAt(Instant.now().plus(SupportCaseRules.sla(priority)));cases.save(c);addEvent(c,"CASE_PLANNED",c.getStatus(),c.getStatus(),"INTERNAL","Priority="+priority+"; assignee="+userName(req.assignedTo()),actor.getId());audit.record(email,"SUPPORT_CASE_PLAN","CUSTOMER_SUPPORT_CASE",c.getId().toString(),c.getCaseNumber()+" · "+priority,ip);return dto(c);
     }
 

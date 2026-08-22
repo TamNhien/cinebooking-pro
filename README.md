@@ -2,7 +2,9 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V46 — Security & Account Protection 2.0  
+> **Current release:** V46
+
+**V46 support assignment hotfix:** Admin all-cinema view now loads active Staff/Manager assignees instead of an empty dropdown. Managers remain cinema-scoped; Admin can coordinate assignments across branches. Assignee options show employee code, role, and cinema. — Security & Account Protection 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -1958,3 +1960,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\check-reference-49-table-counts
 ```
 
 The seed aborts if PostgreSQL is not UTF-8, if checked text still contains encoding corruption, if seeded human-readable values still contain placeholder `Demo`/`mẫu`, if deterministic payment rows still use VNPay/MoMo, if the eight canonical movies are unavailable, if synthetic movie rows remain, or if any of the 49 pgAdmin tables is empty. Reference accounts run from `an.nguyen@cinebooking.local` through `chau.ho@cinebooking.local`; the shared password is `CineBooking@123`.
+
+### V46 reference-data branch visibility fix
+
+The 49-table reference seed now distributes its ten deterministic auditoriums and maintenance assets across the ten reference cinemas instead of attaching every asset to one cinema. This matters because `/admin/maintenance` is intentionally cinema-scoped: selecting CineHub Gigamall only returns rows whose `cinema_id` is Gigamall. Re-running `tools/seed-reference-49-tables.ps1` repairs older deterministic rows in-place, so each reference cinema has a matching auditorium and maintenance asset; no database reset is required.

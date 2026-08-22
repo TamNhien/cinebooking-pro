@@ -7,7 +7,7 @@ import java.util.UUID;
 public final class SupportDtos {
     private SupportDtos(){}
     public record SupportCinema(UUID id,String name){}
-    public record SupportStaff(UUID userId,String employeeCode,String fullName,String role){}
+    public record SupportStaff(UUID userId,String employeeCode,String fullName,String role,UUID cinemaId,String cinemaName){}
     public record SupportSummary(UUID cinemaId,String cinemaName,long activeCases,long waitingCustomer,long criticalActive,long overdueSla,Instant generatedAt){}
     public record CreateCaseRequest(UUID bookingId,@NotBlank @Size(max=30) String category,@NotBlank @Size(max=180) String subject,@NotBlank @Size(max=3000) String description){}
     public record CustomerMessageRequest(@NotBlank @Size(max=3000) String message){}

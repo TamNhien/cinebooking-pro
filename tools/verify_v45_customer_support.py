@@ -37,6 +37,10 @@ ok("Stable release retains V45 verifier in current source gate",has(".github/wor
 ok("Makefile exposes V45 verify and diagnose",has("Makefile","verify-v45:","diagnose-v45:"))
 ok("V45 diagnostics chains V44 and V45",has("tools/diagnose-v45.ps1","verify_v44_maintenance_reliability.py","verify_v45_customer_support.py","V45 source diagnostics passed."))
 
+ok("Admin all-cinema support view loads assignment candidates",has("frontend/app/admin/support/page.tsx","api<SupportStaff[]>(\"/admin/support/staff-options\")","setStaff(p)"))
+ok("Support assignment accepts active Staff or Manager",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","a.getRole()!=Role.MANAGER&&a.getRole()!=Role.STAFF","Staff/Manager đang hoạt động"))
+ok("Admin support assignment candidates include branch metadata",has("backend/src/main/java/com/cinebooking/support/SupportDtos.java","UUID cinemaId,String cinemaName") and has("frontend/lib/types.ts","cinemaName?:string"))
+ok("Manager support assignment remains cinema-scoped",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","actor.getRole()==Role.MANAGER","Manager chỉ phân công nhân sự thuộc cùng rạp của yêu cầu"))
 passed=sum(1 for _,v in checks if v);total=len(checks)
 print(f"\nV45 verification: {passed}/{total} checks passed")
 sys.exit(0 if passed==total else 1)

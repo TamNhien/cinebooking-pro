@@ -98,15 +98,15 @@ CREATE TEMP TABLE seed_real_asset(
 ) ON COMMIT DROP;
 INSERT INTO seed_real_asset VALUES
 (1,'PRJ-NH-001','Máy chiếu Barco SP4K-15','PROJECTOR','Barco','BARCO-SP4K-15001','Thiết bị trình chiếu chính của Phòng 01','Vệ sinh và cân chỉnh máy chiếu Barco','Kiểm tra bộ lọc, độ sáng, màu sắc và cân chỉnh khung hình.'),
-(2,'AUD-NH-001','Bộ xử lý âm thanh Dolby CP950','AUDIO','Dolby Laboratories','DOLBY-CP950-002','Bộ xử lý âm thanh trung tâm của Phòng 02','Kiểm tra hệ thống âm thanh Dolby','Đo mức âm lượng, kiểm tra kênh loa và cấu hình Dolby CP950.'),
-(3,'HVAC-NH-001','Dàn lạnh Daikin VRV','HVAC','Daikin','DAIKIN-VRV-003','Điều hòa không khí khu vực Phòng 03','Bảo dưỡng dàn lạnh Daikin VRV','Vệ sinh lưới lọc, kiểm tra nhiệt độ gió và đường thoát nước.'),
-(4,'SCR-NH-001','Màn chiếu Harkness Perlux 180+','SCREEN','Harkness','HARKNESS-004','Màn chiếu chính của Phòng 04','Kiểm tra bề mặt màn chiếu','Kiểm tra độ phẳng, vết bẩn và hệ thống căng màn.'),
-(5,'POS-NH-001','Máy POS Sunmi T2','POS','Sunmi','SUNMI-T2-005','Thiết bị thanh toán tại quầy vé','Kiểm tra máy POS quầy vé','Kiểm tra kết nối mạng, máy in hóa đơn và nguồn điện.'),
-(6,'NET-NH-001','Switch Cisco CBS350','NETWORK','Cisco','CBS350-006','Switch mạng nội bộ khu vực phòng chiếu','Kiểm tra switch mạng Cisco','Rà soát cổng mạng, lỗi CRC và trạng thái uplink.'),
-(7,'PWR-NH-001','UPS APC Smart-UPS SRT','POWER','APC','APC-SRT-007','Nguồn dự phòng cho hệ thống trình chiếu','Kiểm tra UPS phòng kỹ thuật','Kiểm tra pin, tải sử dụng và thời gian lưu điện.'),
-(8,'PRJ-NH-002','Máy chiếu Christie CP4415-RGB','PROJECTOR','Christie','CHR-CP4415-008','Máy chiếu laser của Phòng 08','Cân chỉnh máy chiếu Christie','Kiểm tra quang học, độ hội tụ và cân chỉnh màu RGB.'),
-(9,'AUD-NH-002','Amplifier Crown DCi 4|300N','AUDIO','Crown','CROWN-DCI-009','Amplifier công suất của Phòng 09','Kiểm tra amplifier Crown','Kiểm tra nhiệt độ, tín hiệu đầu vào và tải loa.'),
-(10,'SAFE-NH-001','Tủ trung tâm báo cháy Hochiki','SAFETY','Hochiki','HCH-FACP-010','Tủ báo cháy khu vực phòng chiếu','Kiểm tra hệ thống báo cháy','Kiểm tra nguồn dự phòng, đầu báo và lịch sử cảnh báo.');
+(2,'AUD-LM81-001','Bộ xử lý âm thanh Dolby CP950','AUDIO','Dolby Laboratories','DOLBY-CP950-002','Bộ xử lý âm thanh trung tâm của Phòng 02','Kiểm tra hệ thống âm thanh Dolby','Đo mức âm lượng, kiểm tra kênh loa và cấu hình Dolby CP950.'),
+(3,'HVAC-TD-001','Dàn lạnh Daikin VRV','HVAC','Daikin','DAIKIN-VRV-003','Điều hòa không khí khu vực Phòng 03','Bảo dưỡng dàn lạnh Daikin VRV','Vệ sinh lưới lọc, kiểm tra nhiệt độ gió và đường thoát nước.'),
+(4,'SCR-CM-001','Màn chiếu Harkness Perlux 180+','SCREEN','Harkness','HARKNESS-004','Màn chiếu chính của Phòng 04','Kiểm tra bề mặt màn chiếu','Kiểm tra độ phẳng, vết bẩn và hệ thống căng màn.'),
+(5,'POS-GV-001','Máy POS Sunmi T2','POS','Sunmi','SUNMI-T2-005','Thiết bị thanh toán tại quầy vé','Kiểm tra máy POS quầy vé','Kiểm tra kết nối mạng, máy in hóa đơn và nguồn điện.'),
+(6,'NET-CH-001','Switch Cisco CBS350','NETWORK','Cisco','CBS350-006','Switch mạng nội bộ khu vực phòng chiếu','Kiểm tra switch mạng Cisco','Rà soát cổng mạng, lỗi CRC và trạng thái uplink.'),
+(7,'PWR-ABT-001','UPS APC Smart-UPS SRT','POWER','APC','APC-SRT-007','Nguồn dự phòng cho hệ thống trình chiếu','Kiểm tra UPS phòng kỹ thuật','Kiểm tra pin, tải sử dụng và thời gian lưu điện.'),
+(8,'PRJ-VH-001','Máy chiếu Christie CP4415-RGB','PROJECTOR','Christie','CHR-CP4415-008','Máy chiếu laser của Phòng 08','Cân chỉnh máy chiếu Christie','Kiểm tra quang học, độ hội tụ và cân chỉnh màu RGB.'),
+(9,'AUD-GM-001','Amplifier Crown DCi 4|300N','AUDIO','Crown','CROWN-DCI-009','Amplifier công suất của Phòng 09','Kiểm tra amplifier Crown','Kiểm tra nhiệt độ, tín hiệu đầu vào và tải loa.'),
+(10,'SAFE-NT-001','Tủ trung tâm báo cháy Hochiki','SAFETY','Hochiki','HCH-FACP-010','Tủ báo cháy khu vực phòng chiếu','Kiểm tra hệ thống báo cháy','Kiểm tra nguồn dự phòng, đầu báo và lịch sử cảnh báo.');
 
 CREATE TEMP TABLE seed_real_device(n integer PRIMARY KEY,label text NOT NULL,device_name text NOT NULL,user_agent text NOT NULL) ON COMMIT DROP;
 INSERT INTO seed_real_device VALUES
@@ -174,7 +174,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO auditorium(id,cinema_id,name)
 SELECT
     md5('seed45:auditorium:' || n)::uuid,
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     (SELECT name FROM seed_real_auditorium WHERE seed_real_auditorium.n = g.n)
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -599,7 +599,7 @@ INSERT INTO pricing_rule(
 SELECT
     md5('seed45:pricing:' || n)::uuid,
     (ARRAY['Ưu đãi suất tối thứ Hai','Ưu đãi suất tối thứ Ba','Khung giờ vàng giữa tuần','Phụ thu ghế VIP buổi tối','Ưu đãi suất sớm','Giá cuối tuần buổi tối','Ưu đãi thành viên buổi tối','Khung giờ thấp điểm','Phụ thu suất công chiếu','Ưu đãi đặt vé trực tuyến'])[n],
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     md5('seed45:auditorium:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     NULL,'1,2,3,4,5,6,7',TIME '18:00',TIME '23:00',
@@ -745,7 +745,7 @@ SELECT
     md5('seed45:shift:' || n)::uuid,
     md5('seed45:attendance:' || n)::uuid,
     md5('seed45:user:' || n)::uuid,
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     CURRENT_TIMESTAMP - (n || ' days')::interval + INTERVAL '19 hours 5 minutes',
     'QR',
     format('10.45.2.%s', n)
@@ -840,7 +840,7 @@ INSERT INTO cinema_equipment_asset(
 )
 SELECT
     md5('seed45:asset:' || n)::uuid,
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     md5('seed45:auditorium:' || n)::uuid,
     (SELECT asset_code FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     (SELECT name FROM seed_real_asset WHERE seed_real_asset.n = g.n),
@@ -866,7 +866,7 @@ INSERT INTO maintenance_work_order(
 )
 SELECT
     md5('seed45:work-order:' || n)::uuid,
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     md5('seed45:auditorium:' || n)::uuid,
     md5('seed45:asset:' || n)::uuid,
     NULL,
@@ -874,7 +874,7 @@ SELECT
     (SELECT work_description FROM seed_real_asset WHERE seed_real_asset.n = g.n),
     CASE WHEN n % 4 = 0 THEN 'HIGH' ELSE 'MEDIUM' END,
     'OPEN',
-    md5('seed45:user:' || n)::uuid,
+    CASE WHEN n = 1 THEN md5('seed45:user:1')::uuid ELSE NULL END,
     CURRENT_TIMESTAMP + (n || ' days')::interval,
     NULL,
     md5('seed45:user:1')::uuid,
@@ -992,13 +992,13 @@ SELECT
     format('CB-SUP-202608-%s', to_char(n,'FM0000')),
     md5('seed45:user:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
-    md5('seed45:cinema:1')::uuid,
+    md5('seed45:cinema:' || n)::uuid,
     (ARRAY['BOOKING','PAYMENT','REFUND','TICKET','CINEMA_EXPERIENCE','STAFF','OTHER'])[((n - 1) % 7) + 1],
     (ARRAY['LOW','MEDIUM','HIGH','CRITICAL'])[((n - 1) % 4) + 1],
     (ARRAY['OPEN','IN_PROGRESS','WAITING_CUSTOMER','RESOLVED','CLOSED'])[((n - 1) % 5) + 1],
     (ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[n],
     (ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[n],
-    md5('seed45:user:1')::uuid,
+    md5('seed45:user:' || n)::uuid,
     CURRENT_TIMESTAMP + ((12 + n * 6) || ' hours')::interval,
     CASE WHEN ((n - 1) % 5) + 1 IN (4,5) THEN format('Yêu cầu hỗ trợ %s đã được xử lý', to_char(n,'FM00')) ELSE NULL END,
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
@@ -1171,6 +1171,16 @@ FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:recommendation:' || g.n
 UPDATE pricing_rule p SET name=(ARRAY['Ưu đãi suất tối thứ Hai','Ưu đãi suất tối thứ Ba','Khung giờ vàng giữa tuần','Phụ thu ghế VIP buổi tối','Ưu đãi suất sớm','Giá cuối tuần buổi tối','Ưu đãi thành viên buổi tối','Khung giờ thấp điểm','Phụ thu suất công chiếu','Ưu đãi đặt vé trực tuyến'])[g.n]
 FROM generate_series(1,10) g(n) WHERE p.id = md5('seed45:pricing:' || g.n)::uuid;
 
+-- Keep branch-scoped reference data aligned so every cinema can be inspected from the admin UI.
+UPDATE auditorium a SET cinema_id=md5('seed45:cinema:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE a.id=md5('seed45:auditorium:' || g.n)::uuid;
+UPDATE pricing_rule p SET cinema_id=md5('seed45:cinema:' || g.n)::uuid, auditorium_id=md5('seed45:auditorium:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE p.id=md5('seed45:pricing:' || g.n)::uuid;
+UPDATE ticket_checkin_log t SET cinema_id=md5('seed45:cinema:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE t.id=md5('seed45:checkin:' || g.n)::uuid;
+UPDATE customer_support_case c SET cinema_id=md5('seed45:cinema:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE c.id=md5('seed45:support-case:' || g.n)::uuid;
+
 UPDATE user_notification n SET
     notification_type='BOOKING_UPDATE',
     title=(ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[g.n],
@@ -1201,9 +1211,17 @@ FROM generate_series(1,10) g(n) WHERE h.id = md5('seed45:handover:' || g.n)::uui
 UPDATE auditorium_blackout b SET reason=(ARRAY['Vệ sinh máy chiếu định kỳ','Kiểm tra hệ thống âm thanh','Bảo dưỡng điều hòa phòng chiếu','Vệ sinh màn chiếu','Kiểm tra nguồn điện phòng chiếu','Kiểm tra mạng nội bộ','Bảo trì ghế và lối đi','Cân chỉnh máy chiếu laser','Đo kiểm âm thanh định kỳ','Kiểm tra hệ thống an toàn'])[g.n]
 FROM generate_series(1,10) g(n) WHERE b.id = md5('seed45:blackout:' || g.n)::uuid;
 
-UPDATE cinema_equipment_asset a SET asset_code=m.asset_code,name=m.name,category=m.category,vendor=m.vendor,serial_number=m.serial_number,note=m.note
+UPDATE cinema_equipment_asset a SET
+    cinema_id=md5('seed45:cinema:' || m.n)::uuid,
+    auditorium_id=md5('seed45:auditorium:' || m.n)::uuid,
+    asset_code=m.asset_code,name=m.name,category=m.category,vendor=m.vendor,serial_number=m.serial_number,note=m.note
 FROM seed_real_asset m WHERE a.id = md5('seed45:asset:' || m.n)::uuid;
-UPDATE maintenance_work_order w SET title=m.work_title,description=m.work_description
+UPDATE maintenance_work_order w SET
+    cinema_id=md5('seed45:cinema:' || m.n)::uuid,
+    auditorium_id=md5('seed45:auditorium:' || m.n)::uuid,
+    asset_id=md5('seed45:asset:' || m.n)::uuid,
+    assigned_to=CASE WHEN m.n=1 THEN md5('seed45:user:1')::uuid ELSE NULL END,
+    title=m.work_title,description=m.work_description
 FROM seed_real_asset m WHERE w.id = md5('seed45:work-order:' || m.n)::uuid;
 
 UPDATE financial_reconciliation_run r SET run_key=format('RECON-202608-%s', to_char(g.n,'FM00')), started_by='an.nguyen@cinebooking.local'
@@ -1212,6 +1230,7 @@ UPDATE financial_reconciliation_issue i SET issue_type='LOYALTY_BALANCE_MISMATCH
 FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:recon-issue:' || g.n)::uuid;
 
 UPDATE customer_support_case c SET
+    assigned_to=md5('seed45:user:' || g.n)::uuid,
     case_number=format('CB-SUP-202608-%s', to_char(g.n,'FM0000')),
     subject=(ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[g.n],
     description=(ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[g.n],

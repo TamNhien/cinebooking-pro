@@ -160,7 +160,7 @@ export type MaintenanceWorkOrder = { id:string; cinemaId:string; cinemaName:stri
 export type MaintenanceWorkOrderEvent = { id:string; workOrderId:string; eventType:string; fromStatus?:string; toStatus?:string; note?:string; actorUserId:string; actorName:string; createdAt:string };
 
 export type SupportCinema = { id:string; name:string };
-export type SupportStaff = { userId:string; employeeCode:string; fullName:string; role:"MANAGER" };
+export type SupportStaff = { userId:string; employeeCode:string; fullName:string; role:"STAFF"|"MANAGER"; cinemaId?:string; cinemaName?:string };
 export type SupportSummary = { cinemaId:string; cinemaName:string; activeCases:number; waitingCustomer:number; criticalActive:number; overdueSla:number; generatedAt:string };
 export type SupportCase = { id:string; caseNumber:string; userId:string; customerName:string; customerEmail:string; bookingId?:string; cinemaId?:string; cinemaName?:string; category:"BOOKING"|"PAYMENT"|"REFUND"|"TICKET"|"CINEMA_EXPERIENCE"|"STAFF"|"OTHER"; priority:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; status:"OPEN"|"IN_PROGRESS"|"WAITING_CUSTOMER"|"RESOLVED"|"CLOSED"; subject:string; description:string; assignedTo?:string; assignedToName?:string; slaDueAt:string; overdue:boolean; resolutionNote?:string; lastCustomerMessageAt:string; lastStaffMessageAt?:string; resolvedAt?:string; closedAt?:string; createdAt:string; updatedAt:string };
 export type SupportCaseEvent = { id:string; caseId:string; eventType:string; fromStatus?:string; toStatus?:string; visibility:"CUSTOMER"|"INTERNAL"; message?:string; actorUserId:string; actorName:string; actorRole:string; createdAt:string };
