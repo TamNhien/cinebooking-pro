@@ -181,6 +181,17 @@ verify-v45:
 	python tools/verify_v43_analytics_csv_detail.py
 	python tools/verify_v44_maintenance_reliability.py
 	python tools/verify_v45_customer_support.py
+	python tools/verify_seed_demo_47.py
 
 diagnose-v45:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v45.ps1
+
+
+verify-seed-demo-v45:
+	python tools/verify_seed_demo_47.py
+
+seed-demo-v45:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-47-tables.ps1
+
+check-seed-demo-v45:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-47-table-counts.ps1

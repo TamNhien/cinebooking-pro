@@ -1843,13 +1843,21 @@ main CI
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
 
-## Demo seed — UTF-8-safe sample data for the 45 pgAdmin tables
+## Demo seed — UTF-8-safe sample data for all 47 pgAdmin tables
 
-For local/demo databases, `tools/seed-demo-45-tables-10-rows.sql` adds or repairs ten deterministic DEMO45 rows across the application tables shown in the 45-table V44 pgAdmin schema. There are two deliberate exceptions: `movie` is **not** populated with synthetic `Phim Demo` rows and instead all DEMO45 relations reuse the eight canonical movies shipped by V29; `flyway_schema_history` is never modified because it is Flyway migration metadata. `financial_ledger_line` intentionally receives twenty rows (two balanced lines for each of ten ledger entries) so V42 double-entry invariants remain valid.
+The V45 schema now contains **47 pgAdmin tables**: 46 application tables plus `flyway_schema_history`. The previous seed already covered the V44-era tables but did not seed the two V45 support tables. The current seed therefore adds ten deterministic rows to both `customer_support_case` and `customer_support_case_event` and validates that no table is left empty.
 
-The PowerShell runner copies the SQL file byte-for-byte into the PostgreSQL container and runs `psql -f` there. This avoids Windows PowerShell/native-pipe code-page conversion that can store Vietnamese text as `M?y chi?u`, `Ph?ng`, and similar corrupted values. Re-running the seed also refreshes all human-readable DEMO45 fields and removes any old synthetic `Phim Demo` rows from the previous seed implementation.
+`movie` is deliberately not populated with synthetic `Phim Demo` rows. All seeded movie relations reuse the eight canonical V29 films already present in the database. `flyway_schema_history` is never inserted, updated or deleted; its genuine Flyway migration rows satisfy the table-data check. `financial_ledger_line` intentionally receives twenty rows (balanced debit/credit lines for ten ledger entries).
+
+The UTF-8-safe runner copies SQL byte-for-byte into the PostgreSQL container and executes `psql -f`, avoiding Windows PowerShell code-page conversion. It also repairs earlier DEMO45 Vietnamese text such as `Máy chiếu`, `Phòng`, support subjects/messages and other human-readable fields.
 
 Run from the repository root on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-47-tables.ps1
+```
+
+The former command remains as a compatibility alias:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
@@ -1858,7 +1866,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
 Static verification:
 
 ```powershell
-python .\tools\verify_seed_demo_45.py
+python .\tools\verify_seed_demo_47.py
 ```
 
-The seed aborts if PostgreSQL is not UTF-8, if any checked DEMO45 human-readable value still contains `?`, if the eight canonical V29 movies are unavailable, or if synthetic `Phim Demo` rows remain. The ten demo accounts are `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, all with password `Demo@123`.
+Inspect exact row counts for all 47 tables:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-47-table-counts.ps1
+```
+
+The seed aborts if PostgreSQL is not UTF-8, if a checked DEMO45 text value still contains `?`, if the eight canonical movies are unavailable, if synthetic `Phim Demo` rows remain, or if any of the 47 pgAdmin tables is still empty after seeding. Demo accounts remain `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, password `Demo@123`.

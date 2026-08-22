@@ -12,5 +12,7 @@ python .\tools\verify_v44_maintenance_reliability.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 python .\tools\verify_v45_customer_support.py
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+python .\tools\verify_seed_demo_47.py
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host "V45 source diagnostics passed." -ForegroundColor Green
 Write-Host "Release flow: main CI -> v45.0.0-rc.N -> V45 source gate + Docker smoke + Playwright -> v45.0.0 -> GitHub Release"

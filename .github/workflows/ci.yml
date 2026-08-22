@@ -253,6 +253,9 @@ jobs:
       - name: Verify V45 customer support and service recovery
         run: python3 tools/verify_v45_customer_support.py
 
+      - name: Verify V45 47-table UTF-8 demo seed coverage
+        run: python3 tools/verify_seed_demo_47.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest
