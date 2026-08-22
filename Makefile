@@ -149,3 +149,16 @@ verify-v42:
 
 diagnose-v42:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v42.ps1
+
+verify-v42.1:
+	python tools/verify_v42_1_analytics_export.py
+
+diagnose-v42.1:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v42.1.ps1
+
+
+verify-v43:
+	python tools/verify_v43_staff_operations.py
+
+diagnose-v43:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v43.ps1

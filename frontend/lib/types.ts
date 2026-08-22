@@ -115,6 +115,12 @@ export type StaffLeaveRequest = { id:string; staffUserId:string; employeeCode:st
 export type StaffTimesheetRow = { staffUserId:string; employeeCode:string; staffName:string; cinemaId:string; cinemaName:string; scheduledShifts:number; completedShifts:number; absentShifts:number; scheduledMinutes:number; workedMinutes:number; lateMinutes:number; earlyLeaveMinutes:number; approvedLeaveDays:number };
 export type StaffTimesheetReport = { month:string; cinemaId?:string; cinemaName:string; rows:StaffTimesheetRow[]; totalScheduledMinutes:number; totalWorkedMinutes:number; totalLateMinutes:number; totalEarlyLeaveMinutes:number; totalAbsentShifts:number };
 export type StaffGateStatus = { canScan:boolean; message:string; attendance?:StaffAttendance };
+export type StaffOperationsCinema = { id:string; name:string };
+export type StaffOperationsStaff = { userId:string; employeeCode:string; fullName:string; role:"STAFF"|"MANAGER" };
+export type StaffOperationsLiveCheckIn = { bookingId:string; movieTitle:string; cinemaName:string; auditoriumName:string; checkedInAt:string; source:"QR"|"URL"|"MANUAL"; staffName:string };
+export type StaffOperationsLive = { cinemaId:string; cinemaName:string; checkedInLast5Minutes:number; checkedInLastHour:number; checkedInToday:number; activeStaff:number; openIncidents:number; generatedAt:string; recentCheckIns:StaffOperationsLiveCheckIn[] };
+export type StaffHandover = { id:string; cinemaId:string; cinemaName:string; fromShiftId:string; fromAttendanceId:string; fromStaffUserId:string; fromStaffName:string; toStaffUserId:string; toStaffName:string; summary:string; status:"PENDING"|"ACCEPTED"|"CANCELLED"; createdAt:string; acceptedAt?:string };
+export type StaffIncident = { id:string; cinemaId:string; cinemaName:string; shiftId?:string; attendanceId?:string; reportedBy:string; reportedByName:string; category:"CUSTOMER"|"EQUIPMENT"|"SAFETY"|"SECURITY"|"PAYMENT"|"OTHER"; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; title:string; description:string; status:"OPEN"|"RESOLVED"; resolvedBy?:string; resolvedByName?:string; resolvedAt?:string; resolutionNote?:string; createdAt:string; updatedAt:string };
 export type StaffOption = { userId:string; employeeCode:string; fullName:string; role:"STAFF"|"MANAGER"; cinemaId:string; cinemaName:string };
 
 export type AdminBookingPayment = { id:string; provider:string; status:string; amount:number; providerTransactionId?:string; createdAt:string; paidAt?:string };

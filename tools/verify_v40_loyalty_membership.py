@@ -134,10 +134,10 @@ check('Integration test verifies V40 tables and reward seeds', 'loyalty_point_lo
 check('Integration test covers adjustment, reward voucher and expiry ledger', 'loyaltyV40RewardRedemptionAndPointExpiryStayLedgerConsistent' in integration and 'integration credit' in integration and "transaction_type='EXPIRE'" in integration)
 check('Integration test re-reads customer summary after admin credit and reward debit', 'var customerSummary = loyalty.summary(customer.getEmail())' in integration and 'var afterVoucher = loyalty.summary(customer.getEmail())' in integration and 'afterVoucher.membershipTier()).isEqualTo("BRONZE")' in integration)
 
-check('Main CI runs V40 verifier', bool(re.search(r'V26-V(?:4[0-9]|[5-9][0-9]) source regression',ci)) and 'python3 tools/verify_v40_loyalty_membership.py' in ci)
-check('Standalone RC defaults to V40-or-newer candidate', bool(re.search(r'default: "v(?:4[0-9]|[5-9][0-9])\.0\.0-rc\.1"',rc)) and bool(re.search(r'cinebooking_v(?:4[0-9]|[5-9][0-9])_rc_\$\{\{ github\.run_id \}\}',rc)))
+check('Main CI runs V40 verifier', bool(re.search(r'V26-V(?:4[0-9]|[5-9][0-9])(?:\.\d+)? source regression',ci)) and 'python3 tools/verify_v40_loyalty_membership.py' in ci)
+check('Standalone RC defaults to V40-or-newer candidate', bool(re.search(r'default: "v(?:4[0-9]|[5-9][0-9])\.\d+\.\d+-rc\.1"',rc)) and bool(re.search(r'cinebooking_v(?:4[0-9]|[5-9][0-9])_rc_\$\{\{ github\.run_id \}\}',rc)))
 check('Standalone RC browser coverage includes V40', 'V38 + V39 + V40' in rc)
-check('Stable release defaults to V40-or-newer', bool(re.search(r'default: "(?:4[0-9]|[5-9][0-9])\.0\.0"',release)) and bool(re.search(r'cinebooking_v(?:4[0-9]|[5-9][0-9])_release_\$\{\{ github\.run_id \}\}',release)) and bool(re.search(r'v(?:4[0-9]|[5-9][0-9])-release-test-secret',release)))
+check('Stable release defaults to V40-or-newer', bool(re.search(r'default: "(?:4[0-9]|[5-9][0-9])\.\d+\.\d+"',release)) and bool(re.search(r'cinebooking_v(?:4[0-9]|[5-9][0-9])_release_\$\{\{ github\.run_id \}\}',release)) and bool(re.search(r'v(?:4[0-9]|[5-9][0-9])-release-test-secret',release)))
 check('V39 verifier is forward-compatible with V40 lifecycle', 'V39-or-newer candidate' in legacy_v39 and 'V39 or newer' in legacy_v39)
 check('V40 diagnostics chains V39 and V40 verifier', 'diagnose-v39.ps1' in diag and 'verify_v40_loyalty_membership.py' in diag)
 check('Makefile exposes V40 verify and diagnose', 'verify-v40:' in make and 'diagnose-v40:' in make)

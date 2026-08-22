@@ -1,8 +1,8 @@
-# CineBooking Pro V42.1
+# CineBooking Pro V43
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V42.1 — Analytics Export + Documentation Sync  
+> **Current release:** V43 — Staff Operations 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -57,9 +57,10 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | V40 | Loyalty & Membership 2.0 | `V40__loyalty_membership_2.sql` |
 | V41 | Notification Center & Engagement Automation 2.0 | `V41__notification_engagement_2.sql` |
 | V42 | Financial Ledger & Reconciliation | `V42__financial_ledger_reconciliation.sql` |
-| **V42.1** | **Analytics export CSV/XLSX + đồng bộ README/version history** | **Không đổi schema** |
+| **V42.1** | **Analytics export CSV/XLSX + CI/Release wiring + đồng bộ README/version history** | **Không đổi schema** |
+| **V43** | **Staff Operations 2.0: realtime gate dashboard, shift handover, incident log, duplicate-scan hardening** | **`V43__staff_operations_2.sql`** |
 
-### V42.1 - Analytics Export + Documentation Sync
+### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
 V42.1 hoàn thiện chức năng export ngay trên trang `/admin/analytics`. Manager/Admin có thể giữ nguyên bộ lọc 7/30/90/365 ngày và rạp hiện tại rồi tải báo cáo bằng hai nút **Xuất CSV** và **Xuất Excel**.
 
@@ -82,14 +83,117 @@ backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java
 backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
 backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
 frontend/app/admin/analytics/page.tsx
+.github/workflows/ci.yml
+.github/workflows/release-candidate.yml
+.github/workflows/release.yml
 tools/verify_v42_1_analytics_export.py
+tools/diagnose-v42.1.ps1
+Makefile
 README.md
 ```
 
 Kiểm tra source V42.1:
 
 ```powershell
+python .\tools\verify_v42_financial_ledger.py
 python .\tools\verify_v42_1_analytics_export.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v42.1.ps1
+```
+
+GitHub CI/Release của V42.1 đã được nối vào lifecycle hiện có:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V42.1 source regression
+→ V42.1 verifier
+→ Stable Release (manual)
+→ v42.1.0-rc.N
+→ V42.1 source gate + Docker smoke + Playwright E2E
+→ v42.1.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, vào **GitHub → Actions → CineBooking Stable Release → Run workflow** và dùng:
+
+```text
+branch: main
+version: 42.1.0
+rc_number: 1
+```
+
+Tag RC và stable là immutable. Nếu RC fail vì phải sửa source rồi commit SHA mới, tăng `rc_number`; không di chuyển tag cũ.
+
+### V43 - Staff Operations 2.0
+
+V43 nâng lớp vận hành nhân viên dựa trên nền V8/V10/V11/V23 thành một **trung tâm vận hành realtime** tại `/staff/operations`. Mục tiêu là để Staff/Manager/Admin nhìn được nhịp khách vào rạp, bàn giao việc giữa ca và ghi nhận/xử lý sự cố mà không phải tách sang công cụ ngoài.
+
+Các cập nhật chính:
+
+- **Live gate dashboard:** số lượt check-in 5 phút gần nhất, 1 giờ gần nhất, trong ngày, số nhân viên đang chấm công và số sự cố đang mở. Danh sách check-in mới nhất hiển thị phim, phòng, nhân viên và nguồn quét.
+- **Realtime đa replica:** mỗi check-in/sự kiện vận hành publish qua Redis channel `cinebooking:staff-operations-events`; subscriber trên từng backend replica phát WebSocket theo topic `/topic/staff-operations/{cinemaId}`. Frontend vẫn polling 15 giây làm fallback.
+- **Shift handover:** nhân viên đang trong ca có thể bàn giao cho Staff/Manager đang hoạt động cùng rạp; mỗi attendance chỉ có một bàn giao `PENDING`; người nhận phải đang chấm công đúng rạp mới xác nhận `ACCEPTED`.
+- **Incident log:** Staff/Manager ghi sự cố theo nhóm `CUSTOMER/EQUIPMENT/SAFETY/SECURITY/PAYMENT/OTHER` và mức `LOW/MEDIUM/HIGH/CRITICAL`; chỉ Manager/Admin được đóng sự cố kèm ghi chú xử lý.
+- **Chống check-in hai lần:** frontend debounce QR lặp trong 2,5 giây; backend vẫn dùng `PESSIMISTIC_WRITE` trên booking, `booking.checked_in_at` và unique index `uq_ticket_checkin_booking`, nên request đồng thời từ nhiều thiết bị/backend replica vẫn bị chặn ở server.
+- **Mobile camera:** gate tiếp tục dùng camera sau qua `getUserMedia`, ưu tiên HD 1280×720; vẫn hỗ trợ ảnh chụp QR và QR URL.
+
+Migration mới:
+
+```text
+backend/src/main/resources/db/migration/V43__staff_operations_2.sql
+```
+
+API V43:
+
+```text
+GET  /api/staff/operations/cinemas
+GET  /api/staff/operations/live?cinemaId=<optional>
+GET  /api/staff/operations/staff-options?cinemaId=<optional>
+GET  /api/staff/operations/handovers?cinemaId=<optional>
+POST /api/staff/operations/handovers
+POST /api/staff/operations/handovers/{id}/accept
+GET  /api/staff/operations/incidents?cinemaId=<optional>
+POST /api/staff/operations/incidents
+POST /api/staff/operations/incidents/{id}/resolve
+```
+
+Các file chính:
+
+```text
+backend/src/main/resources/db/migration/V43__staff_operations_2.sql
+backend/src/main/java/com/cinebooking/domain/StaffShiftHandover.java
+backend/src/main/java/com/cinebooking/domain/StaffIncident.java
+backend/src/main/java/com/cinebooking/staffops/StaffOperationsService.java
+backend/src/main/java/com/cinebooking/staffops/StaffOperationsController.java
+backend/src/main/java/com/cinebooking/websocket/StaffOperationsEventPublisher.java
+backend/src/main/java/com/cinebooking/websocket/RedisStaffOperationsEventSubscriber.java
+frontend/app/staff/operations/page.tsx
+frontend/app/staff/check-in/page.tsx
+frontend/e2e/staff-operations.spec.ts
+tools/verify_v43_staff_operations.py
+tools/diagnose-v43.ps1
+```
+
+Release lifecycle V43:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V43 source regression
+→ V43 source gate
+→ Stable Release (manual)
+→ v43.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v43.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
+
+```text
+branch: main
+version: 43.0.0
+rc_number: 1
 ```
 
 ---
@@ -860,7 +964,7 @@ nginx/                   reverse proxy/load balancer
 loadtest/                k6 scenarios
 tools/                   diagnostics, verifiers, backup/restore, E2E scripts
 backups/.gitkeep         safe local backup directory placeholder
-.github/workflows/       CI + manual Release Candidate
+.github/workflows/       CI + Release Candidate + Stable GitHub Release
 docker-compose.yml       local/full-stack orchestration
 README.md                toàn bộ tài liệu dự án
 ```
@@ -872,16 +976,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V42.1
+CineBooking Pro V43
 ```
 
 Release target:
 
 ```text
-v42.1.0
+v43.0.0
 ```
 
-V42.1 là patch không đổi schema database; Flyway latest vẫn là V42.
+V43 có migration `V43__staff_operations_2.sql`; Flyway latest là V43.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 

@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV42FinancialLedgerSchemaAndDemoCatalog() {
+    void flywayMigratesRealPostgresToV43StaffOperationsSchemaAndDemoCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(29);
-        assertThat(latest).isEqualTo("42");
-        assertThat(publicTables).isGreaterThanOrEqualTo(40);
+        assertThat(latest).isEqualTo("43");
+        assertThat(publicTables).isGreaterThanOrEqualTo(42);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -148,6 +148,12 @@ class CineBookingIntegrationIT {
         Integer financialV42Triggers = jdbc.queryForObject(
                 "select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_v42_financial_ledger_entry_immutable','trg_v42_financial_ledger_line_immutable','trg_v42_financial_ledger_balanced')", Integer.class);
         assertThat(financialV42Triggers).isEqualTo(3);
+        Integer staffV43Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('staff_shift_handover','staff_incident')", Integer.class);
+        assertThat(staffV43Tables).isEqualTo(2);
+        Integer staffV43Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('uq_staff_handover_pending_attendance','idx_staff_incident_cinema_status_created')", Integer.class);
+        assertThat(staffV43Indexes).isEqualTo(2);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

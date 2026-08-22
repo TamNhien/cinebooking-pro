@@ -79,7 +79,7 @@ check('browser journey proves QR rotation', 'not.toEqual(oldQrUrl)' in e2e and '
 check('browser journey proves stale QR rejection and new QR check-in', 'QR vé đã hết hiệu lực' in e2e and 'Check-in vé thành công.' in e2e)
 check('Testcontainers expects Flyway V36 or newer', bool(re.search(r'isEqualTo\("(?:3[6-9]|[4-9][0-9])"\)', it)) and 'transferColumns' in it)
 check('Testcontainers covers transfer ownership and stale QR rejection', 'secureTicketTransferMovesOwnershipAndInvalidatesOldQr' in it and 'getPurchaserUserId()' in it and 'QR vé đã hết hiệu lực' in it)
-check('main CI runs V36 verifier in V36-or-newer source regression', 'python3 tools/verify_v36_ticket_transfer.py' in ci and bool(re.search(r'V26-V(?:3[6-9]|[4-9][0-9]) source regression', ci)))
+check('main CI runs V36 verifier in V36-or-newer source regression', 'python3 tools/verify_v36_ticket_transfer.py' in ci and bool(re.search(r'V26-V(?:3[6-9]|[4-9][0-9])(?:\.\d+)? source regression', ci)))
 check('standalone RC defaults to V36-or-newer semantic candidate', bool(re.search(r'default:\s*"v(?:3[6-9]|[4-9][0-9])\.\d+\.\d+-rc\.\d+"', rc)))
 check('standalone RC label includes V36 browser journey', 'V29.2 + V30 + V31.2 + V33 + V34 + V36' in rc)
 check('stable release defaults to V36 or newer', bool(re.search(r'default:\s*"(?:3[6-9]|[4-9][0-9])\.\d+\.\d+"', release)) and bool(re.search(r'cinebooking_v(?:3[6-9]|[4-9][0-9])_release_\$\{\{ github\.run_id \}\}', release)))

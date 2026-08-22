@@ -8,6 +8,7 @@ import com.cinebooking.movie.*;
 import com.cinebooking.user.UserRepository;
 import com.cinebooking.staffops.StaffAttendanceRepository;
 import com.cinebooking.staffops.StaffGatePolicyService;
+import com.cinebooking.websocket.StaffOperationsEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,8 @@ import java.util.*;
 
 @Service
 public class CheckInService {
-    private final TicketTokenService tokens; private final BookingRepository bookings; private final ShowtimeRepository showtimes; private final MovieRepository movies; private final AuditoriumRepository auditoriums; private final CinemaRepository cinemas; private final UserRepository users; private final AuditService audit; private final StaffGatePolicyService gate; private final StaffAttendanceRepository attendance; private final TicketCheckInLogRepository logs; private final long earlyMinutes; private final long lateMinutes;
-    public CheckInService(TicketTokenService tokens,BookingRepository bookings,ShowtimeRepository showtimes,MovieRepository movies,AuditoriumRepository auditoriums,CinemaRepository cinemas,UserRepository users,AuditService audit,StaffGatePolicyService gate,StaffAttendanceRepository attendance,TicketCheckInLogRepository logs,@Value("${app.checkin.early-minutes:2880}") long earlyMinutes,@Value("${app.checkin.late-minutes:240}") long lateMinutes){this.tokens=tokens;this.bookings=bookings;this.showtimes=showtimes;this.movies=movies;this.auditoriums=auditoriums;this.cinemas=cinemas;this.users=users;this.audit=audit;this.gate=gate;this.attendance=attendance;this.logs=logs;this.earlyMinutes=earlyMinutes;this.lateMinutes=lateMinutes;}
+    private final TicketTokenService tokens; private final BookingRepository bookings; private final ShowtimeRepository showtimes; private final MovieRepository movies; private final AuditoriumRepository auditoriums; private final CinemaRepository cinemas; private final UserRepository users; private final AuditService audit; private final StaffGatePolicyService gate; private final StaffAttendanceRepository attendance; private final TicketCheckInLogRepository logs; private final StaffOperationsEventPublisher staffEvents; private final long earlyMinutes; private final long lateMinutes;
+    public CheckInService(TicketTokenService tokens,BookingRepository bookings,ShowtimeRepository showtimes,MovieRepository movies,AuditoriumRepository auditoriums,CinemaRepository cinemas,UserRepository users,AuditService audit,StaffGatePolicyService gate,StaffAttendanceRepository attendance,TicketCheckInLogRepository logs,StaffOperationsEventPublisher staffEvents,@Value("${app.checkin.early-minutes:2880}") long earlyMinutes,@Value("${app.checkin.late-minutes:240}") long lateMinutes){this.tokens=tokens;this.bookings=bookings;this.showtimes=showtimes;this.movies=movies;this.auditoriums=auditoriums;this.cinemas=cinemas;this.users=users;this.audit=audit;this.gate=gate;this.attendance=attendance;this.logs=logs;this.staffEvents=staffEvents;this.earlyMinutes=earlyMinutes;this.lateMinutes=lateMinutes;}
 
     public Preview preview(String payload,String staffEmail){
         TicketContext ctx=resolve(payload,false);
@@ -45,6 +46,7 @@ public class CheckInService {
         attendance.findFirstByStaffUserIdAndCheckOutAtIsNullOrderByCheckInAtDesc(staff.getId()).ifPresent(active->{log.setAttendanceId(active.getId());log.setShiftId(active.getShiftId());});
         logs.save(log);
         audit.record(staffEmail,"TICKET_CHECK_IN","BOOKING",b.getId().toString(),m.getTitle()+" · "+c.getName()+" · "+a.getName(),ip);
+        staffEvents.publish(c.getId(),"TICKET_CHECKED_IN");
         return new Result(b.getId(),m.getTitle(),c.getName(),a.getName(),st.getStartTime(),now,"CHECKED_IN");
     }
 
@@ -62,6 +64,7 @@ public class CheckInService {
         Instant now=Instant.now(); b.setCheckedInAt(now);b.setCheckedInBy(admin.getId());bookings.save(b);
         TicketCheckInLog log=new TicketCheckInLog();log.setBookingId(b.getId());log.setStaffUserId(admin.getId());log.setCinemaId(c.getId());log.setCheckedInAt(now);log.setIpAddress(ip);log.setSource("MANUAL");logs.save(log);
         audit.record(adminEmail,"TICKET_CHECK_IN_MANUAL","BOOKING",b.getId().toString(),m.getTitle()+" · "+c.getName()+" · "+a.getName(),ip);
+        staffEvents.publish(c.getId(),"TICKET_CHECKED_IN");
         return new Result(b.getId(),m.getTitle(),c.getName(),a.getName(),st.getStartTime(),now,"CHECKED_IN");
     }
 

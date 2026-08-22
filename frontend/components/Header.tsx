@@ -132,6 +132,7 @@ export default function Header(){
             {drawerSection==="operations"&&<div className="menu-drawer-submenu">
               {["STAFF","MANAGER"].includes(auth.role)&&<Link onClick={close} href="/staff/schedule">🕒 {en?"Shift & attendance":"Lịch & chấm công"}</Link>}
               <Link onClick={close} href="/staff/check-in">📷 {en?"Ticket check-in":"Quét vé"}</Link>
+              <Link onClick={close} href="/staff/operations">📡 {en?"Live operations":"Vận hành realtime"}</Link>
             </div>}
           </div>}
 
@@ -186,10 +187,11 @@ export default function Header(){
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
           {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link">Ca làm</Link>}
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link">Check-in</Link>}
+          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link">Vận hành</Link>}
 
           {auth?.role==="MANAGER"&&<div className="nav-menu relative" data-desktop-menu-root="true">
             <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="manager"?"is-open":""}`} onClick={()=>toggleDesktop("manager")} aria-expanded={desktopMenu==="manager"}>Quản lý <span aria-hidden="true">⌄</span></button>
-            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link></div>}
+            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link><Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành realtime</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link></div>}
           </div>}
 
           {auth?.role==="ADMIN"&&<>
@@ -202,6 +204,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">Nhân viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành realtime</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">Mã ưu đãi</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/loyalty">Loyalty & thành viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">Giá vé động</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/commerce">Bắp nước & thương mại</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/inventory">Kho bắp nước</Link>

@@ -1,7 +1,9 @@
 package com.cinebooking.config;
 
 import com.cinebooking.websocket.RedisSeatEventSubscriber;
+import com.cinebooking.websocket.RedisStaffOperationsEventSubscriber;
 import com.cinebooking.websocket.SeatEventPublisher;
+import com.cinebooking.websocket.StaffOperationsEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -12,10 +14,12 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 public class RedisPubSubConfig {
     @Bean
     RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                                                RedisSeatEventSubscriber subscriber) {
+                                                                RedisSeatEventSubscriber subscriber,
+                                                                RedisStaffOperationsEventSubscriber staffOperationsSubscriber) {
         RedisMessageListenerContainer c = new RedisMessageListenerContainer();
         c.setConnectionFactory(connectionFactory);
         c.addMessageListener(subscriber, new ChannelTopic(SeatEventPublisher.CHANNEL));
+        c.addMessageListener(staffOperationsSubscriber, new ChannelTopic(StaffOperationsEventPublisher.CHANNEL));
         return c;
     }
 }

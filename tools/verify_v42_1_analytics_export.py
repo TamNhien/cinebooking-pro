@@ -3,47 +3,115 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-checks = []
+checks: list[tuple[str, bool]] = []
 
-def require(path: str, *needles: str):
-    text = (ROOT / path).read_text(encoding="utf-8")
-    missing = [n for n in needles if n not in text]
-    checks.append((path, missing))
 
-require(
-    "backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java",
-    '/export.csv', '/export.xlsx', 'AnalyticsExportService', 'ContentDisposition.attachment()'
-)
-require(
-    "backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java",
-    'public byte[] csv(', 'public byte[] xlsx(', 'Tổng quan', 'Doanh thu ngày', 'Payment provider', '\\uFEFF'
-)
-require(
-    "frontend/app/admin/analytics/page.tsx",
-    'apiBlob', 'Xuất CSV', 'Xuất Excel', '/admin/analytics/export.${format}'
-)
-require(
-    "README.md",
-    '# CineBooking Pro V42.1', 'Version history / changelog', 'V42.1 - Analytics Export + Documentation Sync',
-    'GET /api/admin/analytics/export.csv', 'GET /api/admin/analytics/export.xlsx'
-)
-require(
-    "backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java",
-    'csvIsUtf8BomAndContainsVietnameseAnalyticsSections', 'xlsxIsValidOpenXmlZipWithExpectedSheets'
-)
+def text(path: str) -> str:
+    return (ROOT / path).read_text(encoding="utf-8")
 
-failed = False
-for path, missing in checks:
-    if missing:
-        failed = True
-        print(f"[FAIL] {path}: missing {missing}")
-    else:
-        print(f"[ OK ] {path}")
+
+def check(name: str, condition: bool) -> None:
+    checks.append((name, bool(condition)))
+
+
+controller = text("backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java")
+export_service = text("backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java")
+ui = text("frontend/app/admin/analytics/page.tsx")
+readme = text("README.md")
+backend_test = text("backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java")
+ci = text(".github/workflows/ci.yml")
+rc = text(".github/workflows/release-candidate.yml")
+release = text(".github/workflows/release.yml")
+makefile = text("Makefile")
+diag = text("tools/diagnose-v42.1.ps1")
+
+check(
+    "Admin Analytics exposes CSV/XLSX endpoints",
+    all(x in controller for x in ['/export.csv', '/export.xlsx', 'AnalyticsExportService', 'ContentDisposition.attachment()']),
+)
+check(
+    "Export service builds CSV and XLSX reports",
+    all(x in export_service for x in ['public byte[] csv(', 'public byte[] xlsx(', '\\uFEFF']),
+)
+check(
+    "XLSX contains expected analytics sheets",
+    all(x in export_service for x in ['Tổng quan', 'Doanh thu ngày', 'Hiệu suất rạp', 'Payment provider']),
+)
+check(
+    "Admin Analytics UI exposes both export actions",
+    all(x in ui for x in ['apiBlob', 'Xuất CSV', 'Xuất Excel', '/admin/analytics/export.${format}']),
+)
+check(
+    "Backend export tests cover UTF-8 CSV and OpenXML XLSX",
+    all(x in backend_test for x in [
+        'csvIsUtf8BomAndContainsVietnameseAnalyticsSections',
+        'xlsxIsValidOpenXmlZipWithExpectedSheets',
+    ]),
+)
+check(
+    "README identifies V42.1 and documents export APIs",
+    'V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync' in readme
+    and 'GET /api/admin/analytics/export.csv' in readme
+    and 'GET /api/admin/analytics/export.xlsx' in readme,
+)
+check(
+    "Main CI retains V42.1 in source regression",
+    'python3 tools/verify_v42_1_analytics_export.py' in ci,
+)
+check(
+    "Main CI runs V42 and V42.1 verifiers",
+    'python3 tools/verify_v42_financial_ledger.py' in ci
+    and 'python3 tools/verify_v42_1_analytics_export.py' in ci,
+)
+check(
+    "Release Candidate workflow keeps a versioned source gate",
+    'source gate' in rc and 'tools/verify_v' in rc and 'Run browser E2E journeys' in rc,
+)
+check(
+    "Stable release workflow keeps a versioned source gate",
+    'source gate' in release and 'tools/verify_v' in release and 'Publish stable tag and GitHub Release' in release,
+)
+check(
+    "Stable release still requires exact main CI and publishes GitHub Release",
+    'Require successful main CI for this exact commit' in release
+    and 'Create immutable RC tag' in release
+    and 'Publish stable tag and GitHub Release' in release
+    and 'gh release create "$STABLE_TAG"' in release,
+)
+check(
+    "Makefile exposes V42.1 verify and diagnose targets",
+    'verify-v42.1:' in makefile and 'diagnose-v42.1:' in makefile,
+)
+check(
+    "V42.1 diagnostics chains V42 before the patch verifier",
+    'diagnose-v42.ps1' in diag
+    and 'verify_v42_1_analytics_export.py' in diag
+    and 'verify_v42_1_analytics_export.py' in diag,
+)
 
 migration_dir = ROOT / "backend/src/main/resources/db/migration"
-if any(p.name.startswith("V42_1") or p.name.startswith("V43") for p in migration_dir.glob("V*.sql")):
-    print("[WARN] Unexpected new schema migration found; V42.1 is intended to be schema-neutral.")
+new_schema_migrations = [
+    p.name
+    for p in migration_dir.glob("V*.sql")
+    if p.name.startswith("V42_1")
+]
+check(
+    "V42.1 remains schema-neutral with no V42_1 migration",
+    not new_schema_migrations,
+)
 
-if failed:
+for name, ok in checks:
+    print(f"[{' OK ' if ok else 'FAIL'}] {name}")
+
+passed = sum(ok for _, ok in checks)
+total = len(checks)
+print(f"\nV42.1 verification: {passed}/{total} checks passed")
+
+if passed != total:
+    print("Failed checks:")
+    for name, ok in checks:
+        if not ok:
+            print(f" - {name}")
+    if new_schema_migrations:
+        print(f" - Unexpected migrations: {', '.join(new_schema_migrations)}")
     sys.exit(1)
-print("V42.1 Analytics export source verification passed.")

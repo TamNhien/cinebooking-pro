@@ -8,4 +8,5 @@ public interface StaffAttendanceRepository extends JpaRepository<StaffAttendance
     Optional<StaffAttendance> findFirstByStaffUserIdAndCheckOutAtIsNullOrderByCheckInAtDesc(UUID staffUserId);
     List<StaffAttendance> findTop50ByStaffUserIdOrderByCheckInAtDesc(UUID staffUserId);
     List<StaffAttendance> findByStaffUserIdAndCheckInAtBetweenOrderByCheckInAtAsc(UUID staffUserId,Instant from,Instant to);
+    long countByCinemaIdAndCheckOutAtIsNull(UUID cinemaId);
 }
