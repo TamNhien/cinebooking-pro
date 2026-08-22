@@ -1,0 +1,42 @@
+from pathlib import Path
+import sys
+ROOT=Path(__file__).resolve().parents[1]
+checks=[]
+def has(path,*needles):
+    text=(ROOT/path).read_text(encoding="utf-8")
+    return all(x in text for x in needles)
+def ok(label,cond):
+    checks.append((label,bool(cond)));print(f"[ {'OK' if cond else 'FAIL'} ] {label}")
+
+ok("V45 migration creates support case and event tables",has("backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql","CREATE TABLE customer_support_case","CREATE TABLE customer_support_case_event"))
+ok("V45 migration constrains category priority and status",has("backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql","ck_support_category","ck_support_priority","ck_support_status"))
+ok("V45 support history is append-only",has("backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql","trg_v45_support_event_immutable","append-only"))
+ok("Support case entity exists",has("backend/src/main/java/com/cinebooking/domain/CustomerSupportCase.java","@Table(name=\"customer_support_case\")","slaDueAt","assignedTo"))
+ok("Support event entity exists",has("backend/src/main/java/com/cinebooking/domain/CustomerSupportCaseEvent.java","@Table(name=\"customer_support_case_event\")","visibility","actorUserId"))
+ok("Support rules define SLA and guarded lifecycle",has("backend/src/main/java/com/cinebooking/support/SupportCaseRules.java","Duration.ofHours(4)","WAITING_CUSTOMER","RESOLVED","CLOSED"))
+ok("Customer support API creates and lists own cases",has("backend/src/main/java/com/cinebooking/support/CustomerSupportController.java","@RequestMapping(\"/api/support\")","@PostMapping(\"/cases\")","@GetMapping(\"/cases\")"))
+ok("Customer support API exposes conversation",has("backend/src/main/java/com/cinebooking/support/CustomerSupportController.java","/events","/messages"))
+ok("Admin support API exposes summary and cinema scope",has("backend/src/main/java/com/cinebooking/support/AdminCustomerSupportController.java","/summary","/cinemas","/staff-options"))
+ok("Admin support API exposes planning reply and transition",has("backend/src/main/java/com/cinebooking/support/AdminCustomerSupportController.java","/plan","/reply","/transition"))
+ok("Support service validates booking ownership",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","Booking không thuộc tài khoản của bạn","cinemaForBooking"))
+ok("Support service applies priority SLA",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","SupportCaseRules.sla","setSlaDueAt"))
+ok("Support service restricts manager to own cinema",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","Manager chỉ xử lý yêu cầu thuộc rạp của mình","managerCinema"))
+ok("Support service sends customer notifications",has("backend/src/main/java/com/cinebooking/support/CustomerSupportService.java","SUPPORT_REPLY","SUPPORT_STATUS","notifications.create"))
+ok("Support unit tests cover lifecycle and SLA",has("backend/src/test/java/com/cinebooking/support/SupportCaseRulesTest.java","lifecycleGuardsTerminalClosed","slaMatchesPriority","openStatusSetExcludesResolvedAndClosed"))
+ok("Security allows Manager/Admin support operations",has("backend/src/main/java/com/cinebooking/config/SecurityConfig.java","/api/admin/support/**","MANAGER","ADMIN"))
+ok("Customer support frontend exists",has("frontend/app/support/page.tsx","Trung tâm hỗ trợ khách hàng","Gửi yêu cầu hỗ trợ","/support/cases"))
+ok("Admin support frontend exists",has("frontend/app/admin/support/page.tsx","Support Operations","Rạp hỗ trợ","OVERDUE"))
+ok("Frontend types include V45 contracts",has("frontend/lib/types.ts","SupportCase","SupportCaseEvent","SupportSummary"))
+ok("Header links customer support",has("frontend/components/Header.tsx","href=\"/support\"","href=\"/admin/support\""))
+ok("Admin dashboard links support operations",has("frontend/app/admin/page.tsx","/admin/support","Hỗ trợ khách hàng"))
+ok("V45 Playwright covers create and resolve journey",has("frontend/e2e/customer-support.spec.ts","V45 customer opens a support case","Nhận xử lý","Giải quyết"))
+ok("Integration test expects Flyway latest V45",has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"45\")","customer_support_case","trg_v45_support_event_immutable"))
+ok("Main CI includes V45 source regression",has(".github/workflows/ci.yml","V26-V45 source regression","verify_v45_customer_support.py"))
+ok("Standalone RC defaults to v45.0.0-rc.1",has(".github/workflows/release-candidate.yml","v45.0.0-rc.1","Verify V45 source gate"))
+ok("Stable release defaults to 45.0.0",has(".github/workflows/release.yml","default: \"45.0.0\"","verify_v45_customer_support.py"))
+ok("Makefile exposes V45 verify and diagnose",has("Makefile","verify-v45:","diagnose-v45:"))
+ok("V45 diagnostics chains V44 and V45",has("tools/diagnose-v45.ps1","verify_v44_maintenance_reliability.py","verify_v45_customer_support.py","V45 source diagnostics passed."))
+
+passed=sum(1 for _,v in checks if v);total=len(checks)
+print(f"\nV45 verification: {passed}/{total} checks passed")
+sys.exit(0 if passed==total else 1)

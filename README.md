@@ -1,8 +1,8 @@
-# CineBooking Pro V44
+# CineBooking Pro V45
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V44 — Cinema Maintenance & Asset Reliability 2.0  
+> **Current release:** V45 — Customer Support & Service Recovery 2.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -60,6 +60,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V42.1** | **Analytics export CSV/XLSX + CI/Release wiring + đồng bộ README/version history** | **Không đổi schema** |
 | **V43** | **Staff Operations 2.0 + Analytics CSV/Excel chi tiết theo từng bảng** | **`V43__staff_operations_2.sql`** |
 | **V44** | **Cinema Maintenance & Asset Reliability 2.0: asset registry, SLA/work order, incident linkage, immutable history** | **`V44__cinema_maintenance_asset_reliability.sql`** |
+| **V45** | **Customer Support & Service Recovery 2.0: ticket/case management, SLA, customer conversation, manager triage, immutable history** | **`V45__customer_support_service_recovery.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -296,6 +297,83 @@ rc_number: 1
 ```
 
 Nếu RC cần sửa source, commit/push fix rồi tăng `rc_number`; không di chuyển hoặc ghi đè tag RC/stable cũ.
+
+---
+
+### V45 - Customer Support & Service Recovery 2.0
+
+V45 phát triển tiếp lớp vận hành của V43/V44 thành **trung tâm hỗ trợ khách hàng end-to-end**. Khách hàng có thể tạo case tại `/support`, gắn booking khi cần, theo dõi SLA và trao đổi trực tiếp. Manager/Admin xử lý tại `/admin/support` theo rạp, ưu tiên, người phụ trách và lịch sử append-only.
+
+Các cập nhật chính:
+
+- **Customer support case:** category `BOOKING / PAYMENT / REFUND / TICKET / CINEMA_EXPERIENCE / STAFF / OTHER`, case number riêng, subject/description, booking/rạp liên quan.
+- **SLA theo priority:** `CRITICAL=4h`, `HIGH=24h`, `MEDIUM=48h`, `LOW=72h`; dashboard đếm active, waiting customer, critical và overdue SLA.
+- **Conversation & triage:** khách gửi message; Manager/Admin phản hồi hoặc ghi internal note; case có assignee và priority có thể thay đổi.
+- **Lifecycle guard:** `OPEN -> IN_PROGRESS/CLOSED`, `IN_PROGRESS -> WAITING_CUSTOMER/RESOLVED/CLOSED`, `WAITING_CUSTOMER -> IN_PROGRESS/RESOLVED/CLOSED`, `RESOLVED -> IN_PROGRESS/CLOSED`, `CLOSED` terminal.
+- **Cinema scope:** case gắn booking tự suy ra rạp qua showtime/auditorium; Manager chỉ thấy và xử lý case của rạp mình; Admin có thể xem toàn hệ thống.
+- **Immutable support history:** mọi create/message/reply/plan/status change ghi vào `customer_support_case_event`; PostgreSQL trigger chặn UPDATE/DELETE.
+- **Notification:** phản hồi và thay đổi trạng thái từ staff tạo notification cho khách và link về `/support`.
+- **Navigation:** Header có mục **Hỗ trợ** cho tài khoản đăng nhập; Manager/Admin có **Hỗ trợ khách hàng** trong menu quản lý.
+
+Migration V45:
+
+```text
+backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql
+```
+
+Các bảng mới:
+
+```text
+customer_support_case
+customer_support_case_event
+```
+
+API khách hàng:
+
+```text
+GET  /api/support/cases
+POST /api/support/cases
+GET  /api/support/cases/{id}/events
+POST /api/support/cases/{id}/messages
+```
+
+API Manager/Admin:
+
+```text
+GET  /api/admin/support/cinemas
+GET  /api/admin/support/staff-options?cinemaId=<uuid>
+GET  /api/admin/support/summary?cinemaId=<uuid>
+GET  /api/admin/support/cases?cinemaId=<optional-uuid>
+GET  /api/admin/support/cases/{id}/events
+PUT  /api/admin/support/cases/{id}/plan
+POST /api/admin/support/cases/{id}/reply
+POST /api/admin/support/cases/{id}/transition
+```
+
+V45 verification:
+
+```powershell
+python .\tools\verify_v44_maintenance_reliability.py
+python .\tools\verify_v45_customer_support.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v45.ps1
+```
+
+Release lifecycle V45:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V45 source regression
+→ Backend unit + Testcontainers integration
+→ V45 source gate
+→ Stable Release (manual)
+→ v45.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v45.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 45.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
 
 ---
 
@@ -1077,16 +1155,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V44
+CineBooking Pro V45
 ```
 
 Release target:
 
 ```text
-v44.0.0
+v45.0.0
 ```
 
-V44 có migration `V44__cinema_maintenance_asset_reliability.sql`; Flyway latest là V44.
+V45 có migration `V45__customer_support_service_recovery.sql`; Flyway latest là V45.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 
@@ -1764,3 +1842,23 @@ main CI
 ```
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
+
+## Demo seed — UTF-8-safe sample data for the 45 pgAdmin tables
+
+For local/demo databases, `tools/seed-demo-45-tables-10-rows.sql` adds or repairs ten deterministic DEMO45 rows across the application tables shown in the 45-table V44 pgAdmin schema. There are two deliberate exceptions: `movie` is **not** populated with synthetic `Phim Demo` rows and instead all DEMO45 relations reuse the eight canonical movies shipped by V29; `flyway_schema_history` is never modified because it is Flyway migration metadata. `financial_ledger_line` intentionally receives twenty rows (two balanced lines for each of ten ledger entries) so V42 double-entry invariants remain valid.
+
+The PowerShell runner copies the SQL file byte-for-byte into the PostgreSQL container and runs `psql -f` there. This avoids Windows PowerShell/native-pipe code-page conversion that can store Vietnamese text as `M?y chi?u`, `Ph?ng`, and similar corrupted values. Re-running the seed also refreshes all human-readable DEMO45 fields and removes any old synthetic `Phim Demo` rows from the previous seed implementation.
+
+Run from the repository root on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
+```
+
+Static verification:
+
+```powershell
+python .\tools\verify_seed_demo_45.py
+```
+
+The seed aborts if PostgreSQL is not UTF-8, if any checked DEMO45 human-readable value still contains `?`, if the eight canonical V29 movies are unavailable, or if synthetic `Phim Demo` rows remain. The ten demo accounts are `demo45.user01@cinebooking.local` through `demo45.user10@cinebooking.local`, all with password `Demo@123`.

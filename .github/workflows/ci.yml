@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V44 source regression
+    name: V26-V45 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -249,6 +249,9 @@ jobs:
 
       - name: Verify V44 cinema maintenance and asset reliability
         run: python3 tools/verify_v44_maintenance_reliability.py
+
+      - name: Verify V45 customer support and service recovery
+        run: python3 tools/verify_v45_customer_support.py
 
   compose-config:
     name: Docker Compose validation

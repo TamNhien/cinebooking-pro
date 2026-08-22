@@ -124,6 +124,7 @@ export default function Header(){
               <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
               <Link onClick={close} href="/notifications">🔔 {en?"Notifications":"Thông báo"}{unread>0?` (${unread})`:""}</Link>
+              <Link onClick={close} href="/support">🎧 {en?"Support":"Hỗ trợ"}</Link>
             </div>}
           </div>}
 
@@ -143,6 +144,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/attendance">🧾 {en?"Timesheet & leave":"Bảng công & nghỉ phép"}</Link>
               <Link onClick={close} href="/admin/analytics">📊 Analytics</Link>
               <Link onClick={close} href="/admin/maintenance">🛠 Bảo trì & thiết bị</Link>
+              <Link onClick={close} href="/admin/support">🎧 Hỗ trợ khách hàng</Link>
             </div>}
           </div>}
 
@@ -162,6 +164,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/reviews">⭐ {en?"Review moderation":"Kiểm duyệt đánh giá"}</Link>
               <Link onClick={close} href="/admin/analytics">📈 Analytics</Link>
               <Link onClick={close} href="/admin/maintenance">🛠 {en?"Maintenance & assets":"Bảo trì & thiết bị"}</Link>
+              <Link onClick={close} href="/admin/support">🎧 {en?"Customer support":"Hỗ trợ khách hàng"}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {en?"Refunds":"Hoàn vé"}</Link>
               <Link onClick={close} href="/admin/audit">🛡 Audit log</Link>
             </div>}
@@ -187,13 +190,14 @@ export default function Header(){
           {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
           {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
+          {auth&&<Link href="/support" className="nav-link">{en?"Support":"Hỗ trợ"}</Link>}
           {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link">Ca làm</Link>}
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link">Check-in</Link>}
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link">Vận hành</Link>}
 
           {auth?.role==="MANAGER"&&<div className="nav-menu relative" data-desktop-menu-root="true">
             <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="manager"?"is-open":""}`} onClick={()=>toggleDesktop("manager")} aria-expanded={desktopMenu==="manager"}>Quản lý <span aria-hidden="true">⌄</span></button>
-            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link><Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành realtime</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link></div>}
+            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link><Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành realtime</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link></div>}
           </div>}
 
           {auth?.role==="ADMIN"&&<>
@@ -213,6 +217,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/reviews">Kiểm duyệt đánh giá</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Analytics</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Audit log</Link>
               </div>}
