@@ -241,6 +241,9 @@ jobs:
       - name: Verify V43 staff operations 2.0
         run: python3 tools/verify_v43_staff_operations.py
 
+      - name: Verify V43 detailed analytics Excel workbook
+        run: python3 tools/verify_v43_analytics_excel_detail.py
+
   compose-config:
     name: Docker Compose validation
     runs-on: ubuntu-latest

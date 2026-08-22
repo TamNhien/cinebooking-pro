@@ -35,7 +35,10 @@ check(
 )
 check(
     "XLSX contains expected analytics sheets",
-    all(x in export_service for x in ['Tổng quan', 'Doanh thu ngày', 'Hiệu suất rạp', 'Payment provider']),
+    'Tổng quan' in export_service
+    and ('Doanh thu ngày' in export_service or 'Doanh thu theo ngày' in export_service)
+    and ('Hiệu suất rạp' in export_service or 'Hiệu suất theo rạp' in export_service)
+    and ('Payment provider' in export_service or 'Phương thức thanh toán' in export_service),
 )
 check(
     "Admin Analytics UI exposes both export actions",
@@ -43,10 +46,11 @@ check(
 )
 check(
     "Backend export tests cover UTF-8 CSV and OpenXML XLSX",
-    all(x in backend_test for x in [
-        'csvIsUtf8BomAndContainsVietnameseAnalyticsSections',
-        'xlsxIsValidOpenXmlZipWithExpectedSheets',
-    ]),
+    'csvIsUtf8BomAndContainsVietnameseAnalyticsSections' in backend_test
+    and (
+        'xlsxIsValidOpenXmlZipWithExpectedSheets' in backend_test
+        or 'xlsxCreatesOneDetailedWorksheetPerCsvTable' in backend_test
+    ),
 )
 check(
     "README identifies V42.1 and documents export APIs",

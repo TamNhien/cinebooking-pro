@@ -87,7 +87,7 @@ export default function AnalyticsPage(){
       <div>
         <p className="section-kicker">ANALYTICS V2</p>
         <h1 className="text-3xl font-black">Doanh thu & hiệu suất vận hành</h1>
-        <p className="mt-1 max-w-3xl text-slate-400">Theo dõi doanh thu, tỷ lệ lấp đầy ghế, thanh toán, hoàn vé, giờ cao điểm, vị trí ghế được chọn nhiều và hiệu suất check-in nhân viên.</p>
+        <p className="mt-1 max-w-3xl text-slate-400">Theo dõi doanh thu, tỷ lệ lấp đầy ghế, thanh toán, hoàn vé, giờ cao điểm, vị trí ghế được chọn nhiều và hiệu suất check-in nhân viên. Excel chi tiết tách mỗi bảng Analytics thành một worksheet riêng và lặp lại bộ lọc báo cáo trên từng sheet.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <select className="input !w-auto min-w-36" value={days} onChange={e=>setDays(Number(e.target.value))}>
@@ -98,7 +98,7 @@ export default function AnalyticsPage(){
           {cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <button className="btn btn-secondary" type="button" disabled={loading||!!exporting} onClick={()=>exportAnalytics("csv")}>{exporting==="csv"?"Đang xuất...":"Xuất CSV"}</button>
-        <button className="btn btn-primary" type="button" disabled={loading||!!exporting} onClick={()=>exportAnalytics("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel"}</button>
+        <button className="btn btn-primary" type="button" title="Mỗi bảng Analytics được xuất thành một worksheet riêng" disabled={loading||!!exporting} onClick={()=>exportAnalytics("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>
         <Link className="btn btn-secondary" href="/admin">← Admin</Link>
       </div>
     </div>

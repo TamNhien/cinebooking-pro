@@ -58,7 +58,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | V41 | Notification Center & Engagement Automation 2.0 | `V41__notification_engagement_2.sql` |
 | V42 | Financial Ledger & Reconciliation | `V42__financial_ledger_reconciliation.sql` |
 | **V42.1** | **Analytics export CSV/XLSX + CI/Release wiring + đồng bộ README/version history** | **Không đổi schema** |
-| **V43** | **Staff Operations 2.0: realtime gate dashboard, shift handover, incident log, duplicate-scan hardening** | **`V43__staff_operations_2.sql`** |
+| **V43** | **Staff Operations 2.0 + Analytics Excel chi tiết theo từng bảng/worksheet** | **`V43__staff_operations_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -136,6 +136,13 @@ Các cập nhật chính:
 - **Incident log:** Staff/Manager ghi sự cố theo nhóm `CUSTOMER/EQUIPMENT/SAFETY/SECURITY/PAYMENT/OTHER` và mức `LOW/MEDIUM/HIGH/CRITICAL`; chỉ Manager/Admin được đóng sự cố kèm ghi chú xử lý.
 - **Chống check-in hai lần:** frontend debounce QR lặp trong 2,5 giây; backend vẫn dùng `PESSIMISTIC_WRITE` trên booking, `booking.checked_in_at` và unique index `uq_ticket_checkin_booking`, nên request đồng thời từ nhiều thiết bị/backend replica vẫn bị chặn ở server.
 - **Mobile camera:** gate tiếp tục dùng camera sau qua `getUserMedia`, ưu tiên HD 1280×720; vẫn hỗ trợ ảnh chụp QR và QR URL.
+- **Analytics Excel chi tiết theo từng bảng:** nút `/admin/analytics` đổi thành **Xuất Excel chi tiết**. Workbook vẫn dùng API `/api/admin/analytics/export.xlsx`, nhưng giờ mỗi section có một worksheet riêng và giữ đúng dữ liệu tương ứng với CSV: Tổng quan, Doanh thu theo ngày, Hiệu suất theo rạp, Top phim, Top suất chiếu, Nhu cầu theo giờ, Heatmap ghế, Hiệu suất nhân viên, Trạng thái booking, Trạng thái payment, Top bắp nước và Phương thức thanh toán. Mỗi worksheet lặp lại **Khoảng dữ liệu / Rạp / Ngày xuất**, đóng băng đến hàng tiêu đề và bật AutoFilter trên toàn vùng dữ liệu để có thể lọc/in/chia sẻ từng bảng độc lập.
+
+Analytics Excel V43 không đổi API và không thêm migration:
+
+```text
+GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
+```
 
 Migration mới:
 
@@ -170,7 +177,11 @@ backend/src/main/java/com/cinebooking/websocket/RedisStaffOperationsEventSubscri
 frontend/app/staff/operations/page.tsx
 frontend/app/staff/check-in/page.tsx
 frontend/e2e/staff-operations.spec.ts
+backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
+backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
+frontend/app/admin/analytics/page.tsx
 tools/verify_v43_staff_operations.py
+tools/verify_v43_analytics_excel_detail.py
 tools/diagnose-v43.ps1
 ```
 

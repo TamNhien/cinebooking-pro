@@ -171,7 +171,9 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Verify V43 source gate
-        run: python3 tools/verify_v43_staff_operations.py
+        run: |
+          python3 tools/verify_v43_staff_operations.py
+          python3 tools/verify_v43_analytics_excel_detail.py
 
       - name: Docker diagnostics
         run: |

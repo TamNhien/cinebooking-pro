@@ -21,6 +21,7 @@ import static com.cinebooking.analytics.AnalyticsDtos.*;
 public class AnalyticsExportService {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(BUSINESS_ZONE);
+    private static final int REPORT_HEADER_ROW = 6;
 
     public byte[] csv(Dashboard dashboard, int requestedDays, UUID cinemaId) {
         int days = normalizeDays(requestedDays);
@@ -81,70 +82,96 @@ public class AnalyticsExportService {
         return out.toString().getBytes(StandardCharsets.UTF_8);
     }
 
+    /**
+     * Creates one detailed worksheet for every Analytics table that is also present in the CSV export.
+     * Each worksheet repeats the active report filters so a sheet can be shared/printed independently.
+     */
     public byte[] xlsx(Dashboard dashboard, int requestedDays, UUID cinemaId) {
         int days = normalizeDays(requestedDays);
+        String cinema = cinemaLabel(dashboard, cinemaId);
+        String generatedAt = DATE_TIME.format(Instant.now());
         List<Sheet> sheets = new ArrayList<>();
 
-        sheets.add(new Sheet("Tổng quan", List.of(
-                row("CineBooking Analytics V2", ""),
-                row("Khoảng dữ liệu", days + " ngày"),
-                row("Rạp", cinemaLabel(dashboard, cinemaId)),
-                row("", ""),
-                header("Chỉ số", "Giá trị"),
-                row("Doanh thu", money(dashboard.kpi().revenue())),
-                row("Booking xác nhận", count(dashboard.kpi().confirmedBookings())),
-                row("Vé đã bán", count(dashboard.kpi().tickets())),
-                row("Doanh thu bắp nước", money(dashboard.kpi().concessionRevenue())),
-                row("Giá trị đơn trung bình", money(dashboard.kpi().averageOrderValue())),
-                row("Tỷ lệ lấp đầy", percent(dashboard.kpi().occupancyRate())),
-                row("Thanh toán thành công", percent(dashboard.kpi().paymentSuccessRate())),
-                row("Tỷ lệ hoàn vé", percent(dashboard.kpi().refundRate())),
-                row("Check-in", count(dashboard.kpi().checkIns())),
-                row("Người dùng", count(dashboard.kpi().users())),
-                row("Người dùng mới", count(dashboard.kpi().newUsers()))
-        )));
+        sheets.add(reportSheet("Tổng quan", "TỔNG QUAN", days, cinema, generatedAt,
+                header("Chỉ số", "Giá trị"), List.of(
+                        row("Doanh thu", money(dashboard.kpi().revenue())),
+                        row("Booking xác nhận", count(dashboard.kpi().confirmedBookings())),
+                        row("Vé đã bán", count(dashboard.kpi().tickets())),
+                        row("Doanh thu bắp nước", money(dashboard.kpi().concessionRevenue())),
+                        row("Giá trị đơn trung bình", money(dashboard.kpi().averageOrderValue())),
+                        row("Tỷ lệ lấp đầy (%)", percent(dashboard.kpi().occupancyRate())),
+                        row("Thanh toán thành công (%)", percent(dashboard.kpi().paymentSuccessRate())),
+                        row("Tỷ lệ hoàn vé (%)", percent(dashboard.kpi().refundRate())),
+                        row("Check-in", count(dashboard.kpi().checkIns())),
+                        row("Người dùng", count(dashboard.kpi().users())),
+                        row("Người dùng mới", count(dashboard.kpi().newUsers()))
+                )));
 
-        sheets.add(sheet("Doanh thu ngày", header("Ngày", "Doanh thu", "Booking", "Vé", "Check-in"),
+        sheets.add(reportSheet("Doanh thu theo ngày", "DOANH THU THEO NGÀY", days, cinema, generatedAt,
+                header("Ngày", "Doanh thu", "Booking", "Vé", "Check-in"),
                 dashboard.dailyRevenue().stream().map(x -> row(x.day().toString(), money(x.revenue()), count(x.bookings()), count(x.tickets()), count(x.checkIns()))).toList()));
 
-        sheets.add(sheet("Hiệu suất rạp", header("Rạp", "Doanh thu", "Booking", "Vé", "Sức chứa", "Lấp đầy"),
+        sheets.add(reportSheet("Hiệu suất theo rạp", "HIỆU SUẤT THEO RẠP", days, cinema, generatedAt,
+                header("Rạp", "Doanh thu", "Booking", "Vé", "Sức chứa", "Lấp đầy (%)"),
                 dashboard.cinemaPerformance().stream().map(x -> row(x.cinemaName(), money(x.revenue()), count(x.bookings()), count(x.tickets()), count(x.capacity()), percent(x.occupancyRate()))).toList()));
 
-        sheets.add(sheet("Top phim", header("Phim", "Doanh thu", "Booking"),
+        sheets.add(reportSheet("Top phim", "TOP PHIM", days, cinema, generatedAt,
+                header("Phim", "Doanh thu", "Booking"),
                 dashboard.topMovies().stream().map(x -> row(x.name(), money(x.value()), count(x.count()))).toList()));
 
-        sheets.add(sheet("Top suất chiếu", header("Phim", "Rạp", "Phòng", "Bắt đầu", "Doanh thu", "Vé", "Sức chứa", "Lấp đầy"),
+        sheets.add(reportSheet("Top suất chiếu", "TOP SUẤT CHIẾU", days, cinema, generatedAt,
+                header("Phim", "Rạp", "Phòng", "Bắt đầu", "Doanh thu", "Vé", "Sức chứa", "Lấp đầy (%)"),
                 dashboard.topShowtimes().stream().map(x -> row(x.movieTitle(), x.cinemaName(), x.auditoriumName(), formatInstant(x.startTime()), money(x.revenue()), count(x.tickets()), count(x.capacity()), percent(x.occupancyRate()))).toList()));
 
-        sheets.add(sheet("Khung giờ", header("Giờ", "Booking", "Vé", "Doanh thu"),
+        sheets.add(reportSheet("Nhu cầu theo giờ", "NHU CẦU THEO GIỜ", days, cinema, generatedAt,
+                header("Giờ", "Booking", "Vé", "Doanh thu"),
                 dashboard.hourlyDemand().stream().map(x -> row(String.format("%02d:00", x.hour()), count(x.bookings()), count(x.tickets()), money(x.revenue()))).toList()));
 
-        sheets.add(sheet("Heatmap ghế", header("Hàng", "Ghế", "Lượt chọn", "Doanh thu"),
+        sheets.add(reportSheet("Heatmap ghế", "HEATMAP GHẾ", days, cinema, generatedAt,
+                header("Hàng", "Ghế", "Lượt chọn", "Doanh thu"),
                 dashboard.seatHeatmap().stream().map(x -> row(x.rowLabel(), count(x.seatNumber()), count(x.bookings()), money(x.revenue()))).toList()));
 
-        sheets.add(sheet("Nhân viên", header("Mã NV", "Họ tên", "Rạp", "Vé check-in"),
+        sheets.add(reportSheet("Hiệu suất nhân viên", "HIỆU SUẤT NHÂN VIÊN", days, cinema, generatedAt,
+                header("Mã NV", "Họ tên", "Rạp", "Vé check-in"),
                 dashboard.staffPerformance().stream().map(x -> row(x.employeeCode(), x.fullName(), x.cinemaName(), count(x.checkedTickets()))).toList()));
 
-        sheets.add(sheet("Booking", header("Trạng thái", "Số lượng"),
+        sheets.add(reportSheet("Trạng thái booking", "TRẠNG THÁI BOOKING", days, cinema, generatedAt,
+                header("Trạng thái", "Số lượng"),
                 dashboard.bookingStatuses().stream().map(x -> row(x.status(), count(x.count()))).toList()));
 
-        sheets.add(sheet("Payment", header("Trạng thái", "Số lượng"),
+        sheets.add(reportSheet("Trạng thái payment", "TRẠNG THÁI PAYMENT", days, cinema, generatedAt,
+                header("Trạng thái", "Số lượng"),
                 dashboard.paymentStatuses().stream().map(x -> row(x.status(), count(x.count()))).toList()));
 
-        sheets.add(sheet("Bắp nước", header("Sản phẩm", "Doanh thu", "Số lượng"),
+        sheets.add(reportSheet("Top bắp nước", "TOP BẮP NƯỚC", days, cinema, generatedAt,
+                header("Sản phẩm", "Doanh thu", "Số lượng"),
                 dashboard.topConcessions().stream().map(x -> row(x.name(), money(x.value()), count(x.count()))).toList()));
 
-        sheets.add(sheet("Payment provider", header("Provider", "Doanh thu", "Giao dịch"),
+        sheets.add(reportSheet("Phương thức thanh toán", "PHƯƠNG THỨC THANH TOÁN", days, cinema, generatedAt,
+                header("Provider", "Doanh thu", "Giao dịch"),
                 dashboard.paymentProviders().stream().map(x -> row(x.name(), money(x.value()), count(x.count()))).toList()));
 
         return writeWorkbook(sheets);
     }
 
-    private Sheet sheet(String name, List<Cell> header, List<List<Cell>> body) {
+    private Sheet reportSheet(
+            String sheetName,
+            String sectionTitle,
+            int days,
+            String cinema,
+            String generatedAt,
+            List<Cell> header,
+            List<List<Cell>> body
+    ) {
         List<List<Cell>> rows = new ArrayList<>();
+        rows.add(title("CineBooking Analytics V2 - " + sectionTitle));
+        rows.add(row("Khoảng dữ liệu", days + " ngày"));
+        rows.add(row("Rạp", cinema));
+        rows.add(row("Ngày xuất", generatedAt));
+        rows.add(row("", ""));
         rows.add(header);
         rows.addAll(body);
-        return new Sheet(name, rows);
+        return new Sheet(sheetName, rows, REPORT_HEADER_ROW);
     }
 
     private byte[] writeWorkbook(List<Sheet> sheets) {
@@ -210,26 +237,31 @@ public class AnalyticsExportService {
     private String stylesXml() {
         return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                 "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">" +
-                "<fonts count=\"2\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Calibri\"/></font></fonts>" +
+                "<fonts count=\"3\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"14\"/><name val=\"Calibri\"/></font></fonts>" +
                 "<fills count=\"3\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FF1E293B\"/><bgColor indexed=\"64\"/></patternFill></fill></fills>" +
                 "<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>" +
                 "<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>" +
-                "<cellXfs count=\"4\">" +
+                "<cellXfs count=\"5\">" +
                 "<xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\"/>" +
                 "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"2\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\"/>" +
                 "<xf numFmtId=\"3\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/>" +
                 "<xf numFmtId=\"10\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/>" +
+                "<xf numFmtId=\"0\" fontId=\"2\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +
                 "</cellXfs><cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles></styleSheet>";
     }
 
     private String sheetXml(Sheet sheet) {
         int columns = Math.max(1, sheet.rows().stream().mapToInt(List::size).max().orElse(1));
+        int headerRow = Math.max(1, Math.min(sheet.headerRow(), Math.max(1, sheet.rows().size())));
+        int lastRow = Math.max(headerRow, sheet.rows().size());
         StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
         xml.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">")
-                .append("<sheetViews><sheetView workbookViewId=\"0\"><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>")
+                .append("<sheetViews><sheetView workbookViewId=\"0\"><pane ySplit=\"").append(headerRow)
+                .append("\" topLeftCell=\"A").append(headerRow + 1)
+                .append("\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>")
                 .append("<cols>");
         for (int c = 1; c <= columns; c++) {
-            double width = c == 1 ? 30 : 20;
+            double width = c == 1 ? 32 : 20;
             xml.append("<col min=\"").append(c).append("\" max=\"").append(c).append("\" width=\"").append(width).append("\" customWidth=\"1\"/>");
         }
         xml.append("</cols><sheetData>");
@@ -242,7 +274,8 @@ public class AnalyticsExportService {
             }
             xml.append("</row>");
         }
-        return xml.append("</sheetData><autoFilter ref=\"A1:").append(columnName(columns)).append("1\"/></worksheet>").toString();
+        return xml.append("</sheetData><autoFilter ref=\"A").append(headerRow).append(":")
+                .append(columnName(columns)).append(lastRow).append("\"/></worksheet>").toString();
     }
 
     private String cellXml(Cell cell, String ref) {
@@ -318,6 +351,10 @@ public class AnalyticsExportService {
         return name.toString();
     }
 
+    private List<Cell> title(String value) {
+        return List.of(new Cell(value, 4));
+    }
+
     private List<Cell> header(String... values) {
         List<Cell> cells = new ArrayList<>();
         for (String value : values) cells.add(new Cell(value, 1));
@@ -346,5 +383,5 @@ public class AnalyticsExportService {
 
     private record StyledValue(Object value, int style) {}
     private record Cell(Object value, int style) {}
-    private record Sheet(String name, List<List<Cell>> rows) {}
+    private record Sheet(String name, List<List<Cell>> rows, int headerRow) {}
 }

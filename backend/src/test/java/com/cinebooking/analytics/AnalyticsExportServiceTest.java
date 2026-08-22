@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -28,37 +30,84 @@ class AnalyticsExportServiceTest {
                 .contains("CineBooking Analytics V2")
                 .contains("DOANH THU THEO NGÀY")
                 .contains("HIỆU SUẤT THEO RẠP")
+                .contains("TRẠNG THÁI BOOKING")
+                .contains("PHƯƠNG THỨC THANH TOÁN")
                 .contains("Phim thử")
                 .contains("Bắp caramel");
     }
 
     @Test
-    void xlsxIsValidOpenXmlZipWithExpectedSheets() throws Exception {
+    void xlsxCreatesOneDetailedWorksheetPerCsvTable() throws Exception {
         byte[] xlsx = service.xlsx(sampleDashboard(), 30, null);
 
         assertThat(xlsx).startsWith((byte) 'P', (byte) 'K');
-        String workbook = null;
-        boolean hasStyles = false;
-        boolean hasSheet1 = false;
+        Map<String, String> entries = unzipTextEntries(xlsx);
+        String workbook = entries.get("xl/workbook.xml");
+
+        assertThat(entries).containsKey("xl/styles.xml");
+        assertThat(workbook)
+                .contains("Tổng quan")
+                .contains("Doanh thu theo ngày")
+                .contains("Hiệu suất theo rạp")
+                .contains("Top phim")
+                .contains("Top suất chiếu")
+                .contains("Nhu cầu theo giờ")
+                .contains("Heatmap ghế")
+                .contains("Hiệu suất nhân viên")
+                .contains("Trạng thái booking")
+                .contains("Trạng thái payment")
+                .contains("Top bắp nước")
+                .contains("Phương thức thanh toán");
+
+        assertThat(workbook.split("<sheet ", -1).length - 1).isEqualTo(12);
+    }
+
+    @Test
+    void xlsxRepeatsFiltersAndUsesDetailedTableHeaderOnEveryWorksheet() throws Exception {
+        byte[] xlsx = service.xlsx(sampleDashboard(), 30, null);
+        Map<String, String> entries = unzipTextEntries(xlsx);
+
+        String daily = entries.get("xl/worksheets/sheet2.xml");
+        assertThat(daily)
+                .contains("CineBooking Analytics V2 - DOANH THU THEO NGÀY")
+                .contains("Khoảng dữ liệu")
+                .contains("30 ngày")
+                .contains("Rạp")
+                .contains("Tất cả rạp")
+                .contains("Ngày xuất")
+                .contains("Ngày")
+                .contains("Doanh thu")
+                .contains("Booking")
+                .contains("Check-in")
+                .contains("2026-08-21")
+                .contains("<pane ySplit=\"6\" topLeftCell=\"A7\"")
+                .contains("<autoFilter ref=\"A6:E7\"/>");
+
+        String showtimes = entries.get("xl/worksheets/sheet5.xml");
+        assertThat(showtimes)
+                .contains("TOP SUẤT CHIẾU")
+                .contains("Phim thử")
+                .contains("Rạp Trung tâm")
+                .contains("Phòng 1")
+                .contains("<autoFilter ref=\"A6:H7\"/>");
+
+        String providers = entries.get("xl/worksheets/sheet12.xml");
+        assertThat(providers)
+                .contains("PHƯƠNG THỨC THANH TOÁN")
+                .contains("MOCK")
+                .contains("Giao dịch")
+                .contains("<autoFilter ref=\"A6:C7\"/>");
+    }
+
+    private Map<String, String> unzipTextEntries(byte[] xlsx) throws Exception {
+        Map<String, String> entries = new HashMap<>();
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(xlsx), StandardCharsets.UTF_8)) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
-                if ("xl/workbook.xml".equals(entry.getName())) {
-                    workbook = new String(zip.readAllBytes(), StandardCharsets.UTF_8);
-                } else if ("xl/styles.xml".equals(entry.getName())) {
-                    hasStyles = true;
-                } else if ("xl/worksheets/sheet1.xml".equals(entry.getName())) {
-                    hasSheet1 = true;
-                }
+                entries.put(entry.getName(), new String(zip.readAllBytes(), StandardCharsets.UTF_8));
             }
         }
-
-        assertThat(hasStyles).isTrue();
-        assertThat(hasSheet1).isTrue();
-        assertThat(workbook)
-                .contains("Tổng quan")
-                .contains("Doanh thu ngày")
-                .contains("Payment provider");
+        return entries;
     }
 
     private Dashboard sampleDashboard() {
