@@ -47,7 +47,7 @@ check('bulk planner reads blackout timeline', 'findByAuditoriumIdOrderByStartTim
 check('planner exposes blackout identity in preview', 'conflictBlackoutId' in dtos and 'conflictBlackoutId' in planning)
 check('maintenance admin page exists', 'Bảo trì & khóa phòng chiếu' in page)
 check('maintenance page can create blackouts', '/admin/auditorium-blackouts' in page and 'Khóa phòng' in page)
-check('maintenance page can delete blackouts', 'method:"DELETE"' in page and 'Mở lại phòng' in page)
+check('maintenance page can delete blackouts', 'method:"DELETE"' in page and 'aria-label="Mở lại phòng"' in page)
 check('maintenance page filters by auditorium', 'Lọc phòng bảo trì' in page)
 check('showtime planner links maintenance operations', 'href="/admin/maintenance"' in planner_page and 'Bảo trì phòng' in planner_page)
 check('admin dashboard links maintenance operations', 'href="/admin/maintenance"' in admin)

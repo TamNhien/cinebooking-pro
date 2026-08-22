@@ -55,7 +55,7 @@ check("Security allows Manager/Admin for V44 maintenance APIs", '.requestMatcher
 check("V44 frontend is a maintenance reliability control center", all(x in ui for x in ["V44 · CINEMA MAINTENANCE & ASSET RELIABILITY 2.0","Trung tâm bảo trì & độ tin cậy thiết bị","Danh mục thiết bị","Tạo work order"]))
 check("V44 frontend exposes asset status and next-service planning", all(x in ui for x in ["OUT_OF_SERVICE","MAINTENANCE","Bảo trì kế tiếp","nextServiceDue"]))
 check("V44 frontend exposes work-order transitions", all(x in ui for x in ["Bắt đầu","Tiếp tục","Hoàn tất","BLOCKED","CANCELLED"]))
-check("V44 frontend keeps V34 blackout compatibility for Admin", all(x in ui for x in ["V34 COMPATIBILITY","/admin/auditorium-blackouts","Bảo trì & khóa phòng chiếu"]))
+check("V44 frontend keeps V34 blackout compatibility for Admin", all(x in ui for x in ["V34 COMPATIBILITY","/admin/auditorium-blackouts","Bảo trì & khóa phòng chiếu",'aria-label="Mở lại phòng"']))
 check("Frontend types include V44 maintenance contracts", all(x in types for x in ["MaintenanceSummary","MaintenanceAsset","MaintenanceWorkOrder","MaintenanceWorkOrderEvent"]))
 check("Header exposes maintenance to Manager/Admin", "/admin/maintenance" in header and "Bảo trì & thiết bị" in header)
 check("V44 Playwright covers asset and work-order resolution", all(x in e2e for x in ["V44 admin registers equipment","Thêm thiết bị","Tạo work order","IN_PROGRESS","RESOLVED","Lịch sử"]))
