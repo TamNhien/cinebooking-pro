@@ -42,7 +42,7 @@ ok("Admin security frontend exists",has("frontend/app/admin/security/page.tsx","
 ok("Frontend types include V46 security contracts",has("frontend/lib/types.ts","SecurityOverviewV46","TrustedDeviceV46","SecurityAlertV46","AdminSecuritySummaryV46"))
 ok("Header links customer and admin security centers",has("frontend/components/Header.tsx","href=\"/security\"","href=\"/admin/security\""))
 ok("Admin dashboard links Security Operations",has("frontend/app/admin/page.tsx","/admin/security","Security Operations"))
-ok("V46 Playwright covers Brave trust-device and admin alert journey",has("frontend/e2e/security-account-protection.spec.ts","V46 user trusts a Brave device","navigator,\"brave\"","Laptop E2E V46","Security Operations","toContainText(\"Brave\")","page.goto(\"/login\")"))
+ok("V46 Playwright covers Brave trust-device and admin alert journey",has("frontend/e2e/security-account-protection.spec.ts","V46 user trusts a Brave device","navigator,\"brave\"","Laptop E2E V46","Security Operations","toContainText(\"Brave\")","logoutToLogin","waitForResponse","/api/auth/logout","expect(response.status()).toBe(204)","page.goto(\"/login\")"))
 ok("Integration test expects Flyway latest V46",has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"46\")","trusted_device","security_alert","idx_security_alert_unacknowledged"))
 ok("README identifies V46 release",has("README.md","# CineBooking Pro V46","Current release:** V46","Security & Account Protection 2.0"))
 ok("Main CI includes V46 source regression",has(".github/workflows/ci.yml","V26-V46 source regression","verify_v46_security_account_protection.py","verify_seed_demo_49.py"))

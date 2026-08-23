@@ -1,6 +1,15 @@
-import { expect, test } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 
 const PASSWORD="V46Security!Customer123";
+
+async function logoutToLogin(page:Page){
+  const logoutResponse=page.waitForResponse(response=>response.url().includes("/api/auth/logout")&&response.request().method()==="POST");
+  await page.getByRole("button",{name:"Đăng xuất"}).click();
+  const response=await logoutResponse;
+  expect(response.status()).toBe(204);
+  await page.goto("/login");
+  await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();
+}
 
 test("V46 user trusts a Brave device and admin sees security alerts",async({page})=>{
   await page.addInitScript(()=>{Object.defineProperty(navigator,"brave",{configurable:true,value:{isBrave:async()=>true}});});
@@ -14,9 +23,7 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   await page.getByRole("button",{name:"Đăng ký"}).click();
   await expect(page).toHaveURL(/\/$/);
 
-  await page.getByRole("button",{name:"Đăng xuất"}).click();
-  await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();
-  await page.goto("/login");
+  await logoutToLogin(page);
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Mật khẩu").fill(PASSWORD);
   await page.getByRole("button",{name:"Đăng nhập"}).click();
@@ -35,9 +42,7 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   await alert.getByRole("button",{name:"Tôi đã kiểm tra"}).click();
   await expect(alert).toContainText("Đã xác nhận");
 
-  await page.getByRole("button",{name:"Đăng xuất"}).click();
-  await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();
-  await page.goto("/login");
+  await logoutToLogin(page);
   const adminEmail=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
   const adminPassword=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
   await page.getByPlaceholder("Email").fill(adminEmail);

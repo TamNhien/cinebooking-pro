@@ -1968,3 +1968,8 @@ The 49-table reference seed now distributes its ten deterministic auditoriums an
 ### V46 reference schedule visibility fix
 
 The realistic V46 reference-data runner now keeps a separate deterministic set of 10 upcoming `SCHEDULED` staff shifts between today and the next nine days. Historical completed shifts remain intact for attendance and audit scenarios, while `/admin/shifts` is populated immediately under its default 14-day filter after running `tools/seed-reference-49-tables.ps1`. No Flyway migration is added by this reference-data repair.
+
+### V46 RC3 security E2E logout synchronization fix
+
+The V46 Brave security Playwright journey no longer assumes that the public header must render the `Đăng nhập` link immediately after a logout click. The application intentionally navigates to `/` after logout, while React auth-state rendering and navigation can complete in different orders under CI. The journey now synchronizes on the real `POST /api/auth/logout` response, requires HTTP 204, then explicitly opens `/login` before continuing. This keeps the test aligned with the production logout contract and removes the RC2 timing race without changing application behavior or schema.
+
