@@ -1,11 +1,33 @@
 import { BrowserContext, expect, test, type Page } from "@playwright/test";
 
 const PASSWORD = "V41Notify!Customer123";
+const AUTH_STORAGE_KEY = "cinebooking_auth_v3";
 
-type AuthResponseApi = { accessToken:string };
+type AuthStorage = { accessToken:string };
 
 function apiUrl(page:Page,path:string){
   return new URL(path,new URL(page.url()).origin).toString();
+}
+
+async function authFromStorage(context:BrowserContext,page:Page):Promise<AuthStorage>{
+  const origin=new URL(page.url()).origin;
+  let resolved:AuthStorage|null=null;
+  await expect.poll(async()=>{
+    const state=await context.storageState();
+    const originState=state.origins.find(item=>item.origin===origin);
+    const raw=originState?.localStorage.find(item=>item.name===AUTH_STORAGE_KEY)?.value;
+    if(!raw)return false;
+    try{
+      const auth=JSON.parse(raw) as AuthStorage;
+      if(!auth.accessToken)return false;
+      resolved=auth;
+      return true;
+    }catch{
+      return false;
+    }
+  },{timeout:15000}).toBe(true);
+  if(!resolved)throw new Error("authenticated storage state missing after registration");
+  return resolved;
 }
 
 async function authedJson<T>(context: BrowserContext, page: Page, accessToken:string, url: string, init?: { method?: string; body?: unknown }) {
@@ -35,9 +57,9 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await page.getByRole("button", { name:"Đăng ký" }).click();
   const authResponse=await registerResponse;
   expect(authResponse.status()).toBe(201);
-  const auth=await authResponse.json() as AuthResponseApi;
-  expect(auth.accessToken).toBeTruthy();
   await expect(page).toHaveURL(/\/$/);
+  const auth=await authFromStorage(context,page);
+  expect(auth.accessToken).toBeTruthy();
 
   const created = await authedJson<{ id:string; title:string; priority:string; archived:boolean }>(context,page,auth.accessToken, "/api/notifications/test", { method:"POST" });
   expect(created.status).toBe(200);

@@ -1,6 +1,7 @@
 import { BrowserContext, expect, Page, test } from "@playwright/test";
 
 const PASSWORD="V46Security!Customer123";
+const AUTH_STORAGE_KEY="cinebooking_auth_v3";
 
 type AuthResponseApi = {
   accessToken: string;
@@ -18,6 +19,27 @@ function apiUrl(page:Page,path:string){
   return new URL(path,new URL(page.url()).origin).toString();
 }
 
+async function authFromStorage(context:BrowserContext,page:Page,expectedRole:"USER"|"ADMIN"):Promise<AuthResponseApi>{
+  const origin=new URL(page.url()).origin;
+  let resolved:AuthResponseApi|null=null;
+  await expect.poll(async()=>{
+    const state=await context.storageState();
+    const originState=state.origins.find(item=>item.origin===origin);
+    const raw=originState?.localStorage.find(item=>item.name===AUTH_STORAGE_KEY)?.value;
+    if(!raw)return false;
+    try{
+      const auth=JSON.parse(raw) as AuthResponseApi;
+      if(auth.role!==expectedRole||!auth.accessToken)return false;
+      resolved=auth;
+      return true;
+    }catch{
+      return false;
+    }
+  },{timeout:15000}).toBe(true);
+  if(!resolved)throw new Error(`authenticated storage state missing for ${expectedRole}`);
+  return resolved;
+}
+
 async function logoutToLogin(page:Page,context:BrowserContext){
   const logoutResponse=page.waitForResponse(response=>response.url().includes("/api/auth/logout")&&response.request().method()==="POST");
   await page.getByRole("button",{name:"Đăng xuất"}).click();
@@ -29,18 +51,18 @@ async function logoutToLogin(page:Page,context:BrowserContext){
   await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();
 }
 
-async function login(page:Page,email:string,password:string,expectedRole:"USER"|"ADMIN"):Promise<AuthResponseApi>{
+async function login(page:Page,context:BrowserContext,email:string,password:string,expectedRole:"USER"|"ADMIN"):Promise<AuthResponseApi>{
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Mật khẩu").fill(password);
   const loginResponse=page.waitForResponse(response=>response.url().includes("/api/auth/login")&&response.request().method()==="POST");
   await page.getByRole("button",{name:"Đăng nhập"}).click();
   const response=await loginResponse;
   expect(response.status()).toBe(200);
-  const auth=await response.json() as AuthResponseApi;
-  expect(auth.role).toBe(expectedRole);
-  expect(auth.accessToken).toBeTruthy();
   if(expectedRole==="ADMIN") await page.waitForURL(url=>url.pathname.startsWith("/admin"),{timeout:15000,waitUntil:"domcontentloaded"});
   else await page.waitForURL(url=>url.pathname==="/",{timeout:15000,waitUntil:"domcontentloaded"});
+  const auth=await authFromStorage(context,page,expectedRole);
+  expect(auth.role).toBe(expectedRole);
+  expect(auth.accessToken).toBeTruthy();
   return auth;
 }
 
@@ -70,7 +92,7 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   await expect(page).toHaveURL(/\/$/);
 
   await logoutToLogin(page,context);
-  const customerAuth=await login(page,email,PASSWORD,"USER");
+  const customerAuth=await login(page,context,email,PASSWORD,"USER");
 
   await page.goto("/security",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("heading",{name:"Trung tâm bảo mật tài khoản"})).toBeVisible();
@@ -91,7 +113,7 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   await logoutToLogin(page,context);
   const adminEmail=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
   const adminPassword=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
-  const adminAuth=await login(page,adminEmail,adminPassword,"ADMIN");
+  const adminAuth=await login(page,context,adminEmail,adminPassword,"ADMIN");
 
   await page.goto("/admin/security",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("heading",{name:"Security Operations"})).toBeVisible();
