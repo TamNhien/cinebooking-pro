@@ -283,6 +283,29 @@ FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
 
 -- -----------------------------------------------------------------------------
+-- 08B. staff_shift upcoming schedule (10 visible in the default 14-day admin window)
+-- Keep the historical completed shifts above for attendance/audit data, and add
+-- a separate deterministic upcoming roster so /admin/shifts is populated.
+-- -----------------------------------------------------------------------------
+INSERT INTO staff_shift(
+    id,staff_user_id,cinema_id,shift_date,start_time,end_time,status,note,assigned_by,created_at,updated_at
+)
+SELECT
+    md5('seed46:planned-shift:' || n)::uuid,
+    md5('seed45:user:' || n)::uuid,
+    md5('seed45:cinema:1')::uuid,
+    CURRENT_DATE + (n - 1),
+    (ARRAY[TIME '08:00',TIME '09:00',TIME '12:00',TIME '14:00',TIME '16:00',TIME '17:00',TIME '10:00',TIME '13:00',TIME '15:00',TIME '18:00'])[n],
+    (ARRAY[TIME '14:00',TIME '15:00',TIME '18:00',TIME '20:00',TIME '22:00',TIME '23:00',TIME '16:00',TIME '19:00',TIME '21:00',TIME '23:00'])[n],
+    'SCHEDULED',
+    (ARRAY['Quầy vé và hỗ trợ khách hàng','Cổng soát vé và hướng dẫn khách','Vận hành sảnh và kiểm tra phòng chiếu','Quầy bắp nước ca chiều','Hỗ trợ suất chiếu buổi tối','Kiểm tra kỹ thuật trước suất tối','Kiểm kê kho và bổ sung hàng','Chăm sóc khách hàng tại sảnh','Điều phối khách và kiểm tra vé','Hỗ trợ đóng ca và bàn giao'])[n],
+    md5('seed45:user:1')::uuid,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM generate_series(1,10) AS g(n)
+ON CONFLICT DO NOTHING;
+
+-- -----------------------------------------------------------------------------
 -- 09. staff_attendance (10)
 -- -----------------------------------------------------------------------------
 INSERT INTO staff_attendance(
@@ -1122,6 +1145,19 @@ FROM seed_real_people p WHERE sp.user_id = md5('seed45:user:' || p.n)::uuid;
 UPDATE staff_shift s SET note=(ARRAY['Ca tối - sảnh chính','Ca tối - quầy vé','Ca tối - cổng soát vé','Ca tối - quầy bắp nước','Ca tối - khu vực chờ','Ca tối - chăm sóc khách hàng','Ca tối - phòng kỹ thuật','Ca tối - vận hành rạp','Ca tối - kho hàng','Ca tối - hỗ trợ sảnh'])[g.n]
 FROM generate_series(1,10) g(n) WHERE s.id = md5('seed45:shift:' || g.n)::uuid;
 
+-- Refresh the deterministic upcoming roster on every reference-data run so the
+-- default admin filter (today through +14 days) always has realistic shifts.
+UPDATE staff_shift s SET
+    shift_date=CURRENT_DATE + (g.n - 1),
+    start_time=(ARRAY[TIME '08:00',TIME '09:00',TIME '12:00',TIME '14:00',TIME '16:00',TIME '17:00',TIME '10:00',TIME '13:00',TIME '15:00',TIME '18:00'])[g.n],
+    end_time=(ARRAY[TIME '14:00',TIME '15:00',TIME '18:00',TIME '20:00',TIME '22:00',TIME '23:00',TIME '16:00',TIME '19:00',TIME '21:00',TIME '23:00'])[g.n],
+    status='SCHEDULED',
+    note=(ARRAY['Quầy vé và hỗ trợ khách hàng','Cổng soát vé và hướng dẫn khách','Vận hành sảnh và kiểm tra phòng chiếu','Quầy bắp nước ca chiều','Hỗ trợ suất chiếu buổi tối','Kiểm tra kỹ thuật trước suất tối','Kiểm kê kho và bổ sung hàng','Chăm sóc khách hàng tại sảnh','Điều phối khách và kiểm tra vé','Hỗ trợ đóng ca và bàn giao'])[g.n],
+    updated_at=CURRENT_TIMESTAMP
+FROM generate_series(1,10) g(n)
+WHERE s.id = md5('seed46:planned-shift:' || g.n)::uuid
+  AND NOT EXISTS (SELECT 1 FROM staff_attendance a WHERE a.shift_id=s.id);
+
 UPDATE booking b SET
     voucher_code=v.code,
     idempotency_key=format('cb-booking-202608-%s', to_char(v.n,'FM00'))
@@ -1269,7 +1305,7 @@ SET LOCAL session_replication_role = origin;
 
 -- Fail if seeded reference rows still contain broken UTF-8, placeholder labels, or unconfigured gateway names.
 DO $$
-DECLARE bad_count bigint; placeholder_count bigint; gateway_count bigint; demo_movie_count bigint;
+DECLARE bad_count bigint; placeholder_count bigint; gateway_count bigint; demo_movie_count bigint; upcoming_shift_count bigint;
 BEGIN
     SELECT COUNT(*) INTO bad_count FROM (
         SELECT full_name AS v FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
@@ -1277,6 +1313,7 @@ BEGIN
         UNION ALL SELECT name FROM auditorium WHERE id IN (SELECT md5('seed45:auditorium:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT job_title FROM staff_profile WHERE user_id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT note FROM staff_shift WHERE id IN (SELECT md5('seed45:shift:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT note FROM staff_shift WHERE id IN (SELECT md5('seed46:planned-shift:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT name FROM concession_product WHERE id IN (SELECT md5('seed45:product:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT description FROM concession_product WHERE id IN (SELECT md5('seed45:product:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT provider_message FROM payment WHERE id IN (SELECT md5('seed45:payment:' || n)::uuid FROM generate_series(1,10) g(n))
@@ -1343,6 +1380,15 @@ BEGIN
        OR title LIKE 'Phim Demo %';
     IF demo_movie_count <> 0 THEN
         RAISE EXCEPTION 'Movie cleanup failed: % synthetic placeholder movies remain', demo_movie_count;
+    END IF;
+
+    SELECT COUNT(*) INTO upcoming_shift_count
+    FROM staff_shift s
+    WHERE s.id IN (SELECT md5('seed46:planned-shift:' || n)::uuid FROM generate_series(1,10) g(n))
+      AND s.shift_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 14
+      AND s.status = 'SCHEDULED';
+    IF upcoming_shift_count <> 10 THEN
+        RAISE EXCEPTION 'Reference schedule refresh failed: expected 10 upcoming shifts in the default admin window, found %', upcoming_shift_count;
     END IF;
 END $$;
 

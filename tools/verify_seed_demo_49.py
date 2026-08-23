@@ -61,6 +61,8 @@ check('trusted_device receives 10 deterministic rows', 'seed46:trusted-device:' 
 check('security_alert receives 10 deterministic rows', 'seed46:security-alert:' in sql and 'INSERT INTO security_alert(' in sql)
 check('Security alert seed covers V46 event types', all(v in sql for v in ['NEW_DEVICE','CREDENTIAL_ATTACK','PASSWORD_CHANGED','PASSWORD_RESET','SESSION_REVOKED']))
 check('Support cases use distinct real staff assignees', "assigned_to=md5('seed45:user:' || g.n)::uuid" in sql and "md5('seed45:user:' || n)::uuid" in sql[sql.find('INSERT INTO customer_support_case'):sql.find('-- 46. customer_support_case_event')])
+check('Admin shift page receives 10 deterministic upcoming scheduled shifts', "seed46:planned-shift:" in sql and "CURRENT_DATE + (n - 1)" in sql and "'SCHEDULED'" in sql[sql.find('-- 08B. staff_shift upcoming schedule'):sql.find('-- 09. staff_attendance')])
+check('Reference refresh keeps upcoming shifts inside the default 14-day window', 'expected 10 upcoming shifts in the default admin window' in sql and "s.shift_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 14" in sql)
 check('movie table is not seeded with synthetic rows', not re.search(r'INSERT\s+INTO\s+movie\s*\(', sql, re.I))
 check('All eight canonical V29 movie IDs are reused', all(mid in sql for mid in canonical_movie_ids))
 check('Flyway metadata is never inserted/updated/deleted', not re.search(r'(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+flyway_schema_history', sql, re.I))

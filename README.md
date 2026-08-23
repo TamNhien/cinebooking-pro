@@ -1964,3 +1964,7 @@ The seed aborts if PostgreSQL is not UTF-8, if checked text still contains encod
 ### V46 reference-data branch visibility fix
 
 The 49-table reference seed now distributes its ten deterministic auditoriums and maintenance assets across the ten reference cinemas instead of attaching every asset to one cinema. This matters because `/admin/maintenance` is intentionally cinema-scoped: selecting CineHub Gigamall only returns rows whose `cinema_id` is Gigamall. Re-running `tools/seed-reference-49-tables.ps1` repairs older deterministic rows in-place, so each reference cinema has a matching auditorium and maintenance asset; no database reset is required.
+
+### V46 reference schedule visibility fix
+
+The realistic V46 reference-data runner now keeps a separate deterministic set of 10 upcoming `SCHEDULED` staff shifts between today and the next nine days. Historical completed shifts remain intact for attendance and audit scenarios, while `/admin/shifts` is populated immediately under its default 14-day filter after running `tools/seed-reference-49-tables.ps1`. No Flyway migration is added by this reference-data repair.
