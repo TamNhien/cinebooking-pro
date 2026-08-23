@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 import java.time.Instant;
 import java.util.*;
 public interface PaymentRepository extends JpaRepository<Payment, UUID> {
@@ -20,6 +21,11 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     List<Payment> findByStatusAndExpiresAtBefore(PaymentStatus status, Instant before);
     List<Payment> findByPaidAtGreaterThanEqualAndPaidAtLessThanAndStatusIn(Instant from,Instant to,Collection<PaymentStatus> statuses);
     List<Payment> findByRefundedAtGreaterThanEqualAndRefundedAtLessThanAndStatus(Instant from,Instant to,PaymentStatus status);
+    @Query("select coalesce(max(p.attemptNo),0) from Payment p where p.bookingId = :bookingId")
+    Integer maxAttemptNo(@Param("bookingId") UUID bookingId);
+    @Query("select p from Payment p where p.provider in :providers and p.status in :statuses and p.nextReconcileAt is not null and p.nextReconcileAt <= :now order by p.nextReconcileAt asc")
+    List<Payment> findDueForReconciliation(@Param("providers") Collection<String> providers,@Param("statuses") Collection<PaymentStatus> statuses,@Param("now") Instant now,Pageable pageable);
+    long countByNextReconcileAtIsNotNullAndNextReconcileAtLessThanEqual(Instant now);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Payment p where p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") UUID id);

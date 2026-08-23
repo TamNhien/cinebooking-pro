@@ -77,6 +77,9 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await expect(paymentCard).toBeVisible();
     await expect(paymentCard.getByText("SUCCESS", { exact: true })).toBeVisible();
     await expect(paymentCard.getByText("MOCK", { exact: true })).toBeVisible();
+    await expect(paymentCard.getByText("Lần #1", { exact: true })).toBeVisible();
+    await paymentCard.getByRole("button", { name: "Xem timeline" }).click();
+    await expect(paymentCard.getByText("PAYMENT_SUCCEEDED", { exact: true })).toBeVisible();
     await page.goto("/bookings");
   });
 
@@ -151,7 +154,7 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
 
     await page.goto("/admin/payments");
     await expect(page.getByRole("heading", { name: "Đối soát thanh toán" })).toBeVisible();
-    await expect(page.getByText("Payment Operations · V37")).toBeVisible();
+    await expect(page.getByText("Payment Operations · V47")).toBeVisible();
     await expect(page.getByText("MOCK").first()).toBeVisible();
   });
 });

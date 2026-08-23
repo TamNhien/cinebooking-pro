@@ -1,10 +1,10 @@
-# CineBooking Pro V46
+# CineBooking Pro V47
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V46
+> **Current release:** V47
 
-**V46 support assignment hotfix:** Admin all-cinema view now loads active Staff/Manager assignees instead of an empty dropdown. Managers remain cinema-scoped; Admin can coordinate assignments across branches. Assignee options show employee code, role, and cinema. — Security & Account Protection 2.0  
+**V47 Payment Gateway & Operations 2.0:** payment attempts now have lineage, safe cancel/retry, append-only event timelines, provider readiness, and configurable automatic reconciliation. Unconfigured VNPay/MoMo are hidden from checkout instead of being presented as usable options.  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -64,6 +64,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V44** | **Cinema Maintenance & Asset Reliability 2.0: asset registry, SLA/work order, incident linkage, immutable history** | **`V44__cinema_maintenance_asset_reliability.sql`** |
 | **V45** | **Customer Support & Service Recovery 2.0: ticket/case management, SLA, customer conversation, manager triage, immutable history** | **`V45__customer_support_service_recovery.sql`** |
 | **V46** | **Security & Account Protection 2.0: trusted devices, risk-scored alerts, dual email/IP brute-force protection, security dashboards** | **`V46__security_account_protection_2.sql`** |
+| **V47** | **Payment Gateway & Operations 2.0: attempt lineage, safe retry/cancel, payment timeline, provider readiness, auto/manual reconciliation** | **`V47__payment_gateway_operations_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -1237,16 +1238,16 @@ README.md                toàn bộ tài liệu dự án
 Source target:
 
 ```text
-CineBooking Pro V46
+CineBooking Pro V47
 ```
 
 Release target:
 
 ```text
-v46.0.0
+v47.0.0
 ```
 
-V46 có migration `V46__security_account_protection_2.sql`; Flyway latest là V46.
+V47 có migration `V47__payment_gateway_operations_2.sql`; Flyway latest là V47.
 
 Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 
@@ -1925,9 +1926,9 @@ main CI
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
 
-## Reference seed — UTF-8-safe realistic data for all 49 pgAdmin tables
+## Reference seed — UTF-8-safe realistic data for all 50 pgAdmin tables
 
-The V46 schema contains **49 pgAdmin tables**: 48 application tables plus `flyway_schema_history`. The reference seed keeps every application table populated while replacing placeholder `Demo`/`mẫu` values with realistic Vietnamese names, cinema branches, staff roles, concession products, maintenance assets, support cases, device labels and security events.
+The V47 schema contains **50 pgAdmin tables**: 49 application tables plus `flyway_schema_history`. The reference seed keeps every application table populated while replacing placeholder `Demo`/`mẫu` values with realistic Vietnamese names, cinema branches, staff roles, concession products, maintenance assets, support cases, device labels and security events.
 
 `movie` is deliberately not populated with synthetic rows. All seeded movie relations reuse the eight canonical V29 films already present in the database. `flyway_schema_history` is never inserted, updated or deleted; its genuine Flyway migration rows satisfy the table-data check. `financial_ledger_line` intentionally receives twenty rows so every payment capture remains balanced with one debit and one credit line.
 
@@ -1938,7 +1939,7 @@ The UTF-8-safe runner copies SQL byte-for-byte into the PostgreSQL container and
 Run from the repository root on Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-49-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-50-tables.ps1
 ```
 
 The older V45 command remains a compatibility alias:
@@ -1950,16 +1951,18 @@ powershell -ExecutionPolicy Bypass -File .\tools\seed-demo-45-tables.ps1
 Static verification:
 
 ```powershell
-python .\tools\verify_seed_demo_49.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_seed_demo_50.py
+python .\tools\verify_reference_data_50.py
 ```
 
-Inspect exact row counts for all 49 tables:
+Inspect exact row counts for all 50 tables:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\check-reference-49-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-reference-50-table-counts.ps1
 ```
 
-The seed aborts if PostgreSQL is not UTF-8, if checked text still contains encoding corruption, if seeded human-readable values still contain placeholder `Demo`/`mẫu`, if deterministic payment rows still use VNPay/MoMo, if the eight canonical movies are unavailable, if synthetic movie rows remain, or if any of the 49 pgAdmin tables is empty. Reference accounts run from `an.nguyen@cinebooking.local` through `chau.ho@cinebooking.local`; the shared password is `CineBooking@123`.
+The seed aborts if PostgreSQL is not UTF-8, if checked text still contains encoding corruption, if seeded human-readable values still contain placeholder `Demo`/`mẫu`, if deterministic payment rows still use VNPay/MoMo, if the eight canonical movies are unavailable, if synthetic movie rows remain, or if any of the 50 pgAdmin tables is empty. Reference accounts run from `an.nguyen@cinebooking.local` through `chau.ho@cinebooking.local`; the shared password is `CineBooking@123`.
 
 ### V46 reference-data branch visibility fix
 
@@ -1989,14 +1992,6 @@ RC5 removes those navigation-sensitive browser-evaluation helpers. The notificat
 Because `v46.0.0-rc.4` is immutable, publish the next candidate as `v46.0.0-rc.5`; do not move RC1-RC4 tags.
 
 
-### V46 RC5 Playwright navigation-context stabilization
-
-The `v46.0.0-rc.4` disposable full-stack run exposed two remaining Playwright races rather than production feature failures. The V41 notification journey called authenticated APIs through `page.evaluate(fetch(...))` immediately after a notification click deliberately hard-navigated back to `/notifications`, so Chromium could destroy the JavaScript execution context while the assertion helper was running. The V46 security journey likewise polled `localStorage` through `page.evaluate` while the login page was performing its role-based hard navigation, which could destroy the execution context before the poll completed.
-
-RC5 removes those navigation-sensitive browser-evaluation helpers. The notification journey captures the real registration `AuthResponse`, keeps its access token, and performs authenticated verification through Playwright `BrowserContext.request`, which is independent of page document replacement. The V46 security journey now synchronizes logout with the real Header logout request and waits for the application's `/` redirect to finish before opening `/login`; login validity is asserted directly from the real `/api/auth/login` JSON response rather than polling `localStorage`. Customer and Admin security-alert API checks also use `BrowserContext.request` with the exact bearer tokens returned by login. The Brave UI assertions, exact `NEW_DEVICE` alert ID/email contract, notification archive/restore/read contract, database schema, Flyway V46 migration and production security behavior are unchanged.
-
-Because `v46.0.0-rc.4` is immutable, publish the next candidate as `v46.0.0-rc.5`; do not move RC1-RC4 tags.
-
 ### V46 RC6 Playwright auth-body retention stabilization
 
 RC5 proved that the remaining release failures were not application API failures: Chromium returned successful authentication status codes, but Playwright could no longer retrieve the browser network response body after the registration/login navigation had replaced the document. Both the V41 notification journey and the V46 security journey failed at `Response.json()` with `Network.getResponseBody: No resource with given identifier found`.
@@ -2004,3 +1999,57 @@ RC5 proved that the remaining release failures were not application API failures
 RC6 keeps the real UI registration/login flows and still synchronizes on the real HTTP status codes, but no longer asks Chromium DevTools for an authentication response body after navigation. After the expected destination URL is stable, the tests read `cinebooking_auth_v3` through `BrowserContext.storageState()`, which is independent of the page execution context and retained network-response body. Authenticated API assertions continue through `BrowserContext.request`. The V41 archive/restore/read contract and the V46 Brave trusted-device plus exact customer `NEW_DEVICE` Admin visibility contract are unchanged. No production authentication logic, Flyway migration, database schema or reference data changes are included.
 
 Because `v46.0.0-rc.5` is immutable, publish the next candidate as `v46.0.0-rc.6`; do not move RC1-RC5 tags.
+
+
+## V47 - Payment Gateway & Operations 2.0
+
+V47 builds on the V37 gateway hardening without fabricating real VNPay/MoMo activity. Local/reference data still uses `MOCK` only unless merchant credentials are actually configured. Checkout now exposes only enabled providers: an unconfigured VNPay or MoMo gateway is not shown as a selectable payment method.
+
+### What V47 adds
+
+- Flyway `V47__payment_gateway_operations_2.sql`; pgAdmin now shows **50 tables**.
+- `payment.attempt_no` and `retry_of_payment_id` preserve retry lineage for each booking.
+- `CANCELLED` payment state lets a customer cancel only the current payment attempt while the booking remains valid until its existing expiry.
+- Safe retry is limited to `FAILED`/`CANCELLED` attempts while the booking is still `PENDING` and not expired; `REVIEW` is never auto-retried because the provider may already have captured money.
+- New append-only `payment_event` timeline records create/session/success/failure/cancel/retry/webhook/reconciliation events.
+- Customer APIs: `POST /api/payments/{paymentId}/cancel`, `POST /api/payments/{paymentId}/retry`, `GET /api/payments/{paymentId}/timeline`.
+- Admin APIs: `GET /api/admin/payments/{paymentId}/timeline`, `POST /api/admin/payments/reconcile-due`, plus the existing single-payment reconciliation endpoint.
+- Provider readiness exposes display name, enabled/configured flags, sandbox/production mode and capabilities. The booking UI hides unavailable real gateways instead of showing unusable VNPay/MoMo choices.
+- Optional automatic reconciliation is **off by default** and can be enabled with `PAYMENT_AUTO_RECONCILE_ENABLED=true`. Backoff/failure counters are persisted on each payment.
+- `/payments` now shows attempt number, cancel/retry actions and event timeline. `/admin/payments` shows provider readiness, due-reconciliation count, attempt lineage and timeline.
+- Reference data remains honest: the ten deterministic payment rows and V47 `payment_event` rows are local `MOCK` history; no seed row pretends a VNPay/MoMo transaction occurred.
+
+### V47 reconciliation configuration
+
+```env
+PAYMENT_AUTO_RECONCILE_ENABLED=false
+PAYMENT_RECONCILE_SCAN_MS=60000
+PAYMENT_RECONCILE_MIN_AGE_SECONDS=45
+PAYMENT_RECONCILE_MAX_BATCH=20
+PAYMENT_RECONCILE_MAX_BACKOFF_SECONDS=900
+```
+
+Real provider credentials remain deployment secrets and are never committed. When VNPay/MoMo credentials are blank, only enabled local methods are shown to customers.
+
+### V47 verification
+
+```powershell
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_seed_demo_50.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v47.ps1
+```
+
+Run/update the stack without deleting persistent volumes:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+For the first V47 release candidate use: `v47.0.0-rc.1` (stable target `v47.0.0`).
+
+```text
+branch: main
+version: 47.0.0
+rc_number: 1
+```

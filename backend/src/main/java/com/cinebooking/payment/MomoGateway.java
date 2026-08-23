@@ -63,6 +63,7 @@ public class MomoGateway {
     }
 
     public boolean configured(){return partnerCode!=null&&!partnerCode.isBlank()&&accessKey!=null&&!accessKey.isBlank()&&secretKey!=null&&!secretKey.isBlank();}
+    public String mode(){String u=createUrl==null?"":createUrl.toLowerCase(Locale.ROOT);return u.contains("test-payment")||u.contains("test")?"sandbox":"production";}
     private String val(Map<String,Object> p,String k){Object v=p.get(k);return v==null?"":String.valueOf(v);}
     private void requireConfig(){ if(!configured()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Chưa cấu hình MoMo"); }
 }

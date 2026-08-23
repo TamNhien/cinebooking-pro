@@ -17,8 +17,11 @@ public class PaymentController {
     public PaymentStartResponse start(@PathVariable UUID bookingId,@Valid @RequestBody StartPaymentRequest req,@RequestHeader(value="Idempotency-Key",required=false) String idempotencyKey,Authentication auth,HttpServletRequest request) {
         return service.start(bookingId,auth.getName(),req.provider(),ip(request),idempotencyKey);
     }
-
+    @PostMapping("/{paymentId}/retry")
+    public PaymentStartResponse retry(@PathVariable UUID paymentId,@Valid @RequestBody RetryPaymentRequest req,@RequestHeader(value="Idempotency-Key",required=false) String idempotencyKey,Authentication auth,HttpServletRequest request){return service.retry(paymentId,auth.getName(),req.provider(),ip(request),idempotencyKey);}
+    @PostMapping("/{paymentId}/cancel") public PaymentResultResponse cancel(@PathVariable UUID paymentId,Authentication auth){return service.cancel(paymentId,auth.getName());}
     @GetMapping("/{paymentId}/checkout") public PaymentCheckoutResponse checkout(@PathVariable UUID paymentId,Authentication auth){return service.checkout(paymentId,auth.getName());}
+    @GetMapping("/{paymentId}/timeline") public List<PaymentEventItem> timeline(@PathVariable UUID paymentId,Authentication auth){return service.timeline(paymentId,auth.getName());}
     @GetMapping("/history") public List<PaymentHistoryItem> history(Authentication auth){return service.history(auth.getName());}
     @GetMapping("/providers") public List<ProviderAvailability> providers(){return service.providers();}
     @PostMapping("/bookings/{bookingId}/mock/success") public PaymentResultResponse mockSuccess(@PathVariable UUID bookingId, Authentication auth){return service.mockSuccess(bookingId,auth.getName());}

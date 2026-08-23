@@ -24,11 +24,18 @@ public class Payment {
  @Column(name="paid_at") private Instant paidAt;
  @Column(name="failed_at") private Instant failedAt;
  @Column(name="last_webhook_at") private Instant lastWebhookAt;
+ @Column(name="attempt_no",nullable=false) private Integer attemptNo;
+ @Column(name="retry_of_payment_id") private UUID retryOfPaymentId;
+ @Column(name="cancelled_at") private Instant cancelledAt;
+ @Column(name="last_reconciled_at") private Instant lastReconciledAt;
+ @Column(name="next_reconcile_at") private Instant nextReconcileAt;
+ @Column(name="reconciliation_failures",nullable=false) private Integer reconciliationFailures;
+ @Column(name="last_reconcile_message") private String lastReconcileMessage;
  @Column(name="loyalty_points_awarded",nullable=false) private Integer loyaltyPointsAwarded;
  @Column(name="refunded_amount") private BigDecimal refundedAmount;
  @Column(name="refunded_at") private Instant refundedAt;
  @Column(name="refund_reference") private String refundReference;
- @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();if(updatedAt==null)updatedAt=createdAt;if(status==null)status=PaymentStatus.PENDING;if(loyaltyPointsAwarded==null)loyaltyPointsAwarded=0;}
+ @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();if(updatedAt==null)updatedAt=createdAt;if(status==null)status=PaymentStatus.PENDING;if(loyaltyPointsAwarded==null)loyaltyPointsAwarded=0;if(attemptNo==null)attemptNo=1;if(reconciliationFailures==null)reconciliationFailures=0;}
  @PreUpdate void update(){updatedAt=Instant.now();}
  public UUID getId(){return id;} public void setId(UUID id){this.id=id;}
  public UUID getBookingId(){return bookingId;} public void setBookingId(UUID bookingId){this.bookingId=bookingId;}
@@ -52,6 +59,13 @@ public class Payment {
  public Instant getPaidAt(){return paidAt;} public void setPaidAt(Instant paidAt){this.paidAt=paidAt;}
  public Instant getFailedAt(){return failedAt;} public void setFailedAt(Instant failedAt){this.failedAt=failedAt;}
  public Instant getLastWebhookAt(){return lastWebhookAt;} public void setLastWebhookAt(Instant lastWebhookAt){this.lastWebhookAt=lastWebhookAt;}
+ public Integer getAttemptNo(){return attemptNo;} public void setAttemptNo(Integer v){attemptNo=v;}
+ public UUID getRetryOfPaymentId(){return retryOfPaymentId;} public void setRetryOfPaymentId(UUID v){retryOfPaymentId=v;}
+ public Instant getCancelledAt(){return cancelledAt;} public void setCancelledAt(Instant v){cancelledAt=v;}
+ public Instant getLastReconciledAt(){return lastReconciledAt;} public void setLastReconciledAt(Instant v){lastReconciledAt=v;}
+ public Instant getNextReconcileAt(){return nextReconcileAt;} public void setNextReconcileAt(Instant v){nextReconcileAt=v;}
+ public Integer getReconciliationFailures(){return reconciliationFailures;} public void setReconciliationFailures(Integer v){reconciliationFailures=v;}
+ public String getLastReconcileMessage(){return lastReconcileMessage;} public void setLastReconcileMessage(String v){lastReconcileMessage=v;}
  public Integer getLoyaltyPointsAwarded(){return loyaltyPointsAwarded;} public void setLoyaltyPointsAwarded(Integer loyaltyPointsAwarded){this.loyaltyPointsAwarded=loyaltyPointsAwarded;}
  public BigDecimal getRefundedAmount(){return refundedAmount;} public void setRefundedAmount(BigDecimal v){refundedAmount=v;}
  public Instant getRefundedAt(){return refundedAt;} public void setRefundedAt(Instant v){refundedAt=v;}

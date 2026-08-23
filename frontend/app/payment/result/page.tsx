@@ -30,7 +30,7 @@ function ResultInner(){
        if(!active)return;
        if(p.status==="SUCCESS"){setState("Thanh toán thành công. Vé đã được xác nhận.");return;}
        if(p.status==="REVIEW"){setState("Cổng thanh toán báo thành công nhưng booking cần đối soát thủ công. Vui lòng không thanh toán lại.");return;}
-       if(["FAILED","EXPIRED","REFUNDED"].includes(p.status)){setState(`Thanh toán hiện ở trạng thái ${p.status}.`);return;}
+       if(["FAILED","EXPIRED","CANCELLED","REFUNDED"].includes(p.status)){setState(`Thanh toán hiện ở trạng thái ${p.status}.`);return;}
      }catch{}
      await new Promise(r=>setTimeout(r,1500));
    }

@@ -92,6 +92,7 @@ public class VnPayGateway {
     }
 
     public boolean configured(){return tmnCode!=null&&!tmnCode.isBlank()&&hashSecret!=null&&!hashSecret.isBlank();}
+    public String mode(){String u=paymentUrl==null?"":paymentUrl.toLowerCase(Locale.ROOT);return u.contains("sandbox")?"sandbox":"production";}
     private String normalizeIp(String ip){return ip==null||ip.isBlank()?"127.0.0.1":ip;}
     private String text(JsonNode j,String key){return j.path(key).asText("");}
     private long longValue(JsonNode j,String key){try{return Long.parseLong(text(j,key));}catch(Exception e){return -1;}}

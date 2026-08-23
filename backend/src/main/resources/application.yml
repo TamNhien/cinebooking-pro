@@ -128,6 +128,12 @@ app:
   payment:
     provider: ${PAYMENT_PROVIDER:mock}
     mock-enabled: ${PAYMENT_MOCK_ENABLED:true}
+    reconcile:
+      auto-enabled: ${PAYMENT_AUTO_RECONCILE_ENABLED:false}
+      scan-ms: ${PAYMENT_RECONCILE_SCAN_MS:60000}
+      min-age-seconds: ${PAYMENT_RECONCILE_MIN_AGE_SECONDS:45}
+      max-batch: ${PAYMENT_RECONCILE_MAX_BATCH:20}
+      max-backoff-seconds: ${PAYMENT_RECONCILE_MAX_BACKOFF_SECONDS:900}
     vnpay:
       payment-url: ${VNPAY_PAYMENT_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       query-url: ${VNPAY_QUERY_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
