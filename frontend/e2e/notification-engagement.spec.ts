@@ -1,28 +1,28 @@
-import { expect, test, type Page } from "@playwright/test";
+import { BrowserContext, expect, test, type Page } from "@playwright/test";
 
 const PASSWORD = "V41Notify!Customer123";
 
-async function authedJson<T>(page: Page, url: string, init?: { method?: string; body?: unknown }) {
-  return page.evaluate(async ({ url, init }) => {
-    const raw = localStorage.getItem("cinebooking_auth_v3");
-    if (!raw) throw new Error("auth missing");
-    const auth = JSON.parse(raw) as { accessToken?: string };
-    const res = await fetch(url, {
-      method: init?.method || "GET",
-      credentials: "include",
-      headers: {
-        Authorization: `Bearer ${auth.accessToken || ""}`,
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      },
-      body: init?.body ? JSON.stringify(init.body) : undefined,
-    });
-    let body: unknown = null;
-    try { body = await res.json(); } catch { body = null; }
-    return { status: res.status, body };
-  }, { url, init }) as Promise<{ status:number; body:T|null }>;
+type AuthResponseApi = { accessToken:string };
+
+function apiUrl(page:Page,path:string){
+  return new URL(path,new URL(page.url()).origin).toString();
 }
 
-test("V41 notification inbox archives and restores a durable notification", async ({ page }) => {
+async function authedJson<T>(context: BrowserContext, page: Page, accessToken:string, url: string, init?: { method?: string; body?: unknown }) {
+  const res = await context.request.fetch(apiUrl(page,url), {
+    method: init?.method || "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+    },
+    data: init?.body,
+  });
+  let body: unknown = null;
+  try { body = await res.json(); } catch { body = null; }
+  return { status: res.status(), body } as { status:number; body:T|null };
+}
+
+test("V41 notification inbox archives and restores a durable notification", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `v41-notify-${stamp}@example.test`;
 
@@ -31,17 +31,22 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
+  const registerResponse=page.waitForResponse(response=>response.url().includes("/api/auth/register")&&response.request().method()==="POST");
   await page.getByRole("button", { name:"Đăng ký" }).click();
+  const authResponse=await registerResponse;
+  expect(authResponse.status()).toBe(201);
+  const auth=await authResponse.json() as AuthResponseApi;
+  expect(auth.accessToken).toBeTruthy();
   await expect(page).toHaveURL(/\/$/);
 
-  const created = await authedJson<{ id:string; title:string; priority:string; archived:boolean }>(page, "/api/notifications/test", { method:"POST" });
+  const created = await authedJson<{ id:string; title:string; priority:string; archived:boolean }>(context,page,auth.accessToken, "/api/notifications/test", { method:"POST" });
   expect(created.status).toBe(200);
   expect(created.body?.title).toBe("Thông báo thử CineBooking");
   expect(created.body?.priority).toBe("NORMAL");
   expect(created.body?.archived).toBe(false);
   const id = created.body!.id;
 
-  const before = await authedJson<{ unreadCount:number; archivedCount:number }>(page, "/api/notifications/summary");
+  const before = await authedJson<{ unreadCount:number; archivedCount:number }>(context,page,auth.accessToken, "/api/notifications/summary");
   expect(before.status).toBe(200);
   expect(before.body!.unreadCount).toBeGreaterThanOrEqual(1);
 
@@ -54,7 +59,7 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await card.getByTestId("notification-archive-toggle").click();
   await expect(card).toHaveCount(0);
 
-  const archivedSummary = await authedJson<{ unreadCount:number; archivedCount:number }>(page, "/api/notifications/summary");
+  const archivedSummary = await authedJson<{ unreadCount:number; archivedCount:number }>(context,page,auth.accessToken, "/api/notifications/summary");
   expect(archivedSummary.status).toBe(200);
   expect(archivedSummary.body!.archivedCount).toBeGreaterThanOrEqual(1);
 
@@ -71,7 +76,7 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await card.getByRole("button").first().click();
   await expect(page).toHaveURL(/\/notifications$/);
 
-  const active = await authedJson<Array<{ id:string; read:boolean; archived:boolean }>>(page, "/api/notifications?view=ACTIVE");
+  const active = await authedJson<Array<{ id:string; read:boolean; archived:boolean }>>(context,page,auth.accessToken, "/api/notifications?view=ACTIVE");
   expect(active.status).toBe(200);
   const restored = active.body!.find(n => n.id === id);
   expect(restored?.archived).toBe(false);

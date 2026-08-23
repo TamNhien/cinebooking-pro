@@ -123,6 +123,7 @@ check('V41 E2E archives notification through UI', 'notification-archive-toggle' 
 check('V41 E2E restores notification through UI', 'Khôi phục' in e2e and 'notifications-active-tab' in e2e)
 check('V41 E2E verifies final active notification is read', 'restored?.read' in e2e and 'toBe(true)' in e2e)
 check('V41 E2E checks new loyalty/waitlist preference labels', '🏆 Loyalty & thành viên' in e2e and '💺 Waitlist' in e2e)
+check('V41 E2E uses browser-context API requests instead of navigation-sensitive page.evaluate fetches', 'context.request.fetch' in e2e and 'authResponse.json()' in e2e and 'page.evaluate' not in e2e)
 
 check('Integration test expects Flyway V41 or newer', any(f'isEqualTo("{v}")' in integration for v in range(41,100)) and bool(re.search(r'flywayMigratesRealPostgresToV[4-9][0-9]*', integration)))
 check('Integration test validates V41 notification columns', 'notificationV41Columns' in integration and "('priority','read_at','archived_at')" in integration)
