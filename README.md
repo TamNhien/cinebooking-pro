@@ -1,10 +1,15 @@
-# CineBooking Pro V47
+# CineBooking Pro V48
+
+### V48 compile hotfix - CommerceService lambda capture
+
+The initial V48 source reassigned the local `ConcessionProduct p` and then captured it inside `Optional.orElseGet(...)` lambdas while provisioning per-cinema inventory and price rows. Java requires captured locals to be final or effectively final, so Maven reported `local variables referenced from a lambda expression must be final or effectively final`. The hotfix keeps the mutable pre-save object in `product`, stores the persisted value once as `final ConcessionProduct savedProduct`, and uses `savedProduct` inside both lambdas. No database migration or business behavior changed.
+
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V47
+> **Current release:** V48
 
-**V47 Payment Gateway & Operations 2.0:** payment attempts now have lineage, safe cancel/retry, append-only event timelines, provider readiness, and configurable automatic reconciliation. Unconfigured VNPay/MoMo are hidden from checkout instead of being presented as usable options.  
+**V48 Concession & Inventory 2.0:** concession stock and prices are now branch-scoped, checkout reads the showtime cinema catalog, inventory supports restock/count/waste/transfer operations, and every movement carries cinema/reference metadata. V47 payment gateway operations remain intact.  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
@@ -65,6 +70,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V45** | **Customer Support & Service Recovery 2.0: ticket/case management, SLA, customer conversation, manager triage, immutable history** | **`V45__customer_support_service_recovery.sql`** |
 | **V46** | **Security & Account Protection 2.0: trusted devices, risk-scored alerts, dual email/IP brute-force protection, security dashboards** | **`V46__security_account_protection_2.sql`** |
 | **V47** | **Payment Gateway & Operations 2.0: attempt lineage, safe retry/cancel, payment timeline, provider readiness, auto/manual reconciliation** | **`V47__payment_gateway_operations_2.sql`** |
+| **V48** | **Concession & Inventory 2.0: multi-cinema stock, branch pricing, waste/transfer operations, branch-scoped checkout reservations** | **`V48__multi_cinema_concession_inventory_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -2053,3 +2059,72 @@ branch: main
 version: 47.0.0
 rc_number: 1
 ```
+
+## V48 - Concession & Inventory 2.0
+
+V48 turns the original V19 global concession inventory into a cinema-scoped operational model. The global `concession_product` catalog remains the product master for compatibility, while stock availability and selling price used by checkout are resolved from the cinema that owns the selected showtime.
+
+### What V48 adds
+
+- Flyway `V48__multi_cinema_concession_inventory_2.sql`; pgAdmin now shows **52 tables**: 51 application tables plus `flyway_schema_history`.
+- New `cinema_concession_inventory` stores `stock_on_hand`, `stock_reserved`, `low_stock_threshold`, `target_stock` and branch active state for every cinema/product pair.
+- New `cinema_concession_price` stores the effective selling price per cinema without overwriting the global catalog price.
+- `inventory_movement` now carries `cinema_id` and `reference_key`; movement types add `WASTE`, `TRANSFER_OUT` and `TRANSFER_IN` while preserving V19/V40 events.
+- Customer `GET /api/commerce/products?cinemaId=<uuid>` returns branch availability and effective price. `/booking/[showtimeId]` automatically requests the product catalog for that showtime's cinema.
+- Booking creation resolves the auditorium cinema before building concessions. The same cinema is used for branch price quoting, pessimistic inventory reservation, payment-success sale deduction, cancellation release and refund restock.
+- Admin `/admin/inventory` is now branch-first: branch selector, low/sold-out KPIs, restock, physical-count SET, waste write-off, target/threshold controls, branch price override and atomic inter-cinema transfer.
+- Transfers only use **available** stock (`on hand - reserved`), so stock already reserved by a `PENDING` booking cannot be moved to another cinema.
+- Loyalty concession redemption consumes inventory from the staff member's assigned cinema and writes `LOYALTY_REWARD` with branch identity.
+- New products automatically receive branch inventory/price rows for every existing cinema; a new product starts with zero branch stock until an operator restocks it.
+- Reference data remains realistic: the 10 reference cinemas and 10 real-named concession products receive 100 deterministic branch-stock rows and 100 deterministic branch-price rows. Payment reference history remains `MOCK` only; no VNPay/MoMo activity is fabricated.
+
+### V48 APIs
+
+```text
+GET  /api/admin/inventory/branches
+GET  /api/admin/inventory?cinemaId=<uuid>
+GET  /api/admin/inventory/movements?cinemaId=<uuid>&productId=<optional-uuid>
+POST /api/admin/inventory/adjustments
+POST /api/admin/inventory/transfers
+PUT  /api/admin/inventory/prices
+GET  /api/commerce/products?cinemaId=<uuid>
+```
+
+Adjustment operations are `RESTOCK`, `SET` and `WASTE`. `SET` cannot lower physical stock below the quantity already reserved for pending bookings; `WASTE` cannot consume reserved stock.
+
+### V48 realistic reference data
+
+Run from the repository root on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-52-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-reference-52-table-counts.ps1
+```
+
+The V48 seed is UTF-8 safe, reuses the eight canonical V29 movies, keeps real Vietnamese names/products/assets, leaves Flyway metadata untouched and rejects seeded VNPay/MoMo rows.
+
+### V48 verification
+
+```powershell
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_seed_demo_52.py
+python .\tools\verify_reference_data_52.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v48.ps1
+```
+
+Run/update the stack without deleting persistent volumes:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+For the first V48 release candidate use `v48.0.0-rc.1` with stable target `v48.0.0`:
+
+```text
+branch: main
+version: 48.0.0
+rc_number: 1
+```
+

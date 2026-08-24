@@ -8,4 +8,6 @@ public interface InventoryMovementRepository extends JpaRepository<InventoryMove
     boolean existsByBookingIdAndProductIdAndMovementType(UUID bookingId, UUID productId, String movementType);
     List<InventoryMovement> findTop200ByOrderByCreatedAtDesc();
     List<InventoryMovement> findTop200ByProductIdOrderByCreatedAtDesc(UUID productId);
+    List<InventoryMovement> findTop200ByCinemaIdOrderByCreatedAtDesc(UUID cinemaId);
+    List<InventoryMovement> findTop200ByCinemaIdAndProductIdOrderByCreatedAtDesc(UUID cinemaId,UUID productId);
 }

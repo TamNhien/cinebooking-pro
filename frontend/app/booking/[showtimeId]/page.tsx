@@ -61,7 +61,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
         setSelected(current=>current.filter(id=>{const seat=m.seats.find(x=>x.id===id);return seat?.status==="AVAILABLE";}));
       }
 
-      api<ConcessionProduct[]>("/commerce/products").then(setProducts).catch(()=>setProducts([]));
+      api<ConcessionProduct[]>(`/commerce/products?cinemaId=${encodeURIComponent(s.cinemaId)}`).then(setProducts).catch(()=>setProducts([]));
       if(getAuth()) api<UserProfile>("/me").then(setProfile).catch(()=>setProfile(null));
     } catch (e) {
       setShowtime(null);
@@ -208,7 +208,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       </div>
 
       <div className="card p-5 md:p-7">
-        <div className="section-heading"><div><p className="section-kicker">CINE FOOD</p><h2>{en?"Snacks & drinks":"Bắp nước & combo"}</h2></div><span className="text-sm text-slate-400">{en?"Optional":"Không bắt buộc"}</span></div>
+        <div className="section-heading"><div><p className="section-kicker">CINE FOOD · V48</p><h2>{en?"Snacks & drinks":"Bắp nước & combo"}</h2></div><span className="text-sm text-slate-400">{showtime?.cinemaName} · {en?"branch stock":"tồn theo rạp"}</span></div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{products.map(p=>{const current=addons[p.id]||0;const cap=p.inventoryEnabled?Math.min(10,p.stockAvailable):10;return <div key={p.id} className={`rounded-2xl border bg-slate-950/55 p-4 ${p.soldOut?"border-rose-900/70 opacity-75":p.lowStock?"border-amber-800/70":"border-slate-700/70"}`}><div className="flex gap-3"><div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-2xl">🍿</div><div className="min-w-0"><div className="font-bold">{p.name}</div><div className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{p.description||"Combo rạp chiếu"}</div><div className="mt-2 font-bold text-amber-300">{currency(p.price)}</div>{p.inventoryEnabled&&<div className={`mt-1 text-xs font-semibold ${p.soldOut?"text-rose-300":p.lowStock?"text-amber-300":"text-emerald-300"}`}>{p.soldOut?(en?"Sold out":"Hết hàng"):(en?`${p.stockAvailable} available`:`Còn ${p.stockAvailable} phần`)}</div>}</div></div><div className="mt-4 flex items-center justify-between"><button className="btn btn-secondary !h-9 !w-9 !p-0" onClick={()=>qty(p.id,-1)} disabled={!current}>−</button><strong>{current}</strong><button className="btn btn-secondary !h-9 !w-9 !p-0" onClick={()=>qty(p.id,1)} disabled={p.soldOut||current>=cap}>+</button></div></div>})}</div>
       </div>
     </section>

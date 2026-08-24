@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV47PaymentGatewayOperationsSchemaAndCatalog() {
+    void flywayMigratesRealPostgresToV48MultiCinemaInventorySchemaAndCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("47");
-        assertThat(publicTables).isGreaterThanOrEqualTo(50);
+        assertThat(latest).isEqualTo("48");
+        assertThat(publicTables).isGreaterThanOrEqualTo(52);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -187,6 +187,15 @@ class CineBookingIntegrationIT {
         Integer paymentV47Indexes = jdbc.queryForObject(
                 "select count(*) from pg_indexes where schemaname='public' and indexname in ('uq_payment_booking_attempt_no','idx_payment_retry_parent','idx_payment_reconcile_due','idx_payment_event_payment_created','idx_payment_event_type_created')", Integer.class);
         assertThat(paymentV47Indexes).isEqualTo(5);
+        Integer inventoryV48Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('cinema_concession_inventory','cinema_concession_price')", Integer.class);
+        assertThat(inventoryV48Tables).isEqualTo(2);
+        Integer inventoryV48MovementColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='inventory_movement' and column_name in ('cinema_id','reference_key')", Integer.class);
+        assertThat(inventoryV48MovementColumns).isEqualTo(2);
+        Integer inventoryV48Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_branch_concession_inventory_alert','idx_branch_concession_price_lookup','idx_inventory_movement_cinema_created','idx_inventory_movement_reference')", Integer.class);
+        assertThat(inventoryV48Indexes).isEqualTo(4);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

@@ -12,7 +12,8 @@ public final class CommerceDtos {
             UUID id, String name, String description, BigDecimal price, String imageUrl,
             boolean active, int sortOrder,
             boolean inventoryEnabled, int stockOnHand, int stockReserved, int stockAvailable,
-            int lowStockThreshold, boolean lowStock, boolean soldOut) {}
+            int lowStockThreshold, boolean lowStock, boolean soldOut,
+            UUID cinemaId, String cinemaName, BigDecimal basePrice, boolean priceOverride) {}
 
     public record ProductRequest(
             @NotBlank @Size(max=160) String name,

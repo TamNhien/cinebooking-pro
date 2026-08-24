@@ -9,6 +9,7 @@ import java.util.UUID;
 public class InventoryMovement {
     @Id private UUID id;
     @Column(name="product_id", nullable=false) private UUID productId;
+    @Column(name="cinema_id") private UUID cinemaId;
     @Column(name="booking_id") private UUID bookingId;
     @Column(name="movement_type", nullable=false) private String movementType;
     @Column(name="quantity_delta", nullable=false) private Integer quantityDelta;
@@ -16,18 +17,14 @@ public class InventoryMovement {
     @Column(name="stock_after", nullable=false) private Integer stockAfter;
     @Column(name="reserved_after", nullable=false) private Integer reservedAfter;
     @Column(name="actor_email") private String actorEmail;
+    @Column(name="reference_key",length=100) private String referenceKey;
     @Column(length=300) private String note;
     @Column(name="created_at", nullable=false) private Instant createdAt;
 
-    @PrePersist void pre(){
-        if(id==null) id=UUID.randomUUID();
-        if(quantityDelta==null) quantityDelta=0;
-        if(reservedDelta==null) reservedDelta=0;
-        if(createdAt==null) createdAt=Instant.now();
-    }
-
+    @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(quantityDelta==null)quantityDelta=0;if(reservedDelta==null)reservedDelta=0;if(createdAt==null)createdAt=Instant.now();}
     public UUID getId(){return id;} public void setId(UUID v){id=v;}
     public UUID getProductId(){return productId;} public void setProductId(UUID v){productId=v;}
+    public UUID getCinemaId(){return cinemaId;} public void setCinemaId(UUID v){cinemaId=v;}
     public UUID getBookingId(){return bookingId;} public void setBookingId(UUID v){bookingId=v;}
     public String getMovementType(){return movementType;} public void setMovementType(String v){movementType=v;}
     public Integer getQuantityDelta(){return quantityDelta;} public void setQuantityDelta(Integer v){quantityDelta=v;}
@@ -35,6 +32,7 @@ public class InventoryMovement {
     public Integer getStockAfter(){return stockAfter;} public void setStockAfter(Integer v){stockAfter=v;}
     public Integer getReservedAfter(){return reservedAfter;} public void setReservedAfter(Integer v){reservedAfter=v;}
     public String getActorEmail(){return actorEmail;} public void setActorEmail(String v){actorEmail=v;}
+    public String getReferenceKey(){return referenceKey;} public void setReferenceKey(String v){referenceKey=v;}
     public String getNote(){return note;} public void setNote(String v){note=v;}
     public Instant getCreatedAt(){return createdAt;} public void setCreatedAt(Instant v){createdAt=v;}
 }

@@ -5,6 +5,7 @@ import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
 import com.cinebooking.movie.MovieRepository;
 import com.cinebooking.movie.ShowtimeRepository;
+import com.cinebooking.movie.AuditoriumRepository;
 import com.cinebooking.notification.NotificationService;
 import com.cinebooking.pricing.PricingService;
 import com.cinebooking.seat.SeatHoldService;
@@ -34,6 +35,7 @@ public class BookingService {
     private final BookingRepository bookings;
     private final BookingSeatRepository bookingSeats;
     private final ShowtimeRepository showtimes;
+    private final AuditoriumRepository auditoriums;
     private final SeatRepository seats;
     private final MovieRepository movies;
     private final UserRepository users;
@@ -48,14 +50,14 @@ public class BookingService {
     private final int showtimeReminderHours;
     private final int showtimeFinalReminderMinutes;
 
-    public BookingService(BookingRepository bookings, BookingSeatRepository bookingSeats, ShowtimeRepository showtimes,
+    public BookingService(BookingRepository bookings, BookingSeatRepository bookingSeats, ShowtimeRepository showtimes, AuditoriumRepository auditoriums,
                           SeatRepository seats, MovieRepository movies, UserRepository users,
                           SeatHoldService holds, SeatEventPublisher events, CommerceService commerce, InventoryService inventory,
                           LoyaltyService loyalty, NotificationService notifications, PricingService pricing,
                           @Value("${app.booking.payment-window-seconds}") long paymentWindowSeconds,
                           @Value("${app.notifications.showtime-reminder-hours:3}") int showtimeReminderHours,
                           @Value("${app.notifications.showtime-final-reminder-minutes:30}") int showtimeFinalReminderMinutes) {
-        this.bookings=bookings; this.bookingSeats=bookingSeats; this.showtimes=showtimes; this.seats=seats;
+        this.bookings=bookings; this.bookingSeats=bookingSeats; this.showtimes=showtimes; this.auditoriums=auditoriums; this.seats=seats;
         this.movies=movies; this.users=users; this.holds=holds; this.events=events; this.commerce=commerce; this.inventory=inventory;
         this.loyalty=loyalty; this.notifications=notifications; this.pricing=pricing; this.paymentWindowSeconds=paymentWindowSeconds;
         this.showtimeReminderHours=Math.max(1,showtimeReminderHours); this.showtimeFinalReminderMinutes=Math.max(5,showtimeFinalReminderMinutes);
@@ -131,10 +133,11 @@ public class BookingService {
 
         List<CommerceService.Selection> selectionReq = req.concessions()==null?List.of():req.concessions().stream()
                 .map(x->new CommerceService.Selection(x.productId(),x.quantity())).toList();
-        List<BookingConcession> concessionRows = commerce.buildConcessions(b.getId(),selectionReq);
+        UUID cinemaId=auditoriums.findById(showtime.getAuditoriumId()).orElseThrow(()->new ApiException(HttpStatus.CONFLICT,"Không tìm thấy rạp của suất chiếu")).getCinemaId();
+        List<BookingConcession> concessionRows = commerce.buildConcessions(b.getId(),cinemaId,selectionReq);
         BigDecimal concessionTotal = commerce.total(concessionRows);
         commerce.saveConcessions(concessionRows);
-        inventory.reserveForBooking(b.getId(),concessionRows);
+        inventory.reserveForBooking(b.getId(),cinemaId,concessionRows);
         BigDecimal gross = seatTotal.add(concessionTotal);
 
         CommerceService.AppliedVoucher voucher = commerce.applyVoucher(req.voucherCode(),gross,user.getId(),b.getId());
