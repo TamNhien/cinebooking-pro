@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV48MultiCinemaInventorySchemaAndCatalog() {
+    void flywayMigratesRealPostgresToV49SmartShowtimePlanningSchemaAndCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("48");
-        assertThat(publicTables).isGreaterThanOrEqualTo(52);
+        assertThat(latest).isEqualTo("49");
+        assertThat(publicTables).isGreaterThanOrEqualTo(53);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -196,6 +196,15 @@ class CineBookingIntegrationIT {
         Integer inventoryV48Indexes = jdbc.queryForObject(
                 "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_branch_concession_inventory_alert','idx_branch_concession_price_lookup','idx_inventory_movement_cinema_created','idx_inventory_movement_reference')", Integer.class);
         assertThat(inventoryV48Indexes).isEqualTo(4);
+        Integer planningV49Table = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='showtime_planning_run'", Integer.class);
+        assertThat(planningV49Table).isEqualTo(1);
+        Integer planningV49ShowtimeColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='showtime' and column_name in ('planning_source','planning_run_id','planning_score')", Integer.class);
+        assertThat(planningV49ShowtimeColumns).isEqualTo(3);
+        Integer planningV49Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_showtime_planning_run_cinema_created','idx_showtime_planning_run_movie_created','idx_showtime_planning_run_id','idx_showtime_planning_source_start')", Integer.class);
+        assertThat(planningV49Indexes).isEqualTo(4);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

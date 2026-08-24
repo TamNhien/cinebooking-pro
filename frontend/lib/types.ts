@@ -28,6 +28,9 @@ export type Showtime = {
   startTime:string;
   basePrice:number;
   status:string;
+  planningSource?:"MANUAL"|"BATCH"|"SMART";
+  planningRunId?:string;
+  planningScore?:number;
 };
 export type Seat = { id:string; code:string; rowLabel:string; seatNumber:number; seatType:string; basePrice:number; seatModifier:number; dynamicAdjustment:number; price:number; pricingRules:string[]; status:"AVAILABLE"|"HELD"|"BOOKED"|"BLOCKED"; heldByMe:boolean };
 export type SeatMap = { showtimeId:string; holdTtlSeconds:number; holdRemainingSeconds:number; maxSelectableSeats:number; preventSingleGap:boolean; seats:Seat[] };
@@ -67,6 +70,11 @@ export type AdminSeat = { id:string; auditoriumId:string; auditoriumName:string;
 export type ShowtimePlanSlot = { startTime:string; endTime:string; creatable:boolean; conflictType?:"SHOWTIME"|"BLACKOUT"|"BATCH"; conflictShowtimeId?:string; conflictBlackoutId?:string; conflictLabel?:string };
 export type ShowtimePlanPreview = { zoneId:string; turnaroundMinutes:number; requested:number; creatable:number; conflicts:number; slots:ShowtimePlanSlot[] };
 export type ShowtimePlanCommit = { created:number; skipped:number; preview:ShowtimePlanPreview; showtimes:Showtime[] };
+export type SmartShowtimeSlot = { auditoriumId:string; auditoriumName:string; startTime:string; endTime:string; score:number; historicalOccupancy:number; historicalSamples:number; reasons:string[] };
+export type SmartShowtimeDay = { date:string; target:number; suggested:number; conflicts:number; candidateCount:number; slots:SmartShowtimeSlot[] };
+export type SmartShowtimePlanPreview = { strategyVersion:string; zoneId:string; turnaroundMinutes:number; minMovieSpacingMinutes:number; cinemaId:string; cinemaName:string; movieId:string; movieTitle:string; requested:number; suggested:number; conflicts:number; candidateCount:number; historicalSamples:number; days:SmartShowtimeDay[] };
+export type SmartShowtimeCommit = { planningRunId:string; created:number; preview:SmartShowtimePlanPreview; showtimes:Showtime[] };
+export type ShowtimePlanningRun = { id:string; cinemaId:string; cinemaName:string; movieId:string; movieTitle:string; fromDate:string; toDate:string; targetPerDay:number; operatingStart:string; operatingEnd:string; intervalMinutes:number; basePrice:number; requestedSlots:number; suggestedSlots:number; conflictCount:number; historicalSamples:number; strategy:string; status:string; createdBy?:string; createdAt:string; committedAt?:string };
 export type AuditoriumBlackout = { id:string; auditoriumId:string; cinemaName:string; auditoriumName:string; startTime:string; endTime:string; reason:string; createdAt:string };
 
 export type MovieReview = { id:string; movieId:string; userId:string; userName:string; rating:number; comment?:string; createdAt:string; updatedAt:string; mine:boolean };

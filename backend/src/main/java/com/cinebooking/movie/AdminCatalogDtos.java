@@ -30,6 +30,25 @@ public final class AdminCatalogDtos {
     public record ShowtimePlanSlot(Instant startTime,Instant endTime,boolean creatable,String conflictType,UUID conflictShowtimeId,UUID conflictBlackoutId,String conflictLabel){}
     public record ShowtimePlanPreview(String zoneId,long turnaroundMinutes,int requested,int creatable,int conflicts,List<ShowtimePlanSlot> slots){}
     public record ShowtimePlanCommitResponse(int created,int skipped,ShowtimePlanPreview preview,List<com.cinebooking.movie.MovieDtos.ShowtimeResponse> showtimes){}
+
+    // V49 Smart Showtime Planning 2.0
+    public record SmartShowtimePlanRequest(@NotNull UUID cinemaId,@NotNull UUID movieId,@NotNull LocalDate fromDate,@NotNull LocalDate toDate,
+                                           @NotNull @Min(1) @Max(12) Integer targetPerDay,@NotNull LocalTime operatingStart,@NotNull LocalTime operatingEnd,
+                                           @NotNull @Min(15) @Max(120) Integer intervalMinutes,@NotNull @DecimalMin("0.0") BigDecimal basePrice,
+                                           @NotBlank String status){}
+    public record SmartShowtimeSlot(UUID auditoriumId,String auditoriumName,Instant startTime,Instant endTime,double score,
+                                    double historicalOccupancy,int historicalSamples,List<String> reasons){}
+    public record SmartShowtimeDay(LocalDate date,int target,int suggested,int conflicts,int candidateCount,List<SmartShowtimeSlot> slots){}
+    public record SmartShowtimePlanPreview(String strategyVersion,String zoneId,long turnaroundMinutes,long minMovieSpacingMinutes,
+                                           UUID cinemaId,String cinemaName,UUID movieId,String movieTitle,int requested,int suggested,
+                                           int conflicts,int candidateCount,int historicalSamples,List<SmartShowtimeDay> days){}
+    public record SmartShowtimeCommitResponse(UUID planningRunId,int created,SmartShowtimePlanPreview preview,
+                                              List<com.cinebooking.movie.MovieDtos.ShowtimeResponse> showtimes){}
+    public record ShowtimePlanningRunResponse(UUID id,UUID cinemaId,String cinemaName,UUID movieId,String movieTitle,LocalDate fromDate,LocalDate toDate,
+                                              int targetPerDay,LocalTime operatingStart,LocalTime operatingEnd,int intervalMinutes,BigDecimal basePrice,
+                                              int requestedSlots,int suggestedSlots,int conflictCount,int historicalSamples,String strategy,String status,
+                                              String createdBy,Instant createdAt,Instant committedAt){}
+
     public record AuditoriumBlackoutRequest(@NotNull UUID auditoriumId,@NotNull Instant startTime,@NotNull Instant endTime,@NotBlank @Size(max=300) String reason){}
     public record AuditoriumBlackoutResponse(UUID id,UUID auditoriumId,String cinemaName,String auditoriumName,Instant startTime,Instant endTime,String reason,Instant createdAt){}
 }

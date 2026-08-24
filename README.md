@@ -1,4 +1,4 @@
-# CineBooking Pro V48
+# CineBooking Pro V49
 
 ### V48 compile hotfix - CommerceService lambda capture
 
@@ -7,7 +7,9 @@ The initial V48 source reassigned the local `ConcessionProduct p` and then captu
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V48
+> **Current release:** V49
+
+**V49 Smart Showtime Planning 2.0:** adds demand-balanced multi-room scheduling, historical occupancy scoring, operating-window constraints, cinema-wide same-movie spacing, durable planning-run audit, and MANUAL/BATCH/SMART showtime provenance. V48 branch inventory and V47 payment operations remain intact.  
 
 **V48 Concession & Inventory 2.0:** concession stock and prices are now branch-scoped, checkout reads the showtime cinema catalog, inventory supports restock/count/waste/transfer operations, and every movement carries cinema/reference metadata. V47 payment gateway operations remain intact.  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
@@ -71,6 +73,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V46** | **Security & Account Protection 2.0: trusted devices, risk-scored alerts, dual email/IP brute-force protection, security dashboards** | **`V46__security_account_protection_2.sql`** |
 | **V47** | **Payment Gateway & Operations 2.0: attempt lineage, safe retry/cancel, payment timeline, provider readiness, auto/manual reconciliation** | **`V47__payment_gateway_operations_2.sql`** |
 | **V48** | **Concession & Inventory 2.0: multi-cinema stock, branch pricing, waste/transfer operations, branch-scoped checkout reservations** | **`V48__multi_cinema_concession_inventory_2.sql`** |
+| **V49** | **Smart Showtime Planning 2.0: demand-balanced multi-room suggestions, occupancy scoring, operating windows, durable planning provenance** | **`V49__smart_showtime_planning_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -2134,3 +2137,34 @@ rc_number: 1
 The disposable Playwright stack starts from the historical migration baseline, which contains only one cinema. V48 inventory transfers require two branches, so RC1 could reach `/admin/inventory` successfully but the branch selector contained exactly one option and the transfer journey timed out before any inventory API mutation ran.
 
 RC2 keeps the production model honest instead of weakening the test: creating a cinema through `POST /api/admin/cinemas` now provisions zero-on-hand branch inventory plus base-price rows for every existing concession product. The V48 Playwright journey creates a second branch through that real API before exercising restock, waste, branch pricing, and transfer. Existing V48 schema stays unchanged; Flyway remains V48 and pgAdmin remains 52 public tables.
+
+
+## V49 - Smart Showtime Planning 2.0
+
+V49 upgrades the original V33/V34 showtime planner from fixed manual time lists into a cinema-wide scheduling assistant. The existing manual preview/commit flow is preserved, while Smart Planner scans every auditorium in the selected cinema, rejects occupied or maintenance-blackout windows, includes the configured turnaround buffer, and ranks the remaining candidates using historical occupancy plus deterministic peak-hour/weekend demand signals.
+
+### What V49 adds
+
+- Flyway `V49__smart_showtime_planning_2.sql`; pgAdmin now shows **53 public tables**: 52 application tables plus `flyway_schema_history`.
+- New `showtime_planning_run` audit table records each committed smart plan, input window, strategy, historical sample count, conflict count, actor and serialized plan evidence.
+- `showtime.planning_source`, `planning_run_id` and `planning_score` distinguish `MANUAL`, `BATCH` and `SMART` showtimes without changing customer booking contracts.
+- `POST /api/admin/showtime-planner/smart/preview` is a dry run. It scans all rooms in the cinema and returns per-day suggested slots with score, historical occupancy and human-readable reasons.
+- `POST /api/admin/showtime-planner/smart/commit` pessimistically locks the cinema rooms, recomputes the plan, writes the durable run and creates only the recomputed conflict-free slots.
+- `GET /api/admin/showtime-planner/smart/runs` exposes the latest planning audit history.
+- Historical demand uses past `booking_seat` occupancy. When movie-specific history is sparse, V49 falls back to cinema history and finally to deterministic time-of-day/weekend heuristics.
+- Same-movie starts are spaced by at least 45 minutes across the cinema to avoid accidental concurrent cannibalization.
+- The existing V34 manual batch planner remains available and now stamps its created showtimes as `BATCH`.
+
+### V49 realistic reference data
+
+`tools/seed-demo-53-tables-10-rows.sql` keeps the existing realistic V48 data and adds ten deterministic committed planning runs. The ten reference showtimes are linked to those runs with `SMART` provenance and planning scores. The seed still reuses the eight canonical V29 movies, leaves Flyway metadata untouched, and keeps reference payment history MOCK-only.
+
+### V49 verification
+
+```powershell
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_reference_data_53.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v49.ps1
+```
+
+For the first V49 candidate use stable target `49.0.0` and `rc_number: 1`. The release workflows retain all V46-V48 gates and add the V49 source/53-table checks plus the dedicated Smart Planner Playwright journey.

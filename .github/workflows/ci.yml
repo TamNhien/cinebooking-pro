@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V48 source regression
+    name: V26-V49 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -273,6 +273,12 @@ jobs:
 
       - name: Verify V48 52-table realistic reference data
         run: python3 tools/verify_seed_demo_52.py
+
+      - name: Verify V49 smart showtime planning 2.0
+        run: python3 tools/verify_v49_smart_showtime_planning_2.py
+
+      - name: Verify V49 53-table realistic reference data
+        run: python3 tools/verify_seed_demo_53.py
 
   compose-config:
     name: Docker Compose validation

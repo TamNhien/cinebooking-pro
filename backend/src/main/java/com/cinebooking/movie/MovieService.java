@@ -60,6 +60,6 @@ public class MovieService {
         Movie m = movies.findById(s.getMovieId()).orElseThrow();
         Auditorium a = auditoriums.findById(s.getAuditoriumId()).orElseThrow();
         Cinema c = cinemas.findById(a.getCinemaId()).orElseThrow();
-        return new ShowtimeResponse(s.getId(),s.getMovieId(),m.getTitle(),s.getAuditoriumId(),a.getName(),c.getId(),c.getName(),c.getAddress(),s.getStartTime(),s.getBasePrice(),s.getStatus().name());
+        return new ShowtimeResponse(s.getId(),s.getMovieId(),m.getTitle(),s.getAuditoriumId(),a.getName(),c.getId(),c.getName(),c.getAddress(),s.getStartTime(),s.getBasePrice(),s.getStatus().name(),s.getPlanningSource(),s.getPlanningRunId(),s.getPlanningScore());
     }
 }

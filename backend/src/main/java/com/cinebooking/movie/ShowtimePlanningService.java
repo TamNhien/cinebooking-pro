@@ -74,6 +74,7 @@ public class ShowtimePlanningService {
             s.setStartTime(start);
             s.setBasePrice(request.basePrice());
             s.setStatus(plan.status());
+            s.setPlanningSource("BATCH");
             created.add(s);
         }
         List<ShowtimeResponse> saved = showtimes.saveAll(created).stream().map(movieService::showtimeDto).toList();
