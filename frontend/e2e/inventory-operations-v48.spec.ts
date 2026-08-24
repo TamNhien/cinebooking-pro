@@ -1,12 +1,44 @@
-import { expect, test } from "@playwright/test";
+import { BrowserContext, expect, Page, test } from "@playwright/test";
 
-test("V48 admin manages branch stock price waste and transfer",async({page})=>{
+const AUTH_STORAGE_KEY="cinebooking_auth_v3";
+
+type StoredAuth={accessToken:string;role:string};
+
+async function adminAuth(context:BrowserContext,page:Page):Promise<StoredAuth>{
+  const origin=new URL(page.url()).origin;
+  let resolved:StoredAuth|null=null;
+  await expect.poll(async()=>{
+    const state=await context.storageState();
+    const raw=state.origins.find(item=>item.origin===origin)?.localStorage.find(item=>item.name===AUTH_STORAGE_KEY)?.value;
+    if(!raw)return false;
+    try{
+      const auth=JSON.parse(raw) as StoredAuth;
+      if(auth.role!=="ADMIN"||!auth.accessToken)return false;
+      resolved=auth;
+      return true;
+    }catch{return false;}
+  },{timeout:15000}).toBe(true);
+  if(!resolved)throw new Error("ADMIN auth storage missing for V48 inventory E2E");
+  return resolved;
+}
+
+test("V48 admin manages branch stock price waste and transfer",async({page,context})=>{
   const adminEmail=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
   const adminPassword=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(adminEmail);
   await page.getByPlaceholder("Mật khẩu").fill(adminPassword);
   await Promise.all([page.waitForURL(/\/admin$/,{timeout:15000}),page.getByRole("button",{name:"Đăng nhập"}).click()]);
+
+  // The disposable E2E migration baseline intentionally contains one cinema only.
+  // Create a second branch through the real admin API so V48 can exercise an actual transfer.
+  // createCinema must provision inventory + price rows for every existing concession product.
+  const auth=await adminAuth(context,page);
+  const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
+    headers:{Authorization:`Bearer ${auth.accessToken}`},
+    data:{name:`CineHub V48 Transfer ${Date.now()}`,address:"88 Đường Kiểm Thử, TP.HCM"}
+  });
+  expect(createCinema.status()).toBe(201);
 
   await page.goto("/admin/inventory");
   await expect(page.getByRole("heading",{name:"Kho bắp nước theo rạp"})).toBeVisible();

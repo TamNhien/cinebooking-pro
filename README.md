@@ -2128,3 +2128,9 @@ version: 48.0.0
 rc_number: 1
 ```
 
+
+### V48 RC2 - inventory transfer E2E branch provisioning fix
+
+The disposable Playwright stack starts from the historical migration baseline, which contains only one cinema. V48 inventory transfers require two branches, so RC1 could reach `/admin/inventory` successfully but the branch selector contained exactly one option and the transfer journey timed out before any inventory API mutation ran.
+
+RC2 keeps the production model honest instead of weakening the test: creating a cinema through `POST /api/admin/cinemas` now provisions zero-on-hand branch inventory plus base-price rows for every existing concession product. The V48 Playwright journey creates a second branch through that real API before exercising restock, waste, branch pricing, and transfer. Existing V48 schema stays unchanged; Flyway remains V48 and pgAdmin remains 52 public tables.

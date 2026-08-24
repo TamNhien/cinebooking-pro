@@ -43,6 +43,35 @@ public class InventoryService {
         this.users=users;this.staffProfiles=staffProfiles;
     }
 
+    @Transactional
+    public void provisionCinema(UUID cinemaId){
+        Cinema cinema=cinemas.findById(cinemaId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));
+        for(ConcessionProduct product:products.findAllByOrderBySortOrderAscNameAsc()){
+            CinemaConcessionInventory inventory=branchInventory.findByCinemaIdAndProductId(cinemaId,product.getId()).orElseGet(()->{
+                CinemaConcessionInventory row=new CinemaConcessionInventory();
+                row.setCinemaId(cinema.getId());
+                row.setProductId(product.getId());
+                row.setStockOnHand(0);
+                row.setStockReserved(0);
+                row.setLowStockThreshold(nz(product.getLowStockThreshold()));
+                row.setTargetStock(Math.max(30,nz(product.getLowStockThreshold())*3));
+                row.setActive(Boolean.TRUE.equals(product.getActive()));
+                return row;
+            });
+            branchInventory.save(inventory);
+
+            CinemaConcessionPrice price=branchPrices.findByCinemaIdAndProductId(cinemaId,product.getId()).orElseGet(()->{
+                CinemaConcessionPrice row=new CinemaConcessionPrice();
+                row.setCinemaId(cinema.getId());
+                row.setProductId(product.getId());
+                row.setPrice(product.getPrice());
+                row.setActive(true);
+                return row;
+            });
+            branchPrices.save(price);
+        }
+    }
+
     @Transactional(readOnly=true)
     public List<InventoryBranchOverview> branches(){
         Map<UUID,String> names=cinemas.findAllByOrderByNameAsc().stream().collect(Collectors.toMap(Cinema::getId,Cinema::getName, (a,b)->a,LinkedHashMap::new));

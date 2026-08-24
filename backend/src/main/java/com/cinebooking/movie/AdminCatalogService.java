@@ -3,6 +3,7 @@ package com.cinebooking.movie;
 import com.cinebooking.booking.BookingRepository;
 import com.cinebooking.booking.BookingSeatRepository;
 import com.cinebooking.common.ApiException;
+import com.cinebooking.commerce.InventoryService;
 import com.cinebooking.domain.*;
 import com.cinebooking.seat.SeatRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,10 +19,10 @@ import static com.cinebooking.movie.MovieDtos.*;
 public class AdminCatalogService {
     private final MovieRepository movies; private final CinemaRepository cinemas; private final AuditoriumRepository auditoriums;
     private final SeatRepository seats; private final ShowtimeRepository showtimes; private final BookingRepository bookings;
-    private final BookingSeatRepository bookingSeats; private final MovieService movieService; private final ShowtimePlanningService planning;
+    private final BookingSeatRepository bookingSeats; private final MovieService movieService; private final ShowtimePlanningService planning; private final InventoryService inventory;
     public AdminCatalogService(MovieRepository movies,CinemaRepository cinemas,AuditoriumRepository auditoriums,SeatRepository seats,
-                               ShowtimeRepository showtimes,BookingRepository bookings,BookingSeatRepository bookingSeats,MovieService movieService,ShowtimePlanningService planning){
-        this.movies=movies;this.cinemas=cinemas;this.auditoriums=auditoriums;this.seats=seats;this.showtimes=showtimes;this.bookings=bookings;this.bookingSeats=bookingSeats;this.movieService=movieService;this.planning=planning;
+                               ShowtimeRepository showtimes,BookingRepository bookings,BookingSeatRepository bookingSeats,MovieService movieService,ShowtimePlanningService planning,InventoryService inventory){
+        this.movies=movies;this.cinemas=cinemas;this.auditoriums=auditoriums;this.seats=seats;this.showtimes=showtimes;this.bookings=bookings;this.bookingSeats=bookingSeats;this.movieService=movieService;this.planning=planning;this.inventory=inventory;
     }
 
     public List<MovieResponse> movies(){return movies.findAllByOrderByCreatedAtDesc().stream().map(movieService::movieDto).toList();}
@@ -31,7 +32,7 @@ public class AdminCatalogService {
     private void apply(Movie m,AdminMovieRequest r){m.setTitle(r.title().trim());m.setDescription(r.description());m.setDurationMinutes(r.durationMinutes());m.setPosterUrl(blank(r.posterUrl()));m.setRating(blank(r.rating()));m.setGenre(blank(r.genre()));m.setLanguage(blank(r.language()));m.setTrailerUrl(blank(r.trailerUrl()));m.setReleaseDate(r.releaseDate());m.setActive(r.active());}
 
     public List<CinemaResponse> cinemas(){return cinemas.findAllByOrderByNameAsc().stream().map(c->new CinemaResponse(c.getId(),c.getName(),c.getAddress())).toList();}
-    @Transactional public CinemaResponse createCinema(CinemaRequest r){Cinema c=new Cinema();c.setName(r.name().trim());c.setAddress(r.address().trim());return cinema(cinemas.save(c));}
+    @Transactional public CinemaResponse createCinema(CinemaRequest r){Cinema c=new Cinema();c.setName(r.name().trim());c.setAddress(r.address().trim());Cinema saved=cinemas.saveAndFlush(c);inventory.provisionCinema(saved.getId());return cinema(saved);}
     @Transactional public CinemaResponse updateCinema(UUID id,CinemaRequest r){Cinema c=cinemaEntity(id);c.setName(r.name().trim());c.setAddress(r.address().trim());return cinema(cinemas.save(c));}
     @Transactional public void deleteCinema(UUID id){Cinema c=cinemaEntity(id);try{cinemas.delete(c);cinemas.flush();}catch(DataIntegrityViolationException e){throw new ApiException(HttpStatus.CONFLICT,"Không thể xoá rạp đang có suất chiếu/booking. Hãy xoá dữ liệu liên quan trước.");}}
 
