@@ -51,7 +51,13 @@ doc = readme
 
 check("postgres exposes /backups bind mount", "./backups:/backups" in compose)
 check("backup dumps are git-ignored", "backups/*" in gitignore and "!backups/.gitkeep" in gitignore)
-check("backup directory is tracked safely", (ROOT / "backups/.gitkeep").exists() and "./backups" in readme)
+backup_marker = ROOT / "backups/.gitkeep"
+tracked_backup_marker = git_tracked_paths("backups/.gitkeep")
+if tracked_backup_marker is None:
+    backup_directory_safe = backup_marker.exists()
+else:
+    backup_directory_safe = backup_marker.exists() and "backups/.gitkeep" in tracked_backup_marker
+check("backup directory is tracked safely", backup_directory_safe)
 check("Makefile no longer runs docker compose down -v", not re.search(r"(?m)^\s*docker compose down -v(?:\s|$)", makefile))
 check("Makefile reset is explicitly blocked", "V27 SAFETY" in makefile and re.search(r"(?m)^reset:\s*$", makefile))
 

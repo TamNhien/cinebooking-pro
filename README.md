@@ -2041,6 +2041,8 @@ npm --prefix .\frontend exec -- playwright test e2e/analytics-forecasting-v51.sp
 
 ## 10. Backup / verify / restore PostgreSQL
 
+Thư mục backup an toàn của dự án là `./backups` (trên Windows PowerShell có thể dùng `.\backups`). Git chỉ theo dõi `backups/.gitkeep`; các file `*.dump` và `*.dump.sha256` phải luôn được ignore.
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\backup-db.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\verify-db-backup.ps1 -BackupPath .\backups\<file>.dump
