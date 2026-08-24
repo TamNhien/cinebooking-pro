@@ -4,7 +4,10 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,9 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
-import static com.cinebooking.analytics.AnalyticsDtos.Dashboard;
+import static com.cinebooking.analytics.AnalyticsDtos.*;
 
 @RestController
 @RequestMapping("/api/admin/analytics")
@@ -23,10 +27,16 @@ public class AdminAnalyticsController {
 
     private final AdminAnalyticsService service;
     private final AnalyticsExportService exportService;
+    private final AnalyticsForecastingService forecastingService;
 
-    public AdminAnalyticsController(AdminAnalyticsService service, AnalyticsExportService exportService) {
+    public AdminAnalyticsController(
+            AdminAnalyticsService service,
+            AnalyticsExportService exportService,
+            AnalyticsForecastingService forecastingService
+    ) {
         this.service = service;
         this.exportService = exportService;
+        this.forecastingService = forecastingService;
     }
 
     @GetMapping
@@ -35,6 +45,17 @@ public class AdminAnalyticsController {
             @RequestParam(required = false) UUID cinemaId
     ) {
         return service.dashboard(days, cinemaId);
+    }
+
+    @GetMapping("/cost-basis")
+    public List<ConcessionCostBasis> costBasis(@RequestParam(required = false) UUID cinemaId) {
+        return forecastingService.costBasis(cinemaId);
+    }
+
+    @PutMapping("/cost-basis")
+    public ConcessionCostBasis updateCostBasis(@RequestBody CostBasisUpdate request, Authentication authentication) {
+        String actor = authentication == null ? "system" : authentication.getName();
+        return forecastingService.updateCostBasis(request, actor);
     }
 
     @GetMapping(value = "/export.csv", produces = "text/csv;charset=UTF-8")

@@ -16,9 +16,11 @@ import static com.cinebooking.analytics.AnalyticsDtos.*;
 @Service
 public class AdminAnalyticsService {
     private final JdbcTemplate jdbc;
+    private final AnalyticsForecastingService forecasting;
 
-    public AdminAnalyticsService(JdbcTemplate jdbc) {
+    public AdminAnalyticsService(JdbcTemplate jdbc, AnalyticsForecastingService forecasting) {
         this.jdbc = jdbc;
+        this.forecasting = forecasting;
     }
 
     public Dashboard dashboard(int requestedDays, UUID cinemaId) {
@@ -265,6 +267,7 @@ public class AdminAnalyticsService {
                         " group by p.status order by c desc",
                 (rs, i) -> new StatusCount(rs.getString("status"), rs.getLong("c")), args(days, cinemaId));
 
+        AnalyticsForecastingService.V51Bundle v51 = forecasting.bundle(days, cinemaId);
         return new Dashboard(
                 kpi,
                 daily,
@@ -277,7 +280,13 @@ public class AdminAnalyticsService {
                 hourlyDemand,
                 staffPerformance,
                 bookingStatuses,
-                paymentStatuses
+                paymentStatuses,
+                v51.comparison(),
+                v51.forecast(),
+                v51.margin(),
+                v51.auditoriumPerformance(),
+                v51.costBasis(),
+                v51.snapshots()
         );
     }
 

@@ -1,24 +1,32 @@
-# CineBooking Pro V50
-
-### V48 compile hotfix - CommerceService lambda capture
-
-The initial V48 source reassigned the local `ConcessionProduct p` and then captured it inside `Optional.orElseGet(...)` lambdas while provisioning per-cinema inventory and price rows. Java requires captured locals to be final or effectively final, so Maven reported `local variables referenced from a lambda expression must be final or effectively final`. The hotfix keeps the mutable pre-save object in `product`, stores the persisted value once as `final ConcessionProduct savedProduct`, and uses `savedProduct` inside both lambdas. No database migration or business behavior changed.
-
+# CineBooking Pro V51
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V50
-
-**V50 Recommendation Intelligence 2.0:** adds explainable hybrid taste profiles, preferred cinema/daypart signals, recommendation confidence/evidence, and explicit MORE/LESS/HIDE feedback through the new `/for-you` Taste Center. V49 Smart Planner, V48 branch inventory, and V47 payment operations remain intact.  
-
-**V49 Smart Showtime Planning 2.0:** adds demand-balanced multi-room scheduling, historical occupancy scoring, operating-window constraints, cinema-wide same-movie spacing, durable planning-run audit, and MANUAL/BATCH/SMART showtime provenance. V48 branch inventory and V47 payment operations remain intact.  
-
-**V48 Concession & Inventory 2.0:** concession stock and prices are now branch-scoped, checkout reads the showtime cinema catalog, inventory supports restock/count/waste/transfer operations, and every movement carries cinema/reference metadata. V47 payment gateway operations remain intact.  
+> **Current release:** V51 - Analytics & Forecasting 3.0  
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-This repository intentionally keeps **all project documentation in this single `README.md`**.
+V51 bổ sung period-over-period comparison, dự báo doanh thu 7 ngày theo `V51-WEEKDAY-WEIGHTED-MA-1`, analytics theo rạp/phim/phòng/khung giờ, margin/cost coverage, branch-specific concession cost basis và snapshot `DAILY/WEEKLY/MONTHLY` an toàn khi chạy 2 backend replica.
+
+## Quy ước chạy lệnh
+
+Tất cả lệnh test/build/seed trong README này **mặc định chạy từ**:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+
+## Chính sách dữ liệu thật và UTF-8
+
+- Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
+- PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
+- Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
+- V51 **không tạo phim giả**. Mọi quan hệ phim tiếp tục tái sử dụng 8 phim V29 đang có trong database.
+- `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
+- `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
+- `tools/seed-demo-56-tables.ps1` là deterministic CI/reference fixture. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
 
 ## Version history / changelog
 
@@ -77,491 +85,139 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V48** | **Concession & Inventory 2.0: multi-cinema stock, branch pricing, waste/transfer operations, branch-scoped checkout reservations** | **`V48__multi_cinema_concession_inventory_2.sql`** |
 | **V49** | **Smart Showtime Planning 2.0: demand-balanced multi-room suggestions, occupancy scoring, operating windows, durable planning provenance** | **`V49__smart_showtime_planning_2.sql`** |
 | **V50** | **Recommendation Intelligence 2.0: explainable hybrid taste profile, preferred cinema/daypart, explicit MORE/LESS/HIDE feedback** | **`V50__recommendation_intelligence_2.sql`** |
+| **V51** | **Analytics & Forecasting 3.0: period comparison, weekday-weighted forecast, margin/cost coverage, branch cost basis, durable scheduled snapshots** | **`V51__analytics_forecasting_3.sql`** |
 
-### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
+# Cập nhật chi tiết theo phiên bản (tăng dần)
 
-V42.1 hoàn thiện chức năng export ngay trên trang `/admin/analytics`. Manager/Admin có thể giữ nguyên bộ lọc 7/30/90/365 ngày và rạp hiện tại rồi tải báo cáo bằng hai nút **Xuất CSV** và **Xuất Excel**.
+## V26 - PWA / offline-ticket compatibility
 
-API mới:
+V26 has no schema migration. PWA/offline-ticket changes are frontend/service-worker features and preserve the existing database schema.
 
-```text
-GET /api/admin/analytics/export.csv?days=30&cinemaId=<optional-uuid>
-GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
-```
+## V27 - Data Safety / Backup / Restore Hardening
 
-- CSV dùng UTF-8 BOM để mở tiếng Việt ổn định trong Excel và chứa đầy đủ các section Analytics.
-- XLSX là workbook nhiều sheet: Tổng quan, Doanh thu ngày, Hiệu suất rạp, Top phim, Top suất chiếu, Khung giờ, Heatmap ghế, Nhân viên, Booking, Payment, Bắp nước và Payment provider.
-- Export dùng đúng dữ liệu từ `AdminAnalyticsService`, vì vậy số liệu tải xuống khớp với dashboard và bộ lọc hiện tại.
-- Không có migration mới; Flyway latest vẫn là V42.
+V27 bổ sung quy trình backup, SHA-256 verification, restore probe và guard tránh xóa nhầm volume/database trong quá trình nâng version. Không có migration schema mới.
 
-Các file chính thay đổi:
+## V28 - CI / Runtime / Tooling Hardening
 
-```text
-backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java
-backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
-backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
-frontend/app/admin/analytics/page.tsx
-.github/workflows/ci.yml
-.github/workflows/release-candidate.yml
-.github/workflows/release.yml
-tools/verify_v42_1_analytics_export.py
-tools/diagnose-v42.1.ps1
-Makefile
-README.md
-```
+V28 củng cố CI, Docker/runtime checks, source manifest và tooling để các bản sau có thể regression ổn định. Không có migration schema mới.
 
-Kiểm tra source V42.1:
+## V29 - Demo catalog và lịch chiếu 09/2026
 
-```powershell
-python .\tools\verify_v42_financial_ledger.py
-python .\tools\verify_v42_1_analytics_export.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v42.1.ps1
-```
+V29.3 seed 8 phim active để homepage desktop hiển thị đủ **2 hàng × 4 phim**.
 
-GitHub CI/Release của V42.1 đã được nối vào lifecycle hiện có:
+Lịch demo:
 
 ```text
-git push main
-→ CineBooking CI
-→ V26-V42.1 source regression
-→ V42.1 verifier
-→ Stable Release (manual)
-→ v42.1.0-rc.N
-→ V42.1 source gate + Docker smoke + Playwright E2E
-→ v42.1.0
-→ GitHub Release
+18/08/2026 → 30/09/2026
+8 phim
+2 suất/phim/ngày
+16 suất/ngày
+704 suất mới
 ```
 
-Sau khi `main` CI xanh, vào **GitHub → Actions → CineBooking Stable Release → Run workflow** và dùng:
+Migration demo:
 
 ```text
-branch: main
-version: 42.1.0
-rc_number: 1
+V29__demo_movies_and_showtimes_september_2026.sql
 ```
 
-Tag RC và stable là immutable. Nếu RC fail vì phải sửa source rồi commit SHA mới, tăng `rc_number`; không di chuyển tag cũ.
-
-### V43 - Staff Operations 2.0
-
-V43 nâng lớp vận hành nhân viên dựa trên nền V8/V10/V11/V23 thành một **trung tâm vận hành realtime** tại `/staff/operations`. Mục tiêu là để Staff/Manager/Admin nhìn được nhịp khách vào rạp, bàn giao việc giữa ca và ghi nhận/xử lý sự cố mà không phải tách sang công cụ ngoài.
-
-Các cập nhật chính:
-
-- **Live gate dashboard:** số lượt check-in 5 phút gần nhất, 1 giờ gần nhất, trong ngày, số nhân viên đang chấm công và số sự cố đang mở. Danh sách check-in mới nhất hiển thị phim, phòng, nhân viên và nguồn quét.
-- **Realtime đa replica:** mỗi check-in/sự kiện vận hành publish qua Redis channel `cinebooking:staff-operations-events`; subscriber trên từng backend replica phát WebSocket theo topic `/topic/staff-operations/{cinemaId}`. Frontend vẫn polling 15 giây làm fallback.
-- **Shift handover:** nhân viên đang trong ca có thể bàn giao cho Staff/Manager đang hoạt động cùng rạp; mỗi attendance chỉ có một bàn giao `PENDING`; người nhận phải đang chấm công đúng rạp mới xác nhận `ACCEPTED`.
-- **Incident log:** Staff/Manager ghi sự cố theo nhóm `CUSTOMER/EQUIPMENT/SAFETY/SECURITY/PAYMENT/OTHER` và mức `LOW/MEDIUM/HIGH/CRITICAL`; chỉ Manager/Admin được đóng sự cố kèm ghi chú xử lý.
-- **Chống check-in hai lần:** frontend debounce QR lặp trong 2,5 giây; backend vẫn dùng `PESSIMISTIC_WRITE` trên booking, `booking.checked_in_at` và unique index `uq_ticket_checkin_booking`, nên request đồng thời từ nhiều thiết bị/backend replica vẫn bị chặn ở server.
-- **Mobile camera:** gate tiếp tục dùng camera sau qua `getUserMedia`, ưu tiên HD 1280×720; vẫn hỗ trợ ảnh chụp QR và QR URL.
-- **Analytics Excel chi tiết theo từng bảng:** nút `/admin/analytics` đổi thành **Xuất Excel chi tiết**. Workbook vẫn dùng API `/api/admin/analytics/export.xlsx`, nhưng giờ mỗi section có một worksheet riêng và giữ đúng dữ liệu tương ứng với CSV: Tổng quan, Doanh thu theo ngày, Hiệu suất theo rạp, Top phim, Top suất chiếu, Nhu cầu theo giờ, Heatmap ghế, Hiệu suất nhân viên, Trạng thái booking, Trạng thái payment, Top bắp nước và Phương thức thanh toán. Mỗi worksheet lặp lại **Khoảng dữ liệu / Rạp / Ngày xuất**, đóng băng đến hàng tiêu đề và bật AutoFilter trên toàn vùng dữ liệu để có thể lọc/in/chia sẻ từng bảng độc lập.
-- **Analytics CSV chi tiết theo từng bảng:** nút **Xuất CSV theo từng bảng** tải một gói `.zip` từ `/api/admin/analytics/export-csv.zip`. Gói gồm **12 file CSV UTF-8 BOM**, mỗi bảng Analytics là một file riêng (`01-tong-quan.csv` ... `12-phuong-thuc-thanh-toan.csv`). Từng file lặp lại **Khoảng dữ liệu / Rạp / Ngày xuất** và có hàng tiêu đề riêng, nên có thể mở độc lập bằng Excel mà không trộn nhiều bảng trong cùng một CSV. API `/api/admin/analytics/export.csv` cũ vẫn được giữ để tương thích ngược.
-
-Analytics CSV/Excel chi tiết V43 không thêm migration. Excel giữ API cũ, CSV chi tiết bổ sung API mới:
-
-```text
-GET /api/admin/analytics/export-csv.zip?days=30&cinemaId=<optional-uuid>
-GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
-
-# Legacy/backward-compatible combined CSV
-GET /api/admin/analytics/export.csv?days=30&cinemaId=<optional-uuid>
-```
-
-Migration mới:
-
-```text
-backend/src/main/resources/db/migration/V43__staff_operations_2.sql
-```
-
-API V43:
-
-```text
-GET  /api/staff/operations/cinemas
-GET  /api/staff/operations/live?cinemaId=<optional>
-GET  /api/staff/operations/staff-options?cinemaId=<optional>
-GET  /api/staff/operations/handovers?cinemaId=<optional>
-POST /api/staff/operations/handovers
-POST /api/staff/operations/handovers/{id}/accept
-GET  /api/staff/operations/incidents?cinemaId=<optional>
-POST /api/staff/operations/incidents
-POST /api/staff/operations/incidents/{id}/resolve
-```
-
-Các file chính:
-
-```text
-backend/src/main/resources/db/migration/V43__staff_operations_2.sql
-backend/src/main/java/com/cinebooking/domain/StaffShiftHandover.java
-backend/src/main/java/com/cinebooking/domain/StaffIncident.java
-backend/src/main/java/com/cinebooking/staffops/StaffOperationsService.java
-backend/src/main/java/com/cinebooking/staffops/StaffOperationsController.java
-backend/src/main/java/com/cinebooking/websocket/StaffOperationsEventPublisher.java
-backend/src/main/java/com/cinebooking/websocket/RedisStaffOperationsEventSubscriber.java
-frontend/app/staff/operations/page.tsx
-frontend/app/staff/check-in/page.tsx
-frontend/e2e/staff-operations.spec.ts
-backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
-backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
-frontend/app/admin/analytics/page.tsx
-tools/verify_v43_staff_operations.py
-tools/verify_v43_analytics_excel_detail.py
-tools/diagnose-v43.ps1
-```
-
-Release lifecycle V43:
-
-```text
-git push main
-→ CineBooking CI
-→ V26-V43 source regression
-→ V43 source gate
-→ Stable Release (manual)
-→ v43.0.0-rc.N
-→ Docker smoke + Playwright Chromium journeys
-→ v43.0.0
-→ GitHub Release
-```
-
-Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
-
-```text
-branch: main
-version: 43.0.0
-rc_number: 1
-```
+Không chỉnh sửa migration đã chạy ở production. Nếu cần thay đổi dữ liệu/schema, tạo migration Flyway mới.
 
 ---
 
-### V44 - Cinema Maintenance & Asset Reliability 2.0
+## V30 - Movie Discovery & Showtime Calendar
 
-V44 phát triển tiếp từ V34 blackout và V43 Staff Operations thành một **trung tâm bảo trì & độ tin cậy thiết bị** tại `/admin/maintenance`. Manager/Admin không chỉ khóa phòng mà còn quản lý tài sản kỹ thuật, work order, hạn bảo trì và SLA quá hạn theo từng rạp.
-
-Các cập nhật chính:
-
-- **Equipment asset registry:** đăng ký máy chiếu, âm thanh, HVAC, màn chiếu, POS, network, power, safety và thiết bị khác bằng mã tài sản duy nhất; có rạp/phòng, vendor, serial, ngày lắp, lần bảo trì gần nhất và ngày bảo trì kế tiếp.
-- **Asset health:** trạng thái `OPERATIONAL / DEGRADED / OUT_OF_SERVICE / MAINTENANCE`; dashboard đếm thiết bị suy giảm, ngừng hoạt động, đang bảo trì và thiết bị đến hạn service trong 14 ngày.
-- **Maintenance work order:** ưu tiên `LOW / MEDIUM / HIGH / CRITICAL`, phân công Staff/Manager cùng rạp, hạn xử lý, liên kết thiết bị/phòng và có thể nối trực tiếp một sự cố `OPEN` từ V43.
-- **Lifecycle có guard:** `OPEN -> IN_PROGRESS/BLOCKED/CANCELLED`, `IN_PROGRESS -> BLOCKED/RESOLVED/CANCELLED`, `BLOCKED -> IN_PROGRESS/CANCELLED`; `RESOLVED` và `CANCELLED` là terminal, không reopen bằng API. Các trạng thái `BLOCKED/RESOLVED/CANCELLED` bắt buộc ghi chú.
-- **SLA dashboard:** đếm work order đang mở, critical đang mở và overdue theo `due_at`; Manager chỉ xem/quản lý rạp được phân công, Admin có thể đổi rạp.
-- **Immutable maintenance history:** mọi create/plan/status change ghi `maintenance_work_order_event`; trigger PostgreSQL từ chối UPDATE/DELETE lịch sử này. Audit log hệ thống vẫn ghi các thao tác quản trị tương ứng.
-- **V34 compatibility:** Admin vẫn có phần khóa/mở phòng chiếu ngay trong màn hình V44; guard chống blackout trùng suất đang hoạt động và conflict với Showtime Planner được giữ nguyên.
-- **Navigation:** menu Manager/Admin có mục **Bảo trì & thiết bị**.
-
-Migration V44:
-
-```text
-backend/src/main/resources/db/migration/V44__cinema_maintenance_asset_reliability.sql
-```
-
-Các bảng mới:
-
-```text
-cinema_equipment_asset
-maintenance_work_order
-maintenance_work_order_event
-```
-
-API V44:
-
-```text
-GET  /api/admin/maintenance/cinemas
-GET  /api/admin/maintenance/auditoriums?cinemaId=<uuid>
-GET  /api/admin/maintenance/staff-options?cinemaId=<uuid>
-GET  /api/admin/maintenance/incident-options?cinemaId=<uuid>
-GET  /api/admin/maintenance/summary?cinemaId=<uuid>
-GET  /api/admin/maintenance/assets?cinemaId=<uuid>
-POST /api/admin/maintenance/assets
-PUT  /api/admin/maintenance/assets/{id}
-GET  /api/admin/maintenance/work-orders?cinemaId=<uuid>
-POST /api/admin/maintenance/work-orders
-PUT  /api/admin/maintenance/work-orders/{id}/plan
-POST /api/admin/maintenance/work-orders/{id}/transition
-GET  /api/admin/maintenance/work-orders/{id}/events
-```
-
-V44 verification:
-
-```powershell
-python .\tools\verify_v43_staff_operations.py
-python .\tools\verify_v43_analytics_excel_detail.py
-python .\tools\verify_v43_analytics_csv_detail.py
-python .\tools\verify_v44_maintenance_reliability.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v44.ps1
-```
-
-Release lifecycle V44:
-
-```text
-git push main
-→ CineBooking CI
-→ V26-V44 source regression
-→ Backend unit + Testcontainers integration
-→ V44 source gate
-→ Stable Release (manual)
-→ v44.0.0-rc.N
-→ Docker smoke + Playwright Chromium journeys
-→ v44.0.0
-→ GitHub Release
-```
-
-Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
-
-```text
-branch: main
-version: 44.0.0
-rc_number: 1
-```
-
-Nếu RC cần sửa source, commit/push fix rồi tăng `rc_number`; không di chuyển hoặc ghi đè tag RC/stable cũ.
+- bộ lọc phim nâng cao;
+- sort phim;
+- calendar theo tháng/ngày;
+- chi tiết phim chỉ hiện showtime ngày đang chọn;
+- hỗ trợ catalog/lịch demo đến 30/09/2026.
 
 ---
 
-### V45 - Customer Support & Service Recovery 2.0
+## V31 - Ticket Wallet & Calendar
 
-V45 phát triển tiếp lớp vận hành của V43/V44 thành **trung tâm hỗ trợ khách hàng end-to-end**. Khách hàng có thể tạo case tại `/support`, gắn booking khi cần, theo dõi SLA và trao đổi trực tiếp. Manager/Admin xử lý tại `/admin/support` theo rạp, ưu tiên, người phụ trách và lịch sử append-only.
+Trang `/bookings` là ví vé gồm:
 
-Các cập nhật chính:
+- upcoming / past / all;
+- search booking/movie/seat;
+- status filter;
+- booking summary metrics;
+- tải `.ics`;
+- copy booking code;
+- print e-ticket.
 
-- **Customer support case:** category `BOOKING / PAYMENT / REFUND / TICKET / CINEMA_EXPERIENCE / STAFF / OTHER`, case number riêng, subject/description, booking/rạp liên quan.
-- **SLA theo priority:** `CRITICAL=4h`, `HIGH=24h`, `MEDIUM=48h`, `LOW=72h`; dashboard đếm active, waiting customer, critical và overdue SLA.
-- **Conversation & triage:** khách gửi message; Manager/Admin phản hồi hoặc ghi internal note; case có assignee và priority có thể thay đổi.
-- **Lifecycle guard:** `OPEN -> IN_PROGRESS/CLOSED`, `IN_PROGRESS -> WAITING_CUSTOMER/RESOLVED/CLOSED`, `WAITING_CUSTOMER -> IN_PROGRESS/RESOLVED/CLOSED`, `RESOLVED -> IN_PROGRESS/CLOSED`, `CLOSED` terminal.
-- **Cinema scope:** case gắn booking tự suy ra rạp qua showtime/auditorium; Manager chỉ thấy và xử lý case của rạp mình; Admin có thể xem toàn hệ thống.
-- **Immutable support history:** mọi create/message/reply/plan/status change ghi vào `customer_support_case_event`; PostgreSQL trigger chặn UPDATE/DELETE.
-- **Notification:** phản hồi và thay đổi trạng thái từ staff tạo notification cho khách và link về `/support`.
-- **Navigation:** Header có mục **Hỗ trợ** cho tài khoản đăng nhập; Manager/Admin có **Hỗ trợ khách hàng** trong menu quản lý.
-
-Migration V45:
+Calendar endpoint:
 
 ```text
-backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql
+GET /api/bookings/{id}/calendar.ics
 ```
 
-Các bảng mới:
-
-```text
-customer_support_case
-customer_support_case_event
-```
-
-API khách hàng:
-
-```text
-GET  /api/support/cases
-POST /api/support/cases
-GET  /api/support/cases/{id}/events
-POST /api/support/cases/{id}/messages
-```
-
-API Manager/Admin:
-
-```text
-GET  /api/admin/support/cinemas
-GET  /api/admin/support/staff-options?cinemaId=<uuid>
-GET  /api/admin/support/summary?cinemaId=<uuid>
-GET  /api/admin/support/cases?cinemaId=<optional-uuid>
-GET  /api/admin/support/cases/{id}/events
-PUT  /api/admin/support/cases/{id}/plan
-POST /api/admin/support/cases/{id}/reply
-POST /api/admin/support/cases/{id}/transition
-```
-
-V45 verification:
-
-```powershell
-python .\tools\verify_v44_maintenance_reliability.py
-python .\tools\verify_v45_customer_support.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v45.ps1
-```
-
-Release lifecycle V45:
-
-```text
-git push main
-→ CineBooking CI
-→ V26-V45 source regression
-→ Backend unit + Testcontainers integration
-→ V45 source gate
-→ Stable Release (manual)
-→ v45.0.0-rc.N
-→ Docker smoke + Playwright Chromium journeys
-→ v45.0.0
-→ GitHub Release
-```
-
-Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 45.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
+Endpoint kiểm tra booking ownership và chỉ xuất calendar cho booking hợp lệ.
 
 ---
 
-### V46 - Security & Account Protection 2.0
+## V32 - Sold-out Waitlist & Seat Alerts
 
-V46 nâng lớp bảo mật V21 thành **Security Center** cho người dùng và **Security Operations** cho Admin. Hệ thống theo dõi thiết bị tin cậy, tạo cảnh báo có risk score khi đăng nhập từ thiết bị mới hoặc khi brute-force chạm ngưỡng, đồng thời ghi nhận đổi/đặt lại mật khẩu để người dùng chủ động kiểm tra tài khoản.
+Khi showtime hết ghế, khách có thể đăng ký **Báo khi có ghế**.
 
-Các cập nhật chính:
+Backend định kỳ kiểm tra availability và tạo notification khi ghế được mở lại bởi:
 
-- **Trusted devices:** người dùng có thể đánh dấu phiên hiện tại là thiết bị tin cậy, đặt nhãn, theo dõi IP đầu/cuối và thu hồi trust bất kỳ lúc nào.
-- **Risk-scored alerts:** `NEW_DEVICE`, `CREDENTIAL_ATTACK`, `PASSWORD_CHANGED`, `PASSWORD_RESET`, `SESSION_REVOKED`; severity `LOW / MEDIUM / HIGH / CRITICAL` và risk score 0-100.
-- **Dual brute-force protection:** rate limit theo cả email và IP qua Redis; email mặc định khóa sau 5 lần sai, IP mặc định 20 lần trong cửa sổ khóa.
-- **High-risk notification:** cảnh báo HIGH/CRITICAL tạo notification cho người dùng và link về `/security`.
-- **Password hardening:** đổi mật khẩu tạo security alert và đăng xuất các thiết bị khác; reset mật khẩu tạo HIGH alert và thu hồi toàn bộ session cũ.
-- **Customer Security Center:** `/security` có KPI session/trusted-device/alert, danh sách thiết bị tin cậy, cảnh báo và thao tác acknowledge.
-- **Brave-aware browser identity patch:** frontend xác minh `navigator.brave.isBrave()` rồi gửi header hiển thị `X-CineBooking-Browser`; backend chỉ chấp nhận whitelist browser names, đồng bộ lại session/trusted-device/security-alert hiện tại và vẫn fallback User-Agent cho Chrome/Edge/Firefox/Safari/Opera/Vivaldi. Browser hint chỉ dùng cho metadata hiển thị/fingerprint phụ, không dùng làm bằng chứng xác thực hay phân quyền.
-- **Admin Security Operations:** `/admin/security` hiển thị cảnh báo 24h, alert chưa xác nhận, high-risk và tổng trusted device đang active.
-- **V46 realistic reference seed:** schema có 49 bảng trong pgAdmin; dữ liệu hiển thị dùng tên tự nhiên, payment tham chiếu chỉ dùng `MOCK`, `trusted_device` và `security_alert` có 10 dòng UTF-8 mỗi bảng, và quan hệ phim vẫn tái sử dụng 8 phim V29 hiện có.
-- **RC E2E logout compatibility:** security journey chờ trạng thái đăng xuất rồi điều hướng rõ ràng về `/login`, phù hợp với UI hiện tại vốn đưa người dùng về trang chủ sau khi logout.
+- booking timeout;
+- cancellation;
+- refund;
+- seat-hold expiry.
 
-Migration V46:
-
-```text
-backend/src/main/resources/db/migration/V46__security_account_protection_2.sql
-```
-
-Các bảng mới:
-
-```text
-trusted_device
-security_alert
-```
-
-API người dùng:
-
-```text
-PATCH  /api/me/security/client-context
-GET    /api/me/security/overview
-GET    /api/me/security/trusted-devices
-POST   /api/me/security/trusted-devices/current
-DELETE /api/me/security/trusted-devices/{id}
-GET    /api/me/security/alerts
-PATCH  /api/me/security/alerts/{id}/acknowledge
-```
-
-API Admin:
-
-```text
-GET /api/admin/security/overview
-GET /api/admin/security/alerts
-GET /api/admin/security/users/{userId}/sessions
-DELETE /api/admin/security/users/{userId}/sessions
-```
-
-V46 verification:
-
-```powershell
-python .\tools\verify_v45_customer_support.py
-python .\tools\verify_v46_security_account_protection.py   # includes Brave-over-Chrome UA checks
-python .\tools\verify_reference_data_49.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v46.ps1
-```
-
-Release lifecycle V46:
-
-```text
-git push main
-→ CineBooking CI
-→ V26-V46 source regression
-→ Backend unit + Testcontainers integration
-→ V46 source gate
-→ Stable Release (manual)
-→ v46.0.0-rc.N
-→ Docker smoke + Playwright Chromium journeys
-→ v46.0.0
-→ GitHub Release
-```
-
-Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 46.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
-
----
-
-## 1. V36 — Secure Ticket Transfer
-
-V36 bổ sung chức năng **chuyển/tặng vé điện tử an toàn** giữa hai tài khoản khách hàng CineBooking.
-
-### Luồng người dùng
-
-1. chủ vé mở `/ticket/{bookingId}`;
-2. chọn **🎁 Chuyển/tặng vé**;
-3. nhập email tài khoản CineBooking của người nhận;
-4. xác nhận chuyển quyền sở hữu;
-5. booking biến mất khỏi Ví vé người gửi và xuất hiện trong Ví vé người nhận;
-6. người nhận mở QR mới;
-7. QR cũ/bản offline của người gửi bị từ chối tại cổng check-in.
-
-### Quy tắc an toàn
-
-- chỉ booking `CONFIRMED` mới được chuyển;
-- vé đã check-in không được chuyển;
-- vé đang/đã hoàn tiền không được chuyển;
-- người nhận phải là tài khoản `USER` đang hoạt động;
-- không được chuyển cho chính mình;
-- mặc định chỉ chuyển trước giờ chiếu ít nhất **60 phút**;
-- mặc định mỗi vé được chuyển tối đa **1 lần**;
-- row-level `PESSIMISTIC_WRITE` lock bảo vệ thao tác khi nhiều request cùng tới hai backend replica;
-- audit log ghi lại hành động `TICKET_TRANSFER`;
-- notification được gửi cho cả người gửi và người nhận.
-
-Cấu hình:
-
-```env
-TICKET_TRANSFER_CUTOFF_MINUTES=60
-TICKET_MAX_TRANSFERS=1
-```
+Database dùng atomic claim để tránh gửi trùng alert khi cả `backend-1` và `backend-2` cùng chạy scheduler.
 
 Migration:
 
 ```text
-backend/src/main/resources/db/migration/V36__secure_ticket_transfer.sql
-```
-
-V36 lưu thêm:
-
-```text
-purchaser_user_id
-ticket_version
-transfer_count
-transferred_at
-transferred_from_user_id
-```
-
-`purchaser_user_id` giữ nguyên người mua ban đầu để loyalty/refund vẫn hoàn lợi ích cho đúng tài khoản, kể cả khi vé đã được tặng cho người khác.
-
-### QR rotation
-
-V36 phát QR mới dạng `CINEBOOKING|V2|...` có `ticket_version`. Mỗi lần chuyển vé, `ticket_version` tăng lên; check-in so sánh version trong QR với version hiện tại của booking. Vì vậy ảnh QR cũ và vé offline cũ không còn hiệu lực.
-
-QR `V1` cũ vẫn được đọc cho các booking chưa chuyển (`ticket_version = 1`) để không làm hỏng ảnh vé đã lưu trước khi nâng cấp V36.
-
-REST API:
-
-```text
-GET  /api/bookings/{id}/transfer-eligibility
-POST /api/bookings/{id}/transfer
-```
-
-Playwright RC có journey riêng kiểm tra:
-
-```text
-đăng ký người nhận
-→ người gửi mua vé
-→ lấy QR cũ
-→ chuyển vé qua UI
-→ người nhận thấy booking + QR mới
-→ staff gate từ chối QR cũ
-→ staff gate chấp nhận/check-in QR mới
-```
-
-Release target:
-
-```text
-main CI
-→ v36.0.0-rc.1
-→ Release Candidate E2E
-→ v36.0.0
-→ GitHub Release
+V32__showtime_waitlist.sql
 ```
 
 ---
 
-## 2. V34 — Bảo trì & khóa phòng chiếu
+## V33 - Showtime Planner & Conflict Guard
+
+Trang:
+
+```text
+/admin/showtimes
+```
+
+V33 hỗ trợ:
+
+- lập nhiều suất theo khoảng ngày;
+- nhiều giờ chiếu trong một ngày;
+- preview trước khi ghi database;
+- phát hiện trùng phòng;
+- tính `movie runtime + 15 phút turnaround`;
+- bỏ qua slot bị conflict khi bulk-create;
+- tối đa 62 ngày/lần;
+- tối đa 12 start times/ngày;
+- tối đa 500 slot/lần;
+- pessimistic lock khi commit;
+- không cho đổi movie/auditorium/start time của showtime đã có booking;
+- vẫn cho đổi price/status của showtime đã bán vé;
+- từ V34, planner còn phát hiện cả khoảng bảo trì/khóa phòng.
+
+Timezone mặc định:
+
+```text
+Asia/Ho_Chi_Minh
+```
+
+Có thể cấu hình:
+
+```properties
+app.showtime.turnaround-minutes=15
+app.showtime.zone=Asia/Ho_Chi_Minh
+```
+
+---
+
+## V34 - Bảo trì & khóa phòng chiếu
 
 V34 bổ sung chức năng vận hành rạp tại:
 
@@ -608,660 +264,6 @@ DELETE /api/admin/auditorium-blackouts/{id}
 ```
 
 ---
-
-## 2. Các chức năng chính
-
-### Khách hàng
-
-- Đăng ký / đăng nhập / refresh session / logout.
-- Quản lý hồ sơ và các phiên đăng nhập.
-- Danh sách phim, tìm kiếm, lọc thể loại/ngôn ngữ/phân loại tuổi.
-- Sắp xếp phim theo nhiều tiêu chí.
-- Chi tiết phim, trailer, đánh giá, yêu thích.
-- Gợi ý phim cá nhân hóa và trending.
-- Duyệt lịch chiếu theo tháng/ngày.
-- Quick Booking.
-- Chọn ghế realtime với Redis hold + WebSocket.
-- Giá vé động.
-- Bắp nước/concession và inventory-aware checkout.
-- Voucher và loyalty points.
-- Thanh toán mock/VNPay/MoMo integration structure.
-- QR e-ticket.
-- Vé offline/PWA.
-- Ví vé `/bookings` với lọc/tìm kiếm/trạng thái.
-- Tải lịch `.ics` cho Google Calendar / Apple Calendar / Outlook.
-- Sao chép booking code và in vé.
-- Yêu cầu hoàn vé.
-- Notification center và notification preferences.
-- Showtime reminder.
-- Sold-out waitlist `/waitlist` và thông báo khi ghế được mở lại.
-- **V36 chuyển/tặng vé** với QR rotation và invalidation QR cũ.
-
-### Staff / Manager
-
-- QR check-in / staff gate.
-- Lịch sử check-in.
-- Nhân viên theo rạp.
-- Xếp ca.
-- Check-in/check-out ca làm.
-- Chấm công, đi trễ, về sớm, vắng ca.
-- Xin nghỉ / duyệt nghỉ.
-- Timesheet.
-
-### Admin
-
-- Quản lý phim, rạp, phòng, ghế, suất chiếu, user.
-- Seat layout editor.
-- Booking operations.
-- Refund operations.
-- Commerce / voucher / concession.
-- Inventory và stock movement.
-- Dynamic pricing.
-- Review moderation.
-- Audit log.
-- Revenue / occupancy / seat heatmap / hourly demand / staff analytics.
-- **V33 Showtime Planner & Conflict Guard**.
-- **V34 Auditorium Maintenance & Blackout Windows**.
-- **V36 Secure Ticket Transfer**.
-
----
-
-## 3. V33 — Showtime Planner & Conflict Guard
-
-Trang:
-
-```text
-/admin/showtimes
-```
-
-V33 hỗ trợ:
-
-- lập nhiều suất theo khoảng ngày;
-- nhiều giờ chiếu trong một ngày;
-- preview trước khi ghi database;
-- phát hiện trùng phòng;
-- tính `movie runtime + 15 phút turnaround`;
-- bỏ qua slot bị conflict khi bulk-create;
-- tối đa 62 ngày/lần;
-- tối đa 12 start times/ngày;
-- tối đa 500 slot/lần;
-- pessimistic lock khi commit;
-- không cho đổi movie/auditorium/start time của showtime đã có booking;
-- vẫn cho đổi price/status của showtime đã bán vé;
-- từ V34, planner còn phát hiện cả khoảng bảo trì/khóa phòng.
-
-Timezone mặc định:
-
-```text
-Asia/Ho_Chi_Minh
-```
-
-Có thể cấu hình:
-
-```properties
-app.showtime.turnaround-minutes=15
-app.showtime.zone=Asia/Ho_Chi_Minh
-```
-
----
-
-## 4. V32 — Sold-out Waitlist & Seat Alerts
-
-Khi showtime hết ghế, khách có thể đăng ký **Báo khi có ghế**.
-
-Backend định kỳ kiểm tra availability và tạo notification khi ghế được mở lại bởi:
-
-- booking timeout;
-- cancellation;
-- refund;
-- seat-hold expiry.
-
-Database dùng atomic claim để tránh gửi trùng alert khi cả `backend-1` và `backend-2` cùng chạy scheduler.
-
-Migration:
-
-```text
-V32__showtime_waitlist.sql
-```
-
----
-
-## 5. V31 — Ticket Wallet & Calendar
-
-Trang `/bookings` là ví vé gồm:
-
-- upcoming / past / all;
-- search booking/movie/seat;
-- status filter;
-- booking summary metrics;
-- tải `.ics`;
-- copy booking code;
-- print e-ticket.
-
-Calendar endpoint:
-
-```text
-GET /api/bookings/{id}/calendar.ics
-```
-
-Endpoint kiểm tra booking ownership và chỉ xuất calendar cho booking hợp lệ.
-
----
-
-## PWA V26 compatibility note
-
-V26 has no schema migration. PWA/offline-ticket changes are frontend/service-worker features and preserve the existing database schema.
-
-## 6. V30 — Movie Discovery & Showtime Calendar
-
-- bộ lọc phim nâng cao;
-- sort phim;
-- calendar theo tháng/ngày;
-- chi tiết phim chỉ hiện showtime ngày đang chọn;
-- hỗ trợ catalog/lịch demo đến 30/09/2026.
-
----
-
-## 7. Demo catalog & lịch chiếu
-
-V29.3 seed 8 phim active để homepage desktop hiển thị đủ **2 hàng × 4 phim**.
-
-Lịch demo:
-
-```text
-18/08/2026 → 30/09/2026
-8 phim
-2 suất/phim/ngày
-16 suất/ngày
-704 suất mới
-```
-
-Migration demo:
-
-```text
-V29__demo_movies_and_showtimes_september_2026.sql
-```
-
-Không chỉnh sửa migration đã chạy ở production. Nếu cần thay đổi dữ liệu/schema, tạo migration Flyway mới.
-
----
-
-## 8. Kiến trúc
-
-```text
-Browser / PWA
-      |
-    nginx
-   /     \
-backend-1 backend-2
-   |         |
-   +---- PostgreSQL 18.4
-   +---- Redis 8.8
-```
-
-Docker Compose services:
-
-```text
-postgres
-redis
-backend-1
-backend-2
-frontend
-nginx
-```
-
-Optional observability profile có Prometheus/Grafana nếu cấu hình tương ứng.
-
-Frontend internal port:
-
-```text
-3000
-```
-
-Backend internal port:
-
-```text
-8080
-```
-
-Default public HTTP port:
-
-```text
-80
-```
-
-Có thể đổi bằng:
-
-```text
-HTTP_PORT
-```
-
----
-
-## 9. Yêu cầu môi trường
-
-Khuyến nghị:
-
-```text
-Docker Desktop / Docker Engine + Compose
-Java 25 nếu chạy backend ngoài Docker
-Node.js 24 nếu chạy frontend ngoài Docker
-Python 3 để chạy source verifiers
-Windows PowerShell 5.1+ cho diagnostic/backup scripts trên Windows
-```
-
-Kiểm tra:
-
-```powershell
-docker version
-docker compose version
-java -version
-node --version
-python --version
-```
-
----
-
-## 10. Environment variables
-
-Tạo file local `.env` từ `.env.example`.
-
-**Không commit `.env` thật.**
-
-Tạo secret local bằng helper:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\init-env.ps1
-```
-
-JWT secret phải đủ mạnh và backend fail-fast nếu secret thiếu/placeholder/quá ngắn.
-
-Kiểm tra file nhạy cảm không bị Git track:
-
-```powershell
-git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
-```
-
-Lệnh trên phải không trả về gì.
-
----
-
-## 11. Chạy hệ thống local
-
-```powershell
-docker compose up -d --build
-docker compose ps
-```
-
-Mở:
-
-```text
-http://localhost
-```
-
-Xem log:
-
-```powershell
-docker compose logs --tail=200 backend-1
-docker compose logs --tail=200 backend-2
-docker compose logs --tail=100 frontend
-docker compose logs --tail=100 nginx
-```
-
-### Cập nhật source bình thường
-
-```powershell
-docker compose up -d --build
-```
-
-**Do not use `docker compose down -v` for normal updates.**  
-Lệnh đó xóa volume và có thể xóa database local.
-
-Makefile target `reset` bị khóa chủ động để bảo vệ dữ liệu.
-
----
-
-## 12. Database migrations
-
-Flyway chạy khi backend startup.
-
-Các mốc schema quan trọng:
-
-```text
-V1..V25   Core product/platform features
-V29       Demo catalog + September 2026 schedule
-V32       Showtime waitlist
-V34       Auditorium maintenance blackout windows
-V36       Secure ticket transfer
-V37       Payment gateway hardening
-V38       Refund/cancellation automation
-V40       Loyalty & Membership 2.0
-V41       Notification engagement 2.0
-V42       Financial ledger & reconciliation
-```
-
-V42.1 không có migration mới. Flyway latest version phải là:
-
-```text
-42
-```
-
-Không sửa nội dung migration cũ đã được áp dụng. Luôn tạo migration mới.
-
----
-
-## 13. Backup / verify / restore PostgreSQL
-
-Backup được lưu dưới:
-
-```text
-./backups
-```
-
-Compose mount:
-
-```text
-./backups:/backups
-```
-
-### Tạo backup
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\backup-db.ps1
-```
-
-Backup dùng PostgreSQL custom archive và tạo SHA-256 sidecar.
-
-### Verify backup
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\verify-db-backup.ps1 -BackupPath .\backups\<file>.dump
-```
-
-Verify gồm SHA-256 và `pg_restore --list`.
-
-### Test restore an toàn
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\test-v27.ps1
-```
-
-Test chỉ restore vào temporary database và không drop production/local main DB.
-
-### Restore thật
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\restore-db.ps1 -BackupPath .\backups\<file>.dump -ConfirmRestore
-```
-
-Restore flow:
-
-1. verify archive;
-2. tạo safety backup;
-3. stop `backend-1` và `backend-2`;
-4. recreate DB sạch từ `template0`;
-5. `pg_restore --exit-on-error`;
-6. rollback tự động nếu restore thất bại khi có thể.
-
-**Do not run `docker compose down -v` as a backup/restore shortcut.**
-
----
-
-## 14. Frontend toolchain policy
-
-Toolchain được giữ trong vùng đã tương thích với Next.js hiện tại:
-
-- ESLint 9.x;
-- TypeScript 5.x;
-- `@playwright/test` pin exact trong dòng được dự án kiểm chứng.
-
-Dependabot vẫn cập nhật patch/minor phù hợp nhưng không tự động đưa các major chưa tương thích vào CI.
-
-Lint:
-
-```powershell
-cd frontend
-npm install
-npm run lint
-```
-
-Production build:
-
-```powershell
-npm run build
-```
-
----
-
-## 15. Playwright E2E
-
-Browser E2E chạy Chromium qua nginx/full stack.
-
-Các journey chính:
-
-```text
-register
-→ login
-→ quick booking
-→ seat hold
-→ mock payment
-→ CONFIRMED ticket
-→ calendar / ticket wallet
-→ QR
-→ staff/admin gate check-in
-```
-
-Ngoài ra có E2E cho:
-
-- movie discovery + September calendar;
-- V33 showtime conflict preview;
-- V34 maintenance blackout → planner conflict → cleanup.
-
-Chạy khi stack E2E đã sẵn sàng:
-
-```powershell
-cd frontend
-npm run e2e
-```
-
-Playwright CI timezone:
-
-```text
-Asia/Ho_Chi_Minh
-```
-
-để `datetime-local` deterministic trên GitHub runner.
-
----
-
-## 16. High-Traffic Booking protections
-
-High-Traffic Booking bao gồm:
-
-- booking idempotency key;
-- request fingerprint SHA-256;
-- duplicate/retry replay;
-- seat ownership uniqueness;
-- contention handling;
-- HTTP 409 cho seat race;
-- load-test scripts cho idempotency và contention.
-
-Mục tiêu là không tạo booking trùng khi client retry hoặc nhiều request cạnh tranh cùng ghế.
-
----
-
-## 17. Source verifiers
-
-Verifier V34:
-
-```powershell
-python .\tools\verify_v34_auditorium_blackouts.py
-```
-
-Diagnostic full chain:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v34.ps1
-```
-
-Các verifier quan trọng vẫn được giữ để bắt regression của security, DB safety, CI, Playwright, demo schedule, discovery, ticket wallet, RC determinism, waitlist và showtime planner.
-
----
-
-## 18. GitHub CI
-
-Workflow chính:
-
-```text
-.github/workflows/ci.yml
-```
-
-Các gate chính:
-
-- backend unit tests;
-- backend Testcontainers integration;
-- PostgreSQL + Redis real containers;
-- Flyway latest-version assertion;
-- frontend lint;
-- frontend production build;
-- V26→V34 source regression checks;
-- Docker Compose config validation;
-- backend/frontend Docker image builds;
-- test/build artifacts.
-
-CI không deploy production.
-
----
-
-## 19. Release Candidate
-
-Workflow:
-
-```text
-.github/workflows/release-candidate.yml
-```
-
-Workflow là **manual-only** và không publish/deploy.
-
-Sau khi main CI xanh:
-
-```text
-GitHub
-→ Actions
-→ CineBooking Release Candidate
-→ Run workflow
-→ branch: main
-→ version: v35.0.0-rc.1
-```
-
-RC chạy:
-
-- full disposable Docker stack;
-- nginx/frontend/API smoke;
-- cả hai backend replicas phải sống;
-- Playwright Chromium journeys;
-- release-candidate manifest artifact;
-- cleanup chỉ trên disposable Compose project/volumes.
-
-Không dùng production credentials trong RC.
-
----
-
-## 20. V34 validation checklist
-
-Sau khi update source:
-
-```powershell
-python .\tools\verify_v34_auditorium_blackouts.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v34.ps1
-docker compose up -d --build
-docker compose ps
-```
-
-Kiểm tra migration:
-
-```powershell
-docker compose logs --tail=200 backend-1
-docker compose logs --tail=200 backend-2
-```
-
-Tìm migration version 34 và đảm bảo cả backend đều `Up`.
-
-Manual functional test:
-
-1. login Admin;
-2. mở `/admin/maintenance`;
-3. chọn một phòng không có showtime ở khoảng test;
-4. tạo blackout;
-5. mở `/admin/showtimes`;
-6. preview một showtime trùng blackout;
-7. xác nhận preview báo `Bảo trì` và `creatable = 0`;
-8. quay lại maintenance và mở phòng.
-
----
-
-## 21. Commit an toàn
-
-```powershell
-git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
-git add -A
-git status --short
-git commit -m "Add V34 auditorium maintenance and blackout guard"
-git push
-```
-
-`git ls-files` phải không hiển thị `.env` hoặc database dump.
-
----
-
-## 22. Security / production notes
-
-- Không commit JWT secret thật.
-- Không commit SMTP/payment credentials.
-- Không commit `.env`.
-- Không commit database dump.
-- Không dùng demo admin password ở production.
-- Không expose PostgreSQL/Redis trực tiếp ra Internet.
-- Dùng HTTPS ở reverse proxy/load balancer production.
-- Backup DB trước migration lớn.
-- Kiểm tra CI + RC trước release.
-- Release Candidate workflow hiện không publish image và không deploy production.
-
----
-
-## 23. Project structure
-
-```text
-backend/                 Spring Boot backend
-frontend/                Next.js frontend + Playwright
-nginx/                   reverse proxy/load balancer
-loadtest/                k6 scenarios
-tools/                   diagnostics, verifiers, backup/restore, E2E scripts
-backups/.gitkeep         safe local backup directory placeholder
-.github/workflows/       CI + Release Candidate + Stable GitHub Release
-docker-compose.yml       local/full-stack orchestration
-README.md                toàn bộ tài liệu dự án
-```
-
----
-
-## 24. Current release status
-
-Source target:
-
-```text
-CineBooking Pro V47
-```
-
-Release target:
-
-```text
-v47.0.0
-```
-
-V47 có migration `V47__payment_gateway_operations_2.sql`; Flyway latest là V47.
-
-Runtime success chỉ được coi là xác nhận cuối khi GitHub CI và Release Candidate E2E chạy xanh trên clean runner.
 
 ## V34.1 - RC selector hardening
 
@@ -1380,7 +382,96 @@ python .\tools\verify_v35_setup_node_compat.py
 
 ---
 
-## V36 verification & release
+## V36 - Secure Ticket Transfer
+
+V36 bổ sung chức năng **chuyển/tặng vé điện tử an toàn** giữa hai tài khoản khách hàng CineBooking.
+
+### Luồng người dùng
+
+1. chủ vé mở `/ticket/{bookingId}`;
+2. chọn **🎁 Chuyển/tặng vé**;
+3. nhập email tài khoản CineBooking của người nhận;
+4. xác nhận chuyển quyền sở hữu;
+5. booking biến mất khỏi Ví vé người gửi và xuất hiện trong Ví vé người nhận;
+6. người nhận mở QR mới;
+7. QR cũ/bản offline của người gửi bị từ chối tại cổng check-in.
+
+### Quy tắc an toàn
+
+- chỉ booking `CONFIRMED` mới được chuyển;
+- vé đã check-in không được chuyển;
+- vé đang/đã hoàn tiền không được chuyển;
+- người nhận phải là tài khoản `USER` đang hoạt động;
+- không được chuyển cho chính mình;
+- mặc định chỉ chuyển trước giờ chiếu ít nhất **60 phút**;
+- mặc định mỗi vé được chuyển tối đa **1 lần**;
+- row-level `PESSIMISTIC_WRITE` lock bảo vệ thao tác khi nhiều request cùng tới hai backend replica;
+- audit log ghi lại hành động `TICKET_TRANSFER`;
+- notification được gửi cho cả người gửi và người nhận.
+
+Cấu hình:
+
+```env
+TICKET_TRANSFER_CUTOFF_MINUTES=60
+TICKET_MAX_TRANSFERS=1
+```
+
+Migration:
+
+```text
+backend/src/main/resources/db/migration/V36__secure_ticket_transfer.sql
+```
+
+V36 lưu thêm:
+
+```text
+purchaser_user_id
+ticket_version
+transfer_count
+transferred_at
+transferred_from_user_id
+```
+
+`purchaser_user_id` giữ nguyên người mua ban đầu để loyalty/refund vẫn hoàn lợi ích cho đúng tài khoản, kể cả khi vé đã được tặng cho người khác.
+
+### QR rotation
+
+V36 phát QR mới dạng `CINEBOOKING|V2|...` có `ticket_version`. Mỗi lần chuyển vé, `ticket_version` tăng lên; check-in so sánh version trong QR với version hiện tại của booking. Vì vậy ảnh QR cũ và vé offline cũ không còn hiệu lực.
+
+QR `V1` cũ vẫn được đọc cho các booking chưa chuyển (`ticket_version = 1`) để không làm hỏng ảnh vé đã lưu trước khi nâng cấp V36.
+
+REST API:
+
+```text
+GET  /api/bookings/{id}/transfer-eligibility
+POST /api/bookings/{id}/transfer
+```
+
+Playwright RC có journey riêng kiểm tra:
+
+```text
+đăng ký người nhận
+→ người gửi mua vé
+→ lấy QR cũ
+→ chuyển vé qua UI
+→ người nhận thấy booking + QR mới
+→ staff gate từ chối QR cũ
+→ staff gate chấp nhận/check-in QR mới
+```
+
+Release target:
+
+```text
+main CI
+→ v36.0.0-rc.1
+→ Release Candidate E2E
+→ v36.0.0
+→ GitHub Release
+```
+
+---
+
+### V36 verification & release
 
 Source verifier:
 
@@ -1786,7 +877,6 @@ RC4 hardens the claim-result boundary instead of weakening coverage. The Staff r
 
 Because `v40.0.0-rc.3` is immutable, publish the next candidate as `v40.0.0-rc.4`; do not move RC1, RC2 or RC3 tags.
 
-
 ## V41 - Notification Center & Engagement Automation 2.0
 
 V41 upgrades the existing V22 notification center without replacing its email/browser delivery model. The new inbox keeps active and archived notifications separate, persists `read_at` and `archived_at`, assigns `LOW` / `NORMAL` / `HIGH` priority, and keeps unread badge counts limited to active notifications. Existing deep links remain valid.
@@ -1938,7 +1028,401 @@ main CI
 
 If an RC requires a source change, commit the fix and increment `rc_number`; never move an existing RC or stable tag.
 
-## Reference seed — UTF-8-safe realistic data for all 50 pgAdmin tables
+## V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
+
+V42.1 hoàn thiện chức năng export ngay trên trang `/admin/analytics`. Manager/Admin có thể giữ nguyên bộ lọc 7/30/90/365 ngày và rạp hiện tại rồi tải báo cáo bằng hai nút **Xuất CSV** và **Xuất Excel**.
+
+API mới:
+
+```text
+GET /api/admin/analytics/export.csv?days=30&cinemaId=<optional-uuid>
+GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
+```
+
+- CSV dùng UTF-8 BOM để mở tiếng Việt ổn định trong Excel và chứa đầy đủ các section Analytics.
+- XLSX là workbook nhiều sheet: Tổng quan, Doanh thu ngày, Hiệu suất rạp, Top phim, Top suất chiếu, Khung giờ, Heatmap ghế, Nhân viên, Booking, Payment, Bắp nước và Payment provider.
+- Export dùng đúng dữ liệu từ `AdminAnalyticsService`, vì vậy số liệu tải xuống khớp với dashboard và bộ lọc hiện tại.
+- Không có migration mới; Flyway latest vẫn là V42.
+
+Các file chính thay đổi:
+
+```text
+backend/src/main/java/com/cinebooking/analytics/AdminAnalyticsController.java
+backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
+backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
+frontend/app/admin/analytics/page.tsx
+.github/workflows/ci.yml
+.github/workflows/release-candidate.yml
+.github/workflows/release.yml
+tools/verify_v42_1_analytics_export.py
+tools/diagnose-v42.1.ps1
+Makefile
+README.md
+```
+
+Kiểm tra source V42.1:
+
+```powershell
+python .\tools\verify_v42_financial_ledger.py
+python .\tools\verify_v42_1_analytics_export.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v42.1.ps1
+```
+
+GitHub CI/Release của V42.1 đã được nối vào lifecycle hiện có:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V42.1 source regression
+→ V42.1 verifier
+→ Stable Release (manual)
+→ v42.1.0-rc.N
+→ V42.1 source gate + Docker smoke + Playwright E2E
+→ v42.1.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, vào **GitHub → Actions → CineBooking Stable Release → Run workflow** và dùng:
+
+```text
+branch: main
+version: 42.1.0
+rc_number: 1
+```
+
+Tag RC và stable là immutable. Nếu RC fail vì phải sửa source rồi commit SHA mới, tăng `rc_number`; không di chuyển tag cũ.
+
+## V43 - Staff Operations 2.0
+
+V43 nâng lớp vận hành nhân viên dựa trên nền V8/V10/V11/V23 thành một **trung tâm vận hành realtime** tại `/staff/operations`. Mục tiêu là để Staff/Manager/Admin nhìn được nhịp khách vào rạp, bàn giao việc giữa ca và ghi nhận/xử lý sự cố mà không phải tách sang công cụ ngoài.
+
+Các cập nhật chính:
+
+- **Live gate dashboard:** số lượt check-in 5 phút gần nhất, 1 giờ gần nhất, trong ngày, số nhân viên đang chấm công và số sự cố đang mở. Danh sách check-in mới nhất hiển thị phim, phòng, nhân viên và nguồn quét.
+- **Realtime đa replica:** mỗi check-in/sự kiện vận hành publish qua Redis channel `cinebooking:staff-operations-events`; subscriber trên từng backend replica phát WebSocket theo topic `/topic/staff-operations/{cinemaId}`. Frontend vẫn polling 15 giây làm fallback.
+- **Shift handover:** nhân viên đang trong ca có thể bàn giao cho Staff/Manager đang hoạt động cùng rạp; mỗi attendance chỉ có một bàn giao `PENDING`; người nhận phải đang chấm công đúng rạp mới xác nhận `ACCEPTED`.
+- **Incident log:** Staff/Manager ghi sự cố theo nhóm `CUSTOMER/EQUIPMENT/SAFETY/SECURITY/PAYMENT/OTHER` và mức `LOW/MEDIUM/HIGH/CRITICAL`; chỉ Manager/Admin được đóng sự cố kèm ghi chú xử lý.
+- **Chống check-in hai lần:** frontend debounce QR lặp trong 2,5 giây; backend vẫn dùng `PESSIMISTIC_WRITE` trên booking, `booking.checked_in_at` và unique index `uq_ticket_checkin_booking`, nên request đồng thời từ nhiều thiết bị/backend replica vẫn bị chặn ở server.
+- **Mobile camera:** gate tiếp tục dùng camera sau qua `getUserMedia`, ưu tiên HD 1280×720; vẫn hỗ trợ ảnh chụp QR và QR URL.
+- **Analytics Excel chi tiết theo từng bảng:** nút `/admin/analytics` đổi thành **Xuất Excel chi tiết**. Workbook vẫn dùng API `/api/admin/analytics/export.xlsx`, nhưng giờ mỗi section có một worksheet riêng và giữ đúng dữ liệu tương ứng với CSV: Tổng quan, Doanh thu theo ngày, Hiệu suất theo rạp, Top phim, Top suất chiếu, Nhu cầu theo giờ, Heatmap ghế, Hiệu suất nhân viên, Trạng thái booking, Trạng thái payment, Top bắp nước và Phương thức thanh toán. Mỗi worksheet lặp lại **Khoảng dữ liệu / Rạp / Ngày xuất**, đóng băng đến hàng tiêu đề và bật AutoFilter trên toàn vùng dữ liệu để có thể lọc/in/chia sẻ từng bảng độc lập.
+- **Analytics CSV chi tiết theo từng bảng:** nút **Xuất CSV theo từng bảng** tải một gói `.zip` từ `/api/admin/analytics/export-csv.zip`. Gói gồm **12 file CSV UTF-8 BOM**, mỗi bảng Analytics là một file riêng (`01-tong-quan.csv` ... `12-phuong-thuc-thanh-toan.csv`). Từng file lặp lại **Khoảng dữ liệu / Rạp / Ngày xuất** và có hàng tiêu đề riêng, nên có thể mở độc lập bằng Excel mà không trộn nhiều bảng trong cùng một CSV. API `/api/admin/analytics/export.csv` cũ vẫn được giữ để tương thích ngược.
+
+Analytics CSV/Excel chi tiết V43 không thêm migration. Excel giữ API cũ, CSV chi tiết bổ sung API mới:
+
+```text
+GET /api/admin/analytics/export-csv.zip?days=30&cinemaId=<optional-uuid>
+GET /api/admin/analytics/export.xlsx?days=30&cinemaId=<optional-uuid>
+
+# Legacy/backward-compatible combined CSV
+GET /api/admin/analytics/export.csv?days=30&cinemaId=<optional-uuid>
+```
+
+Migration mới:
+
+```text
+backend/src/main/resources/db/migration/V43__staff_operations_2.sql
+```
+
+API V43:
+
+```text
+GET  /api/staff/operations/cinemas
+GET  /api/staff/operations/live?cinemaId=<optional>
+GET  /api/staff/operations/staff-options?cinemaId=<optional>
+GET  /api/staff/operations/handovers?cinemaId=<optional>
+POST /api/staff/operations/handovers
+POST /api/staff/operations/handovers/{id}/accept
+GET  /api/staff/operations/incidents?cinemaId=<optional>
+POST /api/staff/operations/incidents
+POST /api/staff/operations/incidents/{id}/resolve
+```
+
+Các file chính:
+
+```text
+backend/src/main/resources/db/migration/V43__staff_operations_2.sql
+backend/src/main/java/com/cinebooking/domain/StaffShiftHandover.java
+backend/src/main/java/com/cinebooking/domain/StaffIncident.java
+backend/src/main/java/com/cinebooking/staffops/StaffOperationsService.java
+backend/src/main/java/com/cinebooking/staffops/StaffOperationsController.java
+backend/src/main/java/com/cinebooking/websocket/StaffOperationsEventPublisher.java
+backend/src/main/java/com/cinebooking/websocket/RedisStaffOperationsEventSubscriber.java
+frontend/app/staff/operations/page.tsx
+frontend/app/staff/check-in/page.tsx
+frontend/e2e/staff-operations.spec.ts
+backend/src/main/java/com/cinebooking/analytics/AnalyticsExportService.java
+backend/src/test/java/com/cinebooking/analytics/AnalyticsExportServiceTest.java
+frontend/app/admin/analytics/page.tsx
+tools/verify_v43_staff_operations.py
+tools/verify_v43_analytics_excel_detail.py
+tools/diagnose-v43.ps1
+```
+
+Release lifecycle V43:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V43 source regression
+→ V43 source gate
+→ Stable Release (manual)
+→ v43.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v43.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
+
+```text
+branch: main
+version: 43.0.0
+rc_number: 1
+```
+
+---
+
+## V44 - Cinema Maintenance & Asset Reliability 2.0
+
+V44 phát triển tiếp từ V34 blackout và V43 Staff Operations thành một **trung tâm bảo trì & độ tin cậy thiết bị** tại `/admin/maintenance`. Manager/Admin không chỉ khóa phòng mà còn quản lý tài sản kỹ thuật, work order, hạn bảo trì và SLA quá hạn theo từng rạp.
+
+Các cập nhật chính:
+
+- **Equipment asset registry:** đăng ký máy chiếu, âm thanh, HVAC, màn chiếu, POS, network, power, safety và thiết bị khác bằng mã tài sản duy nhất; có rạp/phòng, vendor, serial, ngày lắp, lần bảo trì gần nhất và ngày bảo trì kế tiếp.
+- **Asset health:** trạng thái `OPERATIONAL / DEGRADED / OUT_OF_SERVICE / MAINTENANCE`; dashboard đếm thiết bị suy giảm, ngừng hoạt động, đang bảo trì và thiết bị đến hạn service trong 14 ngày.
+- **Maintenance work order:** ưu tiên `LOW / MEDIUM / HIGH / CRITICAL`, phân công Staff/Manager cùng rạp, hạn xử lý, liên kết thiết bị/phòng và có thể nối trực tiếp một sự cố `OPEN` từ V43.
+- **Lifecycle có guard:** `OPEN -> IN_PROGRESS/BLOCKED/CANCELLED`, `IN_PROGRESS -> BLOCKED/RESOLVED/CANCELLED`, `BLOCKED -> IN_PROGRESS/CANCELLED`; `RESOLVED` và `CANCELLED` là terminal, không reopen bằng API. Các trạng thái `BLOCKED/RESOLVED/CANCELLED` bắt buộc ghi chú.
+- **SLA dashboard:** đếm work order đang mở, critical đang mở và overdue theo `due_at`; Manager chỉ xem/quản lý rạp được phân công, Admin có thể đổi rạp.
+- **Immutable maintenance history:** mọi create/plan/status change ghi `maintenance_work_order_event`; trigger PostgreSQL từ chối UPDATE/DELETE lịch sử này. Audit log hệ thống vẫn ghi các thao tác quản trị tương ứng.
+- **V34 compatibility:** Admin vẫn có phần khóa/mở phòng chiếu ngay trong màn hình V44; guard chống blackout trùng suất đang hoạt động và conflict với Showtime Planner được giữ nguyên.
+- **Navigation:** menu Manager/Admin có mục **Bảo trì & thiết bị**.
+
+Migration V44:
+
+```text
+backend/src/main/resources/db/migration/V44__cinema_maintenance_asset_reliability.sql
+```
+
+Các bảng mới:
+
+```text
+cinema_equipment_asset
+maintenance_work_order
+maintenance_work_order_event
+```
+
+API V44:
+
+```text
+GET  /api/admin/maintenance/cinemas
+GET  /api/admin/maintenance/auditoriums?cinemaId=<uuid>
+GET  /api/admin/maintenance/staff-options?cinemaId=<uuid>
+GET  /api/admin/maintenance/incident-options?cinemaId=<uuid>
+GET  /api/admin/maintenance/summary?cinemaId=<uuid>
+GET  /api/admin/maintenance/assets?cinemaId=<uuid>
+POST /api/admin/maintenance/assets
+PUT  /api/admin/maintenance/assets/{id}
+GET  /api/admin/maintenance/work-orders?cinemaId=<uuid>
+POST /api/admin/maintenance/work-orders
+PUT  /api/admin/maintenance/work-orders/{id}/plan
+POST /api/admin/maintenance/work-orders/{id}/transition
+GET  /api/admin/maintenance/work-orders/{id}/events
+```
+
+V44 verification:
+
+```powershell
+python .\tools\verify_v43_staff_operations.py
+python .\tools\verify_v43_analytics_excel_detail.py
+python .\tools\verify_v43_analytics_csv_detail.py
+python .\tools\verify_v44_maintenance_reliability.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v44.ps1
+```
+
+Release lifecycle V44:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V44 source regression
+→ Backend unit + Testcontainers integration
+→ V44 source gate
+→ Stable Release (manual)
+→ v44.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v44.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với:
+
+```text
+branch: main
+version: 44.0.0
+rc_number: 1
+```
+
+Nếu RC cần sửa source, commit/push fix rồi tăng `rc_number`; không di chuyển hoặc ghi đè tag RC/stable cũ.
+
+---
+
+## V45 - Customer Support & Service Recovery 2.0
+
+V45 phát triển tiếp lớp vận hành của V43/V44 thành **trung tâm hỗ trợ khách hàng end-to-end**. Khách hàng có thể tạo case tại `/support`, gắn booking khi cần, theo dõi SLA và trao đổi trực tiếp. Manager/Admin xử lý tại `/admin/support` theo rạp, ưu tiên, người phụ trách và lịch sử append-only.
+
+Các cập nhật chính:
+
+- **Customer support case:** category `BOOKING / PAYMENT / REFUND / TICKET / CINEMA_EXPERIENCE / STAFF / OTHER`, case number riêng, subject/description, booking/rạp liên quan.
+- **SLA theo priority:** `CRITICAL=4h`, `HIGH=24h`, `MEDIUM=48h`, `LOW=72h`; dashboard đếm active, waiting customer, critical và overdue SLA.
+- **Conversation & triage:** khách gửi message; Manager/Admin phản hồi hoặc ghi internal note; case có assignee và priority có thể thay đổi.
+- **Lifecycle guard:** `OPEN -> IN_PROGRESS/CLOSED`, `IN_PROGRESS -> WAITING_CUSTOMER/RESOLVED/CLOSED`, `WAITING_CUSTOMER -> IN_PROGRESS/RESOLVED/CLOSED`, `RESOLVED -> IN_PROGRESS/CLOSED`, `CLOSED` terminal.
+- **Cinema scope:** case gắn booking tự suy ra rạp qua showtime/auditorium; Manager chỉ thấy và xử lý case của rạp mình; Admin có thể xem toàn hệ thống.
+- **Immutable support history:** mọi create/message/reply/plan/status change ghi vào `customer_support_case_event`; PostgreSQL trigger chặn UPDATE/DELETE.
+- **Notification:** phản hồi và thay đổi trạng thái từ staff tạo notification cho khách và link về `/support`.
+- **Navigation:** Header có mục **Hỗ trợ** cho tài khoản đăng nhập; Manager/Admin có **Hỗ trợ khách hàng** trong menu quản lý.
+
+Migration V45:
+
+```text
+backend/src/main/resources/db/migration/V45__customer_support_service_recovery.sql
+```
+
+Các bảng mới:
+
+```text
+customer_support_case
+customer_support_case_event
+```
+
+API khách hàng:
+
+```text
+GET  /api/support/cases
+POST /api/support/cases
+GET  /api/support/cases/{id}/events
+POST /api/support/cases/{id}/messages
+```
+
+API Manager/Admin:
+
+```text
+GET  /api/admin/support/cinemas
+GET  /api/admin/support/staff-options?cinemaId=<uuid>
+GET  /api/admin/support/summary?cinemaId=<uuid>
+GET  /api/admin/support/cases?cinemaId=<optional-uuid>
+GET  /api/admin/support/cases/{id}/events
+PUT  /api/admin/support/cases/{id}/plan
+POST /api/admin/support/cases/{id}/reply
+POST /api/admin/support/cases/{id}/transition
+```
+
+V45 verification:
+
+```powershell
+python .\tools\verify_v44_maintenance_reliability.py
+python .\tools\verify_v45_customer_support.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v45.ps1
+```
+
+Release lifecycle V45:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V45 source regression
+→ Backend unit + Testcontainers integration
+→ V45 source gate
+→ Stable Release (manual)
+→ v45.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v45.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 45.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
+
+---
+
+## V46 - Security & Account Protection 2.0
+
+V46 nâng lớp bảo mật V21 thành **Security Center** cho người dùng và **Security Operations** cho Admin. Hệ thống theo dõi thiết bị tin cậy, tạo cảnh báo có risk score khi đăng nhập từ thiết bị mới hoặc khi brute-force chạm ngưỡng, đồng thời ghi nhận đổi/đặt lại mật khẩu để người dùng chủ động kiểm tra tài khoản.
+
+Các cập nhật chính:
+
+- **Trusted devices:** người dùng có thể đánh dấu phiên hiện tại là thiết bị tin cậy, đặt nhãn, theo dõi IP đầu/cuối và thu hồi trust bất kỳ lúc nào.
+- **Risk-scored alerts:** `NEW_DEVICE`, `CREDENTIAL_ATTACK`, `PASSWORD_CHANGED`, `PASSWORD_RESET`, `SESSION_REVOKED`; severity `LOW / MEDIUM / HIGH / CRITICAL` và risk score 0-100.
+- **Dual brute-force protection:** rate limit theo cả email và IP qua Redis; email mặc định khóa sau 5 lần sai, IP mặc định 20 lần trong cửa sổ khóa.
+- **High-risk notification:** cảnh báo HIGH/CRITICAL tạo notification cho người dùng và link về `/security`.
+- **Password hardening:** đổi mật khẩu tạo security alert và đăng xuất các thiết bị khác; reset mật khẩu tạo HIGH alert và thu hồi toàn bộ session cũ.
+- **Customer Security Center:** `/security` có KPI session/trusted-device/alert, danh sách thiết bị tin cậy, cảnh báo và thao tác acknowledge.
+- **Brave-aware browser identity patch:** frontend xác minh `navigator.brave.isBrave()` rồi gửi header hiển thị `X-CineBooking-Browser`; backend chỉ chấp nhận whitelist browser names, đồng bộ lại session/trusted-device/security-alert hiện tại và vẫn fallback User-Agent cho Chrome/Edge/Firefox/Safari/Opera/Vivaldi. Browser hint chỉ dùng cho metadata hiển thị/fingerprint phụ, không dùng làm bằng chứng xác thực hay phân quyền.
+- **Admin Security Operations:** `/admin/security` hiển thị cảnh báo 24h, alert chưa xác nhận, high-risk và tổng trusted device đang active.
+- **V46 realistic reference seed:** schema có 49 bảng trong pgAdmin; dữ liệu hiển thị dùng tên tự nhiên, payment tham chiếu chỉ dùng `MOCK`, `trusted_device` và `security_alert` có 10 dòng UTF-8 mỗi bảng, và quan hệ phim vẫn tái sử dụng 8 phim V29 hiện có.
+- **RC E2E logout compatibility:** security journey chờ trạng thái đăng xuất rồi điều hướng rõ ràng về `/login`, phù hợp với UI hiện tại vốn đưa người dùng về trang chủ sau khi logout.
+
+Migration V46:
+
+```text
+backend/src/main/resources/db/migration/V46__security_account_protection_2.sql
+```
+
+Các bảng mới:
+
+```text
+trusted_device
+security_alert
+```
+
+API người dùng:
+
+```text
+PATCH  /api/me/security/client-context
+GET    /api/me/security/overview
+GET    /api/me/security/trusted-devices
+POST   /api/me/security/trusted-devices/current
+DELETE /api/me/security/trusted-devices/{id}
+GET    /api/me/security/alerts
+PATCH  /api/me/security/alerts/{id}/acknowledge
+```
+
+API Admin:
+
+```text
+GET /api/admin/security/overview
+GET /api/admin/security/alerts
+GET /api/admin/security/users/{userId}/sessions
+DELETE /api/admin/security/users/{userId}/sessions
+```
+
+V46 verification:
+
+```powershell
+python .\tools\verify_v45_customer_support.py
+python .\tools\verify_v46_security_account_protection.py   # includes Brave-over-Chrome UA checks
+python .\tools\verify_reference_data_49.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v46.ps1
+```
+
+Release lifecycle V46:
+
+```text
+git push main
+→ CineBooking CI
+→ V26-V46 source regression
+→ Backend unit + Testcontainers integration
+→ V46 source gate
+→ Stable Release (manual)
+→ v46.0.0-rc.N
+→ Docker smoke + Playwright Chromium journeys
+→ v46.0.0
+→ GitHub Release
+```
+
+Sau khi `main` CI xanh, chạy **CineBooking Stable Release** với `version: 46.0.0` và `rc_number: 1`. Nếu RC fail do cần sửa source, push fix rồi tăng `rc_number`; không ghi đè tag RC cũ.
+
+---
+
+### V46 reference data - UTF-8 realistic fixture
 
 The V47 schema contains **50 pgAdmin tables**: 49 application tables plus `flyway_schema_history`. The reference seed keeps every application table populated while replacing placeholder `Demo`/`mẫu` values with realistic Vietnamese names, cinema branches, staff roles, concession products, maintenance assets, support cases, device labels and security events.
 
@@ -2011,7 +1495,6 @@ RC5 proved that the remaining release failures were not application API failures
 RC6 keeps the real UI registration/login flows and still synchronizes on the real HTTP status codes, but no longer asks Chromium DevTools for an authentication response body after navigation. After the expected destination URL is stable, the tests read `cinebooking_auth_v3` through `BrowserContext.storageState()`, which is independent of the page execution context and retained network-response body. Authenticated API assertions continue through `BrowserContext.request`. The V41 archive/restore/read contract and the V46 Brave trusted-device plus exact customer `NEW_DEVICE` Admin visibility contract are unchanged. No production authentication logic, Flyway migration, database schema or reference data changes are included.
 
 Because `v46.0.0-rc.5` is immutable, publish the next candidate as `v46.0.0-rc.6`; do not move RC1-RC5 tags.
-
 
 ## V47 - Payment Gateway & Operations 2.0
 
@@ -2141,6 +1624,7 @@ The disposable Playwright stack starts from the historical migration baseline, w
 
 RC2 keeps the production model honest instead of weakening the test: creating a cinema through `POST /api/admin/cinemas` now provisions zero-on-hand branch inventory plus base-price rows for every existing concession product. The V48 Playwright journey creates a second branch through that real API before exercising restock, waste, branch pricing, and transfer. Existing V48 schema stays unchanged; Flyway remains V48 and pgAdmin remains 52 public tables.
 
+### V48 compile hotfix - CommerceService lambda capture
 
 ## V49 - Smart Showtime Planning 2.0
 
@@ -2251,3 +1735,379 @@ Playwright mới: `frontend/e2e/recommendation-intelligence-v50.spec.ts`, kiểm
 ### V50 compile hotfix - JdbcTemplate query overload
 
 Full Maven compilation exposed an overloaded `JdbcTemplate.query(...)` ambiguity in `RecommendationService.popularity(...)`. The old expression lambda returned the value from `Map.put(...)`, so Java could match both `ResultSetExtractor<T>` and `RowCallbackHandler`. The callback is now a block lambda with no return value, which selects the row-callback overload unambiguously while preserving the same popularity aggregation logic. `verify_v50_recommendation_intelligence_2.py` includes a regression check for this source shape. No database migration or API contract changes are introduced by this hotfix.
+
+---
+
+## V51 - Analytics & Forecasting 3.0
+
+V51 mở rộng `/admin/analytics` từ dashboard mô tả thành lớp phân tích + dự báo có thể vận hành trên hai backend replica mà không ghi snapshot trùng.
+
+### Database / Flyway
+
+Migration mới: `V51__analytics_forecasting_3.sql`.
+
+V51 thêm đúng hai application tables:
+
+- `cinema_concession_cost_basis`: giá vốn theo cặp `(cinema_id, product_id)`. Migration **không sinh cost giả**; thiếu row nghĩa là cost chưa biết.
+- `analytics_snapshot`: snapshot `DAILY`, `WEEKLY`, `MONTHLY` với revenue, tickets, capacity, occupancy, cost coverage, nullable concession cost/gross margin và forecast 7 ngày.
+
+Sau V51 có **55 application tables + `flyway_schema_history` = 56 public tables trong pgAdmin**.
+
+### Forecast / comparison
+
+Algorithm được version hóa bằng hằng số:
+
+```text
+V51-WEEKDAY-WEIGHTED-MA-1
+```
+
+Mỗi ngày trong 7 ngày kế tiếp lấy đúng cùng thứ của bốn tuần gần nhất, theo trọng số `4 / 3 / 2 / 1`. Dashboard đồng thời so sánh kỳ hiện tại với kỳ liền trước có cùng độ dài cho revenue, booking, tickets và occupancy.
+
+V51 tiếp tục hiển thị analytics theo rạp, phim, phòng chiếu và khung giờ; dữ liệu V43 CSV/XLSX vẫn giữ tương thích.
+
+### Margin và branch cost basis
+
+Cost bắp nước là dữ liệu vận hành theo chi nhánh. API mới:
+
+```text
+GET /api/admin/analytics/cost-basis?cinemaId=<optional-uuid>
+PUT /api/admin/analytics/cost-basis
+```
+
+`PUT` nhận `cinemaId`, `productId` và `unitCost`. Gửi `unitCost: null` xóa cost basis để trở lại trạng thái chưa biết.
+
+Quy tắc quan trọng: **cost chưa biết luôn là `NULL`, không đổi thành `0`**. Nếu chỉ một phần concession units có cost basis, `concessionCost` và `grossMargin` trả `null`; `costCoverageRate` cho biết mức dữ liệu cost đã phủ. Điều này ngăn dashboard tạo biên lợi nhuận ảo khi dữ liệu giá vốn chưa đủ.
+
+### Scheduled snapshots / multi-replica safety
+
+`AnalyticsSnapshotJob` chạy theo:
+
+```text
+ANALYTICS_SNAPSHOT_ENABLED=true
+ANALYTICS_SNAPSHOT_SCAN_MS=900000
+```
+
+Mỗi transaction chọn cinema bằng:
+
+```sql
+SELECT id FROM cinema ORDER BY id FOR UPDATE SKIP LOCKED;
+```
+
+Hai backend replica vì vậy bỏ qua cinema đang bị replica kia khóa. Snapshot còn có unique `(cinema_id, period_kind, period_start)` và upsert idempotent, tạo hai lớp chống ghi trùng.
+
+### V51 CI/reference fixture (không dùng để thay dữ liệu thật)
+
+Bộ reference mới:
+
+```text
+tools/seed-demo-56-tables-10-rows.sql
+tools/seed-demo-56-tables.ps1
+tools/check-demo-56-table-counts.sql
+tools/check-demo-56-table-counts.ps1
+tools/verify_seed_demo_56.py
+tools/verify_reference_data_56.py
+tools/seed-reference-56-tables.ps1
+tools/check-reference-56-table-counts.ps1
+```
+
+Bộ `seed-demo-56-*` là **fixture deterministic cho CI/regression**, không phải seed được khuyến nghị cho database nghiệp vụ đang dùng. Fixture vẫn không tạo phim mới: 8 phim V29 hiện có được tái sử dụng. Với database thật, dùng `tools/seed-v51-real-data.ps1`; script đó không tạo cinema/product/booking/payment hoặc cost basis giả, và snapshot được tính từ dữ liệu giao dịch hiện có.
+
+### V51 verification / release
+
+```powershell
+python .\tools\verify_v43_analytics_excel_detail.py
+python .\tools\verify_v43_analytics_csv_detail.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v51_utf8_real_data.py
+python .\tools\verify_seed_demo_56.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v51.ps1
+```
+
+Playwright journey mới: `frontend/e2e/analytics-forecasting-v51.spec.ts`. Journey xác minh period comparison, forecast marker, margin NULL semantics, auditorium analytics, scheduler lock text và thao tác xóa branch cost basis về trạng thái chưa biết.
+
+Build runtime mà không xóa volume:
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Release lifecycle V51 dùng candidate `v51.0.0-rc.1`, stable `v51.0.0`; CI giữ toàn bộ gate V50 và thêm V51 source/56-table checks.
+
+### V51 real-data refresh / UTF-8 runtime check
+
+V51 có thêm hai script dùng cho database thật của máy local:
+
+```text
+tools/seed-v51-real-data.sql
+tools/seed-v51-real-data.ps1
+tools/check-v51-data-utf8.sql
+tools/check-v51-data-utf8.ps1
+tools/verify_v51_utf8_real_data.py
+```
+
+`seed-v51-real-data.ps1` chỉ refresh `analytics_snapshot` từ `payment`, `booking`, `booking_seat`, `booking_concession`, `showtime`, `auditorium`, `seat` và cost basis thật đang có. Script không insert phim, rạp, sản phẩm, booking, payment hoặc cost basis giả.
+
+Nếu `cinema_concession_cost_basis` chưa có dữ liệu, UI Analytics hiển thị `NULL / Chưa biết`; gross margin chỉ tính khi cost coverage đầy đủ.
+
+# Vận hành / test / build V51
+
+## Kiến trúc
+
+```text
+Browser / PWA
+      |
+    nginx
+   /     \
+backend-1 backend-2
+   |         |
+   +---- PostgreSQL 18.4 (UTF8)
+   +---- Redis 8.8
+```
+
+Docker Compose services: `postgres`, `redis`, `backend-1`, `backend-2`, `frontend`, `nginx`. Public HTTP mặc định là `http://localhost`.
+
+## Yêu cầu môi trường
+
+```text
+Docker Desktop / Docker Engine + Compose
+Java 25 nếu chạy backend ngoài Docker
+Node.js 24 nếu chạy frontend ngoài Docker
+Python 3 cho source verifiers
+Windows PowerShell 5.1+
+```
+
+Kiểm tra:
+
+```powershell
+docker version
+docker compose version
+java -version
+node --version
+python --version
+```
+
+## Environment variables
+
+Tạo `.env` local từ `.env.example`, sau đó chạy:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\init-env.ps1
+```
+
+Kiểm tra file nhạy cảm không bị Git track:
+
+```powershell
+git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
+```
+
+Lệnh trên phải không trả gì.
+
+## 1. Test source trước khi build
+
+```powershell
+python .\tools\verify_v43_analytics_excel_detail.py
+python .\tools\verify_v43_analytics_csv_detail.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v51_utf8_real_data.py
+python .\tools\verify_seed_demo_56.py
+```
+
+Hoặc chạy full diagnostic:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v51.ps1
+```
+
+## 2. Test database baseline trước build
+
+```powershell
+docker compose ps
+
+docker compose exec -T postgres psql -U cinebooking -d cinebooking -c "SHOW server_encoding;"
+docker compose exec -T postgres psql -U cinebooking -d cinebooking -c "SELECT installed_rank,version,description,success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 5;"
+```
+
+`server_encoding` phải là `UTF8`. Nếu đang ở V50 baseline thì migration cuối trước build là V50.
+
+## 3. Build V51
+
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+Không dùng trong update bình thường:
+
+```powershell
+docker compose down -v
+```
+
+`-v` xóa volume database.
+
+## 4. Kiểm tra Flyway V51 và 56 bảng
+
+```powershell
+docker compose exec -T postgres psql -U cinebooking -d cinebooking -c "SELECT installed_rank,version,description,success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 5;"
+
+docker compose exec -T postgres psql -U cinebooking -d cinebooking -c "SELECT COUNT(*) AS public_tables FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+```
+
+Kết quả V51 mong đợi:
+
+```text
+Flyway latest: 51
+55 application tables
++ flyway_schema_history
+= 56 public tables
+```
+
+## 5. Refresh dữ liệu V51 từ dữ liệu thật
+
+Chạy sau khi V51 build xong:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-v51-real-data.ps1
+```
+
+Script này:
+
+- xác nhận PostgreSQL UTF-8;
+- xác nhận đủ 8 phim V29 hiện có;
+- không tạo phim/rạp/product/booking/payment giả;
+- không tự sinh `unit_cost`;
+- tính `analytics_snapshot` từ giao dịch thật hiện có trong database;
+- giữ `concession_cost`/`gross_margin = NULL` khi cost coverage chưa đủ.
+
+Giá vốn bắp nước phải nhập từ UI `/admin/analytics` hoặc import từ nguồn chi phí thật. Không suy diễn giá vốn từ giá bán.
+
+## 6. Kiểm tra database, 8 phim và UTF-8 sau seed
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Checker xác nhận:
+
+```text
+server_encoding = UTF8
+client_encoding = UTF8
+Flyway latest = 51
+public tables >= 56
+8/8 phim V29 có sẵn
+analytics_snapshot có dữ liệu
+không phát hiện mojibake phổ biến trong movie/cinema/product/user text
+```
+
+`cinema_concession_cost_basis` được phép rỗng nếu chưa có giá vốn thật. Đó là trạng thái `Chưa biết`, không phải lỗi seed.
+
+## 7. Kiểm tra text tiếng Việt trên web
+
+Sau khi stack lên, mở:
+
+```text
+http://localhost
+http://localhost/admin/analytics
+```
+
+Cần nhìn thấy đúng dấu các chuỗi như `Dự báo 7 ngày tới`, `Chưa biết`, `Giá vốn`, tên phim V29 và tên rạp/sản phẩm trong database.
+
+## 8. Frontend lint/build
+
+Không cần `cd frontend`; chạy từ project root:
+
+```powershell
+npm --prefix .\frontend install
+npm --prefix .\frontend run lint
+npm --prefix .\frontend run build
+```
+
+## 9. Playwright V51
+
+```powershell
+npm --prefix .\frontend exec -- playwright install chromium
+npm --prefix .\frontend exec -- playwright test e2e/analytics-forecasting-v51.spec.ts --project=chromium
+```
+
+## 10. Backup / verify / restore PostgreSQL
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\backup-db.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\verify-db-backup.ps1 -BackupPath .\backups\<file>.dump
+powershell -ExecutionPolicy Bypass -File .\tools\test-v27.ps1
+```
+
+Restore thật chỉ khi đã xác nhận backup:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\restore-db.ps1 -BackupPath .\backups\<file>.dump -ConfirmRestore
+```
+
+## 11. Commit an toàn
+
+```powershell
+git ls-files .env "backups/*.dump" "backups/*.dump.sha256"
+git add -A
+git status --short
+git commit -m "Add V51 Analytics and Forecasting 3.0 UTF-8 real-data hardening"
+git push
+```
+
+Lệnh `git ls-files` đầu tiên phải không trả gì.
+
+## 12. Release V51
+
+```text
+main CI
+   ↓
+V43 CSV/XLSX regression
+   ↓
+V46 → V50 regression
+   ↓
+V51 source + UTF-8/real-data static gate
+   ↓
+Flyway V51 / 56-table integration
+   ↓
+v51.0.0-rc.1
+   ↓
+Docker smoke
+   ↓
+Playwright Chromium
+   ↓
+v51.0.0
+   ↓
+GitHub Release
+```
+
+## 13. Project structure
+
+```text
+backend/                 Spring Boot backend
+frontend/                Next.js frontend + Playwright
+infra/nginx/             reverse proxy/load balancer
+tools/                   diagnostics, verifiers, seed/check scripts, backup/restore
+backups/.gitkeep         local backup placeholder
+.github/workflows/       CI / RC / Stable Release
+docker-compose.yml       local/full-stack orchestration
+README.md                tài liệu dự án
+```
+
+## 14. Security / production notes
+
+- Không commit JWT/SMTP/payment secret, `.env` hoặc database dump.
+- Không dùng demo admin password trên production.
+- Không expose PostgreSQL/Redis trực tiếp ra Internet.
+- Dùng HTTPS trên reverse proxy/load balancer production.
+- Backup DB trước migration lớn.
+- Không dùng `docker compose down -v` cho update bình thường.
+- Runtime success chỉ được chốt khi CI + Docker smoke + Playwright chạy xanh.

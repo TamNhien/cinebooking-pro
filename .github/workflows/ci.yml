@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V50 source regression
+    name: V26-V51 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -285,6 +285,15 @@ jobs:
 
       - name: Verify V50 54-table realistic reference data
         run: python3 tools/verify_seed_demo_54.py
+
+      - name: Verify V51 analytics and forecasting 3.0
+        run: python3 tools/verify_v51_analytics_forecasting_3.py
+
+      - name: Verify V51 UTF-8 and real-data policy
+        run: python3 tools/verify_v51_utf8_real_data.py
+
+      - name: Verify V51 56-table realistic reference data
+        run: python3 tools/verify_seed_demo_56.py
 
   compose-config:
     name: Docker Compose validation

@@ -60,6 +60,102 @@ public final class AnalyticsDtos {
             long checkedTickets
     ) {}
 
+    // V51 - Analytics & Forecasting 3.0 contracts.
+    public record PeriodWindow(
+            LocalDate from,
+            LocalDate to,
+            BigDecimal revenue,
+            long bookings,
+            long tickets,
+            double occupancyRate
+    ) {}
+
+    public record PeriodComparison(
+            PeriodWindow current,
+            PeriodWindow previous,
+            double revenueDeltaPct,
+            double bookingsDeltaPct,
+            double ticketsDeltaPct,
+            double occupancyDeltaPoints
+    ) {}
+
+    public record ForecastPoint(
+            LocalDate day,
+            BigDecimal revenue,
+            double confidence,
+            int matchingWeekdays
+    ) {}
+
+    public record RevenueForecast(
+            String algorithm,
+            LocalDate generatedFor,
+            BigDecimal next7DaysRevenue,
+            List<ForecastPoint> points
+    ) {}
+
+    public record MarginSummary(
+            BigDecimal revenue,
+            BigDecimal ticketRevenue,
+            BigDecimal concessionRevenue,
+            BigDecimal concessionCost,
+            BigDecimal grossMargin,
+            Double grossMarginRate,
+            double costCoverageRate,
+            long concessionUnits,
+            long costedUnits
+    ) {}
+
+    public record AuditoriumPerformance(
+            UUID auditoriumId,
+            String auditoriumName,
+            UUID cinemaId,
+            String cinemaName,
+            BigDecimal revenue,
+            long bookings,
+            long tickets,
+            long capacity,
+            double occupancyRate
+    ) {}
+
+    public record ConcessionCostBasis(
+            UUID cinemaId,
+            String cinemaName,
+            UUID productId,
+            String productName,
+            BigDecimal sellingPrice,
+            BigDecimal unitCost,
+            boolean costKnown,
+            Instant updatedAt
+    ) {}
+
+    public record CostBasisUpdate(
+            UUID cinemaId,
+            UUID productId,
+            BigDecimal unitCost
+    ) {}
+
+    public record AnalyticsSnapshot(
+            UUID id,
+            UUID cinemaId,
+            String cinemaName,
+            String periodKind,
+            LocalDate periodStart,
+            LocalDate periodEnd,
+            BigDecimal revenue,
+            BigDecimal ticketRevenue,
+            BigDecimal concessionRevenue,
+            BigDecimal concessionCost,
+            BigDecimal grossMargin,
+            long bookings,
+            long tickets,
+            long capacity,
+            double occupancyRate,
+            double costCoverageRate,
+            BigDecimal forecastNext7d,
+            String forecastAlgorithm,
+            Instant generatedAt
+    ) {}
+
     public record Dashboard(
             Kpi kpi,
             List<DailyPoint> dailyRevenue,
@@ -72,6 +168,38 @@ public final class AnalyticsDtos {
             List<HourlyDemand> hourlyDemand,
             List<StaffPerformance> staffPerformance,
             List<StatusCount> bookingStatuses,
-            List<StatusCount> paymentStatuses
-    ) {}
+            List<StatusCount> paymentStatuses,
+            PeriodComparison periodComparison,
+            RevenueForecast forecast,
+            MarginSummary margin,
+            List<AuditoriumPerformance> auditoriumPerformance,
+            List<ConcessionCostBasis> concessionCostBasis,
+            List<AnalyticsSnapshot> snapshots
+    ) {
+        // Backward-compatible constructor retained for V42/V43 export tests and older callers.
+        public Dashboard(
+                Kpi kpi,
+                List<DailyPoint> dailyRevenue,
+                List<NameValue> topMovies,
+                List<NameValue> paymentProviders,
+                List<NameValue> topConcessions,
+                List<CinemaPerformance> cinemaPerformance,
+                List<ShowtimePerformance> topShowtimes,
+                List<SeatHeatCell> seatHeatmap,
+                List<HourlyDemand> hourlyDemand,
+                List<StaffPerformance> staffPerformance,
+                List<StatusCount> bookingStatuses,
+                List<StatusCount> paymentStatuses
+        ) {
+            this(
+                    kpi, dailyRevenue, topMovies, paymentProviders, topConcessions,
+                    cinemaPerformance, topShowtimes, seatHeatmap, hourlyDemand, staffPerformance,
+                    bookingStatuses, paymentStatuses,
+                    null,
+                    new RevenueForecast("V51-WEEKDAY-WEIGHTED-MA-1", LocalDate.now(), BigDecimal.ZERO, List.of()),
+                    null,
+                    List.of(), List.of(), List.of()
+            );
+        }
+    }
 }

@@ -1,4 +1,4 @@
-.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset verify-v33 diagnose-v33 verify-v34 diagnose-v34 verify-v35 diagnose-v35 verify-v36 diagnose-v36 verify-v45 diagnose-v45
+.PHONY: up down logs recreate backup diagnose-v27 test-v27 diagnose-v28 verify-v28 diagnose-v29 verify-v29 verify-v29.2 verify-v29.3 diagnose-v30 verify-v30 verify-v30-1 verify-v30-2 diagnose-v31 verify-v31 verify-v31-2 diagnose-v32 verify-v32 e2e-v29.2 reset verify-v33 diagnose-v33 verify-v34 diagnose-v34 verify-v35 diagnose-v35 verify-v36 diagnose-v36 verify-v45 diagnose-v45 verify-v51 diagnose-v51 verify-seed-demo-v51 seed-demo-v51 check-seed-demo-v51 verify-reference-v51 seed-reference-v51 check-reference-v51
 
 up:
 	docker compose up --build -d
@@ -343,3 +343,46 @@ seed-reference-v50:
 
 check-reference-v50:
 	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-54-table-counts.ps1
+
+verify-v51:
+	python tools/verify_v43_analytics_excel_detail.py
+	python tools/verify_v43_analytics_csv_detail.py
+	python tools/verify_v46_security_account_protection.py
+	python tools/verify_v47_payment_gateway_operations.py
+	python tools/verify_v48_concession_inventory_2.py
+	python tools/verify_v49_smart_showtime_planning_2.py
+	python tools/verify_v50_recommendation_intelligence_2.py
+	python tools/verify_v51_analytics_forecasting_3.py
+	python tools/verify_v51_utf8_real_data.py
+	python tools/verify_seed_demo_56.py
+
+diagnose-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v51.ps1
+
+verify-seed-demo-v51:
+	python tools/verify_seed_demo_56.py
+
+seed-demo-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-56-tables.ps1
+
+check-seed-demo-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-56-table-counts.ps1
+
+verify-reference-v51:
+	python tools/verify_reference_data_56.py
+
+seed-reference-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-56-tables.ps1
+
+check-reference-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-56-table-counts.ps1
+
+
+verify-v51-utf8:
+	python tools/verify_v51_utf8_real_data.py
+
+seed-real-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-v51-real-data.ps1
+
+check-real-v51:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-v51-data-utf8.ps1

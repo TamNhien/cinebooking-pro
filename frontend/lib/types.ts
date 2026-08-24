@@ -108,12 +108,21 @@ export type AnalyticsShowtimePerformance = { showtimeId:string; movieTitle:strin
 export type AnalyticsSeatHeatCell = { rowLabel:string; seatNumber:number; bookings:number; revenue:number };
 export type AnalyticsHourlyDemand = { hour:number; bookings:number; tickets:number; revenue:number };
 export type AnalyticsStaffPerformance = { userId:string; employeeCode:string; fullName:string; cinemaName:string; checkedTickets:number };
+export type AnalyticsPeriodWindow = { from:string; to:string; revenue:number; bookings:number; tickets:number; occupancyRate:number };
+export type AnalyticsPeriodComparison = { current:AnalyticsPeriodWindow; previous:AnalyticsPeriodWindow; revenueDeltaPct:number; bookingsDeltaPct:number; ticketsDeltaPct:number; occupancyDeltaPoints:number };
+export type AnalyticsForecastPoint = { day:string; revenue:number; confidence:number; matchingWeekdays:number };
+export type AnalyticsRevenueForecast = { algorithm:string; generatedFor:string; next7DaysRevenue:number; points:AnalyticsForecastPoint[] };
+export type AnalyticsMarginSummary = { revenue:number; ticketRevenue:number; concessionRevenue:number; concessionCost:number|null; grossMargin:number|null; grossMarginRate:number|null; costCoverageRate:number; concessionUnits:number; costedUnits:number };
+export type AnalyticsAuditoriumPerformance = { auditoriumId:string; auditoriumName:string; cinemaId:string; cinemaName:string; revenue:number; bookings:number; tickets:number; capacity:number; occupancyRate:number };
+export type AnalyticsConcessionCostBasis = { cinemaId:string; cinemaName:string; productId:string; productName:string; sellingPrice:number; unitCost:number|null; costKnown:boolean; updatedAt:string|null };
+export type AnalyticsSnapshot = { id:string; cinemaId:string; cinemaName:string; periodKind:"DAILY"|"WEEKLY"|"MONTHLY"; periodStart:string; periodEnd:string; revenue:number; ticketRevenue:number; concessionRevenue:number; concessionCost:number|null; grossMargin:number|null; bookings:number; tickets:number; capacity:number; occupancyRate:number; costCoverageRate:number; forecastNext7d:number; forecastAlgorithm:string; generatedAt:string };
 export type AnalyticsDashboard = {
   kpi:{ revenue:number; confirmedBookings:number; users:number; tickets:number; concessionRevenue:number; averageOrderValue:number; occupancyRate:number; paymentSuccessRate:number; refundRate:number; checkIns:number; newUsers:number };
   dailyRevenue:{day:string;revenue:number;bookings:number;tickets:number;checkIns:number}[];
   topMovies:AnalyticsNameValue[]; paymentProviders:AnalyticsNameValue[]; topConcessions:AnalyticsNameValue[];
   cinemaPerformance:AnalyticsCinemaPerformance[]; topShowtimes:AnalyticsShowtimePerformance[]; seatHeatmap:AnalyticsSeatHeatCell[]; hourlyDemand:AnalyticsHourlyDemand[]; staffPerformance:AnalyticsStaffPerformance[];
   bookingStatuses:AnalyticsStatusCount[]; paymentStatuses:AnalyticsStatusCount[];
+  periodComparison:AnalyticsPeriodComparison; forecast:AnalyticsRevenueForecast; margin:AnalyticsMarginSummary; auditoriumPerformance:AnalyticsAuditoriumPerformance[]; concessionCostBasis:AnalyticsConcessionCostBasis[]; snapshots:AnalyticsSnapshot[];
 };
 
 export type AuditItem = { id:string; actorEmail?:string; action:string; entityType?:string; entityId?:string; details?:string; ipAddress?:string; createdAt:string };
