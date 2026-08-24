@@ -2034,7 +2034,10 @@ npm --prefix .\frontend run build
 
 ## 9. Playwright V51
 
+Playwright chạy trên máy host cần dependency dev trong `frontend/node_modules`. Nếu gặp `Cannot find module '@playwright/test'`, chạy lại `npm --prefix .\frontend install` trước.
+
 ```powershell
+npm --prefix .\frontend install
 npm --prefix .\frontend exec -- playwright install chromium
 npm --prefix .\frontend exec -- playwright test e2e/analytics-forecasting-v51.spec.ts --project=chromium
 ```

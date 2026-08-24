@@ -56,7 +56,7 @@ check("Header links to realtime operations", '/staff/operations' in header and '
 check("Gate scanner adds local duplicate debounce", all(x in gateui for x in ['processingRef','lastScanRef','2500']))
 check("Gate scanner still uses rear mobile camera", 'facingMode:{ideal:"environment"}' in gateui and 'width:{ideal:1280}' in gateui)
 check("V43 Playwright covers incident create and resolve", all(x in e2e for x in ['V43 admin sees realtime staff operations','Ghi nhận sự cố','Đóng sự cố','RESOLVED']))
-check("README retains V43 release history", '### V43 - Staff Operations 2.0' in readme and 'V43__staff_operations_2.sql' in readme)
+check("README retains V43 release history", any(h in readme for h in ["## V43 - Staff Operations 2.0", "### V43 - Staff Operations 2.0"]) and "V43__staff_operations_2.sql" in readme)
 check("README version history maps V43 migration", 'V43__staff_operations_2.sql' in readme)
 check("Integration test retains V43 staff schema assertions", 'staffV43Tables' in integration and 'staffV43Indexes' in integration)
 check("Integration test validates V43 staff tables and indexes", 'staffV43Tables' in integration and 'staffV43Indexes' in integration and 'staff_shift_handover' in integration and 'staff_incident' in integration)

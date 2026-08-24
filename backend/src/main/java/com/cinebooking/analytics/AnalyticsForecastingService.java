@@ -56,7 +56,7 @@ public class AnalyticsForecastingService {
         Instant historyStart = historyStartDay.atStartOfDay(BUSINESS_ZONE).toInstant();
         Instant historyEnd = today.plusDays(1).atStartOfDay(BUSINESS_ZONE).toInstant();
         String cinemaFilter = cinemaId == null ? "" : " and a.cinema_id=?";
-        List<Object> params = new ArrayList<>(List.of(historyStart, historyEnd));
+        List<Object> params = new ArrayList<>(List.of(jdbcTime(historyStart), jdbcTime(historyEnd)));
         if (cinemaId != null) params.add(cinemaId);
 
         Map<LocalDate, BigDecimal> history = new HashMap<>();
@@ -304,8 +304,17 @@ public class AnalyticsForecastingService {
         return new MarginSummary(money(totalRevenue), ticketRevenue, concessionRevenue, concessionCost, grossMargin, marginRate, coverage, units, costed);
     }
 
+    private Object jdbcTime(Instant instant) {
+        // PostgreSQL TIMESTAMPTZ + pgJDBC 42.7.x does not infer java.time.Instant
+        // when JdbcTemplate binds an untyped Object argument. OffsetDateTime is
+        // natively supported and preserves the exact UTC instant.
+        return instant.atOffset(ZoneOffset.UTC);
+    }
+
     private Object[] timeArgs(Instant start, Instant end, UUID cinemaId) {
-        return cinemaId == null ? new Object[]{start, end} : new Object[]{start, end, cinemaId};
+        Object jdbcStart = jdbcTime(start);
+        Object jdbcEnd = jdbcTime(end);
+        return cinemaId == null ? new Object[]{jdbcStart, jdbcEnd} : new Object[]{jdbcStart, jdbcEnd, cinemaId};
     }
 
     private Object[] auditoriumArgs(int days, UUID cinemaId) {

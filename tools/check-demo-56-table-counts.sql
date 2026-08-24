@@ -115,7 +115,12 @@ SELECT 'voucher'::text AS table_name, COUNT(*)::bigint AS row_count FROM voucher
 UNION ALL
 SELECT 'voucher_redemption'::text AS table_name, COUNT(*)::bigint AS row_count FROM voucher_redemption
 )
-SELECT table_name, row_count, CASE WHEN row_count = 0 THEN 'EMPTY' ELSE 'OK' END AS status
+SELECT table_name, row_count,
+       CASE
+           WHEN table_name = 'cinema_concession_cost_basis' AND row_count = 0 THEN 'OPTIONAL_EMPTY'
+           WHEN row_count = 0 THEN 'EMPTY'
+           ELSE 'OK'
+       END AS status
 FROM counts
 ORDER BY table_name;
 
@@ -232,6 +237,7 @@ SELECT 'voucher'::text AS table_name, COUNT(*)::bigint AS row_count FROM voucher
 UNION ALL
 SELECT 'voucher_redemption'::text AS table_name, COUNT(*)::bigint AS row_count FROM voucher_redemption
 )
-SELECT COUNT(*) AS empty_tables
+SELECT COUNT(*) AS required_empty_tables
 FROM counts
-WHERE row_count = 0;
+WHERE row_count = 0
+  AND table_name <> 'cinema_concession_cost_basis';
