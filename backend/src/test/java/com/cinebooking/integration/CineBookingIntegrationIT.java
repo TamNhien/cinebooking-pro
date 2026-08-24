@@ -94,7 +94,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV49SmartShowtimePlanningSchemaAndCatalog() {
+    void flywayMigratesRealPostgresToV50RecommendationIntelligenceSchemaAndCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +105,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("49");
-        assertThat(publicTables).isGreaterThanOrEqualTo(53);
+        assertThat(latest).isEqualTo("50");
+        assertThat(publicTables).isGreaterThanOrEqualTo(54);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -205,6 +205,15 @@ class CineBookingIntegrationIT {
         Integer planningV49Indexes = jdbc.queryForObject(
                 "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_showtime_planning_run_cinema_created','idx_showtime_planning_run_movie_created','idx_showtime_planning_run_id','idx_showtime_planning_source_start')", Integer.class);
         assertThat(planningV49Indexes).isEqualTo(4);
+        Integer recommendationV50Table = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='recommendation_feedback'", Integer.class);
+        assertThat(recommendationV50Table).isEqualTo(1);
+        Integer recommendationV50Columns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='recommendation_feedback' and column_name in ('user_id','movie_id','feedback_type','source','created_at','updated_at')", Integer.class);
+        assertThat(recommendationV50Columns).isEqualTo(6);
+        Integer recommendationV50Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_recommendation_feedback_user_updated','idx_recommendation_feedback_movie_type')", Integer.class);
+        assertThat(recommendationV50Indexes).isEqualTo(2);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);

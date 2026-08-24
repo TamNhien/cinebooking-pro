@@ -314,3 +314,32 @@ seed-reference-v49:
 
 check-reference-v49:
 	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-53-table-counts.ps1
+
+verify-v50:
+	python tools/verify_v46_security_account_protection.py
+	python tools/verify_v47_payment_gateway_operations.py
+	python tools/verify_v48_concession_inventory_2.py
+	python tools/verify_v49_smart_showtime_planning_2.py
+	python tools/verify_v50_recommendation_intelligence_2.py
+	python tools/verify_seed_demo_54.py
+
+diagnose-v50:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v50.ps1
+
+verify-seed-demo-v50:
+	python tools/verify_seed_demo_54.py
+
+seed-demo-v50:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-54-tables.ps1
+
+check-seed-demo-v50:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-54-table-counts.ps1
+
+verify-reference-v50:
+	python tools/verify_reference_data_54.py
+
+seed-reference-v50:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-54-tables.ps1
+
+check-reference-v50:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-54-table-counts.ps1

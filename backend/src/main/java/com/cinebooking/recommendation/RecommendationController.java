@@ -19,9 +19,7 @@ import static com.cinebooking.recommendation.RecommendationDtos.*;
 public class RecommendationController {
     private final RecommendationService service;
 
-    public RecommendationController(RecommendationService service) {
-        this.service = service;
-    }
+    public RecommendationController(RecommendationService service) { this.service = service; }
 
     @GetMapping("/home")
     public RecommendationHomeResponse home(Authentication authentication,
@@ -43,9 +41,26 @@ public class RecommendationController {
         return service.similar(movieId, limit);
     }
 
+    @GetMapping("/profile")
+    public RecommendationTasteProfile profile(Authentication authentication) {
+        return service.profile(authentication.getName());
+    }
+
     @PostMapping("/events")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void event(Authentication authentication, @Valid @RequestBody RecommendationEventRequest request) {
         service.recordEvent(authentication.getName(), request);
+    }
+
+    @PutMapping("/feedback")
+    public RecommendationFeedbackResponse feedback(Authentication authentication,
+                                                   @Valid @RequestBody RecommendationFeedbackRequest request) {
+        return service.saveFeedback(authentication.getName(), request);
+    }
+
+    @DeleteMapping("/feedback/{movieId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void clearFeedback(Authentication authentication, @PathVariable UUID movieId) {
+        service.clearFeedback(authentication.getName(), movieId);
     }
 }

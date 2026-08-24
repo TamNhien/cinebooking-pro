@@ -121,6 +121,7 @@ export default function Header(){
               <Link onClick={close} href="/bookings">🎟 {en?"My tickets":"Vé của tôi"}</Link>
               <Link onClick={close} href="/payments">💳 {en?"Payments":"Thanh toán"}</Link>
               <Link onClick={close} href="/favorites">❤️ {en?"Favorites":"Yêu thích"}</Link>
+              <Link onClick={close} href="/for-you">🎯 {en?"For you":"Gu phim"}</Link>
               <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
               <Link onClick={close} href="/security">🛡 {en?"Security":"Bảo mật"}</Link>
@@ -190,6 +191,7 @@ export default function Header(){
           {auth&&<Link href="/bookings" className="nav-link">{en?"My tickets":"Vé của tôi"}</Link>}
           {auth&&<Link href="/payments" className="nav-link">{en?"Payments":"Thanh toán"}</Link>}
           {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
+          {auth&&<Link href="/for-you" className="nav-link">{en?"For you":"Gu phim"}</Link>}
           {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
           {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
           {auth&&<Link href="/security" className="nav-link">{en?"Security":"Bảo mật"}</Link>}

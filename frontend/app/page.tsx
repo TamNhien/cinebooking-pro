@@ -12,7 +12,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 
 function RecommendationGrid({items,source}:{items:RecommendationItem[];source:string}){
-  return <div className="movie-grid">{items.map(item=><div key={item.movie.id} className="space-y-2"><MovieCard movie={item.movie} trackingSource={source}/><div className="rounded-xl border border-rose-500/20 bg-rose-950/20 px-3 py-2 text-xs leading-5 text-rose-100"><b>✨ {item.reason}</b>{item.matchedGenres.length>0&&<div className="mt-1 text-slate-400">{item.matchedGenres.join(" · ")}</div>}</div></div>)}</div>;
+  return <div className="movie-grid">{items.map(item=><div key={item.movie.id} className="space-y-2"><MovieCard movie={item.movie} trackingSource={source}/><div className="rounded-xl border border-rose-500/20 bg-rose-950/20 px-3 py-2 text-xs leading-5 text-rose-100"><div className="flex justify-between gap-2"><b>✨ {item.reason}</b><span className="text-emerald-300">{item.confidence}%</span></div>{item.matchedGenres.length>0&&<div className="mt-1 text-slate-400">{item.matchedGenres.join(" · ")}</div>}</div></div>)}</div>;
 }
 
 export default function Home(){
@@ -37,7 +37,7 @@ export default function Home(){
     <QuickBooking/>
 
     {loggedIn&&recommendations?.personalizedMovies.length ? <section>
-      <div className="section-heading"><div><p className="section-kicker">{en?"PERSONALIZED":"DÀNH CHO BẠN"}</p><h2>{en?"Picked for your taste":"Phim hợp gu của bạn"}</h2><p className="mt-2 max-w-2xl text-sm text-slate-400">{recommendations.profileSummary}</p></div></div>
+      <div className="section-heading"><div><p className="section-kicker">{en?"PERSONALIZED":"DÀNH CHO BẠN"}</p><h2>{en?"Picked for your taste":"Phim hợp gu của bạn"}</h2><p className="mt-2 max-w-2xl text-sm text-slate-400">{recommendations.profileSummary}</p></div><Link href="/for-you" className="text-sm font-semibold text-violet-300">{en?"Tune my taste →":"Tinh chỉnh gu phim →"}</Link></div>
       <RecommendationGrid items={recommendations.personalizedMovies} source="HOME_PERSONALIZED"/>
     </section>:null}
 

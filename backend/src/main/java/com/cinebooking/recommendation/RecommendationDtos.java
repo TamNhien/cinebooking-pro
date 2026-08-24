@@ -15,14 +15,34 @@ public final class RecommendationDtos {
     public record RecommendationItem(
             MovieResponse movie,
             double score,
+            int confidence,
             String reason,
-            List<String> matchedGenres
+            List<String> matchedGenres,
+            List<String> signals,
+            String feedback
+    ) {}
+
+    public record TasteGenre(String name, double score) {}
+
+    public record RecommendationTasteProfile(
+            String algorithmVersion,
+            boolean personalized,
+            String summary,
+            List<TasteGenre> topGenres,
+            UUID preferredCinemaId,
+            String preferredCinemaName,
+            String preferredDaypart,
+            String preferredDaypartLabel,
+            int signalCount,
+            long feedbackCount,
+            long hiddenCount
     ) {}
 
     public record RecommendationHomeResponse(
             String algorithmVersion,
             boolean personalized,
             String profileSummary,
+            RecommendationTasteProfile profile,
             List<RecommendationItem> personalizedMovies,
             List<RecommendationItem> trendingMovies
     ) {}
@@ -31,5 +51,17 @@ public final class RecommendationDtos {
             @NotNull UUID movieId,
             @NotBlank @Pattern(regexp = "CLICK|VIEW") String eventType,
             @Size(max = 60) String source
+    ) {}
+
+    public record RecommendationFeedbackRequest(
+            @NotNull UUID movieId,
+            @NotBlank @Pattern(regexp = "MORE_LIKE_THIS|LESS_LIKE_THIS|HIDE") String feedbackType,
+            @Size(max = 60) String source
+    ) {}
+
+    public record RecommendationFeedbackResponse(
+            UUID movieId,
+            String feedbackType,
+            String message
     ) {}
 }

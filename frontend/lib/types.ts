@@ -14,8 +14,11 @@ export type Movie = {
   reviewCount:number;
 };
 
-export type RecommendationItem = { movie:Movie; score:number; reason:string; matchedGenres:string[] };
-export type RecommendationHome = { algorithmVersion:string; personalized:boolean; profileSummary:string; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[] };
+export type RecommendationItem = { movie:Movie; score:number; confidence:number; reason:string; matchedGenres:string[]; signals:string[]; feedback?:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE" };
+export type RecommendationTasteGenre = { name:string; score:number };
+export type RecommendationTasteProfile = { algorithmVersion:string; personalized:boolean; summary:string; topGenres:RecommendationTasteGenre[]; preferredCinemaId?:string; preferredCinemaName?:string; preferredDaypart?:string; preferredDaypartLabel?:string; signalCount:number; feedbackCount:number; hiddenCount:number };
+export type RecommendationHome = { algorithmVersion:string; personalized:boolean; profileSummary:string; profile?:RecommendationTasteProfile|null; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[] };
+export type RecommendationFeedbackResponse = { movieId:string; feedbackType:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE"; message:string };
 export type Showtime = {
   id:string;
   movieId:string;

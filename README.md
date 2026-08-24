@@ -1,4 +1,4 @@
-# CineBooking Pro V49
+# CineBooking Pro V50
 
 ### V48 compile hotfix - CommerceService lambda capture
 
@@ -7,7 +7,9 @@ The initial V48 source reassigned the local `ConcessionProduct p` and then captu
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V49
+> **Current release:** V50
+
+**V50 Recommendation Intelligence 2.0:** adds explainable hybrid taste profiles, preferred cinema/daypart signals, recommendation confidence/evidence, and explicit MORE/LESS/HIDE feedback through the new `/for-you` Taste Center. V49 Smart Planner, V48 branch inventory, and V47 payment operations remain intact.  
 
 **V49 Smart Showtime Planning 2.0:** adds demand-balanced multi-room scheduling, historical occupancy scoring, operating-window constraints, cinema-wide same-movie spacing, durable planning-run audit, and MANUAL/BATCH/SMART showtime provenance. V48 branch inventory and V47 payment operations remain intact.  
 
@@ -74,6 +76,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V47** | **Payment Gateway & Operations 2.0: attempt lineage, safe retry/cancel, payment timeline, provider readiness, auto/manual reconciliation** | **`V47__payment_gateway_operations_2.sql`** |
 | **V48** | **Concession & Inventory 2.0: multi-cinema stock, branch pricing, waste/transfer operations, branch-scoped checkout reservations** | **`V48__multi_cinema_concession_inventory_2.sql`** |
 | **V49** | **Smart Showtime Planning 2.0: demand-balanced multi-room suggestions, occupancy scoring, operating windows, durable planning provenance** | **`V49__smart_showtime_planning_2.sql`** |
+| **V50** | **Recommendation Intelligence 2.0: explainable hybrid taste profile, preferred cinema/daypart, explicit MORE/LESS/HIDE feedback** | **`V50__recommendation_intelligence_2.sql`** |
 
 ### V42.1 - Analytics Export + CI/Release Wiring + Documentation Sync
 
@@ -2168,3 +2171,83 @@ powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v49.ps1
 ```
 
 For the first V49 candidate use stable target `49.0.0` and `rc_number: 1`. The release workflows retain all V46-V48 gates and add the V49 source/53-table checks plus the dedicated Smart Planner Playwright journey.
+
+---
+
+## V50 - Recommendation Intelligence 2.0
+
+V50 nâng Recommendation Engine cũ thành hồ sơ gu phim có thể giải thích và cho phép người dùng tinh chỉnh trực tiếp.
+
+### Database
+
+Migration mới: `V50__recommendation_intelligence_2.sql`.
+
+V50 thêm bảng `recommendation_feedback` với một phản hồi hiện hành trên mỗi cặp `user/movie`:
+
+- `MORE_LIKE_THIS`: tăng mạnh trọng số các thể loại tương tự và tạo anchor giải thích "Vì bạn muốn xem thêm phim giống ...".
+- `LESS_LIKE_THIS`: giảm trọng số gu tương tự mà không ẩn phim khỏi toàn hệ thống.
+- `HIDE`: loại phim khỏi danh sách gợi ý cá nhân.
+
+Bảng có unique `(user_id,movie_id)` và index theo user recency / movie feedback type. Migration không tự bịa lịch sử feedback; reference/dev seed nằm riêng trong bộ 54 bảng.
+
+Sau V50 có 53 application tables + `flyway_schema_history` = **54 public tables trong pgAdmin**.
+
+### Hybrid taste profile V50
+
+Algorithm hiện tại: `V50-HYBRID-TASTE-2`.
+
+Hồ sơ gu kết hợp:
+
+- Favorites.
+- Review tích cực và review thấp (negative affinity).
+- Booking `CONFIRMED`.
+- Click/view recommendation trong 120 ngày với trọng số giảm theo thời gian.
+- Explicit MORE/LESS/HIDE feedback.
+- Rạp thường xem từ lịch sử booking.
+- Khung giờ thường xem: morning / afternoon / evening / late.
+- Popularity 30 ngày và lịch chiếu sắp tới làm tín hiệu bổ trợ, không lấn át gu cá nhân.
+
+Recommendation item trả thêm `confidence`, `signals`, `feedback` và reason có thể giải thích. Candidate đã `HIDE` bị loại khỏi personalized list.
+
+### Customer Taste Center
+
+Trang mới: `/for-you`.
+
+Người dùng xem được:
+
+- Top genres.
+- Rạp thường xem.
+- Khung giờ thường xem.
+- Số tín hiệu hồ sơ / feedback / hidden count.
+- Recommendation confidence và các signal chip.
+- Nút **Thêm tương tự**, **Ít tương tự**, **Ẩn**, và **Xóa phản hồi**.
+
+Header và Home personalized section đều liên kết tới Taste Center.
+
+### API
+
+- `GET /api/recommendations/profile` - authenticated taste profile.
+- `PUT /api/recommendations/feedback` - upsert MORE/LESS/HIDE.
+- `DELETE /api/recommendations/feedback/{movieId}` - clear explicit feedback.
+- Các API V25 `/home`, `/trending`, `/similar/{movieId}`, `/events` vẫn giữ tương thích.
+
+### Reference data / release gates
+
+- `tools/seed-demo-54-tables-10-rows.sql`
+- `tools/seed-demo-54-tables.ps1`
+- `tools/seed-reference-54-tables.ps1`
+- `tools/check-demo-54-table-counts.ps1`
+- `tools/check-reference-54-table-counts.ps1`
+- `tools/verify_seed_demo_54.py`
+- `tools/verify_reference_data_54.py`
+- `tools/verify_v50_recommendation_intelligence_2.py`
+- `tools/diagnose-v50.ps1`
+
+Reference V50 thêm 10 explicit taste-feedback rows nhưng vẫn giữ nguyên các nguyên tắc dữ liệu trước đây: không thêm phim placeholder, 8 canonical V29 movies được tái sử dụng, payment reference chỉ `MOCK`, và không ghi vào `flyway_schema_history`.
+
+Playwright mới: `frontend/e2e/recommendation-intelligence-v50.spec.ts`, kiểm tra user tạo tài khoản, mở `/for-you`, gửi `MORE_LIKE_THIS`, profile được cá nhân hóa, reload vẫn giữ feedback, rồi `HIDE` loại phim khỏi gợi ý.
+
+
+### V50 compile hotfix - JdbcTemplate query overload
+
+Full Maven compilation exposed an overloaded `JdbcTemplate.query(...)` ambiguity in `RecommendationService.popularity(...)`. The old expression lambda returned the value from `Map.put(...)`, so Java could match both `ResultSetExtractor<T>` and `RowCallbackHandler`. The callback is now a block lambda with no return value, which selects the row-callback overload unambiguously while preserving the same popularity aggregation logic. `verify_v50_recommendation_intelligence_2.py` includes a regression check for this source shape. No database migration or API contract changes are introduced by this hotfix.

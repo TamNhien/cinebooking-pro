@@ -63,6 +63,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health/**", "/ws/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/api/auth/**", "/api/payments/vnpay/**", "/api/payments/momo/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/recommendations/profile").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/movies/**", "/api/showtimes/**", "/api/cinemas/**", "/api/recommendations/**", "/api/commerce/products", "/api/commerce/vouchers").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/commerce/vouchers/quote").permitAll()
                 .requestMatchers("/api/staff/**").hasAnyRole("STAFF","MANAGER","ADMIN")
