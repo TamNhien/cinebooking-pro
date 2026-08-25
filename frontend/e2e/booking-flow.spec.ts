@@ -5,13 +5,13 @@ const CUSTOMER_PASSWORD = "V29E2e!Customer123";
 
 test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const customerEmail = `v29-e2e-${stamp}@example.test`;
+  const customerEmail = `gia.huy+${stamp}@example.com`;
   const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
 
   await test.step("register customer through the browser", async () => {
     await page.goto("/register");
-    await page.getByPlaceholder("Họ và tên").fill("V29 Playwright Customer");
+    await page.getByPlaceholder("Họ và tên").fill("Nguyễn Gia Huy");
     await page.getByPlaceholder("Email").fill(customerEmail);
     await page.getByPlaceholder("Nhập mật khẩu").fill(CUSTOMER_PASSWORD);
     await page.getByPlaceholder("Nhập lại mật khẩu").fill(CUSTOMER_PASSWORD);

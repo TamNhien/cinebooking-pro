@@ -4,10 +4,10 @@ const PASSWORD = "V47E2e!Payment123";
 
 test("V47 failed payment -> retry -> cancel attempt -> retry -> success with lineage", async ({ page }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const email = `v47-payment-${stamp}@example.test`;
+  const email = `duc.huy+${stamp}@example.com`;
 
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("Nguyễn Thanh Toán");
+  await page.getByPlaceholder("Họ và tên").fill("Võ Đức Huy");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);

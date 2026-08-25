@@ -95,7 +95,7 @@ check('Unit test proves new single-gap rejection', 'rejectsOnlyNewlyCreatedSingl
 check('Unit test preserves pre-existing gaps', 'doesNotPunishPreExistingSingleGap' in unit)
 
 check('V39 Playwright journey exists', bool(e2e) and 'V39 smart seat suggestion and atomic contention guard' in e2e)
-check('V39 Playwright creates two independent customers', 'v39-seat-a-' in e2e and 'v39-seat-b-' in e2e and 'browser.newContext' in e2e)
+check('V39 Playwright creates two independent customers', 'duc.anh+${stamp}@example.com' in e2e and 'thao.vy+${stamp}@example.com' in e2e and 'browser.newContext' in e2e)
 check('V39 Playwright exercises smart two-seat suggestion', 'Số người cần xếp ghế' in e2e and 'Gợi ý ghế' in e2e and 'toHaveLength(2)' in e2e)
 check('V39 Playwright races the exact same seat pair concurrently', 'Promise.all([' in e2e and 'candidate.seatIds' in e2e)
 check('V39 Playwright requires exactly one hold winner and one conflict', 'toEqual([200,409])' in e2e)

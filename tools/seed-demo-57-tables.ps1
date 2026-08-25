@@ -41,5 +41,7 @@ Write-Host "recommendation_feedback: 10 deterministic MORE/LESS/HIDE taste contr
 Write-Host "showtime_planning_run: 10 realistic smart-planner audit runs." -ForegroundColor Green
 Write-Host "trusted_device/security_alert: 10 realistic security records each." -ForegroundColor Green
 Write-Host "No synthetic movie rows are added; relations reuse the 8 canonical movies." -ForegroundColor Green
-Write-Host "Reference accounts: an.nguyen@cinebooking.local ... chau.ho@cinebooking.local" -ForegroundColor Green
+Write-Host "Reference staff accounts: an.nguyen@cinebooking.local ... chau.ho@cinebooking.local" -ForegroundColor Green
+Write-Host "Reference customer accounts: minh.khang@example.com ... nhat.nam@example.com" -ForegroundColor Green
+Write-Host "Customer-facing booking/payment/loyalty/support/security/PWA rows are owned by USER accounts, not staff accounts." -ForegroundColor Green
 Write-Host "Shared password: CineBooking@123" -ForegroundColor Green

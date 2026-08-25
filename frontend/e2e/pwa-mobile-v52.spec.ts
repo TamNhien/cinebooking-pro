@@ -4,10 +4,10 @@ const PASSWORD="V52Pwa!Mobile123";
 
 test("V52 PWA registers a real browser device and keeps push honest without VAPID",async({page})=>{
   const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;
-  const email=`v52-pwa-${stamp}@example.test`;
+  const email=`minh.thu+${stamp}@example.com`;
 
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("Nguyễn Mobile PWA");
+  await page.getByPlaceholder("Họ và tên").fill("Lê Minh Thư");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);

@@ -55,13 +55,13 @@ async function logout(page: Page) {
 
 test("V40 admin credit -> private voucher + concession reward -> staff claim", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const email = `v40-loyalty-${stamp}@example.test`;
+  const email = `thanh.truc+${stamp}@example.com`;
   const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
 
   await test.step("register loyalty customer", async () => {
     await page.goto("/register");
-    await page.getByPlaceholder("Họ và tên").fill("V40 Loyalty Customer");
+    await page.getByPlaceholder("Họ và tên").fill("Trương Thanh Trúc");
     await page.getByPlaceholder("Email").fill(email);
     await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
     await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
@@ -80,7 +80,7 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     const adjusted = await authedJson<{ balancePoints:number; lifetimePoints:number; membershipTier:string }>(
       page,
       `/api/admin/loyalty/users/${member!.userId}/adjustments`,
-      { method:"POST", body:{ deltaPoints:500, reason:"V40 Playwright reward journey" } },
+      { method:"POST", body:{ deltaPoints:500, reason:"Điều chỉnh điểm chăm sóc khách hàng" } },
     );
     expect(adjusted.status).toBe(200);
     expect(adjusted.body?.balancePoints).toBe(500);

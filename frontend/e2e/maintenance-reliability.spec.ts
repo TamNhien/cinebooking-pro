@@ -13,8 +13,8 @@ test("V44 admin registers equipment and resolves a maintenance work order",async
   await expect.poll(async()=>page.getByLabel("Rạp bảo trì").locator("option").count()).toBeGreaterThan(0);
 
   const stamp=Date.now().toString().slice(-8);
-  const code=`E2E-${stamp}`;
-  const assetName=`Máy chiếu E2E ${stamp}`;
+  const code=`PRJ-HCM-${stamp}`;
+  const assetName=`Máy chiếu Barco SP4K ${stamp}`;
   await page.getByPlaceholder("Mã: PRJ-HCM-01").fill(code);
   await page.getByPlaceholder("Tên thiết bị").fill(assetName);
   await page.getByRole("button",{name:"Thêm thiết bị"}).click();
@@ -22,9 +22,9 @@ test("V44 admin registers equipment and resolves a maintenance work order",async
   await expect(assetRow).toBeVisible();
   await expect(assetRow).toContainText(assetName);
 
-  const title=`V44 E2E ${stamp}`;
+  const title=`Cân chỉnh máy chiếu ${stamp}`;
   await page.getByPlaceholder("Tiêu đề công việc").fill(title);
-  await page.getByPlaceholder("Mô tả lỗi / công việc cần làm").fill("Kiểm tra độ sáng, quạt và nguồn máy chiếu trong bài test V44.");
+  await page.getByPlaceholder("Mô tả lỗi / công việc cần làm").fill("Kiểm tra độ sáng, quạt làm mát, nguồn và cân chỉnh khung hình của máy chiếu.");
   await page.getByLabel("Thiết bị work order").selectOption({label:`${code} · ${assetName}`});
   await page.getByRole("button",{name:"Tạo work order"}).click();
 
@@ -33,10 +33,10 @@ test("V44 admin registers equipment and resolves a maintenance work order",async
   await expect(card).toContainText("OPEN");
   await card.getByRole("button",{name:"Bắt đầu"}).click();
   await expect(card).toContainText("IN_PROGRESS");
-  page.once("dialog",async dialog=>{await dialog.accept("Đã kiểm tra và hiệu chuẩn máy chiếu bằng Playwright V44");});
+  page.once("dialog",async dialog=>{await dialog.accept("Đã vệ sinh bộ lọc, kiểm tra nguồn và hiệu chuẩn lại máy chiếu");});
   await card.getByRole("button",{name:"Hoàn tất"}).click();
   await expect(card).toContainText("RESOLVED");
   await card.getByRole("button",{name:"Lịch sử"}).click();
   await expect(card).toContainText("STATUS_CHANGED");
-  await expect(card).toContainText("Đã kiểm tra và hiệu chuẩn máy chiếu bằng Playwright V44");
+  await expect(card).toContainText("Đã vệ sinh bộ lọc, kiểm tra nguồn và hiệu chuẩn lại máy chiếu");
 });

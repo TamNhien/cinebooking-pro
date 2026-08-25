@@ -614,3 +614,56 @@ check-reference-v57:
 seed-reference-v57:
 	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-57-tables.ps1
 
+
+
+verify-v58:
+	python tools/verify_v43_staff_operations.py
+	python tools/verify_v44_maintenance_reliability.py
+	python tools/verify_v45_customer_support.py
+	python tools/verify_v46_security_account_protection.py
+	python tools/verify_v47_payment_gateway_operations.py
+	python tools/verify_v48_concession_inventory_2.py
+	python tools/verify_v49_smart_showtime_planning_2.py
+	python tools/verify_v50_recommendation_intelligence_2.py
+	python tools/verify_v51_analytics_forecasting_3.py
+	python tools/verify_v51_utf8_real_data.py
+	python tools/verify_v52_pwa_mobile_3.py
+	python tools/verify_v53_operations_command_center.py
+	python tools/verify_v54_performance_benchmarking.py
+	python tools/verify_v55_customer_retention.py
+	python tools/verify_v56_customer_value_rfm.py
+	python tools/verify_v57_booking_seat_intelligence.py
+	python tools/verify_v58_operations_control_center.py
+	python tools/verify_realistic_data_57.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v58.ps1
+
+verify-seed-demo-v58:
+	python tools/verify_seed_demo_57.py
+
+check-seed-demo-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+seed-demo-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-57-tables.ps1
+
+verify-reference-v58:
+	python tools/verify_reference_data_57.py
+
+check-reference-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-57-table-counts.ps1
+
+seed-reference-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-57-tables.ps1
+
+
+verify-realistic-data-v58:
+	python tools/verify_realistic_data_57.py
+
+repair-realistic-data-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/repair-realistic-data-57-tables.ps1
+
+audit-realistic-data-v58:
+	powershell -ExecutionPolicy Bypass -File ./tools/audit-realistic-data-57-tables.ps1

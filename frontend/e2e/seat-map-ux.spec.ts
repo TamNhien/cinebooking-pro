@@ -51,10 +51,10 @@ async function authedJson<T>(page: Page, url: string, init?: { method?: string; 
 
 test("V39 smart seat suggestion and atomic contention guard", async ({ page, browser }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const firstEmail = `v39-seat-a-${stamp}@example.test`;
-  const secondEmail = `v39-seat-b-${stamp}@example.test`;
+  const firstEmail = `duc.anh+${stamp}@example.com`;
+  const secondEmail = `thao.vy+${stamp}@example.com`;
 
-  await register(page, firstEmail, "V39 Seat User A");
+  await register(page, firstEmail, "Nguyễn Đức Anh");
   await chooseSeededShowtime(page);
   const bookingUrl = page.url();
   const showtimeId = bookingUrl.split("/").pop()!;
@@ -81,7 +81,7 @@ test("V39 smart seat suggestion and atomic contention guard", async ({ page, bro
   const secondContext = await browser.newContext({ locale: "vi-VN", timezoneId: "Asia/Ho_Chi_Minh" });
   const secondPage = await secondContext.newPage();
   try {
-    await register(secondPage, secondEmail, "V39 Seat User B");
+    await register(secondPage, secondEmail, "Trần Thảo Vy");
     await secondPage.goto(bookingUrl);
     await expect(secondPage.getByLabel("Gợi ý ghế thông minh")).toBeVisible();
 

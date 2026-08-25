@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V57 source regression
+    name: V26-V58 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -301,6 +301,9 @@ jobs:
       - name: Verify V52 57-table realistic reference data
         run: python3 tools/verify_seed_demo_57.py
 
+      - name: Verify realistic 57-table data policy
+        run: python3 tools/verify_realistic_data_57.py
+
       - name: Verify V53 Operations Command Center 3.0
         run: python3 tools/verify_v53_operations_command_center.py
 
@@ -315,6 +318,9 @@ jobs:
 
       - name: Verify V57 Booking & Seat Intelligence 3.0
         run: python3 tools/verify_v57_booking_seat_intelligence.py
+
+      - name: Verify V58 Operations Control Center
+        run: python3 tools/verify_v58_operations_control_center.py
 
   compose-config:
     name: Docker Compose validation

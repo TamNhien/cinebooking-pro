@@ -90,10 +90,10 @@ if ([string]::IsNullOrWhiteSpace($CinemaIdText) -or -not [Guid]::TryParse($Cinem
 Pass "Cinema available: $($Cinema.name) [$CinemaIdText]"
 
 $Stamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-$VoucherCode = "V12T" + $Stamp.ToString().Substring([Math]::Max(0,$Stamp.ToString().Length-8))
+$VoucherCode = "WELCOME" + $Stamp.ToString().Substring([Math]::Max(0,$Stamp.ToString().Length-8))
 $VoucherBody = @{
   code=$VoucherCode
-  name="V12 automated voucher test"
+  name="Ưu đãi thành viên mới 10%"
   discountType="PERCENT"
   discountValue=10
   minOrderAmount=100000
@@ -128,18 +128,18 @@ catch {
 if (-not $Rejected) { throw "Inactive voucher was still accepted." }
 Pass "Paused voucher is rejected with HTTP 409"
 
-$StaffEmail = "staff.v12.$Stamp@cine.local"
-$EmployeeCode = "T12" + $Stamp.ToString().Substring([Math]::Max(0,$Stamp.ToString().Length-10))
+$StaffEmail = "anh.tuan+$Stamp@example.com"
+$EmployeeCode = "CBS" + $Stamp.ToString().Substring([Math]::Max(0,$Stamp.ToString().Length-9))
 $StaffPassword = "V12.Test@$Stamp" + "Aa1"
 $StaffBody = @{
   employeeCode=$EmployeeCode
   email=$StaffEmail
   password=$StaffPassword
-  fullName="V12 Test Staff"
-  phone="0911111111"
+  fullName="Lê Anh Tuấn"
+  phone="0930567890"
   role="STAFF"
   cinemaId=$CinemaIdText
-  jobTitle="Check-in test"
+  jobTitle="Nhân viên soát vé"
   employmentStatus="ACTIVE"
   hireDate=(Get-Date).ToString("yyyy-MM-dd")
   accountEnabled=$true

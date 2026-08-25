@@ -4,10 +4,10 @@ const PASSWORD="V50E2e!Taste123";
 
 test("V50 user tunes explainable recommendations with explicit taste feedback",async({page})=>{
   const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;
-  const email=`v50-taste-${stamp}@example.test`;
+  const email=`hoang.anh+${stamp}@example.com`;
 
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("Nguyễn Gu Phim");
+  await page.getByPlaceholder("Họ và tên").fill("Phạm Hoàng Anh");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);

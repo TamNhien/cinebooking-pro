@@ -1,11 +1,12 @@
--- CineBooking V51 deterministic CI/reference fixture for all 56 tables shown in pgAdmin.
--- Covers 55 application tables plus flyway_schema_history; movie reuses the 8 existing V29 rows.
+-- CineBooking realistic CI/reference fixture for all 57 tables shown in pgAdmin.
+-- Covers 56 application tables plus flyway_schema_history; movie reuses the 8 existing V29 rows.
 -- This fixture is for regression/CI/reference testing. Use seed-v51-real-data.ps1 on an existing real local database.
 -- movie intentionally reuses the eight canonical films already shipped by V29; no synthetic movie rows are created.
 -- flyway_schema_history is intentionally NOT modified because it is Flyway system metadata.
 -- The runner copies this UTF-8 file into the PostgreSQL container and executes it there, avoiding Windows pipe/code-page corruption.
 -- Re-running repairs prior placeholder/encoding data and does not duplicate deterministic rows.
--- Reference accounts use the shared password CineBooking@123.
+-- Reference staff and customer accounts use the shared password CineBooking@123.
+-- Personal identities are realistic fictional examples; no real-person contact data is used.
 
 BEGIN;
 SET LOCAL client_encoding = 'UTF8';
@@ -47,6 +48,26 @@ INSERT INTO seed_real_people VALUES
 (8,'vy.nguyen@cinebooking.local','Nguyễn Thảo Vy','0910890123','CBS008','Nhân viên vận hành'),
 (9,'phong.truong@cinebooking.local','Trương Quốc Phong','0911901234','CBS009','Nhân viên kho'),
 (10,'chau.ho@cinebooking.local','Hồ Minh Châu','0912012345','CBS010','Nhân viên hỗ trợ sảnh');
+
+
+CREATE TEMP TABLE seed_real_customers(
+    n integer PRIMARY KEY,
+    email text NOT NULL,
+    full_name text NOT NULL,
+    phone text NOT NULL,
+    birth_date date NOT NULL
+) ON COMMIT DROP;
+INSERT INTO seed_real_customers VALUES
+(1,'minh.khang@example.com','Nguyễn Minh Khang','0938123456',DATE '1994-03-12'),
+(2,'thao.vy@example.com','Trần Thảo Vy','0939234567',DATE '1996-07-21'),
+(3,'gia.han@example.com','Lê Gia Hân','0940345678',DATE '1998-11-05'),
+(4,'quang.huy@example.com','Phạm Quang Huy','0941456789',DATE '1993-09-18'),
+(5,'ngoc.mai@example.com','Võ Ngọc Mai','0942567890',DATE '1997-01-27'),
+(6,'tuan.kiet@example.com','Đặng Tuấn Kiệt','0943678901',DATE '1992-06-14'),
+(7,'khanh.linh@example.com','Bùi Khánh Linh','0944789012',DATE '1999-04-09'),
+(8,'duc.anh@example.com','Hoàng Đức Anh','0945890123',DATE '1995-12-02'),
+(9,'thanh.truc@example.com','Trương Thanh Trúc','0946901234',DATE '1996-10-30'),
+(10,'nhat.nam@example.com','Hồ Nhật Nam','0947012345',DATE '1994-08-16');
 
 CREATE TEMP TABLE seed_real_cinema(n integer PRIMARY KEY,name text NOT NULL,address text NOT NULL) ON COMMIT DROP;
 INSERT INTO seed_real_cinema VALUES
@@ -135,7 +156,7 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
--- 01. app_user (10)
+-- 01. app_user (20: 10 staff/manager + 10 customers)
 -- -----------------------------------------------------------------------------
 INSERT INTO app_user(
     id,email,password_hash,full_name,role,phone,account_enabled,
@@ -149,14 +170,40 @@ SELECT
     CASE WHEN n = 1 THEN 'MANAGER' ELSE 'STAFF' END,
     (SELECT phone FROM seed_real_people WHERE seed_real_people.n = g.n),
     TRUE,
-    1000 + n * 10,
-    CASE WHEN n <= 2 THEN 'SILVER' ELSE 'BRONZE' END,
-    1000 + n * 100,
+    0,
+    'BRONZE',
+    0,
     DATE '1995-01-01' + n,
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
+
+-- Customer-facing reference data belongs to actual USER accounts, never staff accounts.
+INSERT INTO app_user(
+    id,email,password_hash,full_name,role,phone,account_enabled,
+    loyalty_points,membership_tier,loyalty_lifetime_points,birth_date,created_at,updated_at
+)
+SELECT
+    md5('seed45:customer:' || n)::uuid,
+    (SELECT email FROM seed_real_customers WHERE seed_real_customers.n = g.n),
+    '$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe',
+    (SELECT full_name FROM seed_real_customers WHERE seed_real_customers.n = g.n),
+    'USER',
+    (SELECT phone FROM seed_real_customers WHERE seed_real_customers.n = g.n),
+    TRUE,
+    500 + n * 75,
+    CASE WHEN n <= 2 THEN 'GOLD' WHEN n <= 6 THEN 'SILVER' ELSE 'BRONZE' END,
+    2500 + n * 350,
+    (SELECT birth_date FROM seed_real_customers WHERE seed_real_customers.n = g.n),
+    CURRENT_TIMESTAMP - ((40 + n) || ' days')::interval,
+    CURRENT_TIMESTAMP
+FROM generate_series(1,10) AS g(n)
+ON CONFLICT (id) DO UPDATE SET
+    email=EXCLUDED.email,password_hash=EXCLUDED.password_hash,full_name=EXCLUDED.full_name,
+    role='USER',phone=EXCLUDED.phone,account_enabled=TRUE,loyalty_points=EXCLUDED.loyalty_points,
+    membership_tier=EXCLUDED.membership_tier,loyalty_lifetime_points=EXCLUDED.loyalty_lifetime_points,
+    birth_date=EXCLUDED.birth_date,updated_at=CURRENT_TIMESTAMP;
 
 -- -----------------------------------------------------------------------------
 -- 02. cinema (10)
@@ -385,8 +432,8 @@ INSERT INTO booking(
 )
 SELECT
     md5('seed45:booking:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:showtime:' || n)::uuid,
     'CONFIRMED',
     140000,
@@ -496,7 +543,7 @@ SELECT
     CURRENT_TIMESTAMP - INTERVAL '30 days',
     CURRENT_TIMESTAMP + INTERVAL '180 days',
     100,1,TRUE,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     CURRENT_TIMESTAMP - (n || ' days')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -508,7 +555,7 @@ INSERT INTO voucher_redemption(id,voucher_id,user_id,booking_id,discount_amount,
 SELECT
     md5('seed45:voucher-redemption:' || n)::uuid,
     md5('seed45:voucher:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     10000,
     CURRENT_TIMESTAMP - ((n + 1) || ' days')::interval
@@ -526,7 +573,7 @@ INSERT INTO payment(
 SELECT
     md5('seed45:payment:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     'MOCK',
     'SUCCESS',140000,
     format('MOCK-TXN-20260822-%s', to_char(n,'FM00')),
@@ -583,7 +630,7 @@ INSERT INTO loyalty_transaction(
 )
 SELECT
     md5('seed45:loyalty-tx:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     'EARN',140,
     format('Tích điểm từ giao dịch vé %s', to_char(n,'FM00')),
@@ -603,7 +650,7 @@ INSERT INTO loyalty_point_lot(
 )
 SELECT
     md5('seed45:loyalty-lot:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:loyalty-tx:' || n)::uuid,
     140,140,
     CURRENT_TIMESTAMP + INTERVAL '365 days',NULL,
@@ -638,7 +685,7 @@ INSERT INTO loyalty_reward_redemption(
 )
 SELECT
     md5('seed45:reward-redemption:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:reward:' || n)::uuid,
     md5('seed45:voucher:' || n)::uuid,
     format('CB-REWARD-%s', to_char(n,'FM000')),
@@ -675,7 +722,7 @@ ON CONFLICT (id) DO UPDATE SET cinema_id=EXCLUDED.cinema_id,stock_after=EXCLUDED
 INSERT INTO movie_favorite(id,user_id,movie_id,created_at)
 SELECT
     md5('seed45:favorite:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -687,7 +734,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO movie_review(id,user_id,movie_id,rating,comment,created_at,updated_at)
 SELECT
     md5('seed45:review:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     3 + (n % 3),
     (ARRAY['Nội dung cuốn hút, nhịp phim tốt.','Hình ảnh đẹp và âm thanh ấn tượng.','Diễn xuất tự nhiên, câu chuyện dễ theo dõi.','Phim phù hợp để xem cùng gia đình.','Phần âm nhạc tạo cảm xúc tốt.','Kịch bản có nhiều chi tiết thú vị.','Trải nghiệm phòng chiếu rất tốt.','Phim có tiết tấu ổn và kết thúc hợp lý.','Hình ảnh điện ảnh, đáng xem tại rạp.','Một lựa chọn giải trí tốt cho cuối tuần.'])[n],
@@ -702,7 +749,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO recommendation_event(id,user_id,movie_id,event_type,source,created_at)
 SELECT
     md5('seed45:recommendation:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     CASE WHEN n % 2 = 0 THEN 'CLICK' ELSE 'VIEW' END,
     'HOME_RECOMMENDATION',
@@ -716,7 +763,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO recommendation_feedback(id,user_id,movie_id,feedback_type,source,created_at,updated_at)
 SELECT
     md5('seed50:recommendation-feedback:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     (SELECT movie_id FROM seed45_movie_map WHERE seed45_movie_map.n = g.n),
     (ARRAY['MORE_LIKE_THIS','MORE_LIKE_THIS','LESS_LIKE_THIS','MORE_LIKE_THIS','HIDE','MORE_LIKE_THIS','LESS_LIKE_THIS','MORE_LIKE_THIS','HIDE','MORE_LIKE_THIS'])[n],
     'REFERENCE_TASTE_CENTER',
@@ -756,7 +803,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO showtime_waitlist(id,user_id,showtime_id,status,created_at,notified_at,last_available_count)
 SELECT
     md5('seed45:waitlist:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:showtime:' || n)::uuid,
     'EXPIRED',
     CURRENT_TIMESTAMP - ((n + 2) || ' days')::interval,
@@ -774,7 +821,7 @@ INSERT INTO notification_preference(
     refund_enabled,staff_shift_enabled,promotion_enabled,loyalty_enabled,waitlist_enabled,updated_at
 )
 SELECT
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     TRUE,TRUE,(n % 2 = 0),TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,CURRENT_TIMESTAMP
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT (user_id) DO UPDATE SET
@@ -800,7 +847,7 @@ INSERT INTO user_notification(
 )
 SELECT
     md5('seed45:notification:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     'BOOKING_UPDATE',
     (ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[n],
     (ARRAY['Booking của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[n],
@@ -823,7 +870,7 @@ INSERT INTO auth_session(
 )
 SELECT
     md5('seed45:session:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:refresh:' || n) || md5('seed45:refresh2:' || n),
     (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
     (SELECT user_agent FROM seed_real_device WHERE seed_real_device.n = g.n),
@@ -841,7 +888,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO password_reset_token(id,user_id,token_hash,expires_at,used_at,created_at)
 SELECT
     md5('seed45:reset:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:reset-hash:' || n) || md5('seed45:reset-hash2:' || n),
     CURRENT_TIMESTAMP + INTERVAL '1 day',
     NULL,
@@ -1052,7 +1099,7 @@ SELECT
     'PAYMENT_CAPTURED',
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:payment:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     'PAYMENT_SERVICE',
     format('Ghi nhận thanh toán booking %s', to_char(n,'FM00')),
     CURRENT_TIMESTAMP - (n || ' days')::interval,
@@ -1111,7 +1158,7 @@ SELECT
     md5('seed45:recon-issue:' || n)::uuid,
     md5('seed45:recon-run:' || n)::uuid,
     'LOYALTY_BALANCE_MISMATCH','WARNING','USER',
-    md5('seed45:user:' || n)::uuid::text,
+    md5('seed45:customer:' || n)::uuid::text,
     1000,990,
     format('Chênh lệch điểm thành viên cần đối soát cho tài khoản %s', to_char(n,'FM00')),
     'OPEN',CURRENT_TIMESTAMP - (n || ' days')::interval,NULL,NULL
@@ -1130,7 +1177,7 @@ INSERT INTO customer_support_case(
 SELECT
     md5('seed45:support-case:' || n)::uuid,
     format('CB-SUP-202608-%s', to_char(n,'FM0000')),
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed45:booking:' || n)::uuid,
     md5('seed45:cinema:' || n)::uuid,
     (ARRAY['BOOKING','PAYMENT','REFUND','TICKET','CINEMA_EXPERIENCE','STAFF','OTHER'])[((n - 1) % 7) + 1],
@@ -1177,7 +1224,7 @@ SELECT
         WHEN 4 THEN 'Yêu cầu hỗ trợ đã được giải quyết.'
         ELSE 'Yêu cầu hỗ trợ đã được đóng.'
     END,
-    CASE WHEN ((n - 1) % 5) + 1 = 1 THEN md5('seed45:user:' || n)::uuid ELSE md5('seed45:user:1')::uuid END,
+    CASE WHEN ((n - 1) % 5) + 1 = 1 THEN md5('seed45:customer:' || n)::uuid ELSE md5('seed45:user:1')::uuid END,
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -1191,7 +1238,7 @@ INSERT INTO trusted_device(
 )
 SELECT
     md5('seed46:trusted-device:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     md5('seed46:fingerprint:a:' || n) || md5('seed46:fingerprint:b:' || n),
     (SELECT label FROM seed_real_device WHERE seed_real_device.n = g.n),
     (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
@@ -1213,7 +1260,7 @@ INSERT INTO security_alert(
 )
 SELECT
     md5('seed46:security-alert:' || n)::uuid,
-    md5('seed45:user:' || n)::uuid,
+    md5('seed45:customer:' || n)::uuid,
     (ARRAY['NEW_DEVICE','CREDENTIAL_ATTACK','PASSWORD_CHANGED','PASSWORD_RESET','SESSION_REVOKED'])[((n - 1) % 5) + 1],
     (ARRAY['MEDIUM','HIGH','MEDIUM','HIGH','LOW'])[((n - 1) % 5) + 1],
     (ARRAY[45,80,50,75,35])[((n - 1) % 5) + 1],
@@ -1223,7 +1270,7 @@ SELECT
     (SELECT device_name FROM seed_real_device WHERE seed_real_device.n = g.n),
     md5('seed45:session:' || n)::uuid,
     CASE WHEN n % 3 = 0 THEN CURRENT_TIMESTAMP - (n || ' minutes')::interval ELSE NULL END,
-    CASE WHEN n % 3 = 0 THEN md5('seed45:user:' || n)::uuid ELSE NULL END,
+    CASE WHEN n % 3 = 0 THEN md5('seed45:customer:' || n)::uuid ELSE NULL END,
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
 ON CONFLICT DO NOTHING;
@@ -1247,8 +1294,17 @@ END $$;
 -- Existing deterministic rows are refreshed in place so previously inserted
 -- placeholder labels and unconfigured gateway providers disappear without
 -- deleting user data or rebuilding the PostgreSQL volume.
-UPDATE app_user u SET email=p.email, full_name=p.full_name, phone=p.phone, password_hash='$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe'
+UPDATE app_user u SET email=p.email, full_name=p.full_name, phone=p.phone,
+    role=CASE WHEN p.n=1 THEN 'MANAGER' ELSE 'STAFF' END,account_enabled=TRUE,
+    loyalty_points=0,membership_tier='BRONZE',loyalty_lifetime_points=0,
+    password_hash='$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe',updated_at=CURRENT_TIMESTAMP
 FROM seed_real_people p WHERE u.id = md5('seed45:user:' || p.n)::uuid;
+UPDATE app_user u SET email=c.email,full_name=c.full_name,phone=c.phone,birth_date=c.birth_date,role='USER',account_enabled=TRUE,
+    loyalty_points=500 + c.n * 75,
+    membership_tier=CASE WHEN c.n <= 2 THEN 'GOLD' WHEN c.n <= 6 THEN 'SILVER' ELSE 'BRONZE' END,
+    loyalty_lifetime_points=2500 + c.n * 350,
+    password_hash='$2y$10$GksacykuFocj5yooeWTBMeY3bP2REUlBAMk9JI22HrJMC4almiuxe',updated_at=CURRENT_TIMESTAMP
+FROM seed_real_customers c WHERE u.id = md5('seed45:customer:' || c.n)::uuid;
 
 UPDATE cinema c SET name=m.name, address=m.address
 FROM seed_real_cinema m WHERE c.id = md5('seed45:cinema:' || m.n)::uuid;
@@ -1274,6 +1330,47 @@ UPDATE staff_shift s SET
 FROM generate_series(1,10) g(n)
 WHERE s.id = md5('seed46:planned-shift:' || g.n)::uuid
   AND NOT EXISTS (SELECT 1 FROM staff_attendance a WHERE a.shift_id=s.id);
+
+-- Repair semantic ownership from older reference runs: customer-facing history -> USER, operational history -> staff.
+UPDATE booking b SET user_id=md5('seed45:customer:' || g.n)::uuid,purchaser_user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE b.id=md5('seed45:booking:' || g.n)::uuid;
+UPDATE voucher v SET owner_user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE v.id=md5('seed45:voucher:' || g.n)::uuid;
+UPDATE voucher_redemption r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed45:voucher-redemption:' || g.n)::uuid;
+UPDATE payment p SET payer_user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE p.id=md5('seed45:payment:' || g.n)::uuid;
+UPDATE loyalty_transaction t SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE t.id=md5('seed45:loyalty-tx:' || g.n)::uuid;
+UPDATE loyalty_point_lot l SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE l.id=md5('seed45:loyalty-lot:' || g.n)::uuid;
+UPDATE loyalty_reward_redemption r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed45:reward-redemption:' || g.n)::uuid;
+UPDATE movie_favorite f SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE f.id=md5('seed45:favorite:' || g.n)::uuid;
+UPDATE movie_review r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed45:review:' || g.n)::uuid;
+UPDATE recommendation_event r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed45:recommendation:' || g.n)::uuid;
+UPDATE recommendation_feedback r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed50:recommendation-feedback:' || g.n)::uuid;
+UPDATE showtime_waitlist w SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE w.id=md5('seed45:waitlist:' || g.n)::uuid;
+UPDATE user_notification n SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE n.id=md5('seed45:notification:' || g.n)::uuid;
+UPDATE auth_session a SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE a.id=md5('seed45:session:' || g.n)::uuid;
+UPDATE password_reset_token r SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE r.id=md5('seed45:reset:' || g.n)::uuid;
+UPDATE financial_reconciliation_issue i SET entity_id=md5('seed45:customer:' || g.n)::uuid::text
+FROM generate_series(1,10) g(n) WHERE i.id=md5('seed45:recon-issue:' || g.n)::uuid;
+UPDATE customer_support_case c SET user_id=md5('seed45:customer:' || g.n)::uuid,assigned_to=md5('seed45:user:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE c.id=md5('seed45:support-case:' || g.n)::uuid;
+UPDATE trusted_device d SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE d.id=md5('seed46:trusted-device:' || g.n)::uuid;
+UPDATE security_alert a SET user_id=md5('seed45:customer:' || g.n)::uuid,
+    acknowledged_by=CASE WHEN g.n % 3=0 THEN md5('seed45:customer:' || g.n)::uuid ELSE NULL END
+FROM generate_series(1,10) g(n) WHERE a.id=md5('seed46:security-alert:' || g.n)::uuid;
 
 UPDATE booking b SET
     voucher_code=v.code,
@@ -1401,6 +1498,11 @@ WHERE a.id = md5('seed46:security-alert:' || g.n)::uuid;
 
 -- Immutable event/ledger tables need trigger bypass only for refresh of our own deterministic reference rows.
 SET LOCAL session_replication_role = replica;
+UPDATE financial_ledger_entry e SET user_id=md5('seed45:customer:' || g.n)::uuid
+FROM generate_series(1,10) g(n) WHERE e.id=md5('seed45:ledger-entry:' || g.n)::uuid;
+UPDATE customer_support_case_event e SET actor_user_id=CASE WHEN ((g.n - 1) % 5) + 1 = 1
+    THEN md5('seed45:customer:' || g.n)::uuid ELSE md5('seed45:user:1')::uuid END
+FROM generate_series(1,10) g(n) WHERE e.id=md5('seed45:support-event:' || g.n)::uuid;
 UPDATE maintenance_work_order_event e SET note=format('Khởi tạo phiếu bảo trì thiết bị %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:work-event:' || g.n)::uuid;
 UPDATE financial_ledger_entry e SET
@@ -1493,7 +1595,7 @@ INSERT INTO pwa_device(
 )
 SELECT
     md5('seed52:pwa-device:' || g.n)::uuid,
-    md5('seed45:user:' || g.n)::uuid,
+    md5('seed45:customer:' || g.n)::uuid,
     format('cb-pwa-reference-device-%s', to_char(g.n,'FM00')),
     (ARRAY[
         'Chrome · Windows · Laptop văn phòng',
@@ -1545,12 +1647,36 @@ ON CONFLICT (device_key) DO UPDATE SET
     last_failure_at=NULL,
     updated_at=EXCLUDED.updated_at;
 
+-- Customer-domain rows use USER accounts; staff-domain rows use staff/manager accounts.
+DO $$
+DECLARE bad_count integer;
+BEGIN
+    SELECT COUNT(*) INTO bad_count
+    FROM booking b JOIN app_user u ON u.id=b.purchaser_user_id
+    WHERE b.id IN (SELECT md5('seed45:booking:' || n)::uuid FROM generate_series(1,10) g(n)) AND u.role <> 'USER';
+    IF bad_count > 0 THEN RAISE EXCEPTION 'Reference ownership failed: % bookings are not owned by USER customers', bad_count; END IF;
+
+    SELECT COUNT(*) INTO bad_count
+    FROM staff_profile sp JOIN app_user u ON u.id=sp.user_id
+    WHERE sp.user_id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n)) AND u.role NOT IN ('STAFF','MANAGER','ADMIN');
+    IF bad_count > 0 THEN RAISE EXCEPTION 'Reference ownership failed: % staff profiles are linked to customer roles', bad_count; END IF;
+
+    SELECT COUNT(*) INTO bad_count
+    FROM customer_support_case c
+    JOIN app_user customer ON customer.id=c.user_id
+    LEFT JOIN app_user staff ON staff.id=c.assigned_to
+    WHERE c.id IN (SELECT md5('seed45:support-case:' || n)::uuid FROM generate_series(1,10) g(n))
+      AND (customer.role <> 'USER' OR (c.assigned_to IS NOT NULL AND staff.role NOT IN ('STAFF','MANAGER','ADMIN')));
+    IF bad_count > 0 THEN RAISE EXCEPTION 'Reference ownership failed: % support cases have invalid customer/staff roles', bad_count; END IF;
+END $$;
+
 -- Fail if seeded reference rows still contain broken UTF-8, placeholder labels, or unconfigured gateway names.
 DO $$
 DECLARE bad_count bigint; placeholder_count bigint; gateway_count bigint; demo_movie_count bigint; upcoming_shift_count bigint;
 BEGIN
     SELECT COUNT(*) INTO bad_count FROM (
         SELECT full_name AS v FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT full_name FROM app_user WHERE id IN (SELECT md5('seed45:customer:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT address FROM cinema WHERE id IN (SELECT md5('seed45:cinema:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT name FROM auditorium WHERE id IN (SELECT md5('seed45:auditorium:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT job_title FROM staff_profile WHERE user_id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
@@ -1586,7 +1712,9 @@ BEGIN
 
     SELECT COUNT(*) INTO placeholder_count FROM (
         SELECT email AS v FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT email FROM app_user WHERE id IN (SELECT md5('seed45:customer:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT full_name FROM app_user WHERE id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT full_name FROM app_user WHERE id IN (SELECT md5('seed45:customer:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT name FROM cinema WHERE id IN (SELECT md5('seed45:cinema:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT name FROM auditorium WHERE id IN (SELECT md5('seed45:auditorium:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT employee_code FROM staff_profile WHERE user_id IN (SELECT md5('seed45:user:' || n)::uuid FROM generate_series(1,10) g(n))

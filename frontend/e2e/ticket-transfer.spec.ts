@@ -45,18 +45,18 @@ async function authFetchTicketUrl(page: Page, bookingId: string) {
 
 test("confirmed ticket can be transferred once and old QR becomes invalid", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const senderEmail = `v36-sender-${stamp}@example.test`;
-  const recipientEmail = `v36-recipient-${stamp}@example.test`;
+  const senderEmail = `minh.khang+${stamp}@example.com`;
+  const recipientEmail = `gia.han+${stamp}@example.com`;
   const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
 
   await test.step("create recipient account", async () => {
-    await register(page, recipientEmail, "V36 Ticket Recipient");
+    await register(page, recipientEmail, "Lê Gia Hân");
     await logout(page, context);
   });
 
   await test.step("sender books and pays for a ticket", async () => {
-    await register(page, senderEmail, "V36 Ticket Sender");
+    await register(page, senderEmail, "Nguyễn Minh Khang");
 
     const movie = page.getByLabel("1. Phim");
     await expect.poll(async () => movie.locator("option").count()).toBeGreaterThan(1);

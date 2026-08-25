@@ -99,7 +99,7 @@ rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
 check('Standalone RC defaults to V57-or-newer', bool(rc_versions) and max(rc_versions)>=57)
 check('Standalone RC uses a V57-or-newer compose namespace', any(int(v)>=57 for v in re.findall(r'cinebooking_v(\d+)_rc_',rc)))
 check('Standalone RC runs the V57 source gate', 'Verify V57 source gate' in rc and 'verify_v57_booking_seat_intelligence.py' in rc)
-check('Standalone RC browser gate names V57 journey coverage', '+ V56 + V57)' in rc)
+check('Standalone RC browser gate names V57-or-newer journey coverage', '+ V56 + V57' in rc)
 release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
 check('Stable release defaults to V57-or-newer', bool(release_versions) and max(release_versions)>=57)
 check('Stable release uses a V57-or-newer compose namespace', any(int(v)>=57 for v in re.findall(r'cinebooking_v(\d+)_release_',release)))

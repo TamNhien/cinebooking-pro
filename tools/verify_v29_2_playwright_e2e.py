@@ -42,7 +42,7 @@ gitignore = text(".gitignore")
 check("Playwright evidence is Git-ignored", "frontend/playwright-report/" in gitignore and "frontend/test-results/" in gitignore)
 
 check("E2E browser journey exists", bool(spec) and "register -> login -> seat -> mock payment -> QR -> staff gate check-in" in spec)
-check("E2E registers a unique customer", "v29-e2e-${stamp}@example.test" in spec and 'getByRole("button", { name: "Đăng ký" })' in spec)
+check("E2E registers a unique customer", "gia.huy+${stamp}@example.com" in spec and "Nguyễn Gia Huy" in spec and 'getByRole("button", { name: "Đăng ký" })' in spec)
 check("E2E performs explicit customer login", 'page.goto("/login")' in spec and 'getByRole("button", { name: "Đăng nhập" })' in spec)
 check("E2E uses seeded Quick Booking movie", "Hành Trình Sao Hỏa" in spec and 'getByLabel("1. Phim")' in spec)
 check("E2E selects and holds an available seat", 'title*="AVAILABLE"' in spec and "Giữ ghế 5 phút" in spec)

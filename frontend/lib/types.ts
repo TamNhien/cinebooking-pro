@@ -244,3 +244,17 @@ export type CustomerValueScorecardV56 = {
   activeCustomers:number; periodRevenue:number; activeBaseLifetimeRevenue:number; averageLifetimeRevenue:number; averageLifetimeBookings:number; medianRecencyDays:number; top10RevenueShare:number;
   rfmSegments:CustomerValueRfmSegmentV56[]; valueBands:CustomerValueBandV56[]; topCustomers:CustomerValueRowV56[];
 };
+
+// V58 Operations Control Center
+export type OperationsControlCinemaV58 = { cinemaId:string; cinemaName:string };
+export type OperationsControlDomainV58 = { domain:"PAYMENT"|"BOOKING"|"EQUIPMENT"|"STAFF"|"SUPPORT"|"INVENTORY"|"INCIDENT"; label:string; status:"HEALTHY"|"WATCH"|"ACTION_REQUIRED"; primaryCount:number; warningCount:number; href:string };
+export type OperationsControlAlertV58 = { severity:"CRITICAL"|"HIGH"|"MEDIUM"|"LOW"; domain:string; title:string; detail:string; count:number; href:string };
+export type OperationsControlSnapshotV58 = {
+  cinemaId?:string; cinemaName:string; scope:"ALL_CINEMAS"|"CINEMA"; overallStatus:"HEALTHY"|"WATCH"|"ACTION_REQUIRED"; generatedAt:string; pollAfterSeconds:number;
+  todayRevenue:number; todayConfirmedBookings:number; todayTickets:number; todayOccupancyRate:number;
+  paymentReviewCount:number; paymentFailedLastHour:number; pendingBookings:number; pendingBookingsPastDue:number; pendingBookingsExpiringSoon:number;
+  equipmentOutOfService:number; equipmentDegraded:number; equipmentInMaintenance:number; equipmentServiceOverdue:number;
+  staffWorkingNow:number; staffScheduledToday:number; uncoveredActiveShifts:number;
+  openSupportCases:number; overdueSupportCases:number; lowStockItems:number; soldOutItems:number; openIncidents:number; criticalIncidents:number;
+  domains:OperationsControlDomainV58[]; alerts:OperationsControlAlertV58[];
+};

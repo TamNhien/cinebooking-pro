@@ -71,7 +71,7 @@ check('ticket page requires explicit transfer confirmation', 'Tôi xác nhận c
 check('ticket page removes stale offline ticket after transfer', 'deleteOfflineTicket(bookingId)' in page and 'QR cũ' in page)
 check('frontend defines transfer API types', 'TicketTransferEligibility' in types and 'TicketTransferResult' in types)
 check('V36 browser journey exists', 'confirmed ticket can be transferred once and old QR becomes invalid' in e2e)
-check('browser journey creates sender and recipient', 'v36-sender-' in e2e and 'v36-recipient-' in e2e)
+check('browser journey creates sender and recipient', all(x in e2e for x in ['minh.khang+${stamp}@example.com','gia.han+${stamp}@example.com','Nguyễn Minh Khang','Lê Gia Hân']))
 check('browser journey chooses next Vietnam date so transfer and check-in windows overlap', 'Asia/Ho_Chi_Minh' in e2e and 'Date.now() + 24 * 60 * 60 * 1000' in e2e and 'date.selectOption(nextDate)' in e2e)
 check('browser journey no longer selects farthest date outside the default 48-hour check-in window', 'date.selectOption({ index: dateCount - 1 })' not in e2e and 'const dateCount = await date.locator("option").count()' not in e2e)
 check('browser journey proves ownership transfer through UI', 'Xác nhận chuyển vé' in e2e and 'Đã chuyển vé' in e2e)

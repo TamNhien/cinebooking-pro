@@ -4,13 +4,13 @@ const PASSWORD = "V38E2e!Refund123";
 
 test("V38 mock refund auto-processes policy, reopens seat, and updates payment history", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const email = `v38-refund-${stamp}@example.test`;
+  const email = `quang.huy+${stamp}@example.com`;
   let bookingUrl = "";
   let seatLabel = "";
 
   await test.step("register customer", async () => {
     await page.goto("/register");
-    await page.getByPlaceholder("Họ và tên").fill("V38 Refund Customer");
+    await page.getByPlaceholder("Họ và tên").fill("Phạm Quang Huy");
     await page.getByPlaceholder("Email").fill(email);
     await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
     await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);

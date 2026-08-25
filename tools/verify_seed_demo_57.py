@@ -44,7 +44,15 @@ main_data = sql[:sql.find('-- Fail if seeded reference rows')]
 check('V52 57-table SQL exists and decodes as UTF-8', sql_path.exists() and 'Nguyễn Minh An' in sql and 'Bắp Phô Mai Lớn' in sql)
 check('V52 57-table PowerShell runner exists', ps1_path.exists())
 check('All 55 seeded application tables have INSERT coverage', expected_seed_inserts.issubset(targets) and len(expected_seed_inserts) == 55)
-check('Reference people use natural Vietnamese names and non-placeholder emails', all(v in sql for v in ['Nguyễn Minh An','Trần Quốc Bảo','Phạm Thu Hà','an.nguyen@cinebooking.local','chau.ho@cinebooking.local']))
+check('Reference staff use natural Vietnamese names and non-placeholder emails', all(v in sql for v in ['Nguyễn Minh An','Trần Quốc Bảo','Phạm Thu Hà','an.nguyen@cinebooking.local','chau.ho@cinebooking.local']))
+check('Reference fixture defines 10 fictional USER customers with natural Vietnamese identities', 'CREATE TEMP TABLE seed_real_customers' in sql and all(v in sql for v in ['Nguyễn Minh Khang','Trần Thảo Vy','Lê Gia Hân','Võ Ngọc Mai','Hồ Nhật Nam','minh.khang@example.com','nhat.nam@example.com']))
+check('Reference app_user coverage includes separate staff and customer identities', "md5('seed45:user:' || g.n)::uuid" in sql and "md5('seed45:customer:' || g.n)::uuid" in sql and "'USER'" in sql[sql.find('seed45:customer:'):sql.find('-- 02. audit_log')])
+check('Customer-domain reference rows are relinked to USER customer IDs', all(marker in sql for marker in [
+    "purchaser_user_id=md5('seed45:customer:'", "payer_user_id=md5('seed45:customer:'", "owner_user_id=md5('seed45:customer:'",
+    "UPDATE loyalty_transaction t SET user_id=md5('seed45:customer:'", "UPDATE movie_review r SET user_id=md5('seed45:customer:'",
+    "UPDATE customer_support_case c SET user_id=md5('seed45:customer:'", "INSERT INTO pwa_device("
+]))
+check('Reference self-check enforces USER booking owners and staff-only staff profiles', 'Reference ownership failed: % bookings are not owned by USER customers' in sql and 'staff profiles are linked to customer roles' in sql and 'support cases have invalid customer/staff roles' in sql)
 check('Staff codes no longer use DEMO45 labels', 'CBM001' in sql and 'CBS010' in sql and "format('DEMO45-%s'" not in main_data)
 check('Concession rows use real product names', all(v in sql for v in ['Bắp Caramel Vừa','Bắp Phô Mai Lớn','Coca-Cola Lớn','Combo Family']))
 check('V48 branch inventory seeds all 100 reference cinema/product pairs', 'seed48:branch-inventory:' in sql and 'CROSS JOIN generate_series(1,10) p(n)' in sql and 'expected 100 cinema/product rows' in sql)
@@ -84,7 +92,7 @@ check('Flyway metadata is never inserted/updated/deleted', not re.search(r'(INSE
 check('Final verification enumerates all 57 pgAdmin tables', all_57_tables.issubset(verification_array) and len(all_57_tables) == 57)
 check('Row-count helper includes V46 through V52 tables', counts.count("'pwa_device'") == 2 and counts.count("'trusted_device'") == 2 and counts.count("'security_alert'") == 2 and counts.count("'payment_event'") == 2 and counts.count("'cinema_concession_inventory'") == 2 and counts.count("'cinema_concession_price'") == 2 and counts.count("'showtime_planning_run'") == 2 and counts.count("'recommendation_feedback'") == 2 and counts.count("'cinema_concession_cost_basis'") >= 2 and counts.count("'analytics_snapshot'") == 2)
 check('Ledger stays balanced with MOCK clearing account', "'PAYMENT_CLEARING:MOCK','DEBIT'" in sql and "'CUSTOMER_FUNDS_CAPTURED','CREDIT'" in sql)
-check('PowerShell is byte-safe UTF-8 and documents realistic account credentials', 'docker compose cp' in ps1 and 'Get-Content' not in ps1 and 'CineBooking@123' in ps1 and 'an.nguyen@cinebooking.local' in ps1)
+check('PowerShell is byte-safe UTF-8 and documents realistic staff/customer credentials', 'docker compose cp' in ps1 and 'Get-Content' not in ps1 and 'CineBooking@123' in ps1 and 'an.nguyen@cinebooking.local' in ps1 and 'minh.khang@example.com' in ps1)
 check('Seed remains transactional and fails on empty tables', 'BEGIN;' in sql and 'COMMIT;' in sql and "client_encoding = 'UTF8'" in sql and 'IF c = 0 THEN' in sql)
 
 passed=sum(ok for _,ok in checks)

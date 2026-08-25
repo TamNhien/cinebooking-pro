@@ -51,7 +51,7 @@ async function authedJson<T>(page: Page, url: string, init?: { method?: string; 
 
 test("V57 Booking & Seat Intelligence ranks best adjacent seats, syncs hold countdown and blocks multi-client contention", async ({ page, browser }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  await register(page, `v57-seat-a-${stamp}@example.test`, "V57 Seat User A");
+  await register(page, `gia.khanh+${stamp}@example.com`, "Bùi Gia Khánh");
   await chooseSeededShowtime(page);
 
   const bookingUrl = page.url();
@@ -104,7 +104,7 @@ test("V57 Booking & Seat Intelligence ranks best adjacent seats, syncs hold coun
   const secondContext = await browser.newContext({ locale: "vi-VN", timezoneId: "Asia/Ho_Chi_Minh" });
   const secondPage = await secondContext.newPage();
   try {
-    await register(secondPage, `v57-seat-b-${stamp}@example.test`, "V57 Seat User B");
+    await register(secondPage, `ngoc.lan+${stamp}@example.com`, "Đặng Ngọc Lan");
     const secondHold = await authedJson(secondPage, `/api/showtimes/${showtimeId}/holds`, {
       method: "POST",
       body: { seatIds: best.seatIds },

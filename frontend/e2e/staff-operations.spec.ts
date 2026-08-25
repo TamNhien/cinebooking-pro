@@ -13,14 +13,15 @@ test("V43 admin sees realtime staff operations and can close an incident",async(
   await expect(page.getByText("Lượt check-in realtime",{exact:false})).toBeVisible();
 
   const stamp=Date.now().toString();
-  await page.getByPlaceholder("Tiêu đề sự cố").fill(`V43 E2E ${stamp}`);
-  await page.getByPlaceholder("Mô tả chi tiết tình huống và hành động ban đầu").fill("Sự cố kiểm thử tự động cho Staff Operations 2.0");
+  const incidentTitle=`Khách cần hỗ trợ tại cổng soát vé ${stamp}`;
+  await page.getByPlaceholder("Tiêu đề sự cố").fill(incidentTitle);
+  await page.getByPlaceholder("Mô tả chi tiết tình huống và hành động ban đầu").fill("Khách gặp khó khăn khi quét mã QR tại cổng soát vé và cần nhân viên hỗ trợ trực tiếp.");
   await page.getByRole("button",{name:"Ghi nhận sự cố"}).click();
-  const card=page.getByTestId("staff-incident").filter({hasText:`V43 E2E ${stamp}`});
+  const card=page.getByTestId("staff-incident").filter({hasText:incidentTitle});
   await expect(card).toBeVisible();
   await expect(card).toContainText("OPEN");
-  await card.getByPlaceholder("Ghi chú xử lý").fill("Đã xác minh bằng Playwright V43");
+  await card.getByPlaceholder("Ghi chú xử lý").fill("Đã kiểm tra mã vé, hướng dẫn khách quét lại và xác nhận vào rạp thành công");
   await card.getByRole("button",{name:"Đóng sự cố"}).click();
   await expect(card).toContainText("RESOLVED");
-  await expect(card).toContainText("Đã xác minh bằng Playwright V43");
+  await expect(card).toContainText("Đã kiểm tra mã vé, hướng dẫn khách quét lại và xác nhận vào rạp thành công");
 });

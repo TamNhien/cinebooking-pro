@@ -185,7 +185,7 @@ $AdminHeaders = Auth-Headers $Admin.accessToken
 $CinemasResponse = Invoke-RestMethod -Method Get -Uri "$BaseUrl/admin/cinemas" -Headers $AdminHeaders
 $Cinema = $CinemasResponse | Select-Object -First 1
 if ($null -eq $Cinema) {
-  $Cinema = Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/cinemas" -Headers $AdminHeaders -ContentType "application/json" -Body (To-Json @{ name = 'V10 Test Cinema'; address = 'Local smoke test' })
+  $Cinema = Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/cinemas" -Headers $AdminHeaders -ContentType "application/json" -Body (To-Json @{ name = 'CineHub Trung Sơn'; address = '9A Nguyễn Hữu Thọ, Khu đô thị Trung Sơn, TP.HCM' })
 }
 
 $CinemaIdText = [string]$Cinema.id
@@ -196,8 +196,8 @@ if ([string]::IsNullOrWhiteSpace($CinemaIdText) -or -not [Guid]::TryParse($Cinem
 Write-Pass "Cinema available: $($Cinema.name) [$CinemaIdText]"
 
 $Suffix = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
-$EmployeeCode = "T$Suffix"
-$StaffEmail = "staff.v11.$Suffix@cine.local"
+$EmployeeCode = "CBSN" + $Suffix.ToString().Substring([Math]::Max(0,$Suffix.ToString().Length-8))
+$StaffEmail = "duc.minh+$Suffix@example.com"
 $StaffPassword = "V11_Test@2026"
 $Staff = $null
 $Shift = $null
@@ -207,11 +207,11 @@ try {
     employeeCode = $EmployeeCode
     email = $StaffEmail
     password = $StaffPassword
-    fullName = 'V11 Test Staff'
-    phone = '0900000000'
+    fullName = 'Trần Đức Minh'
+    phone = '0929345678'
     role = 'STAFF'
     cinemaId = $CinemaIdText
-    jobTitle = 'Ticket checker'
+    jobTitle = 'Nhân viên soát vé'
     employmentStatus = 'ACTIVE'
     hireDate = (Get-Date).ToString('yyyy-MM-dd')
     accountEnabled = $true
@@ -223,11 +223,11 @@ try {
   $UpdateStaffBody = @{
     employeeCode = $EmployeeCode
     email = $StaffEmail
-    fullName = 'V11 Test Staff Updated'
-    phone = '0911111111'
+    fullName = 'Trần Đức Minh'
+    phone = '0929456789'
     role = 'STAFF'
     cinemaId = $CinemaIdText
-    jobTitle = 'Check-in staff'
+    jobTitle = 'Nhân viên kiểm soát lối vào'
     employmentStatus = 'ACTIVE'
     hireDate = (Get-Date).ToString('yyyy-MM-dd')
     accountEnabled = $true
@@ -236,7 +236,7 @@ try {
 
   $Staff = Invoke-RestMethod -Method Put -Uri "$BaseUrl/admin/staff/$($Staff.userId)" -Headers $AdminHeaders -ContentType "application/json" -Body (To-Json $UpdateStaffBody)
 
-  if ($Staff.phone -ne '0911111111' -or $Staff.jobTitle -ne 'Check-in staff') {
+  if ($Staff.phone -ne '0929456789' -or $Staff.jobTitle -ne 'Nhân viên kiểm soát lối vào') {
     throw "STAFF update verification failed."
   }
   Write-Pass "Edit STAFF account"
@@ -247,7 +247,7 @@ try {
     shiftDate = $Now.ToString('yyyy-MM-dd')
     startTime = $Now.AddMinutes(-5).ToString('HH:mm')
     endTime = $Now.AddHours(2).ToString('HH:mm')
-    note = 'Automated V11 smoke test'
+    note = 'Ca hỗ trợ sảnh và soát vé'
   }
 
   $Shift = Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/shifts" -Headers $AdminHeaders -ContentType "application/json" -Body (To-Json $ShiftBody)
@@ -337,11 +337,11 @@ finally {
       $DisableStaffBody = @{
         employeeCode = $EmployeeCode
         email = $StaffEmail
-        fullName = 'V11 Test Staff Updated'
-        phone = '0911111111'
+        fullName = 'Trần Đức Minh'
+        phone = '0929456789'
         role = 'STAFF'
         cinemaId = $CinemaIdText
-        jobTitle = 'Check-in staff'
+        jobTitle = 'Nhân viên kiểm soát lối vào'
         employmentStatus = 'INACTIVE'
         hireDate = (Get-Date).ToString('yyyy-MM-dd')
         accountEnabled = $false
@@ -349,10 +349,10 @@ finally {
       }
 
       Invoke-RestMethod -Method Put -Uri "$BaseUrl/admin/staff/$($Staff.userId)" -Headers $AdminHeaders -ContentType "application/json" -Body (To-Json $DisableStaffBody) | Out-Null
-      Write-Info "Disabled synthetic test account $StaffEmail. Audit and attendance history were kept."
+      Write-Info "Disabled smoke-test account $StaffEmail. Audit and attendance history were kept."
     }
     catch {
-      Write-Warn "Could not disable synthetic account $StaffEmail automatically. Disable it in /admin/staff."
+      Write-Warn "Could not disable smoke-test account $StaffEmail automatically. Disable it in /admin/staff."
     }
   }
 }

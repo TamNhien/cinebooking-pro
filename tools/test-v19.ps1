@@ -39,17 +39,17 @@ if($null -eq $Product){Warn "No inventory-enabled product exists; adjustment tes
 
 $Original=[int]$Product.stockOnHand
 $ProductId=[string]$Product.productId
-$Restocked=Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/inventory/adjustments" -Headers $H -ContentType 'application/json' -Body (To-Json @{productId=$ProductId;operation='RESTOCK';quantity=3;note='V19 automated smoke test restock'})
+$Restocked=Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/inventory/adjustments" -Headers $H -ContentType 'application/json' -Body (To-Json @{productId=$ProductId;operation='RESTOCK';quantity=3;note='Bổ sung tồn kho trước ca tối'})
 if([int]$Restocked.stockOnHand -ne ($Original+3)){throw "RESTOCK did not increase stock by 3."}
 Pass "RESTOCK +3 works"
 
-$Restored=Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/inventory/adjustments" -Headers $H -ContentType 'application/json' -Body (To-Json @{productId=$ProductId;operation='SET';quantity=$Original;note='V19 automated smoke test restore'})
+$Restored=Invoke-RestMethod -Method Post -Uri "$BaseUrl/admin/inventory/adjustments" -Headers $H -ContentType 'application/json' -Body (To-Json @{productId=$ProductId;operation='SET';quantity=$Original;note='Điều chỉnh tồn kho về số lượng sau kiểm kê'})
 if([int]$Restored.stockOnHand -ne $Original){throw "SET did not restore original stock."}
 Pass "SET restores original stock"
 
 $Moves=@(Invoke-RestMethod -Method Get -Uri "$BaseUrl/admin/inventory/movements?productId=$ProductId" -Headers $H)
 if($Moves.Count -eq 1 -and $Moves[0] -is [System.Array]){$Moves=@($Moves[0])}
-if(($Moves | Where-Object {$_.note -like 'V19 automated smoke test*'}).Count -lt 2){throw "Expected inventory movement history entries were not found."}
+if(($Moves | Where-Object {$_.note -in @('Bổ sung tồn kho trước ca tối','Điều chỉnh tồn kho về số lượng sau kiểm kê')}).Count -lt 2){throw "Expected inventory movement history entries were not found."}
 Pass "Inventory movement ledger recorded both changes"
 
 $Public=@(Invoke-RestMethod -Method Get -Uri "$BaseUrl/commerce/products")

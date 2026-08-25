@@ -46,10 +46,10 @@ async function authedJson<T>(context: BrowserContext, page: Page, accessToken:st
 
 test("V41 notification inbox archives and restores a durable notification", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-  const email = `v41-notify-${stamp}@example.test`;
+  const email = `khanh.linh+${stamp}@example.com`;
 
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("V41 Notification Customer");
+  await page.getByPlaceholder("Họ và tên").fill("Trần Khánh Linh");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
@@ -63,7 +63,7 @@ test("V41 notification inbox archives and restores a durable notification", asyn
 
   const created = await authedJson<{ id:string; title:string; priority:string; archived:boolean }>(context,page,auth.accessToken, "/api/notifications/test", { method:"POST" });
   expect(created.status).toBe(200);
-  expect(created.body?.title).toBe("Thông báo thử CineBooking");
+  expect(created.body?.title).toBe("Xác nhận kênh thông báo đang hoạt động");
   expect(created.body?.priority).toBe("NORMAL");
   expect(created.body?.archived).toBe(false);
   const id = created.body!.id;
@@ -76,7 +76,7 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await expect(page.getByRole("heading", { name:"Trung tâm thông báo" })).toBeVisible();
   await expect(page.getByText("🏆 Loyalty & thành viên", { exact:true })).toBeVisible();
   await expect(page.getByText("💺 Waitlist", { exact:true })).toBeVisible();
-  let card = page.getByTestId("notification-card").filter({ hasText:"Thông báo thử CineBooking" }).first();
+  let card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
   await expect(card).toBeVisible();
   await card.getByTestId("notification-archive-toggle").click();
   await expect(card).toHaveCount(0);
@@ -86,14 +86,14 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   expect(archivedSummary.body!.archivedCount).toBeGreaterThanOrEqual(1);
 
   await page.getByTestId("notifications-archived-tab").click();
-  card = page.getByTestId("notification-card").filter({ hasText:"Thông báo thử CineBooking" }).first();
+  card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
   await expect(card).toBeVisible();
   await expect(card.getByTestId("notification-archive-toggle")).toHaveText("Khôi phục");
   await card.getByTestId("notification-archive-toggle").click();
   await expect(card).toHaveCount(0);
 
   await page.getByTestId("notifications-active-tab").click();
-  card = page.getByTestId("notification-card").filter({ hasText:"Thông báo thử CineBooking" }).first();
+  card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
   await expect(card).toBeVisible();
   await card.getByRole("button").first().click();
   await expect(page).toHaveURL(/\/notifications$/);

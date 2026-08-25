@@ -18,10 +18,10 @@ async function loginAdmin(page:Page,email:string,password:string){
 }
 
 test("V42 payment capture writes immutable double-entry ledger and daily reconciliation stays clean",async({page,context})=>{
-  const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;const email=`v42-finance-${stamp}@example.test`;
+  const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;const email=`minh.chau+${stamp}@example.com`;
   const adminEmail=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";const adminPassword=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
 
-  await page.goto("/register");await page.getByPlaceholder("Họ và tên").fill("V42 Finance Customer");await page.getByPlaceholder("Email").fill(email);await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);await page.getByRole("button",{name:"Đăng ký"}).click();await expect(page).toHaveURL(/\/$/);
+  await page.goto("/register");await page.getByPlaceholder("Họ và tên").fill("Hồ Minh Châu");await page.getByPlaceholder("Email").fill(email);await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);await page.getByRole("button",{name:"Đăng ký"}).click();await expect(page).toHaveURL(/\/$/);
 
   const movie=page.getByLabel("1. Phim");await expect.poll(async()=>movie.locator("option").count()).toBeGreaterThan(1);await movie.selectOption({label:"Hành Trình Sao Hỏa"});
   const cinema=page.getByLabel("2. Rạp");await expect.poll(async()=>cinema.locator("option").count()).toBeGreaterThan(1);await cinema.selectOption({index:1});

@@ -1,13 +1,13 @@
-# CineBooking Pro V57
+# CineBooking Pro V58
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V57 - Booking & Seat Intelligence 3.0
+> **Current release:** V58 - Operations Control Center
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V57 bám đúng roadmap Booking & Seat Intelligence 3.0: gợi ý ghế đẹp nhất, xếp nhóm ghế liền nhau, tránh ghế trống đơn, countdown giữ ghế realtime đồng bộ server, chống tranh ghế nhiều client bằng Redis Lua atomic hold và hiển thị dynamic seat pricing thật trước khi giữ ghế. V57 không tạo migration mới và giữ nguyên contract 57 public tables.
+V58 bám đúng roadmap Operations Control Center: dashboard hợp nhất tình trạng rạp từ payment, booking, equipment, staff, support, inventory và incident; cảnh báo được gom theo severity trên một màn hình và làm mới bằng 5-second server snapshot polling. V58 không giả vờ là WebSocket cho các domain chưa có event stream, không tạo cảnh báo giả, không thay đổi trạng thái nghiệp vụ và giữ nguyên contract 57 public tables.
 
 ## Quy ước chạy lệnh
 
@@ -92,6 +92,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V55** | **Customer Retention & Cohort Intelligence 3.0: new/returning customers, repeat rate, lifecycle segmentation, 30-day cohort retention** | **Không đổi schema** |
 | **V56** | **Customer Value & RFM Intelligence 3.0: realized lifetime revenue, RFM quintiles, value concentration, privacy-safe top customers** | **Không đổi schema** |
 | **V57** | **Booking & Seat Intelligence 3.0: best-seat ranking, contiguous groups, orphan-seat guard, realtime hold countdown, atomic contention, dynamic pricing transparency** | **Không đổi schema** |
+| **V58** | **Operations Control Center: payment, booking, equipment, staff, support, inventory, incident; centralized near-realtime alerts** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2773,3 +2774,124 @@ v57.0.0
 
 Nếu RC1 đã trỏ tới commit khác, tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
 
+## V58 - Operations Control Center
+
+V58 bám đúng roadmap **Operations Control Center** và đưa các tín hiệu vận hành phân tán về một control surface cho Manager/Admin. Bản này tái sử dụng dữ liệu thật từ các module đã có; không thêm bảng mới và không tự động mutate payment, booking, maintenance, support, inventory hay incident.
+
+### Phạm vi V58
+
+- **Payment:** payment `REVIEW` và `FAILED` trong 60 phút gần nhất.
+- **Booking:** booking `PENDING`, booking đã quá `expires_at` và booking sẽ hết hạn trong 5 phút.
+- **Equipment:** `OUT_OF_SERVICE`, `DEGRADED`, `MAINTENANCE` và `next_service_due` đã quá hạn.
+- **Staff:** attendance đang `WORKING`, ca được xếp trong ngày và ca đang diễn ra nhưng chưa có check-in.
+- **Support:** case đang mở và case đã quá SLA.
+- **Inventory:** branch inventory tồn thấp / hết tồn khả dụng theo V48.
+- **Incident:** incident đang mở và incident `CRITICAL`.
+- **Cảnh báo tập trung:** chỉ sinh alert khi count thực tế > 0, sắp xếp `CRITICAL -> HIGH -> MEDIUM -> LOW`.
+- **Near-realtime:** frontend dùng **5-second server snapshot polling** và hiển thị rõ cơ chế này; V58 **không giả vờ là WebSocket** cho những domain chưa có event stream thống nhất.
+- **RBAC:** Admin xem toàn hệ thống hoặc từng rạp; Manager bị khóa đúng cinema scope đang được gán.
+
+### Database / migration V58
+
+**V58 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Schema contract giữ nguyên:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+### API / contract V58
+
+```text
+GET /api/admin/operations-control/cinemas
+GET /api/admin/operations-control/snapshot?cinemaId={uuid}
+```
+
+Snapshot trả `pollAfterSeconds`, `overallStatus`, 7 `domains`, danh sách `alerts` và các metric chi tiết. Endpoint chỉ đọc và được bảo vệ cho `MANAGER`/`ADMIN`.
+
+### Test source V58
+
+```powershell
+python .\tools\verify_v53_operations_command_center.py
+python .\tools\verify_v57_booking_seat_intelligence.py
+python .\tools\verify_v58_operations_control_center.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v58.ps1
+```
+
+Kỳ vọng gate mới:
+
+```text
+V58 verification: 80/80 checks passed
+```
+
+### Test bảng V58
+
+V58 không đổi schema nên tiếp tục:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng: `57 public tables`, Flyway latest `V52`, UTF-8 PASS.
+
+### CI / release V58
+
+Main CI chạy source regression **V26-V58** và browser E2E thêm `operations-control-center-v58.spec.ts`. Build/Maven/Playwright vẫn để GitHub Actions chạy trên disposable stack.
+
+Release candidate mặc định:
+
+```text
+v58.0.0-rc.1
+```
+
+Stable:
+
+```text
+v58.0.0
+```
+
+Nếu RC1 đã trỏ tới commit khác, tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
+
+
+
+## V58 data quality - realistic 57-table reference and test data
+
+CineBooking giữ **dữ liệu demo/reference và dữ liệu do smoke/E2E tạo ra ở dạng realistic fictional identities**: tên, mô tả nghiệp vụ, thiết bị, ca làm, support case và giao dịch nhìn giống dữ liệu vận hành thật nhưng **không dùng thông tin cá nhân của người thật**. Test customer dùng địa chỉ `example.com` có gắn suffix duy nhất; đây là miền dành cho tài liệu/test và không trỏ tới hộp thư cá nhân thật.
+
+Bản V58 data-quality hardening tách rõ hai nhóm account reference:
+
+```text
+10 staff/manager accounts -> staff_profile, shift, attendance, maintenance, incident
+10 USER customer accounts  -> booking, payment, loyalty, favorite/review, support, security, PWA
+```
+
+Điều này sửa semantic mismatch cũ khi một số reference booking/customer rows từng dùng staff account làm chủ sở hữu. Các browser/integration/smoke journey cũng không còn lưu tên kiểu `V40 Loyalty Customer`, `V42 Finance Customer`, `V10 Test Staff Updated`, `Playwright`, `E2E` hoặc email `@example.test` vào database.
+
+### Làm sạch database hiện có
+
+Trên database local đã từng chạy các test cũ, chạy theo thứ tự:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-57-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\repair-realistic-data-57-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\audit-realistic-data-57-tables.ps1
+```
+
+`repair-realistic-data-57-tables.ps1` **không xóa lịch sử test/audit**: giữ nguyên ID, quan hệ, timestamp và event; chỉ chuẩn hóa các display value đã biết và relink legacy support/reference customer data khi cần. `audit-realistic-data-57-tables.ps1` kiểm tra đủ **57 public tables**, quét text/varchar để phát hiện synthetic human-readable marker và kiểm tra booking/support/staff ownership theo role.
+
+Source gate:
+
+```powershell
+python .\tools\verify_seed_demo_57.py
+python .\tools\verify_reference_data_57.py
+python .\tools\verify_realistic_data_57.py
+```

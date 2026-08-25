@@ -86,9 +86,9 @@ async function currentNewDeviceAlert(context:BrowserContext,page:Page,accessToke
 test("V46 user trusts a Brave device and admin sees security alerts",async({page,context})=>{
   await page.addInitScript(()=>{Object.defineProperty(navigator,"brave",{configurable:true,value:{isBrave:async()=>true}});});
   const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;
-  const email=`v46-security-${stamp}@example.test`;
+  const email=`ngoc.mai+${stamp}@example.com`;
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("V46 Security Customer");
+  await page.getByPlaceholder("Họ và tên").fill("Võ Ngọc Mai");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
@@ -108,9 +108,9 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   const customerNewDeviceAlert=await currentNewDeviceAlert(context,page,customerAuth.accessToken);
   expect(customerNewDeviceAlert.eventType).toBe("NEW_DEVICE");
 
-  await page.getByLabel("Nhãn thiết bị tin cậy").fill("Laptop E2E V46");
+  await page.getByLabel("Nhãn thiết bị tin cậy").fill("Laptop cá nhân");
   await page.getByRole("button",{name:"Tin cậy thiết bị hiện tại"}).click();
-  const trusted=page.getByTestId("trusted-device").filter({hasText:"Laptop E2E V46"});
+  const trusted=page.getByTestId("trusted-device").filter({hasText:"Laptop cá nhân"});
   await expect(trusted).toBeVisible();
   await expect(trusted).toContainText("Brave");
   await alert.getByRole("button",{name:"Tôi đã kiểm tra"}).click();

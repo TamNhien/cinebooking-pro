@@ -36,7 +36,7 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   const auth=await adminAuth(context,page);
   const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
     headers:{Authorization:`Bearer ${auth.accessToken}`},
-    data:{name:`CineHub V48 Transfer ${Date.now()}`,address:"88 Đường Kiểm Thử, TP.HCM"}
+    data:{name:`CineHub Bình Thạnh ${Date.now()}`,address:"88 Nguyễn Gia Trí, Phường Thạnh Mỹ Tây, TP.HCM"}
   });
   expect(createCinema.status()).toBe(201);
 
@@ -48,13 +48,13 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await expect.poll(async()=>product.locator("option").count()).toBeGreaterThan(0);
 
   await page.getByRole("spinbutton",{name:"Số lượng nhập thêm"}).fill("5");
-  await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Bổ sung tồn kho ca tối V48");
+  await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Bổ sung tồn kho cho ca tối");
   await page.getByRole("button",{name:"Ghi sổ kho"}).click();
   await expect(page.getByRole("status")).toContainText("Đã nhập kho cho chi nhánh");
 
   await page.getByRole("button",{name:"Hao hụt"}).click();
   await page.getByRole("spinbutton",{name:"Số lượng hao hụt"}).fill("1");
-  await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Hao hụt kiểm kê cuối ca V48");
+  await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Hao hụt ghi nhận khi kiểm kê cuối ca");
   await page.getByRole("button",{name:"Ghi sổ kho"}).click();
   await expect(page.getByRole("status")).toContainText("Đã ghi nhận hao hụt");
   await expect(page.getByText("WASTE",{exact:true}).first()).toBeVisible();

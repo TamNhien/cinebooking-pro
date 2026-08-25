@@ -1,0 +1,121 @@
+from pathlib import Path
+import re
+
+ROOT=Path(__file__).resolve().parents[1]
+checks=[]
+def text(rel):
+    p=ROOT/rel
+    return p.read_text(encoding='utf-8') if p.exists() else ''
+def check(name,cond):
+    ok=bool(cond);checks.append((name,ok));print(f"[ {'OK' if ok else 'FAIL'} ] {name}")
+
+dtos=text('backend/src/main/java/com/cinebooking/operationscontrol/OperationsControlCenterDtos.java')
+service=text('backend/src/main/java/com/cinebooking/operationscontrol/OperationsControlCenterService.java')
+controller=text('backend/src/main/java/com/cinebooking/operationscontrol/AdminOperationsControlCenterController.java')
+security=text('backend/src/main/java/com/cinebooking/config/SecurityConfig.java')
+page=text('frontend/app/admin/operations-control/page.tsx')
+types=text('frontend/lib/types.ts')
+header=text('frontend/components/Header.tsx')
+admin=text('frontend/app/admin/page.tsx')
+e2e=text('frontend/e2e/operations-control-center-v58.spec.ts')
+ci=text('.github/workflows/ci.yml')
+rc=text('.github/workflows/release-candidate.yml')
+release=text('.github/workflows/release.yml')
+make=text('Makefile')
+diagnose=text('tools/diagnose-v58.ps1')
+readme=text('README.md')
+v57verify=text('tools/verify_v57_booking_seat_intelligence.py')
+integration=text('backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java')
+seed_verify=text('tools/verify_seed_demo_57.py')
+
+check('V58 is a no-schema Operations Control Center release', not any((ROOT/'backend/src/main/resources/db/migration').glob('V58__*.sql')))
+check('V52 remains latest Flyway migration under V58', (ROOT/'backend/src/main/resources/db/migration/V52__pwa_mobile_experience_3.sql').exists() and 'assertThat(latest).isEqualTo("52")' in integration)
+check('V58 keeps the 57-table contract', 'Final verification enumerates all 57 pgAdmin tables' in seed_verify and 'pwa_device' in seed_verify)
+check('V57 verifier is forward-compatible with V58 source namespace', 'V57-or-newer' in v57verify and '>=57' in v57verify)
+
+check('V58 DTO exposes cinema option', 'record CinemaOption' in dtos)
+check('V58 DTO exposes domain pulse', 'record DomainPulse' in dtos)
+check('V58 DTO exposes centralized alert item', 'record AlertItem' in dtos)
+check('V58 snapshot carries explicit poll interval', 'pollAfterSeconds' in dtos)
+check('V58 snapshot carries payment metrics', all(x in dtos for x in ['paymentReviewCount','paymentFailedLastHour']))
+check('V58 snapshot carries booking metrics', all(x in dtos for x in ['pendingBookings','pendingBookingsPastDue','pendingBookingsExpiringSoon']))
+check('V58 snapshot carries equipment metrics', all(x in dtos for x in ['equipmentOutOfService','equipmentDegraded','equipmentInMaintenance','equipmentServiceOverdue']))
+check('V58 snapshot carries staff metrics', all(x in dtos for x in ['staffWorkingNow','staffScheduledToday','uncoveredActiveShifts']))
+check('V58 snapshot carries support inventory incident metrics', all(x in dtos for x in ['openSupportCases','overdueSupportCases','lowStockItems','soldOutItems','openIncidents','criticalIncidents']))
+
+check('V58 service reuses cinema-scoped V53 command-center authorization', 'CommandCenterService commandCenter' in service and 'commandCenter.summary(email, requestedCinemaId)' in service)
+check('V58 service declares honest 5-second polling cadence', 'POLL_SECONDS = 5' in service)
+check('Payment REVIEW is sourced from existing real operational summary', 'base.paymentReviewCount()' in service)
+check('Recent failed payment signal reads FAILED status from payment', "p.status='FAILED'" in service and "interval '1 hour'" in service)
+check('Pending booking signal reads actual PENDING rows', "b.status='PENDING'" in service)
+check('Past-due booking signal compares expires_at with database now', 'b.expires_at<now()' in service)
+check('Expiring-soon booking signal uses a 5-minute database window', "interval '5 minutes'" in service)
+check('Equipment outage signal reads OUT_OF_SERVICE', "e.status='OUT_OF_SERVICE'" in service)
+check('Equipment degraded signal reads DEGRADED', "e.status='DEGRADED'" in service)
+check('Equipment maintenance signal reads MAINTENANCE', "e.status='MAINTENANCE'" in service)
+check('Equipment overdue service uses next_service_due and business-local date', 'next_service_due' in service and "Asia/Ho_Chi_Minh" in service)
+check('Staff working signal reads active attendance', 'staff_attendance sa where sa.check_out_at is null' in service)
+check('Staff scheduled signal reads current business date', 'staff_shift ss where ss.shift_date=date(now() at time zone' in service)
+check('Uncovered shift signal requires active-time scheduled shift without working attendance', all(x in service for x in ['ss.start_time<=','ss.end_time>','not exists(select 1 from staff_attendance']))
+check('Support open and SLA-overdue counts reuse current operational source', 'base.openSupportCases()' in service and 'base.overdueSupportCases()' in service)
+check('Inventory low-stock and sold-out counts reuse branch-aware V48 source', 'base.lowStockItems()' in service and 'base.soldOutItems()' in service)
+check('Incident critical signal reads OPEN CRITICAL staff incidents', "i.status='OPEN' and i.severity='CRITICAL'" in service)
+
+for domain in ['PAYMENT','BOOKING','EQUIPMENT','STAFF','SUPPORT','INVENTORY','INCIDENT']:
+    check(f'V58 operational pulse includes {domain}', f'pulse("{domain}"' in service)
+
+check('V58 alerts are emitted only for real counts greater than zero', 'if (count > 0) alerts.add' in service)
+check('V58 critical alerts cover payment booking equipment support and incident', all(x in service for x in ['"CRITICAL", "PAYMENT"','"CRITICAL", "BOOKING"','"CRITICAL", "EQUIPMENT"','"CRITICAL", "SUPPORT"','"CRITICAL", "INCIDENT"']))
+check('V58 alert list is severity sorted', 'severityRank' in service and 'alerts.sort' in service)
+check('V58 overall status derives from actual alert severities', 'ACTION_REQUIRED' in service and 'WATCH' in service and 'HEALTHY' in service)
+check('V58 backend is read-only SQL aggregation', not re.search(r'jdbc\.(update|batchUpdate|execute)\s*\(',service))
+check('V58 controller is under admin operations-control API', '@RequestMapping("/api/admin/operations-control")' in controller)
+check('V58 controller exposes scoped cinemas', '@GetMapping("/cinemas")' in controller)
+check('V58 controller exposes snapshot endpoint', '@GetMapping("/snapshot")' in controller)
+check('V58 API requires Manager/Admin in SecurityConfig', '"/api/admin/operations-control/**"' in security and 'hasAnyRole("MANAGER","ADMIN")' in security)
+
+check('Frontend has V58 roadmap marker', 'Operations Control Center · V58' in page and 'operations-control-center-v58' in page)
+check('Frontend describes all seven requested domains', all(x in page for x in ['payment','booking','thiết bị','staff','support','inventory','incident']))
+check('Frontend uses server-provided pollAfterSeconds', 'data.pollAfterSeconds' in page)
+check('Frontend auto-refresh uses setInterval and can be disabled', 'setInterval(()=>load(selectedRef.current,true),ms)' in page and 'operations-control-auto-refresh-v58' in page)
+check('Frontend labels transport honestly as Live snapshot polling', 'Live snapshot' in page and 'không gọi đó là websocket' in page)
+check('Frontend renders central summary', 'operations-control-summary-v58' in page)
+check('Frontend renders seven-domain pulse', 'operations-control-domains-v58' in page)
+check('Frontend renders centralized alerts', 'operations-control-alerts-v58' in page)
+check('Frontend renders operational detail metrics', 'operations-control-detail-v58' in page)
+check('Frontend supports Admin cinema filter and Manager fixed scope', 'operations-control-cinema-filter-v58' in page and 'me?.role==="ADMIN"' in page)
+check('Frontend types contain V58 control contracts', all(x in types for x in ['OperationsControlCinemaV58','OperationsControlDomainV58','OperationsControlAlertV58','OperationsControlSnapshotV58']))
+check('Header exposes V58 control center to operational menus', header.count('/admin/operations-control') >= 4)
+check('Admin dashboard links V58 Operations Control', '/admin/operations-control' in admin and 'Operations Control V58' in admin)
+
+check('V58 Playwright journey exists', 'V58 admin sees centralized near-realtime payment booking equipment staff support inventory and incident control' in e2e)
+check('V58 Playwright checks summary domains alerts details and live marker', all(x in e2e for x in ['operations-control-summary-v58','operations-control-domains-v58','operations-control-alerts-v58','operations-control-detail-v58','operations-control-live-v58']))
+check('V58 Playwright checks all seven domain labels', all(x in e2e for x in ['"PAYMENT"','"BOOKING"','"EQUIPMENT"','"STAFF"','"SUPPORT"','"INVENTORY"','"INCIDENT"']))
+check('V58 Playwright exercises auto-refresh control', 'operations-control-auto-refresh-v58' in e2e and '.uncheck()' in e2e and '.check()' in e2e)
+check('V58 Playwright exercises cinema scope', 'operations-control-cinema-filter-v58' in e2e and 'selectOption({index:1})' in e2e)
+
+ci_match=re.search(r'name:\s*V26-V(\d+) source regression',ci)
+check('Main CI extends source regression through V58', bool(ci_match) and int(ci_match.group(1))>=58)
+check('Main CI runs V58 Operations Control gate', 'Verify V58 Operations Control Center' in ci and 'verify_v58_operations_control_center.py' in ci)
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+check('Standalone RC defaults to V58-or-newer', bool(rc_versions) and max(rc_versions)>=58)
+check('Standalone RC uses V58-or-newer compose namespace', any(int(v)>=58 for v in re.findall(r'cinebooking_v(\d+)_rc_',rc)))
+check('Standalone RC runs V58 gate', 'Verify V58 source gate' in rc and 'verify_v58_operations_control_center.py' in rc)
+check('Standalone RC browser gate includes V58', '+ V58)' in rc)
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('Stable release defaults to V58-or-newer', bool(release_versions) and max(release_versions)>=58)
+check('Stable release uses V58-or-newer compose namespace', any(int(v)>=58 for v in re.findall(r'cinebooking_v(\d+)_release_',release)))
+check('Stable release runs V58 gate before E2E', 'Verify V58 source gate' in release and 'verify_v58_operations_control_center.py' in release)
+check('Makefile exposes V58 verify diagnose and unchanged 57-table lifecycle', all(x in make for x in ['verify-v58:','diagnose-v58:','verify-seed-demo-v58:','check-seed-demo-v58:','verify-reference-v58:','seed-reference-v58:']))
+check('V58 diagnostics chain V53 V57 V58 and 57-table verifier', all(x in diagnose for x in ['verify_v53_operations_command_center.py','verify_v57_booking_seat_intelligence.py','verify_v58_operations_control_center.py','verify_seed_demo_57.py','V58 source diagnostics passed.']))
+
+current_match=re.search(r'^# CineBooking Pro V(\d+)',readme,re.M)
+check('README identifies current V58 Operations Control release', bool(current_match) and int(current_match.group(1))>=58 and 'V58 - Operations Control Center' in readme)
+check('README version history includes roadmap-correct V58 row', '**V58**' in readme and 'payment, booking, equipment, staff, support, inventory, incident' in readme)
+check('README documents centralized near-realtime polling honestly', '5-second server snapshot polling' in readme and 'không giả vờ là WebSocket' in readme)
+check('README states V58 no-schema and 57 public tables', 'V58 không tạo migration Flyway mới' in readme and '57 public tables' in readme)
+check('README release lifecycle defaults to V58 RC1 and stable', 'v58.0.0-rc.1' in readme and 'v58.0.0' in readme)
+
+passed=sum(ok for _,ok in checks)
+print(f"\nV58 verification: {passed}/{len(checks)} checks passed")
+raise SystemExit(0 if passed==len(checks) else 1)

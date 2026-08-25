@@ -76,7 +76,7 @@ public class NotificationService {
     @Transactional public void readAll(String email){repo.markAllRead(user(email),Instant.now());}
     @Transactional public NotificationResponse archive(UUID id,String email){UUID uid=user(email);UserNotification n=owned(id,uid);if(n.getArchivedAt()==null)n.setArchivedAt(Instant.now());return dto(repo.save(n));}
     @Transactional public NotificationResponse unarchive(UUID id,String email){UUID uid=user(email);UserNotification n=owned(id,uid);n.setArchivedAt(null);return dto(repo.save(n));}
-    @Transactional public NotificationResponse test(String email){UUID uid=user(email);String key="USER_TEST:"+UUID.randomUUID();boolean created=createOnce(uid,"NOTIFICATION_TEST","Thông báo thử CineBooking","Nếu bạn thấy thông báo này, kênh thông báo trong ứng dụng đang hoạt động.","/notifications",key);if(!created)throw new ApiException(HttpStatus.CONFLICT,"Không có kênh thông báo nào đang bật");return repo.findByUserIdAndDedupeKey(uid,key).map(this::dto).orElseThrow();}
+    @Transactional public NotificationResponse test(String email){UUID uid=user(email);String key="USER_TEST:"+UUID.randomUUID();boolean created=createOnce(uid,"NOTIFICATION_TEST","Xác nhận kênh thông báo đang hoạt động","Kênh thông báo trong ứng dụng của bạn đang hoạt động bình thường.","/notifications",key);if(!created)throw new ApiException(HttpStatus.CONFLICT,"Không có kênh thông báo nào đang bật");return repo.findByUserIdAndDedupeKey(uid,key).map(this::dto).orElseThrow();}
     @Transactional public void delete(UUID id,String email){UUID uid=user(email);repo.delete(owned(id,uid));}
 
     private void createInternal(UUID userId,String type,String title,String message,String link,String dedupeKey){

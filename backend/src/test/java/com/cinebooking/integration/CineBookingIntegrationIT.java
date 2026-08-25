@@ -270,7 +270,7 @@ class CineBookingIntegrationIT {
     @Test
     void financialV42LedgerIsIdempotentBalancedAndReconcilesCleanly() {
         String stamp = UUID.randomUUID().toString().substring(0,8);
-        AppUser payer = customer("v42-finance-" + stamp + "@example.test", "V42 Finance");
+        AppUser payer = customer("minh.chau+" + stamp + "@example.com", "Hồ Minh Châu");
         Showtime showtime = showtimes.findAll().stream().filter(st -> st.getStartTime().isAfter(Instant.now())).findFirst().orElseThrow();
         Booking booking = new Booking();
         booking.setUserId(payer.getId()); booking.setPurchaserUserId(payer.getId()); booking.setShowtimeId(showtime.getId());
@@ -291,7 +291,7 @@ class CineBookingIntegrationIT {
         assertThat(entryCount).isEqualTo(1); assertThat(lineCount).isEqualTo(2); assertThat(debit).isEqualByComparingTo("120000.00"); assertThat(credit).isEqualByComparingTo(debit);
 
         LocalDate day=LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        var run=finance.reconcile(day,"v42-admin@example.test","127.0.0.1");
+        var run=finance.reconcile(day,"tai.chinh+admin@example.com","127.0.0.1");
         assertThat(run.status()).isEqualTo("CLEAN");
         assertThat(run.issueCount()).isZero();
         assertThat(run.paymentAmount()).isEqualByComparingTo(run.ledgerCaptureAmount());
@@ -306,7 +306,7 @@ class CineBookingIntegrationIT {
     @Test
     void notificationV41ArchiveAndPrioritySummaryStayConsistent() {
         String stamp = Long.toString(System.nanoTime());
-        AppUser customer = customer("v41-notify-" + stamp + "@example.test", "V41 Notify");
+        AppUser customer = customer("khanh.linh+" + stamp + "@example.com", "Trần Khánh Linh");
         boolean first = notifications.createOnce(customer.getId(),"WAITLIST_AVAILABLE","Ghế vừa trống","Có ghế vừa được mở lại.","/waitlist","V41-WAITLIST:"+customer.getId());
         boolean duplicate = notifications.createOnce(customer.getId(),"WAITLIST_AVAILABLE","Ghế vừa trống","Có ghế vừa được mở lại.","/waitlist","V41-WAITLIST:"+customer.getId());
         assertThat(first).isTrue(); assertThat(duplicate).isFalse();
@@ -336,9 +336,9 @@ class CineBookingIntegrationIT {
     @Test
     void loyaltyV40RewardRedemptionAndPointExpiryStayLedgerConsistent() {
         String stamp = UUID.randomUUID().toString().substring(0, 8);
-        AppUser customer = customer("v40-member-" + stamp + "@example.test", "V40 Member");
+        AppUser customer = customer("thanh.truc+" + stamp + "@example.com", "Trương Thanh Trúc");
         AppUser admin = new AppUser();
-        admin.setEmail("v40-admin-" + stamp + "@example.test");
+        admin.setEmail("cham.soc+" + stamp + "@example.com");
         admin.setFullName("V40 Admin");
         admin.setPasswordHash("test-only");
         admin.setRole(Role.ADMIN);
@@ -376,7 +376,7 @@ class CineBookingIntegrationIT {
     @Test
     void paymentStartClaimIsIdempotentAndKeepsPayerOwnership() {
         String stamp = UUID.randomUUID().toString().substring(0, 8);
-        AppUser payer = customer("v37-payer-" + stamp + "@example.test", "V37 Payer");
+        AppUser payer = customer("quang.huy+" + stamp + "@example.com", "Phạm Quang Huy");
         Booking booking = new Booking();
         booking.setUserId(payer.getId());
         booking.setPurchaserUserId(payer.getId());
@@ -403,10 +403,10 @@ class CineBookingIntegrationIT {
     @Test
     void secureTicketTransferMovesOwnershipAndInvalidatesOldQr() {
         String stamp = UUID.randomUUID().toString().substring(0, 8);
-        AppUser sender = customer("v36-sender-" + stamp + "@example.test", "V36 Sender");
-        AppUser recipient = customer("v36-recipient-" + stamp + "@example.test", "V36 Recipient");
+        AppUser sender = customer("minh.khang+" + stamp + "@example.com", "Nguyễn Minh Khang");
+        AppUser recipient = customer("gia.han+" + stamp + "@example.com", "Lê Gia Hân");
         AppUser admin = new AppUser();
-        admin.setEmail("v36-admin-" + stamp + "@example.test");
+        admin.setEmail("van.hanh+" + stamp + "@example.com");
         admin.setFullName("V36 Admin");
         admin.setPasswordHash("test-only");
         admin.setRole(Role.ADMIN);
@@ -548,7 +548,7 @@ class CineBookingIntegrationIT {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"deviceLabel":"Chrome · Linux · Integration","platform":"LINUX","userAgent":"Playwright integration","standalone":false,"pushEnabled":false}
+                                {"deviceLabel":"Chrome · Linux","platform":"LINUX","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/151.0 Safari/537.36","standalone":false,"pushEnabled":false}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deviceKey").value(deviceKey))

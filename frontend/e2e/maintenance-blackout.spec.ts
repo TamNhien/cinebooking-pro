@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("admin maintenance blackout blocks showtime planning", async ({ page }) => {
   const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
   const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
-  const reason = "V34 RC projector maintenance";
+  const reason = "Bảo trì định kỳ máy chiếu";
 
   await page.goto("/login");
   await page.getByPlaceholder("Email").fill(adminEmail);
