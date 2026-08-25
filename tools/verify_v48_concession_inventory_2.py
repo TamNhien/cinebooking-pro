@@ -74,7 +74,7 @@ check('Admin UI exposes restock set waste', all(x in admin_ui for x in ['+ Nhậ
 check('Admin UI exposes branch price override and transfer', 'Giá theo rạp' in admin_ui and 'branch-price-save' in admin_ui and 'Điều chuyển giữa rạp' in admin_ui and 'inventory-transfer-button' in admin_ui)
 check('Frontend types expose V48 branch inventory contracts', all(x in types for x in ['InventoryBranchOverview','InventoryTransfer','targetStock','TRANSFER_OUT','priceOverride']))
 check('Dedicated V48 E2E covers restock waste branch price and transfer', all(x in e2e for x in ['V48 admin manages branch stock price waste and transfer','Số lượng hao hụt','Đã ghi nhận hao hụt','WASTE','branch-price-save','inventory-transfer-button','TRANSFER_OUT']))
-check('V48 E2E creates a real second branch before transfer', all(x in e2e for x in ['/api/admin/cinemas','createCinema.status()).toBe(201)','AUTH_STORAGE_KEY','CineHub V48 Transfer']))
+check('V48 E2E creates a real second branch before transfer', all(x in e2e for x in ['/api/admin/cinemas','createCinema.status()).toBe(201)','AUTH_STORAGE_KEY','CGV Vincom Center Landmark 81']))
 check('V48 seed covers 52 tables with branch stock and price', 'cinema_concession_inventory' in seed and 'cinema_concession_price' in seed and 'Quick verification of all 52 tables' in seed)
 check('V48 seed keeps payment reference data MOCK only', "provider='MOCK'" in seed and 'seeded VNPAY/MOMO rows remain' in seed)
 check('V48 52-table verifier passes realistic-data contract', 'Seed V48 52-table realistic-data verification' in seed_verify and 'All 50 seeded application tables' in seed_verify)

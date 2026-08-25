@@ -36,7 +36,10 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   const auth=await adminAuth(context,page);
   const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
     headers:{Authorization:`Bearer ${auth.accessToken}`},
-    data:{name:`CineHub V48 Transfer ${Date.now()}`,address:"88 Đường Kiểm Thử, TP.HCM"}
+    data:{
+      name:"CGV Vincom Center Landmark 81",
+      address:"Tầng B1, TTTM Vincom Center Landmark 81, 772 Điện Biên Phủ, P.22, Q. Bình Thạnh, TP.HCM"
+    }
   });
   expect(createCinema.status()).toBe(201);
 
