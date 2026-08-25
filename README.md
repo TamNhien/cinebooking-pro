@@ -1,13 +1,13 @@
-# CineBooking Pro V52
+# CineBooking Pro V53
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V52 - PWA / Mobile Experience 3.0
+> **Current release:** V53 - Operations Command Center 3.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V52 nâng PWA/Mobile lên Background Web Push bằng VAPID, controlled Service Worker cache, quản lý thiết bị PWA, QR offline có trạng thái xác minh/stale, persistent storage và mobile booking touch targets; toàn bộ Analytics V51 vẫn được giữ nguyên.
+V53 bổ sung Operations Command Center 3.0 cho Manager/Admin: một màn hình đọc-only tổng hợp doanh thu hôm nay, occupancy, forecast 7 ngày, payment REVIEW, SLA support, bảo trì quá hạn, sự cố staff và tồn kho thấp theo từng rạp hoặc toàn hệ thống. V53 giữ nguyên toàn bộ PWA/Mobile V52 và không tạo dữ liệu nghiệp vụ giả.
 
 ## Quy ước chạy lệnh
 
@@ -87,6 +87,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V50** | **Recommendation Intelligence 2.0: explainable hybrid taste profile, preferred cinema/daypart, explicit MORE/LESS/HIDE feedback** | **`V50__recommendation_intelligence_2.sql`** |
 | **V51** | **Analytics & Forecasting 3.0: period comparison, weekday-weighted forecast, margin/cost coverage, branch cost basis, durable scheduled snapshots** | **`V51__analytics_forecasting_3.sql`** |
 | **V52** | **PWA / Mobile Experience 3.0: VAPID Background Web Push, controlled cache, PWA devices, owner-scoped offline QR revalidation, persistent storage, mobile UX** | **`V52__pwa_mobile_experience_3.sql`** |
+| **V53** | **Operations Command Center 3.0: unified operational pulse, cinema scope, real-data attention signals, V51 forecast reuse** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2040,7 +2041,7 @@ Playwright chạy trên máy host cần dependency dev trong `frontend/node_modu
 ```powershell
 npm --prefix .\frontend install
 npm --prefix .\frontend exec -- playwright install chromium
-npm --prefix .\frontend exec -- playwright test e2e/analytics-forecasting-v51.spec.ts --project=chromium
+.\frontend\node_modules\.bin\playwright.cmd test --config=.\frontend\playwright.config.ts analytics-forecasting-v51.spec.ts --project=chromium
 ```
 
 ## 10. Backup / verify / restore PostgreSQL
@@ -2258,4 +2259,112 @@ main CI
 Khi chạy fixture 57 bảng trên một database đã có `analytics_snapshot` do scheduler V51 tạo, unique key `(cinema_id, period_kind, period_start)` có thể trùng với 10 row reference. Trước hotfix, `ON CONFLICT ... DO UPDATE` giữ nguyên primary key của row cũ, trong khi self-check yêu cầu 10 deterministic IDs `seed51:analytics-snapshot:*`, nên transaction bị rollback trước khi `pwa_device` được commit.
 
 Hotfix chuẩn hóa deterministic ID ngay trong các natural-key upsert của `recommendation_feedback`, `cinema_concession_cost_basis`, `analytics_snapshot` và `pwa_device` bằng `id=EXCLUDED.id`. Vì đây là **CI/reference fixture**, hành vi này chỉ áp dụng khi chủ động chạy `seed-reference-57-tables.ps1`; migration/runtime production không thay đổi. Nếu database đang giữ dữ liệu nghiệp vụ thật, ưu tiên giữ nguyên dữ liệu và không chạy fixture chỉ để làm đầy bảng. `pwa_device` có thể hợp lệ ở trạng thái rỗng cho đến khi một người dùng đăng nhập/đăng ký thiết bị PWA.
+
+## V53 - Operations Command Center 3.0
+
+V53 hợp nhất các tín hiệu vận hành đã có từ V43-V52 thành một màn hình ra quyết định cho **Manager/Admin**. Đây là bản **read-only orchestration**: không tự đổi trạng thái payment, support, maintenance, inventory hoặc staff incident và không tạo cảnh báo giả.
+
+Trang mới:
+
+```text
+http://localhost/admin/command-center
+```
+
+### Phạm vi V53
+
+- Admin có thể xem **Toàn hệ thống** hoặc chọn một rạp cụ thể.
+- Manager chỉ được xem rạp gắn với `staff_profile.cinema_id`; backend từ chối cinema khác, không chỉ ẩn ở frontend.
+- Doanh thu hôm nay chỉ lấy `payment.status='SUCCESS'` theo timezone `Asia/Ho_Chi_Minh`.
+- Booking/vé chỉ lấy dữ liệu `CONFIRMED`; occupancy tính từ ghế bán thật và sức chứa phòng, không dùng phần trăm giả.
+- Payment attention chỉ đếm `REVIEW`.
+- Support attention lấy case đang mở và SLA đã quá hạn.
+- Maintenance attention lấy work order đang mở và `due_at` quá hạn.
+- Staff Ops attention lấy `staff_incident.status='OPEN'`.
+- Inventory attention dùng `stock_on_hand - stock_reserved` so với `low_stock_threshold`.
+- Forecast 7 ngày tái sử dụng thuật toán V51 `V51-WEEKDAY-WEIGHTED-MA-1`.
+
+### Database / migration
+
+**V53 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Do đó schema vẫn giữ:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+Không chạy seed mới chỉ để phục vụ Command Center. Mọi KPI/attention của V53 được tính từ dữ liệu nghiệp vụ hiện có.
+
+### API V53
+
+```text
+GET /api/admin/command-center/cinemas
+GET /api/admin/command-center/summary?cinemaId=<optional-uuid>
+```
+
+`/api/admin/command-center/**` cho phép `MANAGER` và `ADMIN`; rule này đứng trước generic `/api/admin/**` chỉ dành cho Admin.
+
+### Test source V53
+
+Chạy từ project root:
+
+```powershell
+bash tools/verify-v26-source.sh
+python .\tools\verify_v44_maintenance_reliability.py
+python .\tools\verify_v45_customer_support.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v51_utf8_real_data.py
+python .\tools\verify_v52_pwa_mobile_3.py
+python .\tools\verify_v53_operations_command_center.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v53.ps1
+```
+
+### Test bảng V53
+
+V53 không đổi schema nên tiếp tục dùng checker 57 bảng:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng Flyway vẫn V52 và `public_tables = 57`. Không dùng `docker compose down -v` cho update bình thường.
+
+### CI / release V53
+
+Main CI chạy source regression **V26-V53**, Maven, frontend lint/build, Docker validation và các gate dữ liệu hiện có. Browser E2E để GitHub Actions chạy trên disposable stack; không cần chạy Playwright local trước mỗi commit.
+
+Release candidate đầu tiên:
+
+```text
+v53.0.0-rc.1
+```
+
+Stable target:
+
+```text
+v53.0.0
+```
+
+Workflow inputs:
+
+```text
+branch: main
+version: 53.0.0
+rc_number: 1
+```
+
+Nếu `v53.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
 

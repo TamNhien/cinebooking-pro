@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
 def text(rel):
@@ -92,9 +93,12 @@ check('V52 reference seed covers pwa_device without fake PushSubscription creden
 check('V52 reference seed survives pre-existing natural-key rows', 'ON CONFLICT (cinema_id,period_kind,period_start) DO UPDATE SET\n    id=EXCLUDED.id' in seed and 'ON CONFLICT (device_key) DO UPDATE SET\n    id=EXCLUDED.id' in seed)
 check('V52 57-table realistic-data verifier is wired', 'Final verification enumerates all 57 pgAdmin tables' in seed_verify and 'pwa_device' in seed_verify and '44/44' not in seed_verify)
 check('Integration test covers Flyway V52 schema and push-disabled device API contract', 'flywayMigratesRealPostgresToV52PwaMobileExperienceSchemaAndCatalog' in integration and 'assertThat(latest).isEqualTo("52")' in integration and 'isGreaterThanOrEqualTo(57)' in integration and 'pwaV52Columns' in integration and 'pwaV52Indexes' in integration and 'pwaV52RegistersDeviceWithoutFabricatingPushCredentialsWhenVapidIsDisabled' in integration and 'unsafeCredentials' in integration)
-check('Main CI includes V52 source and 57-table reference gates', 'V26-V52 source regression' in ci and 'verify_v52_pwa_mobile_3.py' in ci and 'verify_seed_demo_57.py' in ci)
-check('Standalone RC defaults to V52 and runs V52 gate', 'v52.0.0-rc.1' in rc and 'cinebooking_v52_rc_' in rc and 'verify_v52_pwa_mobile_3.py' in rc and 'verify_seed_demo_57.py' in rc)
-check('Stable release defaults to 52.0.0 and runs V52 gate', 'default: "52.0.0"' in release and 'cinebooking_v52_release_' in release and 'verify_v52_pwa_mobile_3.py' in release and 'verify_seed_demo_57.py' in release)
+ci_versions=[int(v) for v in re.findall(r'V26-V(\d+) source regression',ci)]
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('Main CI includes V52 source and 57-table reference gates', bool(ci_versions) and max(ci_versions)>=52 and 'verify_v52_pwa_mobile_3.py' in ci and 'verify_seed_demo_57.py' in ci)
+check('Standalone RC defaults to V52-or-newer and runs V52 gate', bool(rc_versions) and max(rc_versions)>=52 and 'verify_v52_pwa_mobile_3.py' in rc and 'verify_seed_demo_57.py' in rc)
+check('Stable release defaults to V52-or-newer and runs V52 gate', bool(release_versions) and max(release_versions)>=52 and 'verify_v52_pwa_mobile_3.py' in release and 'verify_seed_demo_57.py' in release)
 check('Makefile diagnostics and README expose complete V52 lifecycle', all(x in make for x in ['verify-v52:','diagnose-v52:','seed-demo-v52:','verify-reference-v52:','seed-reference-v52:']) and 'verify_v52_pwa_mobile_3.py' in diagnose and 'V52 - PWA / Mobile Experience 3.0' in readme and 'V52__pwa_mobile_experience_3.sql' in readme)
 
 passed=sum(ok for _,ok in checks)

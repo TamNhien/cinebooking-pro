@@ -199,3 +199,13 @@ export type AdminSecurityAlertV46 = SecurityAlertV46 & { userId:string; userEmai
 // V52 PWA / Mobile Experience 3.0
 export type PwaPushConfig = { enabled:boolean; vapidPublicKey:string; ttlSeconds:number; deliveryMode:"VAPID_BACKGROUND"|"FOREGROUND_FALLBACK" };
 export type PwaDevice = { id:string; deviceKey:string; deviceLabel:string; platform:string; standalone:boolean; pushEnabled:boolean; failureCount:number; lastSeenAt:string; lastPushAt?:string; lastFailureAt?:string; createdAt:string; updatedAt:string; current:boolean };
+
+// V53 Operations Command Center 3.0
+export type CommandCenterCinemaV53 = { cinemaId:string; cinemaName:string };
+export type CommandCenterAttentionV53 = { severity:"CRITICAL"|"HIGH"|"MEDIUM"|"LOW"; domain:string; title:string; count:number; href:string };
+export type CommandCenterSummaryV53 = {
+  cinemaId?:string; cinemaName:string; scope:"ALL_CINEMAS"|"CINEMA"; status:"HEALTHY"|"WATCH"|"ACTION_REQUIRED"; generatedAt:string;
+  todayRevenue:number; todayConfirmedBookings:number; todayTickets:number; todayOccupancyRate:number; forecastNext7d:number;
+  paymentReviewCount:number; openSupportCases:number; overdueSupportCases:number; openMaintenanceOrders:number; overdueMaintenanceOrders:number;
+  openStaffIncidents:number; lowStockItems:number; soldOutItems:number; attention:CommandCenterAttentionV53[];
+};

@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
@@ -74,7 +75,9 @@ check('Integration test validates both V51 tables columns and indexes', all(x in
 check('V51 realistic seed covers both new tables and algorithm marker', 'seed51:cost-basis:' in seed and 'seed51:analytics-snapshot:' in seed and 'V51-WEEKDAY-WEIGHTED-MA-1' in seed and 'Quick verification of all 56 tables' in seed)
 check('V51 56-table verifier is wired for 42 checks and both new tables', 'cinema_concession_cost_basis' in seed_verify and 'analytics_snapshot' in seed_verify and 'Seed V51 56-table realistic-data verification' in seed_verify)
 check('CI and release workflows retain V50 gates and add V51 gates', all('verify_v50_recommendation_intelligence_2.py' in x and 'verify_v51_analytics_forecasting_3.py' in x and 'verify_seed_demo_56.py' in x for x in [ci,rc,release]))
-check('V51 release gate remains present in V51-or-newer release defaults', ('v51.0.0-rc.1' in rc or 'v52.0.0-rc.1' in rc) and ('cinebooking_v51_rc_' in rc or 'cinebooking_v52_rc_' in rc) and ('default: "51.0.0"' in release or 'default: "52.0.0"' in release) and ('cinebooking_v51_release_' in release or 'cinebooking_v52_release_' in release))
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('V51 release gate remains present in V51-or-newer release defaults', bool(rc_versions) and max(rc_versions)>=51 and bool(release_versions) and max(release_versions)>=51 and 'verify_v51_analytics_forecasting_3.py' in rc and 'verify_v51_analytics_forecasting_3.py' in release)
 check('Makefile diagnostics and README expose complete V51 lifecycle', all(x in make for x in ['verify-v51:','diagnose-v51:','seed-demo-v51:','verify-reference-v51:']) and 'verify_v51_analytics_forecasting_3.py' in diagnose and 'V51 - Analytics & Forecasting 3.0' in readme and 'V51__analytics_forecasting_3.sql' in readme)
 
 passed=sum(ok for _,ok in checks)

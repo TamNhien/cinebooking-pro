@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import re
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
 def has(path,*needles):
@@ -46,9 +47,15 @@ ok("V46 Playwright covers Brave trust-device and admin alert journey",has("front
 ok("V46 Playwright avoids page.evaluate and browser-response-body auth races during navigation",not has("frontend/e2e/security-account-protection.spec.ts","page.evaluate(","const auth=await response.json()") and has("frontend/e2e/security-account-protection.spec.ts","context.storageState()","AUTH_STORAGE_KEY"))
 ok("Integration test retains V46 schema coverage on current Flyway",has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","trusted_device","security_alert","idx_security_alert_unacknowledged") and any(has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java",f'isEqualTo("{v}")') for v in ["47","48","49","50","51","52"]))
 ok("README retains V46 release history",has("README.md","V46","Security & Account Protection 2.0","V46__security_account_protection_2.sql"))
-ok("Main CI retains V46 verifier in current regression",has(".github/workflows/ci.yml","verify_v46_security_account_protection.py") and (has(".github/workflows/ci.yml","V26-V47 source regression") or has(".github/workflows/ci.yml","V26-V48 source regression") or has(".github/workflows/ci.yml","V26-V49 source regression") or has(".github/workflows/ci.yml","V26-V50 source regression") or has(".github/workflows/ci.yml","V26-V51 source regression") or has(".github/workflows/ci.yml","V26-V52 source regression")))
-ok("Standalone RC retains V46 verifier in current gate",has(".github/workflows/release-candidate.yml","verify_v46_security_account_protection.py") and (has(".github/workflows/release-candidate.yml","Verify V47 source gate") or has(".github/workflows/release-candidate.yml","Verify V48 source gate") or has(".github/workflows/release-candidate.yml","Verify V49 source gate") or has(".github/workflows/release-candidate.yml","Verify V50 source gate") or has(".github/workflows/release-candidate.yml","Verify V51 source gate") or has(".github/workflows/release-candidate.yml","Verify V52 source gate")))
-ok("Stable release retains V46 verifier in current gate",has(".github/workflows/release.yml","verify_v46_security_account_protection.py") and any(has(".github/workflows/release.yml",f'default: "{v}.0.0"',f"Verify V{v} source gate") for v in ["47","48","49","50","51","52"]))
+ci_text=(ROOT/".github/workflows/ci.yml").read_text(encoding="utf-8")
+rc_text=(ROOT/".github/workflows/release-candidate.yml").read_text(encoding="utf-8")
+release_text=(ROOT/".github/workflows/release.yml").read_text(encoding="utf-8")
+ci_versions=[int(v) for v in re.findall(r'V26-V(\d+) source regression',ci_text)]
+rc_versions=[int(v) for v in re.findall(r'Verify V(\d+) source gate',rc_text)]
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release_text)]
+ok("Main CI retains V46 verifier in current regression",has(".github/workflows/ci.yml","verify_v46_security_account_protection.py") and bool(ci_versions) and max(ci_versions)>=46)
+ok("Standalone RC retains V46 verifier in current gate",has(".github/workflows/release-candidate.yml","verify_v46_security_account_protection.py") and bool(rc_versions) and max(rc_versions)>=46)
+ok("Stable release retains V46 verifier in current gate",has(".github/workflows/release.yml","verify_v46_security_account_protection.py") and bool(release_versions) and max(release_versions)>=46)
 ok("Makefile exposes V46 verify diagnose and seed targets",has("Makefile","verify-v46:","diagnose-v46:","seed-demo-v46:","check-seed-demo-v46:"))
 ok("V46 diagnostics chains V45 V46 and 49-table seed",has("tools/diagnose-v46.ps1","verify_v45_customer_support.py","verify_v46_security_account_protection.py","verify_seed_demo_49.py","V46 source diagnostics passed."))
 ok("V46 seed covers all 49 pgAdmin tables",has("tools/seed-demo-49-tables-10-rows.sql","INSERT INTO trusted_device(","INSERT INTO security_alert(","Quick verification of all 49 tables") and has("tools/verify_seed_demo_49.py","Seed V46 49-table realistic-data verification"))

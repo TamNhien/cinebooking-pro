@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
@@ -63,9 +64,12 @@ check('V49 seed covers planning run and SMART provenance', 'INSERT INTO showtime
 check('V49 53-table realistic-data verifier exists', 'showtime_planning_run' in seed_verify and '53 pgAdmin tables' in seed_verify and '36/36' not in seed_verify)
 check('Integration test expects Flyway V49 and 53 public tables', (('flywayMigratesRealPostgresToV49SmartShowtimePlanningSchemaAndCatalog' in integration and 'assertThat(latest).isEqualTo("49")' in integration and 'isGreaterThanOrEqualTo(53)' in integration) or ('flywayMigratesRealPostgresToV50RecommendationIntelligenceSchemaAndCatalog' in integration and 'assertThat(latest).isEqualTo("50")' in integration and 'isGreaterThanOrEqualTo(54)' in integration) or ('flywayMigratesRealPostgresToV51AnalyticsForecastingSchemaAndCatalog' in integration and 'assertThat(latest).isEqualTo("51")' in integration and 'isGreaterThanOrEqualTo(56)' in integration) or ('flywayMigratesRealPostgresToV52PwaMobileExperienceSchemaAndCatalog' in integration and 'assertThat(latest).isEqualTo("52")' in integration and 'isGreaterThanOrEqualTo(57)' in integration)))
 check('Integration test checks V49 table columns and indexes', all(x in integration for x in ['planningV49Table','planningV49ShowtimeColumns','planningV49Indexes','showtime_planning_run']))
-check('Main CI includes V49 source and 53-table gates', ('V26-V49 source regression' in ci or 'V26-V50 source regression' in ci or 'V26-V51 source regression' in ci or 'V26-V52 source regression' in ci) and 'verify_v49_smart_showtime_planning_2.py' in ci and 'verify_seed_demo_53.py' in ci)
-check('Standalone RC defaults to V49 and keeps V49 gate', (('v49.0.0-rc.1' in rc and 'cinebooking_v49_rc_' in rc) or ('v50.0.0-rc.1' in rc and 'cinebooking_v50_rc_' in rc) or ('v51.0.0-rc.1' in rc and 'cinebooking_v51_rc_' in rc) or ('v52.0.0-rc.1' in rc and 'cinebooking_v52_rc_' in rc)) and 'verify_v49_smart_showtime_planning_2.py' in rc)
-check('Stable release defaults to 49.0.0 and keeps V49 gate', (('default: "49.0.0"' in release and 'cinebooking_v49_release_' in release) or ('default: "50.0.0"' in release and 'cinebooking_v50_release_' in release) or ('default: "51.0.0"' in release and 'cinebooking_v51_release_' in release) or ('default: "52.0.0"' in release and 'cinebooking_v52_release_' in release)) and 'verify_v49_smart_showtime_planning_2.py' in release)
+ci_versions=[int(v) for v in re.findall(r'V26-V(\d+) source regression',ci)]
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('Main CI includes V49 source and 53-table gates', bool(ci_versions) and max(ci_versions)>=49 and 'verify_v49_smart_showtime_planning_2.py' in ci and 'verify_seed_demo_53.py' in ci)
+check('Standalone RC defaults to V49-or-newer and keeps V49 gate', bool(rc_versions) and max(rc_versions)>=49 and 'verify_v49_smart_showtime_planning_2.py' in rc)
+check('Stable release defaults to V49-or-newer and keeps V49 gate', bool(release_versions) and max(release_versions)>=49 and 'verify_v49_smart_showtime_planning_2.py' in release)
 check('Makefile exposes V49 verify diagnose seed and reference targets', all(x in make for x in ['verify-v49:','diagnose-v49:','seed-demo-v49:','verify-reference-v49:','seed-reference-v49:']))
 check('V49 diagnostics chains V46 V47 V48 V49 and 53-table seed', all(x in diagnose for x in ['verify_v46_security_account_protection.py','verify_v47_payment_gateway_operations.py','verify_v48_concession_inventory_2.py','verify_v49_smart_showtime_planning_2.py','verify_seed_demo_53.py']))
 check('README identifies V49 Smart Showtime Planning 2.0', 'V49 - Smart Showtime Planning 2.0' in readme and 'V49__smart_showtime_planning_2.sql' in readme)
