@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 checks=[]
@@ -30,10 +31,18 @@ ok("Frontend types include V45 contracts",has("frontend/lib/types.ts","SupportCa
 ok("Header links customer support",has("frontend/components/Header.tsx","href=\"/support\"","href=\"/admin/support\""))
 ok("Admin dashboard links support operations",has("frontend/app/admin/page.tsx","/admin/support","Hỗ trợ khách hàng"))
 ok("V45 Playwright covers create and resolve journey",has("frontend/e2e/customer-support.spec.ts","V45 customer opens a support case","Nhận xử lý","Giải quyết"))
-ok("Integration test retains V45 schema coverage on current Flyway",has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","customer_support_case","trg_v45_support_event_immutable") and (has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"45\")") or has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"46\")") or has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"47\")") or has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"48\")") or has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"49\")") or has("backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java","isEqualTo(\"50\")")))
-ok("Main CI retains V45 verifier in current regression",has(".github/workflows/ci.yml","verify_v45_customer_support.py") and (has(".github/workflows/ci.yml","V26-V45 source regression") or has(".github/workflows/ci.yml","V26-V46 source regression") or has(".github/workflows/ci.yml","V26-V47 source regression") or has(".github/workflows/ci.yml","V26-V48 source regression") or has(".github/workflows/ci.yml","V26-V49 source regression") or has(".github/workflows/ci.yml","V26-V50 source regression")))
-ok("Standalone RC retains V45 verifier in current source gate",has(".github/workflows/release-candidate.yml","verify_v45_customer_support.py") and (has(".github/workflows/release-candidate.yml","Verify V45 source gate") or has(".github/workflows/release-candidate.yml","Verify V46 source gate") or has(".github/workflows/release-candidate.yml","Verify V47 source gate") or has(".github/workflows/release-candidate.yml","Verify V48 source gate") or has(".github/workflows/release-candidate.yml","Verify V49 source gate") or has(".github/workflows/release-candidate.yml","Verify V50 source gate")))
-ok("Stable release retains V45 verifier in current source gate",has(".github/workflows/release.yml","verify_v45_customer_support.py") and (has(".github/workflows/release.yml","default: \"45.0.0\"") or has(".github/workflows/release.yml","default: \"46.0.0\"") or has(".github/workflows/release.yml","default: \"47.0.0\"") or has(".github/workflows/release.yml","default: \"48.0.0\"") or has(".github/workflows/release.yml","default: \"49.0.0\"") or has(".github/workflows/release.yml","default: \"50.0.0\"")))
+integration_text=(ROOT/"backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java").read_text(encoding="utf-8")
+flyway_versions=[int(v) for v in re.findall(r'isEqualTo\("(\d+)"\)', integration_text)]
+ok("Integration test retains V45 schema coverage on current Flyway", "customer_support_case" in integration_text and "trg_v45_support_event_immutable" in integration_text and bool(flyway_versions) and max(flyway_versions)>=45)
+ci_text=(ROOT/".github/workflows/ci.yml").read_text(encoding="utf-8")
+ci_versions=[int(v) for v in re.findall(r'V26-V(\d+) source regression', ci_text)]
+ok("Main CI retains V45 verifier in current regression", "verify_v45_customer_support.py" in ci_text and bool(ci_versions) and max(ci_versions)>=45)
+rc_text=(ROOT/".github/workflows/release-candidate.yml").read_text(encoding="utf-8")
+rc_versions=[int(v) for v in re.findall(r'Verify V(\d+) source gate', rc_text)]
+ok("Standalone RC retains V45 verifier in current source gate", "verify_v45_customer_support.py" in rc_text and bool(rc_versions) and max(rc_versions)>=45)
+release_text=(ROOT/".github/workflows/release.yml").read_text(encoding="utf-8")
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"', release_text)]
+ok("Stable release retains V45 verifier in current source gate", "verify_v45_customer_support.py" in release_text and bool(release_versions) and max(release_versions)>=45)
 ok("Makefile exposes V45 verify and diagnose",has("Makefile","verify-v45:","diagnose-v45:"))
 ok("V45 diagnostics chains V44 and V45",has("tools/diagnose-v45.ps1","verify_v44_maintenance_reliability.py","verify_v45_customer_support.py","V45 source diagnostics passed."))
 
