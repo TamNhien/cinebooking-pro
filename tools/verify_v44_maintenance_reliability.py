@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -60,13 +61,21 @@ check("Frontend types include V44 maintenance contracts", all(x in types for x i
 check("Header exposes maintenance to Manager/Admin", "/admin/maintenance" in header and "Bảo trì & thiết bị" in header)
 check("V44 Playwright covers asset and work-order resolution", all(x in e2e for x in ["V44 admin registers equipment","Thêm thiết bị","Tạo work order","IN_PROGRESS","RESOLVED","Lịch sử"]))
 check("V44 unit tests cover lifecycle rules", all(x in unit for x in ["openCanStartBlockOrCancel","terminalStatesAreImmutable","openStatusSetMatchesSlaQueries"]))
-check("Integration test retains V44 schema coverage on current Flyway", "maintenanceV44Tables" in integration and any(x in integration for x in ['isEqualTo("44")','isEqualTo("45")','isEqualTo("46")','isEqualTo("47")','isEqualTo("48")','isEqualTo("49")','isEqualTo("50")']))
+latest_match=re.search(r'assertThat\(latest\)\.isEqualTo\("(\d+)"\)', integration)
+latest_version=int(latest_match.group(1)) if latest_match else -1
+check("Integration test retains V44 schema coverage on current Flyway", "maintenanceV44Tables" in integration and latest_version >= 44)
 check("Integration test validates V44 tables, indexes and immutable trigger", all(x in integration for x in ["maintenanceV44Tables","maintenanceV44Indexes","maintenanceV44Trigger","trg_v44_maintenance_event_immutable"]))
-check("README retains V44 release history", all(x in readme for x in ["### V44 - Cinema Maintenance & Asset Reliability 2.0","V44__cinema_maintenance_asset_reliability.sql"]))
+check("README retains V44 release history", any(h in readme for h in ["## V44 - Cinema Maintenance & Asset Reliability 2.0","### V44 - Cinema Maintenance & Asset Reliability 2.0"]) and "V44__cinema_maintenance_asset_reliability.sql" in readme)
 check("README version history maps V44 migration", "V44__cinema_maintenance_asset_reliability.sql" in readme)
-check("Main CI keeps V44 in source regression", "python3 tools/verify_v44_maintenance_reliability.py" in ci and ("name: V26-V44 source regression" in ci or "name: V26-V45 source regression" in ci or "name: V26-V46 source regression" in ci or "name: V26-V47 source regression" in ci or "name: V26-V48 source regression" in ci or "name: V26-V49 source regression" in ci or "name: V26-V50 source regression" in ci))
-check("Standalone RC keeps V44 verifier in current source gate", "verify_v44_maintenance_reliability.py" in rc and ("Verify V44 source gate" in rc or "Verify V45 source gate" in rc or "Verify V46 source gate" in rc or "Verify V47 source gate" in rc or "Verify V48 source gate" in rc or "Verify V49 source gate" in rc or "Verify V50 source gate" in rc))
-check("Stable release keeps V44 verifier in current source gate", "verify_v44_maintenance_reliability.py" in release and ("Verify V44 source gate" in release or "Verify V45 source gate" in release or "Verify V46 source gate" in release or "Verify V47 source gate" in release or "Verify V48 source gate" in release or "Verify V49 source gate" in release or "Verify V50 source gate" in release))
+ci_regression_match=re.search(r'name:\s*V26-V(\d+) source regression', ci)
+ci_regression_version=int(ci_regression_match.group(1)) if ci_regression_match else -1
+check("Main CI keeps V44 in source regression", "python3 tools/verify_v44_maintenance_reliability.py" in ci and ci_regression_version >= 44)
+rc_gate_match=re.search(r'Verify V(\d+) source gate', rc)
+rc_gate_version=int(rc_gate_match.group(1)) if rc_gate_match else -1
+check("Standalone RC keeps V44 verifier in current source gate", "verify_v44_maintenance_reliability.py" in rc and rc_gate_version >= 44)
+release_gate_match=re.search(r'Verify V(\d+) source gate', release)
+release_gate_version=int(release_gate_match.group(1)) if release_gate_match else -1
+check("Stable release keeps V44 verifier in current source gate", "verify_v44_maintenance_reliability.py" in release and release_gate_version >= 44)
 check("Stable release still publishes immutable GitHub Release", all(x in release for x in ["Create immutable RC tag","Publish stable tag and GitHub Release",'gh release create "$STABLE_TAG"']))
 check("Makefile exposes V44 verify and diagnose", "verify-v44:" in make and "diagnose-v44:" in make and "verify_v44_maintenance_reliability.py" in make)
 check("V44 diagnostics chains V43 and V44", all(x in diag for x in ["verify_v43_staff_operations.py","verify_v43_analytics_excel_detail.py","verify_v43_analytics_csv_detail.py","verify_v44_maintenance_reliability.py","v44.0.0-rc.N"]))
