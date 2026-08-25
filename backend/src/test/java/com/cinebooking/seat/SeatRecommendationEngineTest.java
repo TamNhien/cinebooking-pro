@@ -19,7 +19,10 @@ class SeatRecommendationEngineTest {
         List<SeatSuggestion> suggestions = engine.suggest(seats, 2, 5);
         assertThat(suggestions).isNotEmpty();
         assertThat(suggestions.getFirst().seatCodes()).containsExactly("D5", "D6");
-        assertThat(suggestions.getFirst().reason()).contains("liền nhau").contains("trung tâm");
+        assertThat(suggestions.getFirst().reason()).contains("liền nhau").contains("trung tâm").contains("ghế trống đơn");
+        assertThat(suggestions.getFirst().centerScore()).isGreaterThanOrEqualTo(90);
+        assertThat(suggestions.getFirst().orphanSafetyScore()).isEqualTo(100);
+        assertThat(suggestions.getFirst().qualityLabel()).isIn("BEST", "GREAT");
     }
 
     @Test

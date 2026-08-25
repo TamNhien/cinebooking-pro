@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Stable semantic version without v prefix (example: 56.0.0)"
+        description: "Stable semantic version without v prefix (example: 57.0.0)"
         required: true
-        default: "56.0.0"
+        default: "57.0.0"
       rc_number:
         description: "Release-candidate sequence number"
         required: true
@@ -162,7 +162,7 @@ jobs:
       VCS_REF: ${{ github.sha }}
       HTTP_PORT: "18080"
       POSTGRES_PORT: "15433"
-      COMPOSE_PROJECT_NAME: cinebooking_v56_release_${{ github.run_id }}
+      COMPOSE_PROJECT_NAME: cinebooking_v57_release_${{ github.run_id }}
       JWT_SECRET: v47-release-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
     steps:
       - name: Checkout exact RC commit
@@ -170,7 +170,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Verify V56 source gate
+      - name: Verify V57 source gate
         run: |
           python3 tools/verify_v43_staff_operations.py
           python3 tools/verify_v43_analytics_excel_detail.py
@@ -195,6 +195,7 @@ jobs:
           python3 tools/verify_v54_performance_benchmarking.py
           python3 tools/verify_v55_customer_retention.py
           python3 tools/verify_v56_customer_value_rfm.py
+          python3 tools/verify_v57_booking_seat_intelligence.py
 
       - name: Docker diagnostics
         run: |

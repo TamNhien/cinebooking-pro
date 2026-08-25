@@ -78,7 +78,9 @@ rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
 check('Standalone RC defaults to V56-or-newer and runs V56 gate', bool(rc_versions) and max(rc_versions)>=56 and 'verify_v56_customer_value_rfm.py' in rc)
 release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
 check('Stable release defaults to V56-or-newer and runs V56 gate', bool(release_versions) and max(release_versions)>=56 and 'verify_v56_customer_value_rfm.py' in release)
-check('Release compose project namespaces move to V56', 'cinebooking_v56_rc_' in rc and 'cinebooking_v56_release_' in release)
+rc_namespaces=[int(v) for v in re.findall(r'cinebooking_v(\d+)_rc_',rc)]
+release_namespaces=[int(v) for v in re.findall(r'cinebooking_v(\d+)_release_',release)]
+check('Release compose project namespaces remain V56-or-newer', bool(rc_namespaces) and max(rc_namespaces)>=56 and bool(release_namespaces) and max(release_namespaces)>=56)
 check('Makefile exposes V56 verify diagnose and unchanged 57-table lifecycle', all(x in make for x in ['verify-v56:','diagnose-v56:','verify-seed-demo-v56:','check-seed-demo-v56:','verify-reference-v56:','seed-reference-v56:']))
 check('V56 diagnostics chain V55 V56 and 57-table verifier', all(x in diagnose for x in ['verify_v55_customer_retention.py','verify_v56_customer_value_rfm.py','verify_seed_demo_57.py','V56 source diagnostics passed.']))
 current_match=re.search(r'^# CineBooking Pro V(\d+)',readme,re.M)

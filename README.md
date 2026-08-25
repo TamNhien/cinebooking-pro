@@ -1,13 +1,13 @@
-# CineBooking Pro V56
+# CineBooking Pro V57
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V56 - Customer Value & RFM Intelligence 3.0
+> **Current release:** V57 - Booking & Seat Intelligence 3.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V56 bổ sung Customer Value & RFM Intelligence 3.0 cho Manager/Admin: realized customer value, RFM relative ranking, revenue concentration và privacy-safe top-customer reference từ booking CONFIRMED + payment SUCCESS thật. V56 giữ nguyên Retention V55, không tạo migration mới, không dự đoán CLV tương lai và không seed KPI giả.
+V57 bám đúng roadmap Booking & Seat Intelligence 3.0: gợi ý ghế đẹp nhất, xếp nhóm ghế liền nhau, tránh ghế trống đơn, countdown giữ ghế realtime đồng bộ server, chống tranh ghế nhiều client bằng Redis Lua atomic hold và hiển thị dynamic seat pricing thật trước khi giữ ghế. V57 không tạo migration mới và giữ nguyên contract 57 public tables.
 
 ## Quy ước chạy lệnh
 
@@ -91,6 +91,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V54** | **Multi-Cinema Performance Benchmarking 3.0: equal-window growth, branch revenue ranking/share, occupancy, top movies, V51 forecast reuse** | **Không đổi schema** |
 | **V55** | **Customer Retention & Cohort Intelligence 3.0: new/returning customers, repeat rate, lifecycle segmentation, 30-day cohort retention** | **Không đổi schema** |
 | **V56** | **Customer Value & RFM Intelligence 3.0: realized lifetime revenue, RFM quintiles, value concentration, privacy-safe top customers** | **Không đổi schema** |
+| **V57** | **Booking & Seat Intelligence 3.0: best-seat ranking, contiguous groups, orphan-seat guard, realtime hold countdown, atomic contention, dynamic pricing transparency** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2684,4 +2685,91 @@ v56.0.0
 ```
 
 Nếu RC1 đã trỏ tới commit cũ, tăng `rc_number` lên 2, 3, ...; không force-update tag RC đã phát hành.
+
+## V57 - Booking & Seat Intelligence 3.0
+
+V57 bám đúng roadmap **Booking & Seat Intelligence 3.0** và nâng lớp Seat Map/Booking UX hiện có thành một contract minh bạch, realtime và chống tranh chấp tốt hơn. V57 tái sử dụng schema/logic nền đã có từ V18 Dynamic Pricing, V24 contention hardening và V39 Seat Map UX; không tạo dữ liệu ghế hoặc giá giả.
+
+### Phạm vi V57
+
+- **Ghế đẹp nhất:** engine xếp hạng deterministic theo khoảng cách tới trung tâm hàng, chất lượng hàng, loại ghế và inventory preservation.
+- **Nhóm ghế liền nhau:** chỉ gợi ý cụm ghế AVAILABLE liên tiếp đúng `partySize`, tối đa theo `app.seat-selection.max-seats`.
+- **Tránh ghế trống đơn:** selection validation so sánh orphan-seat trước/sau và chỉ chặn orphan mới do lựa chọn hiện tại tạo ra.
+- **Seat hold countdown realtime:** API trả `serverEpochMs` + `holdExpiresAtEpochMs`; frontend tính countdown theo mốc hết hạn server, tick 250ms và resync Redis định kỳ.
+- **Chống tranh ghế nhiều client:** Redis Lua `ACQUIRE` kiểm tra toàn bộ key trước khi set, nên cùng một cụm ghế chỉ một user thắng; client còn lại nhận HTTP `409`.
+- **Dynamic seat pricing:** suggestion và seat map dùng đúng `PricingService.PriceQuote`; UI hiển thị `dynamicAdjustment`/pricing rule thực, không sinh giá giả.
+- **Minh bạch ranking:** suggestion trả `score`, `centerScore`, `rowScore`, `orphanSafetyScore`, `qualityLabel` và `reason` để UI giải thích vì sao một cụm ghế được xếp hạng cao.
+
+### Database / migration V57
+
+**V57 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Schema contract giữ nguyên:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+### API / contract V57
+
+```text
+GET    /api/showtimes/{showtimeId}/seats
+GET    /api/showtimes/{showtimeId}/seat-suggestions?count=2
+POST   /api/showtimes/{showtimeId}/selection-validation
+POST   /api/showtimes/{showtimeId}/holds
+DELETE /api/showtimes/{showtimeId}/holds
+```
+
+`SeatMapResponse`/`HoldResponse` trả thêm server clock + absolute hold expiry để countdown không phụ thuộc drift đồng hồ client. `SeatSuggestion` trả breakdown ranking và `dynamicAdjustment` thực.
+
+### Test source V57
+
+```powershell
+python .\tools\verify_v39_seat_map_ux.py
+python .\tools\verify_v56_customer_value_rfm.py
+python .\tools\verify_v57_booking_seat_intelligence.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v57.ps1
+```
+
+Kỳ vọng gate mới:
+
+```text
+V57 verification: 70/70 checks passed
+```
+
+### Test bảng V57
+
+V57 không đổi schema nên tiếp tục:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng: `57 public tables`, Flyway latest `V52`, UTF-8 PASS.
+
+### CI / release V57
+
+Main CI chạy source regression **V26-V57** và browser E2E thêm `booking-seat-intelligence-v57.spec.ts`. Build/Maven/Playwright vẫn để GitHub Actions chạy trên disposable stack.
+
+Release candidate mặc định:
+
+```text
+v57.0.0-rc.1
+```
+
+Stable:
+
+```text
+v57.0.0
+```
+
+Nếu RC1 đã trỏ tới commit khác, tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
 

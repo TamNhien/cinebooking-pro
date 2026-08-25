@@ -36,8 +36,8 @@ export type Showtime = {
   planningScore?:number;
 };
 export type Seat = { id:string; code:string; rowLabel:string; seatNumber:number; seatType:string; basePrice:number; seatModifier:number; dynamicAdjustment:number; price:number; pricingRules:string[]; status:"AVAILABLE"|"HELD"|"BOOKED"|"BLOCKED"; heldByMe:boolean };
-export type SeatMap = { showtimeId:string; holdTtlSeconds:number; holdRemainingSeconds:number; maxSelectableSeats:number; preventSingleGap:boolean; seats:Seat[] };
-export type SeatSuggestion = { seatIds:string[]; seatCodes:string[]; totalPrice:number; score:number; reason:string };
+export type SeatMap = { showtimeId:string; holdTtlSeconds:number; holdRemainingSeconds:number; serverEpochMs:number; holdExpiresAtEpochMs:number; maxSelectableSeats:number; preventSingleGap:boolean; seats:Seat[] };
+export type SeatSuggestion = { seatIds:string[]; seatCodes:string[]; totalPrice:number; dynamicAdjustment:number; score:number; centerScore:number; rowScore:number; orphanSafetyScore:number; qualityLabel:"BEST"|"GREAT"|"GOOD"|string; reason:string };
 export type SeatSuggestionResponse = { showtimeId:string; requestedCount:number; suggestions:SeatSuggestion[] };
 export type SeatSelectionValidation = { allowed:boolean; orphanSeatCodes:string[]; message:string };
 export type BookingSeat = { seatId:string; code:string; price:number };

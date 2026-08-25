@@ -8,8 +8,9 @@ import java.util.*;
 import static com.cinebooking.seat.SeatDtos.*;
 
 /**
- * V39 pure seat-selection policy/ranking engine. The engine deliberately works on the public seat-map
- * projection so recommendation and hold validation use the same availability semantics.
+ * V57 Booking & Seat Intelligence 3.0 policy/ranking engine.
+ * The recommendation is deterministic and transparent: contiguous availability, center distance,
+ * row distance, orphan-seat protection and the real dynamic price already exposed by the seat map.
  */
 @Component
 public class SeatRecommendationEngine {
@@ -21,7 +22,7 @@ public class SeatRecommendationEngine {
         Map<String,List<SeatResponse>> rows = groupRows(seats);
         Set<String> before = orphanCodes(rows, Set.of());
         Set<String> after = orphanCodes(rows, selected);
-        after.removeAll(before); // do not punish a user for a pre-existing single gap.
+        after.removeAll(before); // never punish a customer for a pre-existing single gap.
         List<String> newOrphans = after.stream().sorted(this::naturalSeatCompare).toList();
         if (newOrphans.isEmpty()) return new SelectionValidationResponse(true, List.of(), "OK");
         return new SelectionValidationResponse(false, newOrphans,
@@ -48,30 +49,37 @@ public class SeatRecommendationEngine {
 
                 double seatCenter = (row.get(0).seatNumber() + row.get(row.size()-1).seatNumber()) / 2.0;
                 double groupCenter = group.stream().mapToInt(SeatResponse::seatNumber).average().orElse(seatCenter);
-                int score = 1000;
-                score -= (int)Math.round(Math.abs(groupCenter-seatCenter)*18);
-                score -= (int)Math.round(Math.abs(rowIndex-rowCenter)*12);
+                double seatDistance = Math.abs(groupCenter-seatCenter);
+                double rowDistance = Math.abs(rowIndex-rowCenter);
+                int centerScore = clamp(100 - (int)Math.round(seatDistance*18));
+                int rowScore = clamp(100 - (int)Math.round(rowDistance*12));
+                int orphanSafetyScore = 100; // candidate already passed validate(...).
+
                 long accessible = group.stream().filter(s -> "ACCESSIBLE".equals(s.seatType())).count();
                 long couple = group.stream().filter(s -> "COUPLE".equals(s.seatType())).count();
-                score -= (int)(accessible*120); // preserve accessible inventory unless it is truly best/needed.
-                if (count==1) score -= (int)(couple*35);
                 long vip = group.stream().filter(s -> "VIP".equals(s.seatType())).count();
-                score += (int)(vip*8);
+                int inventoryPenalty = (int)(accessible*120) + (count==1 ? (int)(couple*35) : 0); // preserve accessible inventory unless explicitly needed.
+                int score = 700 + centerScore + rowScore + orphanSafetyScore - inventoryPenalty + (int)(vip*8);
 
                 BigDecimal total = group.stream().map(SeatResponse::price).reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal dynamic = group.stream().map(SeatResponse::dynamicAdjustment).reduce(BigDecimal.ZERO, BigDecimal::add);
                 List<UUID> seatIds = group.stream().map(SeatResponse::id).toList();
                 List<String> codes = group.stream().map(SeatResponse::code).toList();
-                String reason = "Hàng " + rowName + " · " + count + " ghế liền nhau · gần trung tâm";
-                candidates.add(new SeatSuggestion(seatIds,codes,total,score,reason));
+                String quality = score >= 975 ? "BEST" : score >= 930 ? "GREAT" : "GOOD";
+                String reason = "V57 · Hàng " + rowName + " · " + count + " ghế liền nhau · gần trung tâm · không tạo ghế trống đơn";
+                candidates.add(new SeatSuggestion(seatIds,codes,total,dynamic,score,centerScore,rowScore,orphanSafetyScore,quality,reason));
             }
         }
 
         return candidates.stream()
                 .sorted(Comparator.comparingInt(SeatSuggestion::score).reversed()
+                        .thenComparing(SeatSuggestion::totalPrice)
                         .thenComparing(x -> String.join(",",x.seatCodes())))
                 .limit(safeLimit)
                 .toList();
     }
+
+    private int clamp(int value) { return Math.max(0, Math.min(100, value)); }
 
     private Map<String,List<SeatResponse>> groupRows(List<SeatResponse> seats) {
         Map<String,List<SeatResponse>> rows = new LinkedHashMap<>();
@@ -112,7 +120,5 @@ public class SeatRecommendationEngine {
     private boolean isUnavailableAfterSelection(SeatResponse s, Set<UUID> selected) {
         return selected.contains(s.id()) || !"AVAILABLE".equals(s.status());
     }
-    private int naturalSeatCompare(String a,String b) {
-        return a.compareToIgnoreCase(b);
-    }
+    private int naturalSeatCompare(String a,String b) { return a.compareToIgnoreCase(b); }
 }

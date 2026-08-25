@@ -46,8 +46,12 @@ public class SeatService {
         Showtime showtime = requireShowtime(showtimeId);
         List<SeatResponse> result = seatResponses(showtime,currentUserId);
         List<UUID> mine = result.stream().filter(SeatResponse::heldByMe).map(SeatResponse::id).toList();
+        long now = System.currentTimeMillis();
         long remaining = holds.remainingSeconds(showtimeId,mine,currentUserId);
-        return new SeatMapResponse(showtimeId, holds.ttlSeconds(), remaining, maxSelectableSeats, preventSingleGap, result);
+        long remainingMs = holds.remainingMillis(showtimeId,mine,currentUserId);
+        long expiresAt = remainingMs <= 0 ? 0 : now + remainingMs;
+        return new SeatMapResponse(showtimeId, holds.ttlSeconds(), remaining, now, expiresAt,
+                maxSelectableSeats, preventSingleGap, result);
     }
 
     public SeatSuggestionResponse suggestions(UUID showtimeId, int count, UUID currentUserId) {
@@ -87,7 +91,10 @@ public class SeatService {
         boolean ok = holds.acquire(showtimeId, unique, userId);
         if (!ok) throw new ApiException(HttpStatus.CONFLICT,"Có ghế đang được người khác giữ");
         events.publish(showtimeId,"HELD",unique);
-        return new HoldResponse(true, holds.ttlSeconds(), unique);
+        long now = System.currentTimeMillis();
+        long remainingMs = holds.remainingMillis(showtimeId,unique,userId);
+        long expiresAt = remainingMs <= 0 ? now + holds.ttlSeconds()*1000L : now + remainingMs;
+        return new HoldResponse(true, holds.ttlSeconds(), now, expiresAt, unique);
     }
 
     public void release(UUID showtimeId, List<UUID> seatIds, UUID userId) {
