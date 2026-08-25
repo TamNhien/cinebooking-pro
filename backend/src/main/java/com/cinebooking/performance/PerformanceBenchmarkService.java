@@ -242,11 +242,11 @@ public class PerformanceBenchmarkService {
         List<Object> paymentArgs = new ArrayList<>(List.of(Date.valueOf(from), Date.valueOf(toExclusive)));
         if (cinemaId != null) paymentArgs.add(cinemaId);
         jdbc.query(
-                "select date(p.paid_at at time zone 'Asia/Ho_Chi_Minh') day,coalesce(sum(p.amount),0) revenue " +
+                "select date(p.paid_at at time zone 'Asia/Ho_Chi_Minh') as metric_date,coalesce(sum(p.amount),0) revenue " +
                         "from payment p join booking b on b.id=p.booking_id join showtime st on st.id=b.showtime_id join auditorium a on a.id=st.auditorium_id " +
                         "where p.status='SUCCESS' and date(p.paid_at at time zone 'Asia/Ho_Chi_Minh')>=? " +
                         "and date(p.paid_at at time zone 'Asia/Ho_Chi_Minh')<?" + paymentFilter + " group by 1 order by 1",
-                (RowCallbackHandler) rs -> revenue.put(rs.getObject("day", LocalDate.class), money(rs.getBigDecimal("revenue"))),
+                (RowCallbackHandler) rs -> revenue.put(rs.getObject("metric_date", LocalDate.class), money(rs.getBigDecimal("revenue"))),
                 paymentArgs.toArray()
         );
 
@@ -254,12 +254,12 @@ public class PerformanceBenchmarkService {
         List<Object> bookingArgs = new ArrayList<>(List.of(Date.valueOf(from), Date.valueOf(toExclusive)));
         if (cinemaId != null) bookingArgs.add(cinemaId);
         jdbc.query(
-                "select date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh') day,count(distinct b.id) bookings,count(bs.id) tickets " +
+                "select date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh') as metric_date,count(distinct b.id) bookings,count(bs.id) tickets " +
                         "from booking b join showtime st on st.id=b.showtime_id join auditorium a on a.id=st.auditorium_id " +
                         "left join booking_seat bs on bs.booking_id=b.id and bs.released_at is null " +
                         "where b.status='CONFIRMED' and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')>=? " +
                         "and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')<?" + paymentFilter + " group by 1 order by 1",
-                (RowCallbackHandler) rs -> volume.put(rs.getObject("day", LocalDate.class), new long[]{rs.getLong("bookings"), rs.getLong("tickets")}),
+                (RowCallbackHandler) rs -> volume.put(rs.getObject("metric_date", LocalDate.class), new long[]{rs.getLong("bookings"), rs.getLong("tickets")}),
                 bookingArgs.toArray()
         );
 
