@@ -26,6 +26,9 @@ export default function MobileCenterPage(){
 
   async function load(){
     if(!auth)return;
+    // Register/upsert the current browser first so the device list cannot race
+    // the global PwaManager background sync on a freshly authenticated session.
+    await registerCurrentPwaDevice();
     const [cfg,ds,tickets,estimate]=await Promise.all([pushConfig(),listPwaDevices(),listOfflineTickets(auth.userId),storageEstimate()]);
     setConfig(cfg);setDevices(ds);setOfflineCount(tickets.length);setStaleCount(tickets.filter(t=>t.syncState==="STALE").length);
     setUsage(estimate?.usage);setQuota(estimate?.quota);
