@@ -234,3 +234,13 @@ export type RetentionScorecardV55 = {
   activeCustomers:number; newCustomers:number; returningCustomers:number; repeatCustomers:number; repeatCustomerRate:number; bookings:number; bookingsPerCustomer:number;
   revenue:number; revenuePerCustomer:number; lifecycle:RetentionLifecycleV55[]; cohorts:RetentionCohortV55[]; daily:RetentionDailyV55[];
 };
+
+export type CustomerValueCinemaV56 = { cinemaId:string; cinemaName:string };
+export type CustomerValueRfmSegmentV56 = { code:"CHAMPIONS"|"LOYAL"|"NEW_RECENT"|"HIGH_VALUE"|"NEEDS_ATTENTION"|"DEVELOPING"; label:string; definition:string; customers:number; realizedLifetimeRevenue:number; revenueShare:number };
+export type CustomerValueBandV56 = { code:"TOP_10"|"NEXT_15"|"MIDDLE_25"|"LONG_TAIL"; label:string; definition:string; customers:number; realizedLifetimeRevenue:number; revenueShare:number };
+export type CustomerValueRowV56 = { customerRef:string; firstBookingDate:string; lastBookingDate:string; recencyDays:number; lifetimeBookings:number; realizedLifetimeRevenue:number; recencyScore:number; frequencyScore:number; monetaryScore:number; rfmTotal:number; segment:CustomerValueRfmSegmentV56["code"] };
+export type CustomerValueScorecardV56 = {
+  cinemaId?:string; cinemaName:string; scope:"ALL_CINEMAS"|"CINEMA"; periodDays:90|365; fromDate:string; toDate:string; generatedAt:string;
+  activeCustomers:number; periodRevenue:number; activeBaseLifetimeRevenue:number; averageLifetimeRevenue:number; averageLifetimeBookings:number; medianRecencyDays:number; top10RevenueShare:number;
+  rfmSegments:CustomerValueRfmSegmentV56[]; valueBands:CustomerValueBandV56[]; topCustomers:CustomerValueRowV56[];
+};

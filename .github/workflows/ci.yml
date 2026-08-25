@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V55 source regression
+    name: V26-V56 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -309,6 +309,9 @@ jobs:
 
       - name: Verify V55 Customer Retention & Cohort Intelligence 3.0
         run: python3 tools/verify_v55_customer_retention.py
+
+      - name: Verify V56 Customer Value & RFM Intelligence 3.0
+        run: python3 tools/verify_v56_customer_value_rfm.py
 
   compose-config:
     name: Docker Compose validation

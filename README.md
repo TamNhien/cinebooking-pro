@@ -1,13 +1,13 @@
-# CineBooking Pro V55
+# CineBooking Pro V56
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V55 - Customer Retention & Cohort Intelligence 3.0
+> **Current release:** V56 - Customer Value & RFM Intelligence 3.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V55 bổ sung Customer Retention & Cohort Intelligence 3.0 cho Manager/Admin: khách mới/quay lại, repeat rate, lifecycle segments và cohort retention 30 ngày từ booking CONFIRMED + payment SUCCESS thật. V55 giữ nguyên Performance Benchmarking V54, không tạo migration mới, không dùng điểm churn tùy ý và không seed KPI giả.
+V56 bổ sung Customer Value & RFM Intelligence 3.0 cho Manager/Admin: realized customer value, RFM relative ranking, revenue concentration và privacy-safe top-customer reference từ booking CONFIRMED + payment SUCCESS thật. V56 giữ nguyên Retention V55, không tạo migration mới, không dự đoán CLV tương lai và không seed KPI giả.
 
 ## Quy ước chạy lệnh
 
@@ -90,6 +90,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V53** | **Operations Command Center 3.0: unified operational pulse, cinema scope, real-data attention signals, V51 forecast reuse** | **Không đổi schema** |
 | **V54** | **Multi-Cinema Performance Benchmarking 3.0: equal-window growth, branch revenue ranking/share, occupancy, top movies, V51 forecast reuse** | **Không đổi schema** |
 | **V55** | **Customer Retention & Cohort Intelligence 3.0: new/returning customers, repeat rate, lifecycle segmentation, 30-day cohort retention** | **Không đổi schema** |
+| **V56** | **Customer Value & RFM Intelligence 3.0: realized lifetime revenue, RFM quintiles, value concentration, privacy-safe top customers** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2591,3 +2592,96 @@ rc_number: 1
 ```
 
 Nếu `v55.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
+
+## V56 - Customer Value & RFM Intelligence 3.0
+
+V56 bổ sung lớp **customer value analytics read-only** cho Manager/Admin, tiếp nối V55 Retention nhưng tập trung vào giá trị đã thực sự phát sinh. V56 không dự đoán CLV tương lai, không gán xác suất churn bằng mô hình ẩn và không tạo customer/payment giả để làm đẹp dashboard.
+
+Trang mới:
+
+```text
+http://localhost/admin/customer-value
+```
+
+### Phạm vi V56
+
+- Admin xem **Toàn hệ thống** hoặc chọn một rạp cụ thể; Manager chỉ xem `staff_profile.cinema_id` của mình.
+- Tập khách active hỗ trợ cửa sổ **90 ngày** và **365 ngày**, dựa trên `booking.status='CONFIRMED'` + `confirmed_at` thật.
+- Chỉ `app_user.role='USER'` được tính. Ticket transfer vẫn quy hoạt động về `booking.purchaser_user_id` của người mua gốc.
+- Monetary chỉ lấy `payment.status='SUCCESS'`; **realized lifetime revenue** là tiền đã thu thật trong phạm vi rạp, không phải forecast CLV.
+- RFM = **Recency / Frequency / Monetary**. Mỗi chiều được xếp quintile tương đối 1-5 trong chính tập khách active hiện tại; recency thấp hơn là tốt hơn, frequency/monetary cao hơn là tốt hơn.
+- Segment V56 gồm `CHAMPIONS`, `LOYAL`, `NEW_RECENT`, `HIGH_VALUE`, `NEEDS_ATTENTION`, `DEVELOPING`. Các rule áp dụng theo thứ tự, loại trừ nhau và được hiển thị công khai trên UI.
+- Value bands chia theo thứ hạng realized lifetime revenue: `TOP_10`, `NEXT_15`, `MIDDLE_25`, `LONG_TAIL`; dashboard đồng thời tính revenue concentration của top ~10%.
+- Danh sách top customer chỉ hiển thị mã rút gọn dạng `KH-XXXXXXXX`; **không trả email/số điện thoại** trong contract V56.
+- Toàn bộ service V56 chỉ đọc bằng `JdbcTemplate`; không update booking/payment/user và không phát sinh automation marketing.
+
+### Database / migration V56
+
+**V56 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Schema contract giữ nguyên:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+### API V56
+
+```text
+GET /api/admin/customer-value/cinemas
+GET /api/admin/customer-value/scorecard?periodDays=90
+GET /api/admin/customer-value/scorecard?cinemaId=<uuid>&periodDays=365
+```
+
+`periodDays` chỉ nhận `90` hoặc `365` để source/UI/CI có cùng semantics.
+
+### Test source V56
+
+```powershell
+python .\tools\verify_v55_customer_retention.py
+python .\tools\verify_v56_customer_value_rfm.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v56.ps1
+```
+
+Kỳ vọng gate mới:
+
+```text
+V56 verification: 54/54 checks passed
+```
+
+### Test bảng V56
+
+V56 không đổi schema nên tiếp tục dùng 57-table gate:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng vẫn là `57 public tables`, Flyway latest `V52`, UTF-8 PASS và không có required table rỗng ngoài các bảng optional đã được policy cho phép.
+
+### CI / release V56
+
+Main CI chạy source regression **V26-V56**. Browser E2E có thêm journey V56 `customer-value-v56.spec.ts`; build/test trình duyệt vẫn để GitHub Actions chạy trên disposable stack.
+
+Release candidate mặc định:
+
+```text
+v56.0.0-rc.1
+```
+
+Stable:
+
+```text
+v56.0.0
+```
+
+Nếu RC1 đã trỏ tới commit cũ, tăng `rc_number` lên 2, 3, ...; không force-update tag RC đã phát hành.
+
