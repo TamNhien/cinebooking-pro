@@ -28,12 +28,13 @@ export default function Header(){
     if(!auth){setUnread(0);return;}
     let active=true;
     const refresh=()=>api<{unreadCount:number}>("/notifications/summary").then(r=>{if(active)setUnread(r.unreadCount)}).catch(()=>{});
-    refresh(); const t=setInterval(refresh,30000); return()=>{active=false;clearInterval(t)};
+    const pushed=()=>refresh();
+    window.addEventListener("cinebooking-push-delivered",pushed);
+    refresh(); const t=setInterval(refresh,30000); return()=>{active=false;clearInterval(t);window.removeEventListener("cinebooking-push-delivered",pushed)};
   },[auth?.userId]);
 
-  // V22: browser notifications without storing a push credential. This deliberately
-  // works while CineBooking is open; true background Web Push can be added later
-  // with VAPID without changing the preference model/API.
+  // V52 keeps the V41 foreground polling path as a compatibility fallback.
+  // When VAPID Web Push is active, the service worker advances the same cursor to prevent duplicate system notifications.
   useEffect(()=>{
     if(!auth || typeof window==="undefined" || typeof window.Notification==="undefined")return;
     let active=true;
@@ -54,9 +55,16 @@ export default function Header(){
         localStorage.setItem(key,new Date(newest).toISOString());
       }catch{}
     };
+    const onServiceWorkerMessage=(event:MessageEvent)=>{
+      const data=event.data||{};
+      if(data.type!=="CINEBOOKING_PUSH_DELIVERED")return;
+      if(data.createdAt){const at=new Date(data.createdAt).getTime();if(Number.isFinite(at))localStorage.setItem(key,new Date(at+1).toISOString());}
+      window.dispatchEvent(new Event("cinebooking-push-delivered"));
+    };
+    navigator.serviceWorker?.addEventListener("message",onServiceWorkerMessage);
     poll(); const t=setInterval(poll,30000);
     const changed=()=>poll(); window.addEventListener("notification-preferences-changed",changed);
-    return()=>{active=false;clearInterval(t);window.removeEventListener("notification-preferences-changed",changed)};
+    return()=>{active=false;clearInterval(t);navigator.serviceWorker?.removeEventListener("message",onServiceWorkerMessage);window.removeEventListener("notification-preferences-changed",changed)};
   },[auth?.userId]);
 
   // Any navigation change closes every transient menu.
@@ -122,6 +130,7 @@ export default function Header(){
               <Link onClick={close} href="/payments">💳 {en?"Payments":"Thanh toán"}</Link>
               <Link onClick={close} href="/favorites">❤️ {en?"Favorites":"Yêu thích"}</Link>
               <Link onClick={close} href="/for-you">🎯 {en?"For you":"Gu phim"}</Link>
+              <Link onClick={close} href="/mobile">📱 {en?"Mobile app":"Ứng dụng di động"}</Link>
               <Link onClick={close} href="/waitlist">🔔 {en?"Seat alerts":"Chờ ghế trống"}</Link>
               <Link onClick={close} href="/profile">👤 {en?"Account":"Tài khoản"}</Link>
               <Link onClick={close} href="/security">🛡 {en?"Security":"Bảo mật"}</Link>

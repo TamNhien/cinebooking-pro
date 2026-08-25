@@ -6,7 +6,7 @@ on:
       version:
         description: "Release-candidate version label (letters/digits/._- only)"
         required: true
-        default: "v51.0.0-rc.1"
+        default: "v52.0.0-rc.1"
 
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
       VCS_REF: ${{ github.sha }}
       HTTP_PORT: "18080"
       POSTGRES_PORT: "15433"
-      COMPOSE_PROJECT_NAME: cinebooking_v51_rc_${{ github.run_id }}
+      COMPOSE_PROJECT_NAME: cinebooking_v52_rc_${{ github.run_id }}
       JWT_SECRET: v47-rc-test-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ
     steps:
       - name: Checkout
@@ -39,7 +39,7 @@ jobs:
             exit 2
           fi
 
-      - name: Verify V51 source gate
+      - name: Verify V52 source gate
         run: |
           python3 tools/verify_v43_staff_operations.py
           python3 tools/verify_v43_analytics_excel_detail.py
@@ -58,6 +58,8 @@ jobs:
           python3 tools/verify_v51_analytics_forecasting_3.py
           python3 tools/verify_v51_utf8_real_data.py
           python3 tools/verify_seed_demo_56.py
+          python3 tools/verify_v52_pwa_mobile_3.py
+          python3 tools/verify_seed_demo_57.py
 
       - name: Docker diagnostics
         run: |
@@ -81,7 +83,7 @@ jobs:
         working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser E2E journeys (V29.2 + V30 + V31.2 + V33 + V34 + V36 + V37 + V38 + V39 + V40 + V41 + V42 + V43 + V44 + V45 + V46 + V47 + V48 + V49 + V50 + V51)
+      - name: Run browser E2E journeys (V29.2 + V30 + V31.2 + V33 + V34 + V36 + V37 + V38 + V39 + V40 + V41 + V42 + V43 + V44 + V45 + V46 + V47 + V48 + V49 + V50 + V51 + V52)
         env:
           E2E_SKIP_BUILD: "true"
         run: bash tools/e2e-v29.2.sh

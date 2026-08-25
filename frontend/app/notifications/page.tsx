@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
+import { disableCurrentDevicePush, registerCurrentPwaDevice } from "@/lib/pwa";
 import type { NotificationItem, NotificationPreference } from "@/lib/types";
 
 type Filter = "ALL"|"UNREAD"|"BOOKING"|"REMINDER"|"REFUND"|"STAFF_SHIFT"|"PROMOTION"|"LOYALTY"|"WAITLIST";
@@ -58,8 +59,15 @@ export default function NotificationsPage(){
       if(typeof Notification==="undefined"){setError("Trình duyệt này không hỗ trợ Browser Notification.");return;}
       const permission=await Notification.requestPermission();setBrowserPermission(permission);
       if(permission!=="granted"){setError("Bạn chưa cấp quyền thông báo cho trình duyệt.");await save({...prefs,browserEnabled:false});return;}
+      await save({...prefs,browserEnabled:true});
+      try{
+        const result=await registerCurrentPwaDevice({subscribe:true});
+        setMsg(result.config?.enabled?"Đã bật Background Web Push V52 cho thiết bị này.":"Server chưa cấu hình VAPID; thông báo trình duyệt sẽ dùng foreground fallback khi CineBooking đang mở.");
+      }catch(e){setError((e as Error).message);}
+      return;
     }
-    await save({...prefs,browserEnabled:enabled});
+    try{await disableCurrentDevicePush();}catch{}
+    await save({...prefs,browserEnabled:false});
   }
 
   const toggle=(key:PrefToggleKey,label:string,desc:string)=><label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/45 p-4">
@@ -76,11 +84,11 @@ export default function NotificationsPage(){
     {(error||msg)&&<div className={`rounded-xl p-4 text-sm ${error?"bg-red-950/50 text-red-300":"bg-emerald-950/40 text-emerald-300"}`}>{error||msg}</div>}
 
     <section className="card p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Kênh nhận thông báo</h2><p className="mt-1 text-sm text-slate-400">Email dùng SMTP hiện tại. Thông báo trình duyệt hoạt động khi CineBooking đang mở trên thiết bị này.</p></div><span className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Browser permission: {browserPermission}</span></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Kênh nhận thông báo</h2><p className="mt-1 text-sm text-slate-400">Email dùng SMTP hiện tại. V52 ưu tiên Background Web Push bằng VAPID; nếu server chưa cấu hình thì tự fallback về thông báo khi CineBooking đang mở.</p></div><span className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Browser permission: {browserPermission}</span></div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {toggle("inAppEnabled","🔔 Trong ứng dụng","Hiển thị tại biểu tượng chuông và trang thông báo.")}
         {toggle("emailEnabled","✉️ Email","Gửi email theo SMTP đã cấu hình sau khi giao dịch commit thành công.")}
-        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><span><b className="block">🖥️ Trình duyệt</b><span className="mt-1 block text-xs leading-5 text-slate-500">Hiện Browser Notification khi website đang mở; cần cấp quyền trên từng trình duyệt.</span></span><input type="checkbox" className="mt-1 h-5 w-5 accent-rose-500" disabled={busy} checked={prefs.browserEnabled} onChange={e=>toggleBrowser(e.target.checked)}/></label>
+        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><span><b className="block">📲 Trình duyệt / PWA</b><span className="mt-1 block text-xs leading-5 text-slate-500">Background Web Push V52 khi VAPID sẵn sàng; foreground fallback khi chưa cấu hình.</span></span><input type="checkbox" className="mt-1 h-5 w-5 accent-rose-500" disabled={busy} checked={prefs.browserEnabled} onChange={e=>toggleBrowser(e.target.checked)}/></label>
       </div>
     </section>
 

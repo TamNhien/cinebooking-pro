@@ -2,11 +2,11 @@ from pathlib import Path
 import re
 
 root = Path(__file__).resolve().parents[1]
-sql_path = root / 'tools' / 'seed-demo-56-tables-10-rows.sql'
-ps1_path = root / 'tools' / 'seed-demo-56-tables.ps1'
-check_sql = root / 'tools' / 'check-demo-56-table-counts.sql'
+sql_path = root / 'tools' / 'seed-demo-57-tables-10-rows.sql'
+ps1_path = root / 'tools' / 'seed-demo-57-tables.ps1'
+check_sql = root / 'tools' / 'check-demo-57-table-counts.sql'
 
-# V51 has 55 application tables plus Flyway metadata = 56 tables in pgAdmin.
+# V52 has 56 application tables plus Flyway metadata = 57 tables in pgAdmin.
 # movie deliberately reuses the 8 canonical V29 rows; flyway_schema_history is read-only.
 expected_seed_inserts = {
     'app_user','audit_log','auditorium','auditorium_blackout','auth_session',
@@ -16,12 +16,12 @@ expected_seed_inserts = {
     'financial_reconciliation_run','inventory_movement','loyalty_point_lot','loyalty_reward',
     'loyalty_reward_redemption','loyalty_transaction','maintenance_work_order',
     'maintenance_work_order_event','movie_favorite','movie_review','notification_preference',
-    'password_reset_token','payment','payment_event','payment_webhook_event','pricing_rule','recommendation_event','recommendation_feedback','analytics_snapshot',
+    'password_reset_token','payment','payment_event','payment_webhook_event','pricing_rule','pwa_device','recommendation_event','recommendation_feedback','analytics_snapshot',
     'seat','security_alert','showtime','showtime_planning_run','showtime_waitlist','staff_attendance','staff_incident',
     'staff_leave_request','staff_profile','staff_shift','staff_shift_handover','ticket_checkin_log',
     'trusted_device','user_notification','voucher','voucher_redemption'
 }
-all_56_tables = expected_seed_inserts | {'movie','flyway_schema_history'}
+all_57_tables = expected_seed_inserts | {'movie','flyway_schema_history'}
 canonical_movie_ids = [
     '11111111-1111-1111-1111-111111111111','22222222-2222-2222-2222-222222222222',
     '88888888-8888-8888-8888-888888888888','99999999-9999-9999-9999-999999999999',
@@ -38,12 +38,12 @@ sql = sql_path.read_text(encoding='utf-8') if sql_path.exists() else ''
 ps1 = ps1_path.read_text(encoding='utf-8') if ps1_path.exists() else ''
 counts = check_sql.read_text(encoding='utf-8') if check_sql.exists() else ''
 targets = {t.lower() for t in re.findall(r'INSERT\s+INTO\s+([a-zA-Z_][\w]*)', sql, re.I)}
-verification_array = set(re.findall(r"'([a-z_]+)'", sql[sql.find('Quick verification of all 56 tables'):]))
+verification_array = set(re.findall(r"'([a-z_]+)'", sql[sql.find('Quick verification of all 57 tables'):]))
 main_data = sql[:sql.find('-- Fail if seeded reference rows')]
 
-check('V51 56-table SQL exists and decodes as UTF-8', sql_path.exists() and 'Nguyễn Minh An' in sql and 'Bắp Phô Mai Lớn' in sql)
-check('V51 56-table PowerShell runner exists', ps1_path.exists())
-check('All 54 seeded application tables have INSERT coverage', expected_seed_inserts.issubset(targets) and len(expected_seed_inserts) == 54)
+check('V52 57-table SQL exists and decodes as UTF-8', sql_path.exists() and 'Nguyễn Minh An' in sql and 'Bắp Phô Mai Lớn' in sql)
+check('V52 57-table PowerShell runner exists', ps1_path.exists())
+check('All 55 seeded application tables have INSERT coverage', expected_seed_inserts.issubset(targets) and len(expected_seed_inserts) == 55)
 check('Reference people use natural Vietnamese names and non-placeholder emails', all(v in sql for v in ['Nguyễn Minh An','Trần Quốc Bảo','Phạm Thu Hà','an.nguyen@cinebooking.local','chau.ho@cinebooking.local']))
 check('Staff codes no longer use DEMO45 labels', 'CBM001' in sql and 'CBS010' in sql and "format('DEMO45-%s'" not in main_data)
 check('Concession rows use real product names', all(v in sql for v in ['Bắp Caramel Vừa','Bắp Phô Mai Lớn','Coca-Cola Lớn','Combo Family']))
@@ -75,16 +75,18 @@ check('V51 seeds 10 branch cost-basis reference rows without filling every branc
 check('V51 seeds 10 deterministic analytics snapshots across daily weekly monthly periods', 'INSERT INTO analytics_snapshot(' in sql and 'seed51:analytics-snapshot:' in sql and all(v in sql for v in ["'DAILY'","'WEEKLY'","'MONTHLY'"]))
 check('V51 reference snapshots pin the forecasting algorithm version', 'V51-WEEKDAY-WEIGHTED-MA-1' in sql and 'V51 analytics snapshot algorithm marker mismatch' in sql)
 check('V51 reference rows self-check both new application tables', 'V51 concession cost-basis refresh failed: expected 10 deterministic rows' in sql and 'V51 analytics snapshot refresh failed: expected 10 deterministic rows' in sql)
-check('V51 natural-key upserts reclaim deterministic reference IDs', sql.count('id=EXCLUDED.id') >= 3 and 'ON CONFLICT (cinema_id,period_kind,period_start) DO UPDATE SET\n    id=EXCLUDED.id' in sql and 'ON CONFLICT (cinema_id,product_id) DO UPDATE SET\n    id=EXCLUDED.id' in sql and 'ON CONFLICT (user_id,movie_id) DO UPDATE SET\n    id=EXCLUDED.id' in sql)
+check('V52 seeds 10 realistic PWA device-presence rows', 'INSERT INTO pwa_device(' in sql and 'seed52:pwa-device:' in sql and 'Chrome · Windows · Laptop văn phòng' in sql)
+check('V52 reference devices never fabricate Web Push subscription credentials', 'push_enabled=FALSE' in sql and 'push_endpoint=NULL' in sql and 'p256dh=NULL' in sql and 'auth_secret=NULL' in sql and 'must not contain fabricated Web Push credentials' in sql)
+check('V52 reference natural-key upserts reclaim deterministic IDs', sql.count('id=EXCLUDED.id') >= 4 and 'ON CONFLICT (cinema_id,period_kind,period_start) DO UPDATE SET\n    id=EXCLUDED.id' in sql and 'ON CONFLICT (cinema_id,product_id) DO UPDATE SET\n    id=EXCLUDED.id' in sql and 'ON CONFLICT (user_id,movie_id) DO UPDATE SET\n    id=EXCLUDED.id' in sql and 'ON CONFLICT (device_key) DO UPDATE SET\n    id=EXCLUDED.id' in sql)
 check('movie table is not seeded with synthetic rows', not re.search(r'INSERT\s+INTO\s+movie\s*\(', sql, re.I))
 check('All eight canonical V29 movie IDs are reused', all(mid in sql for mid in canonical_movie_ids))
 check('Flyway metadata is never inserted/updated/deleted', not re.search(r'(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+flyway_schema_history', sql, re.I))
-check('Final verification enumerates all 56 pgAdmin tables', all_56_tables.issubset(verification_array) and len(all_56_tables) == 56)
-check('Row-count helper includes V46/V47/V48/V49/V50/V51 tables', counts.count("'trusted_device'") == 2 and counts.count("'security_alert'") == 2 and counts.count("'payment_event'") == 2 and counts.count("'cinema_concession_inventory'") == 2 and counts.count("'cinema_concession_price'") == 2 and counts.count("'showtime_planning_run'") == 2 and counts.count("'recommendation_feedback'") == 2 and counts.count("'cinema_concession_cost_basis'") >= 2 and counts.count("'analytics_snapshot'") == 2)
+check('Final verification enumerates all 57 pgAdmin tables', all_57_tables.issubset(verification_array) and len(all_57_tables) == 57)
+check('Row-count helper includes V46 through V52 tables', counts.count("'pwa_device'") == 2 and counts.count("'trusted_device'") == 2 and counts.count("'security_alert'") == 2 and counts.count("'payment_event'") == 2 and counts.count("'cinema_concession_inventory'") == 2 and counts.count("'cinema_concession_price'") == 2 and counts.count("'showtime_planning_run'") == 2 and counts.count("'recommendation_feedback'") == 2 and counts.count("'cinema_concession_cost_basis'") >= 2 and counts.count("'analytics_snapshot'") == 2)
 check('Ledger stays balanced with MOCK clearing account', "'PAYMENT_CLEARING:MOCK','DEBIT'" in sql and "'CUSTOMER_FUNDS_CAPTURED','CREDIT'" in sql)
 check('PowerShell is byte-safe UTF-8 and documents realistic account credentials', 'docker compose cp' in ps1 and 'Get-Content' not in ps1 and 'CineBooking@123' in ps1 and 'an.nguyen@cinebooking.local' in ps1)
 check('Seed remains transactional and fails on empty tables', 'BEGIN;' in sql and 'COMMIT;' in sql and "client_encoding = 'UTF8'" in sql and 'IF c = 0 THEN' in sql)
 
 passed=sum(ok for _,ok in checks)
-print(f"\nSeed V51 56-table realistic-data verification: {passed}/{len(checks)} checks passed")
+print(f"\nSeed V52 57-table realistic-data verification: {passed}/{len(checks)} checks passed")
 raise SystemExit(0 if passed == len(checks) else 1)

@@ -1,13 +1,13 @@
-# CineBooking Pro V51
+# CineBooking Pro V52
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V51 - Analytics & Forecasting 3.0  
-> **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8  
-> **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium  
+> **Current release:** V52 - PWA / Mobile Experience 3.0
+> **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
+> **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V51 bổ sung period-over-period comparison, dự báo doanh thu 7 ngày theo `V51-WEEKDAY-WEIGHTED-MA-1`, analytics theo rạp/phim/phòng/khung giờ, margin/cost coverage, branch-specific concession cost basis và snapshot `DAILY/WEEKLY/MONTHLY` an toàn khi chạy 2 backend replica.
+V52 nâng PWA/Mobile lên Background Web Push bằng VAPID, controlled Service Worker cache, quản lý thiết bị PWA, QR offline có trạng thái xác minh/stale, persistent storage và mobile booking touch targets; toàn bộ Analytics V51 vẫn được giữ nguyên.
 
 ## Quy ước chạy lệnh
 
@@ -23,10 +23,10 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V51 **không tạo phim giả**. Mọi quan hệ phim tiếp tục tái sử dụng 8 phim V29 đang có trong database.
+- V52 **không tạo phim giả**. Mọi quan hệ phim tiếp tục tái sử dụng 8 phim V29 đang có trong database.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
-- `tools/seed-demo-56-tables.ps1` là deterministic CI/reference fixture. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
+- `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
 
 ## Version history / changelog
 
@@ -86,6 +86,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V49** | **Smart Showtime Planning 2.0: demand-balanced multi-room suggestions, occupancy scoring, operating windows, durable planning provenance** | **`V49__smart_showtime_planning_2.sql`** |
 | **V50** | **Recommendation Intelligence 2.0: explainable hybrid taste profile, preferred cinema/daypart, explicit MORE/LESS/HIDE feedback** | **`V50__recommendation_intelligence_2.sql`** |
 | **V51** | **Analytics & Forecasting 3.0: period comparison, weekday-weighted forecast, margin/cost coverage, branch cost basis, durable scheduled snapshots** | **`V51__analytics_forecasting_3.sql`** |
+| **V52** | **PWA / Mobile Experience 3.0: VAPID Background Web Push, controlled cache, PWA devices, owner-scoped offline QR revalidation, persistent storage, mobile UX** | **`V52__pwa_mobile_experience_3.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2116,3 +2117,145 @@ README.md                tài liệu dự án
 - Backup DB trước migration lớn.
 - Không dùng `docker compose down -v` cho update bình thường.
 - Runtime success chỉ được chốt khi CI + Docker smoke + Playwright chạy xanh.
+
+## V52 - PWA / Mobile Experience 3.0
+
+V52 nâng nền PWA V26 thành trải nghiệm mobile có kiểm soát và không làm yếu các nguyên tắc bảo mật hiện có. Service Worker `v52` **không cache `/api/**` hoặc private navigation**, vé QR offline được lưu riêng trong IndexedDB theo đúng owner và được revalidate khi có mạng. Vé bị chuyển, hoàn, mất quyền hoặc không còn tồn tại sẽ chuyển sang `STALE` và QR cache bị ẩn.
+
+### Database / migration
+
+Migration mới:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Thêm `pwa_device` để quản lý installation/browser theo tài khoản. Sau migrate:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+`pwa_device` có thể tồn tại khi push OFF. Chỉ một **PushSubscription thật từ browser** mới được phép ghi `push_endpoint`, `p256dh`, `auth_secret`. API device response không trả ba credential này về frontend. Reference fixture V52 tạo 10 thiết bị tự nhiên nhưng luôn `push_enabled=false` và credential `NULL`.
+
+### Background Web Push / VAPID
+
+Mặc định production/local vẫn an toàn:
+
+```env
+WEB_PUSH_ENABLED=false
+WEB_PUSH_VAPID_PUBLIC_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_SUBJECT=mailto:admin@cinebooking.local
+WEB_PUSH_TTL_SECONDS=3600
+```
+
+Tạo key local từ project root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\generate-vapid-keys.ps1
+```
+
+Script chỉ in key ra console để người vận hành tự đưa vào `.env`; không ghi secret vào source. Chỉ bật `WEB_PUSH_ENABLED=true` sau khi đã cấu hình cặp key thật. Khi chưa bật, Notification Center giữ `FOREGROUND_FALLBACK` của V41 khi website đang mở.
+
+Background push dùng P-256 ECDH + HKDF + `aes128gcm` và VAPID ES256. Notification chỉ được dispatch sau transaction commit. Server chỉ chấp nhận PushSubscription có endpoint HTTPS public, key P-256/auth hợp lệ, không follow redirect khi gửi push và chặn việc chiếm device key/endpoint giữa hai tài khoản. Subscription 404/410 hoặc lỗi lặp lại sẽ bị server vô hiệu hóa. Logout best-effort unsubscribe PushSubscription trong browser rồi gỡ registration thiết bị hiện tại khỏi server để giảm nguy cơ tài khoản cũ tiếp tục nhận push trên browser đó.
+
+### Mobile Center và offline ticket
+
+Trang mới:
+
+```text
+http://localhost/mobile
+```
+
+Có trạng thái online/offline, standalone/browser, persistent storage, usage/quota, Background Web Push và danh sách thiết bị. `/offline-tickets` có đồng bộ server, trạng thái `FRESH / STALE / UNKNOWN`, `ticketVersion` và thời điểm xác minh gần nhất. Service Worker không dùng cache để lưu API/QR riêng tư.
+
+### V52 source verification
+
+Tất cả lệnh chạy từ:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+```powershell
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v52_pwa_mobile_3.py
+python .\tools\verify_reference_data_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v52.ps1
+```
+
+### Build / migrate V52
+
+```powershell
+docker run --rm `
+  -v "$((Resolve-Path .\backend).Path):/app" `
+  -w /app `
+  maven:3.9-eclipse-temurin-25 `
+  mvn -B -ntp test
+
+docker compose up -d --build
+docker compose ps
+```
+
+Kiểm tra Flyway/table count:
+
+```powershell
+docker compose exec postgres psql -U cinebooking -d cinebooking -c "SELECT version,description,success FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 7;"
+docker compose exec postgres psql -U cinebooking -d cinebooking -c "SELECT COUNT(*) AS public_tables FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+```
+
+Mong đợi:
+
+```text
+52 | pwa mobile experience 3 | t
+public_tables = 57
+```
+
+### V52 CI/reference fixture
+
+Chỉ dùng khi cần deterministic reference/CI dataset:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\seed-reference-57-tables.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-reference-57-table-counts.ps1
+```
+
+Không cần xóa database và không dùng `docker compose down -v` cho update bình thường.
+
+### V52 Playwright / release
+
+V52 thêm `frontend/e2e/pwa-mobile-v52.spec.ts`, đưa tổng bộ suite lên 20 journey. Test xác minh browser thật được đăng ký thành PWA device và trong môi trường CI không có VAPID thì hệ thống phải báo `FOREGROUND_FALLBACK` / `Push OFF`, không bịa PushSubscription.
+
+Sau Maven, Docker và main CI đều xanh, Stable Release dùng:
+
+```text
+version: 52.0.0
+rc_number: 1
+```
+
+Flow:
+
+```text
+main CI
+  -> V46-V52 regression gates
+  -> V52 / 57-table integration
+  -> v52.0.0-rc.1
+  -> Docker smoke
+  -> 20 Playwright journeys
+  -> v52.0.0
+```
+
+### V52 reference-seed natural-key collision hotfix
+
+Khi chạy fixture 57 bảng trên một database đã có `analytics_snapshot` do scheduler V51 tạo, unique key `(cinema_id, period_kind, period_start)` có thể trùng với 10 row reference. Trước hotfix, `ON CONFLICT ... DO UPDATE` giữ nguyên primary key của row cũ, trong khi self-check yêu cầu 10 deterministic IDs `seed51:analytics-snapshot:*`, nên transaction bị rollback trước khi `pwa_device` được commit.
+
+Hotfix chuẩn hóa deterministic ID ngay trong các natural-key upsert của `recommendation_feedback`, `cinema_concession_cost_basis`, `analytics_snapshot` và `pwa_device` bằng `id=EXCLUDED.id`. Vì đây là **CI/reference fixture**, hành vi này chỉ áp dụng khi chủ động chạy `seed-reference-57-tables.ps1`; migration/runtime production không thay đổi. Nếu database đang giữ dữ liệu nghiệp vụ thật, ưu tiên giữ nguyên dữ liệu và không chạy fixture chỉ để làm đầy bảng. `pwa_device` có thể hợp lệ ở trạng thái rỗng cho đến khi một người dùng đăng nhập/đăng ký thiết bị PWA.
+

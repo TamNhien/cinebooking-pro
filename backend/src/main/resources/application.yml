@@ -104,6 +104,13 @@ app:
     attendance-late-grace-minutes: ${ATTENDANCE_LATE_GRACE_MINUTES:5}
     attendance-early-leave-grace-minutes: ${ATTENDANCE_EARLY_LEAVE_GRACE_MINUTES:5}
     scan-grace-minutes: ${STAFF_SCAN_GRACE_MINUTES:30}
+  pwa:
+    web-push:
+      enabled: ${WEB_PUSH_ENABLED:false}
+      vapid-public-key: ${WEB_PUSH_VAPID_PUBLIC_KEY:}
+      vapid-private-key: ${WEB_PUSH_VAPID_PRIVATE_KEY:}
+      subject: ${WEB_PUSH_SUBJECT:mailto:admin@cinebooking.local}
+      ttl-seconds: ${WEB_PUSH_TTL_SECONDS:3600}
   notifications:
     staff-shift-reminder-minutes: ${STAFF_SHIFT_REMINDER_MINUTES:30}
     staff-shift-scan-ms: ${STAFF_SHIFT_SCAN_MS:60000}

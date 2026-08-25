@@ -135,6 +135,24 @@ export async function apiBlob(path: string, init: RequestInit = {}, retry = true
 }
 
 export async function logoutSession() {
+  const currentToken = token();
+  try {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = registration.pushManager ? await registration.pushManager.getSubscription() : null;
+      if (subscription) await subscription.unsubscribe().catch(() => false);
+    }
+  } catch {}
+  try {
+    if (typeof window !== "undefined" && currentToken) {
+      const deviceKey = localStorage.getItem("cinebooking_pwa_device_v52");
+      if (deviceKey) {
+        const deviceHeaders = new Headers({ Authorization: `Bearer ${currentToken}` });
+        await addClientIdentity(deviceHeaders);
+        await fetch(`${BASE}/pwa/devices/${encodeURIComponent(deviceKey)}`, { method: "DELETE", headers: deviceHeaders, credentials: "include", cache: "no-store" });
+      }
+    }
+  } catch {}
   try {
     const headers = new Headers();
     await addClientIdentity(headers);

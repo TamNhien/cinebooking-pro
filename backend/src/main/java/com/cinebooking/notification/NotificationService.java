@@ -19,8 +19,9 @@ public class NotificationService {
     private final NotificationPreferenceRepository preferences;
     private final UserRepository users;
     private final NotificationDeliveryService delivery;
+    private final WebPushDeliveryService webPush;
 
-    public NotificationService(NotificationRepository r,NotificationPreferenceRepository p,UserRepository u,NotificationDeliveryService d){repo=r;preferences=p;users=u;delivery=d;}
+    public NotificationService(NotificationRepository r,NotificationPreferenceRepository p,UserRepository u,NotificationDeliveryService d,WebPushDeliveryService webPush){repo=r;preferences=p;users=u;delivery=d;this.webPush=webPush;}
 
     @Transactional
     public void create(UUID userId,String type,String title,String message,String link){createInternal(userId,type,title,message,link,null);}
@@ -32,7 +33,10 @@ public class NotificationService {
         if(!enabled(pref,category) || noChannel(pref))return false;
         UUID id=UUID.randomUUID(); String emailStatus=Boolean.TRUE.equals(pref.getEmailEnabled())?"PENDING":"SKIPPED";
         int inserted=repo.insertOnce(id,userId,type,title,message,link,category,priority,Boolean.TRUE.equals(pref.getInAppEnabled()),emailStatus,dedupeKey);
-        if(inserted==1 && "PENDING".equals(emailStatus)) afterCommit(()->delivery.deliverEmail(id));
+        if(inserted==1) afterCommit(()->{
+            if("PENDING".equals(emailStatus))delivery.deliverEmail(id);
+            if(Boolean.TRUE.equals(pref.getBrowserEnabled()))webPush.deliver(id);
+        });
         return inserted==1;
     }
 
@@ -80,7 +84,10 @@ public class NotificationService {
         if(!enabled(pref,category)||noChannel(pref))return;
         UserNotification n=new UserNotification(); n.setUserId(userId); n.setNotificationType(type);n.setTitle(title);n.setMessage(message);n.setLinkUrl(link);n.setCategory(category);n.setPriority(priority(type));n.setInAppVisible(Boolean.TRUE.equals(pref.getInAppEnabled()));n.setDedupeKey(dedupeKey);
         boolean email=Boolean.TRUE.equals(pref.getEmailEnabled()); n.setEmailStatus(email?"PENDING":"SKIPPED"); repo.save(n);
-        if(email)afterCommit(()->delivery.deliverEmail(n.getId()));
+        if(email||Boolean.TRUE.equals(pref.getBrowserEnabled()))afterCommit(()->{
+            if(email)delivery.deliverEmail(n.getId());
+            if(Boolean.TRUE.equals(pref.getBrowserEnabled()))webPush.deliver(n.getId());
+        });
     }
 
     private NotificationPreference preference(UUID userId){return preferences.findById(userId).orElseGet(()->{NotificationPreference p=new NotificationPreference();p.setUserId(userId);return preferences.save(p);});}

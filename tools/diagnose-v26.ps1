@@ -58,7 +58,7 @@ if([string]::IsNullOrWhiteSpace([string]$m.display)) {
 if([string]$m.display -ne "standalone") { throw "Manifest display must be standalone (actual: '$([string]$m.display)')." }
 if(@($m.icons).Count -lt 3) { throw "Manifest must expose PNG and maskable icons" }
 if(@($m.shortcuts).Count -lt 2) { throw "Manifest shortcuts are missing" }
-if(-not $swText.Contains('const VERSION = "v26"')) { throw "Service worker VERSION is not v26" }
+if($swText -notmatch 'const VERSION = "v(?<major>[0-9]+)"' -or [int]$Matches.major -lt 26) { throw "Service worker VERSION must be V26 or newer" }
 if(-not $swText.Contains('cinebooking-shell-${VERSION}')) { throw "Service worker shell-cache naming rule not found" }
 if($swText -notmatch '/offline-tickets') { throw "Offline ticket route not precached" }
 if($swText -notmatch 'url\.pathname\.startsWith\("/api/"\)') { throw "Service worker API-cache exclusion not found" }

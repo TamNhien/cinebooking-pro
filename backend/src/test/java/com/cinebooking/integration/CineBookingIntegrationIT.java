@@ -45,6 +45,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -94,7 +96,7 @@ class CineBookingIntegrationIT {
     @Autowired FinancialLedgerService finance;
 
     @Test
-    void flywayMigratesRealPostgresToV51AnalyticsForecastingSchemaAndCatalog() {
+    void flywayMigratesRealPostgresToV52PwaMobileExperienceSchemaAndCatalog() {
         Integer migrationCount = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
         String latest = jdbc.queryForObject(
@@ -105,8 +107,8 @@ class CineBookingIntegrationIT {
                 Integer.class);
 
         assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("51");
-        assertThat(publicTables).isGreaterThanOrEqualTo(56);
+        assertThat(latest).isEqualTo("52");
+        assertThat(publicTables).isGreaterThanOrEqualTo(57);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -226,6 +228,15 @@ class CineBookingIntegrationIT {
         Integer analyticsV51Indexes = jdbc.queryForObject(
                 "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_cinema_concession_cost_basis_product','idx_analytics_snapshot_cinema_period','idx_analytics_snapshot_generated')", Integer.class);
         assertThat(analyticsV51Indexes).isEqualTo(3);
+        Integer pwaV52Table = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='pwa_device'", Integer.class);
+        assertThat(pwaV52Table).isEqualTo(1);
+        Integer pwaV52Columns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='pwa_device' and column_name in ('user_id','device_key','device_label','platform','standalone','push_enabled','push_endpoint','p256dh','auth_secret','failure_count','last_seen_at','last_push_at','last_failure_at')", Integer.class);
+        assertThat(pwaV52Columns).isEqualTo(13);
+        Integer pwaV52Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('uq_pwa_device_push_endpoint','idx_pwa_device_user_seen','idx_pwa_device_user_push')", Integer.class);
+        assertThat(pwaV52Indexes).isEqualTo(3);
         Integer voucherOwnerColumn = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='voucher' and column_name='owner_user_id'", Integer.class);
         assertThat(voucherOwnerColumn).isEqualTo(1);
@@ -505,6 +516,58 @@ class CineBookingIntegrationIT {
         redisTemplate.opsForValue().set(key, "ok", Duration.ofSeconds(30));
         assertThat(redisTemplate.opsForValue().get(key)).isEqualTo("ok");
         redisTemplate.delete(key);
+    }
+
+    @Test
+    void pwaV52RegistersDeviceWithoutFabricatingPushCredentialsWhenVapidIsDisabled() throws Exception {
+        String email = "v52-pwa-" + UUID.randomUUID() + "@example.com";
+        String password = "V52@Pwa12345";
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s","fullName":"V52 PWA Integration User"}
+                                """.formatted(email, password)))
+                .andExpect(status().isCreated());
+
+        String loginBody = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(email, password)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String token = objectMapper.readTree(loginBody).path("accessToken").asText();
+        String deviceKey = "cb-v52-integration-device-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+
+        mockMvc.perform(get("/api/pwa/config").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.deliveryMode").value("FOREGROUND_FALLBACK"));
+
+        mockMvc.perform(put("/api/pwa/devices/{deviceKey}", deviceKey)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"deviceLabel":"Chrome · Linux · Integration","platform":"LINUX","userAgent":"Playwright integration","standalone":false,"pushEnabled":false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deviceKey").value(deviceKey))
+                .andExpect(jsonPath("$.pushEnabled").value(false));
+
+        mockMvc.perform(get("/api/pwa/devices").param("currentDeviceKey", deviceKey).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].current").value(true))
+                .andExpect(jsonPath("$[0].pushEnabled").value(false));
+
+        Integer unsafeCredentials = jdbc.queryForObject(
+                "select count(*) from pwa_device where device_key=? and (push_enabled or push_endpoint is not null or p256dh is not null or auth_secret is not null)",
+                Integer.class, deviceKey);
+        assertThat(unsafeCredentials).isZero();
+
+        mockMvc.perform(delete("/api/pwa/devices/{deviceKey}", deviceKey).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        Integer remaining = jdbc.queryForObject("select count(*) from pwa_device where device_key=?", Integer.class, deviceKey);
+        assertThat(remaining).isZero();
     }
 
     @Test

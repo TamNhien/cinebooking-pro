@@ -1484,6 +1484,67 @@ ON CONFLICT (cinema_id,period_kind,period_start) DO UPDATE SET
     forecast_algorithm=EXCLUDED.forecast_algorithm,
     generated_at=EXCLUDED.generated_at;
 
+
+-- V52A. pwa_device (10) - realistic browser/app installations with push deliberately disabled.
+-- Reference fixtures never fabricate PushSubscription endpoint, p256dh or auth secrets.
+INSERT INTO pwa_device(
+    id,user_id,device_key,device_label,platform,user_agent,standalone,push_enabled,
+    push_endpoint,p256dh,auth_secret,failure_count,last_seen_at,last_push_at,last_failure_at,created_at,updated_at
+)
+SELECT
+    md5('seed52:pwa-device:' || g.n)::uuid,
+    md5('seed45:user:' || g.n)::uuid,
+    format('cb-pwa-reference-device-%s', to_char(g.n,'FM00')),
+    (ARRAY[
+        'Chrome · Windows · Laptop văn phòng',
+        'Edge · Windows · Máy tính quầy vé',
+        'Chrome · Android · Điện thoại cá nhân',
+        'Safari · iOS · iPhone cá nhân',
+        'Firefox · Windows · Laptop cá nhân',
+        'Samsung Internet · Android · Điện thoại cá nhân',
+        'Chrome · Android · Máy tính bảng',
+        'Safari · macOS · MacBook cá nhân',
+        'Edge · Windows · Laptop vận hành',
+        'Chrome · Windows · Máy tính hỗ trợ sảnh'
+    ])[g.n],
+    (ARRAY['WINDOWS','WINDOWS','ANDROID','IOS','WINDOWS','ANDROID','ANDROID','MACOS','WINDOWS','WINDOWS'])[g.n],
+    (ARRAY[
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151 Safari/537.36 Edg/151',
+        'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/151 Mobile Safari/537.36',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 Version/19 Mobile Safari/604.1',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0',
+        'Mozilla/5.0 (Linux; Android 16; SAMSUNG) AppleWebKit/537.36 SamsungBrowser/29 Mobile Safari/537.36',
+        'Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36 Chrome/151 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 Version/19 Safari/605.1.15',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151 Safari/537.36 Edg/151',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/151 Safari/537.36'
+    ])[g.n],
+    (g.n IN (3,4,6,7)),
+    FALSE,
+    NULL,NULL,NULL,0,
+    timestamptz '2026-08-25 08:00:00+07' + ((g.n - 1) * interval '17 minutes'),
+    NULL,NULL,
+    timestamptz '2026-08-20 09:00:00+07' + ((g.n - 1) * interval '31 minutes'),
+    timestamptz '2026-08-25 08:00:00+07' + ((g.n - 1) * interval '17 minutes')
+FROM generate_series(1,10) g(n)
+ON CONFLICT (device_key) DO UPDATE SET
+    id=EXCLUDED.id,
+    user_id=EXCLUDED.user_id,
+    device_label=EXCLUDED.device_label,
+    platform=EXCLUDED.platform,
+    user_agent=EXCLUDED.user_agent,
+    standalone=EXCLUDED.standalone,
+    push_enabled=FALSE,
+    push_endpoint=NULL,
+    p256dh=NULL,
+    auth_secret=NULL,
+    failure_count=0,
+    last_seen_at=EXCLUDED.last_seen_at,
+    last_push_at=NULL,
+    last_failure_at=NULL,
+    updated_at=EXCLUDED.updated_at;
+
 -- Fail if seeded reference rows still contain broken UTF-8, placeholder labels, or unconfigured gateway names.
 DO $$
 DECLARE bad_count bigint; placeholder_count bigint; gateway_count bigint; demo_movie_count bigint; upcoming_shift_count bigint;
@@ -1516,6 +1577,7 @@ BEGIN
         UNION ALL SELECT label FROM trusted_device WHERE id IN (SELECT md5('seed46:trusted-device:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT title FROM security_alert WHERE id IN (SELECT md5('seed46:security-alert:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT details FROM security_alert WHERE id IN (SELECT md5('seed46:security-alert:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT device_label FROM pwa_device WHERE id IN (SELECT md5('seed52:pwa-device:' || n)::uuid FROM generate_series(1,10) g(n))
     ) text_values WHERE v LIKE '%?%';
 
     IF bad_count <> 0 THEN
@@ -1536,6 +1598,7 @@ BEGIN
         UNION ALL SELECT subject FROM customer_support_case WHERE id IN (SELECT md5('seed45:support-case:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT label FROM trusted_device WHERE id IN (SELECT md5('seed46:trusted-device:' || n)::uuid FROM generate_series(1,10) g(n))
         UNION ALL SELECT title FROM security_alert WHERE id IN (SELECT md5('seed46:security-alert:' || n)::uuid FROM generate_series(1,10) g(n))
+        UNION ALL SELECT device_label FROM pwa_device WHERE id IN (SELECT md5('seed52:pwa-device:' || n)::uuid FROM generate_series(1,10) g(n))
     ) values_to_check
     WHERE lower(v) LIKE '%demo%' OR lower(v) LIKE '%mẫu%';
     IF placeholder_count <> 0 THEN
@@ -1590,11 +1653,17 @@ BEGIN
     IF EXISTS (SELECT 1 FROM analytics_snapshot WHERE id IN (SELECT md5('seed51:analytics-snapshot:' || n)::uuid FROM generate_series(1,10) g(n)) AND forecast_algorithm <> 'V51-WEEKDAY-WEIGHTED-MA-1') THEN
         RAISE EXCEPTION 'V51 analytics snapshot algorithm marker mismatch';
     END IF;
+    IF (SELECT COUNT(*) FROM pwa_device WHERE id IN (SELECT md5('seed52:pwa-device:' || n)::uuid FROM generate_series(1,10) g(n))) <> 10 THEN
+        RAISE EXCEPTION 'V52 PWA device refresh failed: expected 10 deterministic rows';
+    END IF;
+    IF EXISTS (SELECT 1 FROM pwa_device WHERE id IN (SELECT md5('seed52:pwa-device:' || n)::uuid FROM generate_series(1,10) g(n)) AND (push_enabled OR push_endpoint IS NOT NULL OR p256dh IS NOT NULL OR auth_secret IS NOT NULL)) THEN
+        RAISE EXCEPTION 'V52 reference PWA devices must not contain fabricated Web Push credentials';
+    END IF;
 END $$;
 
 COMMIT;
 
--- Quick verification of all 56 tables shown in pgAdmin V51.
+-- Quick verification of all 57 tables shown in pgAdmin V52.
 DO $$
 DECLARE
     t TEXT;
@@ -1609,7 +1678,7 @@ BEGIN
         'inventory_movement','loyalty_point_lot','loyalty_reward','loyalty_reward_redemption',
         'loyalty_transaction','maintenance_work_order','maintenance_work_order_event','movie',
         'movie_favorite','movie_review','notification_preference','password_reset_token','payment','payment_event',
-        'payment_webhook_event','pricing_rule','recommendation_event','recommendation_feedback','analytics_snapshot','seat','showtime',
+        'payment_webhook_event','pricing_rule','pwa_device','recommendation_event','recommendation_feedback','analytics_snapshot','seat','showtime',
         'showtime_planning_run','showtime_waitlist','staff_attendance','staff_incident','staff_leave_request','staff_profile',
         'staff_shift','staff_shift_handover','ticket_checkin_log','trusted_device','security_alert','user_notification','voucher',
         'voucher_redemption'

@@ -386,3 +386,40 @@ seed-real-v51:
 
 check-real-v51:
 	powershell -ExecutionPolicy Bypass -File ./tools/check-v51-data-utf8.ps1
+
+verify-v52:
+	python tools/verify_v43_analytics_excel_detail.py
+	python tools/verify_v43_analytics_csv_detail.py
+	python tools/verify_v46_security_account_protection.py
+	python tools/verify_v47_payment_gateway_operations.py
+	python tools/verify_v48_concession_inventory_2.py
+	python tools/verify_v49_smart_showtime_planning_2.py
+	python tools/verify_v50_recommendation_intelligence_2.py
+	python tools/verify_v51_analytics_forecasting_3.py
+	python tools/verify_v51_utf8_real_data.py
+	python tools/verify_v52_pwa_mobile_3.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v52.ps1
+
+verify-seed-demo-v52:
+	python tools/verify_seed_demo_57.py
+
+seed-demo-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-demo-57-tables.ps1
+
+check-seed-demo-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+verify-reference-v52:
+	python tools/verify_reference_data_57.py
+
+seed-reference-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/seed-reference-57-tables.ps1
+
+check-reference-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-reference-57-table-counts.ps1
+
+generate-vapid-v52:
+	powershell -ExecutionPolicy Bypass -File ./tools/generate-vapid-keys.ps1

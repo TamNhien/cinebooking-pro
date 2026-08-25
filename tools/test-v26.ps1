@@ -53,7 +53,7 @@ if(@($manifest.icons | Where-Object { $_.purpose -eq "maskable" }).Count -lt 1) 
 Write-Host "PASS: Installable manifest exposes 192/512/maskable icons" -ForegroundColor Green
 
 $sw=Get-ResponseText (Get-Web "/sw.js")
-if(-not $sw.Contains('const VERSION = "v26"')) { throw "Service worker is not V26" }
+if($sw -notmatch 'const VERSION = "v(?<major>[0-9]+)"' -or [int]$Matches.major -lt 26) { throw "Service worker must be V26 or newer" }
 if(-not $sw.Contains('cinebooking-shell-${VERSION}')) { throw "Service worker shell-cache naming rule missing" }
 if($sw -notmatch '"/offline"' -or $sw -notmatch '"/offline-tickets"') { throw "Offline shell routes missing" }
 if($sw -notmatch 'url\.pathname\.startsWith\("/api/"\)') { throw "API responses are not explicitly excluded from SW caching" }

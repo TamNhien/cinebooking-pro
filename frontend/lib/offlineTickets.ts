@@ -1,5 +1,9 @@
 "use client";
 
+import { api, apiBlob, ApiError } from "@/lib/api";
+import type { Booking, TicketInfo } from "@/lib/types";
+
+export type OfflineTicketSyncState="FRESH"|"STALE"|"UNKNOWN";
 export type OfflineTicketSnapshot = {
   bookingId: string;
   ownerUserId: string;
@@ -12,11 +16,17 @@ export type OfflineTicketSnapshot = {
   qrDataUrl: string;
   qrUrl: string;
   publicBaseUrl: string;
+  ticketVersion: number;
+  syncState: OfflineTicketSyncState;
+  lastValidatedAt: string;
+  invalidReason?: string;
   savedAt: string;
 };
 
+export type OfflineTicketSyncResult={checked:number;refreshed:number;stale:number;failed:number};
+
 const DB_NAME = "cinebooking-pwa-v26";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = "offline_tickets";
 
 function openDb(): Promise<IDBDatabase> {
@@ -46,11 +56,20 @@ function requestAsPromise<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
+function normalize(ticket:OfflineTicketSnapshot):OfflineTicketSnapshot{
+  return {
+    ...ticket,
+    ticketVersion:ticket.ticketVersion||1,
+    syncState:ticket.syncState||"UNKNOWN",
+    lastValidatedAt:ticket.lastValidatedAt||ticket.savedAt||new Date(0).toISOString()
+  };
+}
+
 export async function saveOfflineTicket(ticket: OfflineTicketSnapshot) {
   const db = await openDb();
   try {
     const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(ticket);
+    tx.objectStore(STORE).put(normalize(ticket));
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error("Không lưu được vé offline."));
@@ -66,7 +85,7 @@ export async function getOfflineTicket(bookingId: string): Promise<OfflineTicket
   try {
     const tx = db.transaction(STORE, "readonly");
     const result = await requestAsPromise(tx.objectStore(STORE).get(bookingId));
-    return (result as OfflineTicketSnapshot | undefined) ?? null;
+    return result ? normalize(result as OfflineTicketSnapshot) : null;
   } finally {
     db.close();
   }
@@ -78,7 +97,7 @@ export async function listOfflineTickets(ownerUserId?: string): Promise<OfflineT
     const tx = db.transaction(STORE, "readonly");
     const store = tx.objectStore(STORE);
     const req = ownerUserId ? store.index("ownerUserId").getAll(ownerUserId) : store.getAll();
-    const rows = (await requestAsPromise(req)) as OfflineTicketSnapshot[];
+    const rows = ((await requestAsPromise(req)) as OfflineTicketSnapshot[]).map(normalize);
     return rows.sort((a, b) => new Date(a.showtimeStart).getTime() - new Date(b.showtimeStart).getTime());
   } finally {
     db.close();
@@ -100,6 +119,33 @@ export async function deleteOfflineTicket(bookingId: string) {
   }
 }
 
+export async function syncOfflineTickets(ownerUserId:string):Promise<OfflineTicketSyncResult>{
+  const rows=await listOfflineTickets(ownerUserId);
+  const result:OfflineTicketSyncResult={checked:0,refreshed:0,stale:0,failed:0};
+  if(typeof navigator==="undefined"||!navigator.onLine)return {...result,failed:rows.length};
+  for(const current of rows){
+    result.checked++;
+    try{
+      const [booking,ticket]=await Promise.all([api<Booking>(`/bookings/${current.bookingId}`),api<TicketInfo>(`/tickets/${current.bookingId}`)]);
+      const qrDataUrl=await blobToDataUrl(await apiBlob(`/tickets/${current.bookingId}/qr`));
+      const refreshed:OfflineTicketSnapshot={
+        ...current,
+        movieTitle:booking.movieTitle,showtimeStart:booking.showtimeStart,status:booking.status,
+        seats:booking.seats.map(s=>({code:s.code,price:s.price})),totalAmount:booking.totalAmount,
+        checkedInAt:booking.checkedInAt||ticket.checkedInAt||undefined,qrDataUrl,qrUrl:ticket.qrUrl,publicBaseUrl:ticket.publicBaseUrl,
+        ticketVersion:ticket.ticketVersion||1,syncState:"FRESH",lastValidatedAt:new Date().toISOString(),invalidReason:undefined
+      };
+      await saveOfflineTicket(refreshed);result.refreshed++;
+    }catch(error){
+      if(error instanceof ApiError&&[403,404,409].includes(error.status)){
+        await saveOfflineTicket({...current,syncState:"STALE",lastValidatedAt:new Date().toISOString(),invalidReason:error.message||"Vé không còn hợp lệ trên máy chủ."});
+        result.stale++;
+      }else result.failed++;
+    }
+  }
+  return result;
+}
+
 export async function requestPersistentStorage(): Promise<boolean> {
   try {
     if (!navigator.storage?.persist) return false;
@@ -107,6 +153,10 @@ export async function requestPersistentStorage(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function storageEstimate(){
+  try{return await navigator.storage?.estimate?.();}catch{return undefined;}
 }
 
 export async function blobToDataUrl(blob: Blob): Promise<string> {

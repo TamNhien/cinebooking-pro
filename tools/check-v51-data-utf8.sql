@@ -30,8 +30,8 @@ BEGIN
     WHERE success = true AND version IS NOT NULL
     ORDER BY installed_rank DESC
     LIMIT 1;
-    IF latest_version <> '51' THEN
-        RAISE EXCEPTION 'Flyway latest version must be 51, found %', latest_version;
+    IF latest_version IS NULL OR latest_version::integer < 51 THEN
+        RAISE EXCEPTION 'Flyway latest version must be V51 or newer, found %', latest_version;
     END IF;
 
     SELECT count(*) INTO movie_count

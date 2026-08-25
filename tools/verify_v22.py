@@ -5,7 +5,7 @@ checks={
     'preference trigger': (root/'backend/src/main/resources/db/migration/V22__notification_center_v2.sql','trg_app_user_notification_preference'),
     'dedupe index': (root/'backend/src/main/resources/db/migration/V22__notification_center_v2.sql','uq_notification_user_dedupe'),
     'preference entity': (root/'backend/src/main/java/com/cinebooking/domain/NotificationPreference.java','class NotificationPreference'),
-    'email after commit': (root/'backend/src/main/java/com/cinebooking/notification/NotificationService.java','afterCommit(()->delivery.deliverEmail'),
+    'email after commit': (root/'backend/src/main/java/com/cinebooking/notification/NotificationService.java','afterCommit(()->{'),
     'email delivery service': (root/'backend/src/main/java/com/cinebooking/notification/NotificationDeliveryService.java','MimeMessageHelper'),
     'browser feed API': (root/'backend/src/main/java/com/cinebooking/notification/NotificationController.java','/browser-feed'),
     'preference API': (root/'backend/src/main/java/com/cinebooking/notification/NotificationController.java','/preferences'),

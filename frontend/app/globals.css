@@ -582,3 +582,16 @@ button, input, select, textarea { font: inherit; }
   .ticket-print-card button, .ticket-print-card a.btn { display:none !important; }
   .ticket-print-card img { break-inside:avoid; }
 }
+
+/* V52 PWA / Mobile Experience 3.0 */
+@media (max-width:640px){
+  .app-main{padding-bottom:calc(5.5rem + env(safe-area-inset-bottom));}
+  .quick-booking{padding:1rem;border-radius:18px;}
+  .quick-booking-grid{gap:.7rem;}
+  .quick-booking-grid .input{min-height:50px;font-size:16px;}
+  .quick-booking-submit{position:sticky;bottom:calc(.75rem + env(safe-area-inset-bottom));z-index:25;min-height:52px;box-shadow:0 14px 38px rgba(244,63,94,.28);}
+  .btn{min-height:44px;}
+}
+@supports (padding:max(0px)){
+  .pwa-manager{padding-bottom:max(.55rem,env(safe-area-inset-bottom));}
+}

@@ -8,7 +8,7 @@ import BackgroundTheme from "@/components/BackgroundTheme";
 
 export const metadata: Metadata = {
   title: "CineBooking Pro",
-  description: "Hệ thống đặt vé xem phim đa rạp, chọn ghế realtime, PWA và vé QR offline",
+  description: "Hệ thống đặt vé đa rạp với PWA V52, Web Push và vé QR offline có kiểm soát",
   applicationName: "CineBooking Pro",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "CineBooking" },

@@ -32,7 +32,7 @@ public class TicketController {
     public Map<String,Object> ticket(@PathVariable UUID bookingId, Authentication auth,HttpServletRequest request) {
         Booking b = authorized(bookingId, auth); String raw=payload(b); String url=checkInUrl(raw,request);
         Map<String,Object> result=new LinkedHashMap<>();
-        result.put("bookingId",b.getId()); result.put("status",b.getStatus()); result.put("checkedIn",b.getCheckedInAt()!=null); result.put("checkedInAt",b.getCheckedInAt()==null?"":b.getCheckedInAt().toString()); result.put("qrPayload",raw); result.put("qrUrl",url); result.put("publicBaseUrl",baseUrl(request));
+        result.put("bookingId",b.getId()); result.put("status",b.getStatus()); result.put("ticketVersion",b.getTicketVersion()==null?1:b.getTicketVersion()); result.put("checkedIn",b.getCheckedInAt()!=null); result.put("checkedInAt",b.getCheckedInAt()==null?"":b.getCheckedInAt().toString()); result.put("qrPayload",raw); result.put("qrUrl",url); result.put("publicBaseUrl",baseUrl(request));
         return result;
     }
 

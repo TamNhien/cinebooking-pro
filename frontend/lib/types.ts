@@ -130,7 +130,7 @@ export type RefundItem = { bookingId:string; userId:string; showtimeId:string; s
 export type CheckInPreview = { bookingId:string; movieTitle:string; cinemaName:string; auditoriumName:string; showtimeStart:string; allowed:boolean; message:string };
 export type CheckInResult = { bookingId:string; movieTitle:string; cinemaName:string; auditoriumName:string; showtimeStart:string; checkedInAt:string; status:string };
 export type CheckInHistoryItem = { bookingId:string; movieTitle:string; cinemaName:string; auditoriumName:string; checkedInAt:string; source:"QR"|"URL"|"MANUAL" };
-export type TicketInfo = { bookingId:string; status:string; checkedIn:boolean; checkedInAt?:string; qrPayload:string; qrUrl:string; publicBaseUrl:string };
+export type TicketInfo = { bookingId:string; status:string; ticketVersion:number; checkedIn:boolean; checkedInAt?:string; qrPayload:string; qrUrl:string; publicBaseUrl:string };
 
 export type StaffAccount = { userId:string; employeeCode:string; email:string; fullName:string; phone?:string; role:"STAFF"|"MANAGER"; cinemaId?:string; cinemaName?:string; jobTitle?:string; employmentStatus:"ACTIVE"|"ON_LEAVE"|"INACTIVE"; hireDate?:string; accountEnabled:boolean; createdAt:string; updatedAt:string };
 
@@ -195,3 +195,7 @@ export type TrustedDeviceV46 = { id:string; label:string; deviceName:string; fir
 export type SecurityAlertV46 = { id:string; eventType:"NEW_DEVICE"|"CREDENTIAL_ATTACK"|"PASSWORD_CHANGED"|"PASSWORD_RESET"|"SESSION_REVOKED"; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; riskScore:number; title:string; details?:string; ipAddress?:string; deviceName?:string; relatedSessionId?:string; acknowledgedAt?:string; createdAt:string };
 export type AdminSecuritySummaryV46 = { alertsLast24Hours:number; unacknowledgedAlerts:number; unacknowledgedHighRisk:number; activeTrustedDevices:number; generatedAt:string };
 export type AdminSecurityAlertV46 = SecurityAlertV46 & { userId:string; userEmail:string; userName:string };
+
+// V52 PWA / Mobile Experience 3.0
+export type PwaPushConfig = { enabled:boolean; vapidPublicKey:string; ttlSeconds:number; deliveryMode:"VAPID_BACKGROUND"|"FOREGROUND_FALLBACK" };
+export type PwaDevice = { id:string; deviceKey:string; deviceLabel:string; platform:string; standalone:boolean; pushEnabled:boolean; failureCount:number; lastSeenAt:string; lastPushAt?:string; lastFailureAt?:string; createdAt:string; updatedAt:string; current:boolean };

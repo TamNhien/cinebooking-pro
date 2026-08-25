@@ -49,7 +49,7 @@ check('V51 real-data refresh derives analytics_snapshot from existing transactio
 check('V51 real-data refresh never fabricates concession cost basis', 'INSERT INTO cinema_concession_cost_basis' not in real_sql)
 check('Unknown concession cost remains nullable in real-data refresh', 'CASE WHEN bs.concession_units = bs.costed_units THEN bs.known_cost ELSE NULL END' in real_sql)
 check('Real-data PowerShell copies SQL file byte-for-byte into PostgreSQL container', 'docker compose cp' in real_ps1 and 'psql -v ON_ERROR_STOP=1' in real_ps1)
-check('Runtime UTF-8 checker validates Flyway V51 and 56 public tables', "latest_version <> '51'" in check_sql and 'table_count < 56' in check_sql)
+check('Runtime UTF-8 checker validates Flyway V51-or-newer and at least 56 public tables', "latest_version::integer < 51" in check_sql and 'table_count < 56' in check_sql)
 check('Runtime UTF-8 checker detects common mojibake markers', 'Possible mojibake/encoding corruption' in check_sql)
 check('Runtime UTF-8 checker verifies analytics_snapshot is populated', 'analytics_snapshot is empty' in check_sql)
 check('README states all commands run from the requested project root', r'D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui' in readme)
