@@ -9,7 +9,10 @@ pass(){ printf 'PASS: %s\n' "$1"; checks=$((checks+1)); }
 test -f frontend/app/offline/page.tsx && pass "offline fallback page"
 test -f frontend/app/offline-tickets/page.tsx && pass "offline ticket vault page"
 test -f frontend/lib/offlineTickets.ts && pass "IndexedDB ticket storage"
-grep -q 'const VERSION = "v26"' frontend/public/sw.js && pass "service worker cache version"
+sw_version="$(grep -Eo 'const VERSION = "v[0-9]+"' frontend/public/sw.js | head -1 | grep -Eo '[0-9]+' || true)"
+if [[ -n "$sw_version" ]] && (( sw_version >= 26 )); then
+  pass "service worker cache version"
+fi
 grep -q 'url.pathname.startsWith("/api/")' frontend/public/sw.js && pass "authenticated API responses excluded from cache"
 grep -q 'SKIP_WAITING' frontend/public/sw.js && pass "service worker update flow"
 grep -q 'Lưu vé offline' frontend/app/ticket/'[bookingId]'/page.tsx && pass "explicit offline ticket opt-in"
