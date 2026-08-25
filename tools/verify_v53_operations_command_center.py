@@ -57,11 +57,13 @@ check('Admin dashboard links V53 Command Center', '/admin/command-center' in adm
 check('V53 Playwright covers admin all-cinema and cinema-scoped read journey', all(x in e2e for x in ['V53 admin sees a cinema-scoped operations command center','command-center-summary-v53','command-center-cinema-filter']))
 ci_match=re.search(r'name:\s*V26-V(\d+) source regression',ci)
 check('Main CI extends source regression through V53', bool(ci_match) and int(ci_match.group(1))>=53 and 'verify_v53_operations_command_center.py' in ci)
-check('Standalone RC defaults to V53 and runs V53 gate', 'default: "v53.0.0-rc.1"' in rc and 'cinebooking_v53_rc_' in rc and 'Verify V53 source gate' in rc and 'verify_v53_operations_command_center.py' in rc)
-check('Stable release defaults to V53 and runs V53 gate', 'default: "53.0.0"' in release and 'cinebooking_v53_release_' in release and 'Verify V53 source gate' in release and 'verify_v53_operations_command_center.py' in release)
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+check('Standalone RC retains V53 verifier in current-or-newer source gate', bool(rc_versions) and max(rc_versions)>=53 and 'verify_v53_operations_command_center.py' in rc)
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('Stable release retains V53 verifier in current-or-newer source gate', bool(release_versions) and max(release_versions)>=53 and 'verify_v53_operations_command_center.py' in release)
 check('Makefile exposes V53 verify diagnostics and unchanged 57-table checks', all(x in make for x in ['verify-v53:','diagnose-v53:','verify-seed-demo-v53:','seed-demo-v53:','check-seed-demo-v53:','verify-reference-v53:','seed-reference-v53:']))
 check('V53 diagnostics chain V52 plus V53 and 57-table verifier', all(x in diagnose for x in ['verify_v52_pwa_mobile_3.py','verify_v53_operations_command_center.py','verify_seed_demo_57.py','V53 source diagnostics passed.']))
-check('README identifies V53 as Operations Command Center 3.0', '# CineBooking Pro V53' in readme and 'V53 - Operations Command Center 3.0' in readme)
+check('README retains V53 Operations Command Center release history', 'V53 - Operations Command Center 3.0' in readme)
 check('README states V53 does not change schema and keeps 57 public tables', 'V53 không tạo migration Flyway mới' in readme and '57 public tables' in readme)
 check('README release lifecycle defaults to v53.0.0-rc.1 and v53.0.0', 'v53.0.0-rc.1' in readme and 'v53.0.0' in readme)
 

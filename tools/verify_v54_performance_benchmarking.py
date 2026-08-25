@@ -1,0 +1,82 @@
+from pathlib import Path
+import re
+
+ROOT=Path(__file__).resolve().parents[1]
+checks=[]
+def text(rel):
+    p=ROOT/rel
+    return p.read_text(encoding='utf-8') if p.exists() else ''
+def check(name,cond):
+    ok=bool(cond);checks.append((name,ok));print(f"[ {'OK' if ok else 'FAIL'} ] {name}")
+
+service=text('backend/src/main/java/com/cinebooking/performance/PerformanceBenchmarkService.java')
+dtos=text('backend/src/main/java/com/cinebooking/performance/PerformanceBenchmarkDtos.java')
+controller=text('backend/src/main/java/com/cinebooking/performance/AdminPerformanceBenchmarkController.java')
+security=text('backend/src/main/java/com/cinebooking/config/SecurityConfig.java')
+page=text('frontend/app/admin/performance/page.tsx')
+types=text('frontend/lib/types.ts')
+header=text('frontend/components/Header.tsx')
+admin=text('frontend/app/admin/page.tsx')
+e2e=text('frontend/e2e/performance-benchmarking-v54.spec.ts')
+ci=text('.github/workflows/ci.yml')
+rc=text('.github/workflows/release-candidate.yml')
+release=text('.github/workflows/release.yml')
+make=text('Makefile')
+diagnose=text('tools/diagnose-v54.ps1')
+readme=text('README.md')
+integration=text('backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java')
+seed_verify=text('tools/verify_seed_demo_57.py')
+v53verify=text('tools/verify_v53_operations_command_center.py')
+
+check('V54 is a no-schema performance release', not (ROOT/'backend/src/main/resources/db/migration/V54__performance_benchmarking_3.sql').exists())
+check('V52 remains latest Flyway migration under V54', (ROOT/'backend/src/main/resources/db/migration/V52__pwa_mobile_experience_3.sql').exists() and 'assertThat(latest).isEqualTo("52")' in integration)
+check('V54 keeps the 57-table data contract', 'Final verification enumerates all 57 pgAdmin tables' in seed_verify and 'pwa_device' in seed_verify)
+check('V53 verifier is forward-compatible with newer release workflows', 'current-or-newer source gate' in v53verify and 'max(rc_versions)>=53' in v53verify and 'max(release_versions)>=53' in v53verify)
+check('Performance DTOs expose branch ranking movie daily and scorecard contracts', all(x in dtos for x in ['BranchPerformance','MoviePerformance','DailyPerformance','Scorecard','revenueDeltaPct','forecastNext7d']))
+check('Performance controller exposes cinema and scorecard endpoints', '@RequestMapping("/api/admin/performance")' in controller and '@GetMapping("/cinemas")' in controller and '@GetMapping("/scorecard")' in controller)
+check('Security allows Manager/Admin into V54 before generic admin rule', '.requestMatchers("/api/admin/performance/**").hasAnyRole("MANAGER","ADMIN")' in security and security.index('/api/admin/performance/**') < security.index('/api/admin/**'))
+check('V54 service restricts access to Manager/Admin', 'actor.getRole() != Role.ADMIN && actor.getRole() != Role.MANAGER' in service and 'Performance Benchmarking' in service)
+check('Manager performance scope is locked to assigned cinema', 'Manager chỉ xem Performance Benchmarking của rạp mình' in service and 'managerCinema(actor)' in service)
+check('Admin can benchmark all cinemas or an explicit cinema', 'actor.getRole() == Role.ADMIN' in service and 'requestedCinemaId' in service and 'Toàn hệ thống' in service)
+check('V54 allows only deterministic 7 and 30 day windows', 'ALLOWED_PERIOD_DAYS = List.of(7, 30)' in service and 'validatePeriod(periodDays)' in service)
+check('V54 business windows use Asia Ho Chi Minh dates', 'ZoneId.of("Asia/Ho_Chi_Minh")' in service and 'LocalDate.now(BUSINESS_ZONE)' in service)
+check('V54 revenue uses SUCCESS payments only', "p.status='SUCCESS'" in service and "p.paid_at at time zone 'Asia/Ho_Chi_Minh'" in service)
+check('V54 compares equal current and previous windows', 'previousFrom = from.minusDays(periodDays)' in service and 'previousToExclusive = from' in service and 'previous_revenue as' in service)
+check('V54 booking volume uses confirmed business data', "b.status='CONFIRMED'" in service and 'count(distinct b.id) bookings' in service)
+check('V54 ticket metrics ignore released seats', 'booking_seat' in service and 'bs.released_at is null' in service)
+check('V54 occupancy derives real showtime capacity and excludes blocked seats', "seat_type<>'BLOCKED'" in service and "coalesce(st.status,'OPEN')<>'CANCELLED'" in service and 'occupiedSeats' in service)
+check('V54 never fabricates divide-by-zero growth', 'current.signum() == 0 ? 0.0 : null' in service and 'Mới' in page)
+check('V54 branch rank is revenue-based and deterministic', 'Comparator.comparing(BranchRaw::revenue).reversed().thenComparing(BranchRaw::cinemaName)' in service and 'index + 1' in service)
+check('V54 revenue share is derived from network revenue', 'share(row.revenue(), totalRevenue)' in service and 'revenueSharePct' in dtos)
+check('V54 reuses V51 weekday-weighted forecast per cinema', 'AnalyticsForecastingService' in service and 'forecasting.forecast(row.cinemaId()).next7DaysRevenue()' in service)
+check('V54 top movie ranking uses successful payment revenue', 'topMovies(' in service and 'join movie m' in service and 'order by revenue desc,m.title asc limit 5' in service)
+check('V54 daily series zero-fills missing calendar days', 'for (LocalDate day = from; day.isBefore(toExclusive); day = day.plusDays(1))' in service and 'revenue.getOrDefault(day' in service)
+check('V54 performance service is read-only', 'jdbc.update(' not in service and 'jdbc.batchUpdate(' not in service)
+check('Frontend V54 page exposes performance source marker', 'Performance Benchmarking · V54' in page and 'performance-benchmarking-v54' in page)
+check('Frontend supports Admin cinema filter and Manager fixed scope', 'performance-cinema-filter-v54' in page and 'profile.role==="MANAGER"' in page and 'me?.role==="ADMIN"' in page)
+check('Frontend supports 7 and 30 day benchmark windows', 'performance-period-v54' in page and '<option value={7}>7 ngày</option>' in page and '<option value={30}>30 ngày</option>' in page)
+check('Frontend renders summary branch benchmark top movies and daily trend', all(x in page for x in ['performance-summary-v54','performance-branches-v54','performance-top-movies-v54','performance-daily-v54']))
+check('Frontend documents honest metric semantics', all(x in page for x in ['payment SUCCESS','CONFIRMED','ghế đã release','Mới']))
+check('Frontend types include V54 performance contracts', all(x in types for x in ['PerformanceCinemaV54','PerformanceBranchV54','PerformanceMovieV54','PerformanceDailyV54','PerformanceScorecardV54']))
+check('Header exposes V54 Performance to Manager/Admin menus', header.count('/admin/performance') >= 4)
+check('Admin dashboard links V54 Performance', '/admin/performance' in admin and 'Performance V54' in admin)
+check('V54 Playwright covers period and cinema benchmark filters', all(x in e2e for x in ['V54 admin benchmarks cinema performance','performance-summary-v54','performance-period-v54','performance-cinema-filter-v54']))
+ci_match=re.search(r'name:\s*V26-V(\d+) source regression',ci)
+check('Main CI extends source regression through V54', bool(ci_match) and int(ci_match.group(1))>=54 and 'verify_v54_performance_benchmarking.py' in ci)
+rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
+check('Standalone RC defaults to V54-or-newer and runs V54 gate', bool(rc_versions) and max(rc_versions)>=54 and 'verify_v54_performance_benchmarking.py' in rc)
+release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
+check('Stable release defaults to V54-or-newer and runs V54 gate', bool(release_versions) and max(release_versions)>=54 and 'verify_v54_performance_benchmarking.py' in release)
+check('Makefile exposes V54 verify diagnose and unchanged 57-table lifecycle', all(x in make for x in ['verify-v54:','diagnose-v54:','verify-seed-demo-v54:','check-seed-demo-v54:','verify-reference-v54:','seed-reference-v54:']))
+check('V54 diagnostics chain V53 V54 and 57-table verifier', all(x in diagnose for x in ['verify_v53_operations_command_center.py','verify_v54_performance_benchmarking.py','verify_seed_demo_57.py','V54 source diagnostics passed.']))
+check('README identifies V54 Performance Benchmarking 3.0', '# CineBooking Pro V54' in readme and 'V54 - Multi-Cinema Performance Benchmarking 3.0' in readme)
+check('README states V54 does not change schema and keeps 57 public tables', 'V54 không tạo migration Flyway mới' in readme and '57 public tables' in readme)
+check('README release lifecycle defaults to v54.0.0-rc.1 and v54.0.0', 'v54.0.0-rc.1' in readme and 'v54.0.0' in readme)
+
+passed=sum(ok for _,ok in checks)
+print(f"\nV54 verification: {passed}/{len(checks)} checks passed")
+if passed != len(checks):
+    print("\nFailed checks:")
+    for name,ok in checks:
+        if not ok: print(f" - {name}")
+raise SystemExit(0 if passed==len(checks) else 1)

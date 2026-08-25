@@ -209,3 +209,17 @@ export type CommandCenterSummaryV53 = {
   paymentReviewCount:number; openSupportCases:number; overdueSupportCases:number; openMaintenanceOrders:number; overdueMaintenanceOrders:number;
   openStaffIncidents:number; lowStockItems:number; soldOutItems:number; attention:CommandCenterAttentionV53[];
 };
+
+// V54 Multi-Cinema Performance Benchmarking 3.0
+export type PerformanceCinemaV54 = { cinemaId:string; cinemaName:string };
+export type PerformanceBranchV54 = {
+  cinemaId:string; cinemaName:string; revenueRank:number; revenue:number; previousRevenue:number; revenueDeltaPct:number|null;
+  revenueSharePct:number; bookings:number; tickets:number; occupiedSeats:number; capacity:number; occupancyRate:number; averageOrderValue:number; forecastNext7d:number;
+};
+export type PerformanceMovieV54 = { movieId:string; movieTitle:string; revenue:number; tickets:number };
+export type PerformanceDailyV54 = { day:string; revenue:number; bookings:number; tickets:number };
+export type PerformanceScorecardV54 = {
+  cinemaId?:string; cinemaName:string; scope:"ALL_CINEMAS"|"CINEMA"; periodDays:7|30; fromDate:string; toDate:string; generatedAt:string;
+  revenue:number; previousRevenue:number; revenueDeltaPct:number|null; bookings:number; tickets:number; occupancyRate:number; averageOrderValue:number; forecastNext7d:number;
+  branches:PerformanceBranchV54[]; topMovies:PerformanceMovieV54[]; daily:PerformanceDailyV54[];
+};

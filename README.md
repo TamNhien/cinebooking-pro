@@ -1,13 +1,13 @@
-# CineBooking Pro V53
+# CineBooking Pro V54
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V53 - Operations Command Center 3.0
+> **Current release:** V54 - Multi-Cinema Performance Benchmarking 3.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V53 bổ sung Operations Command Center 3.0 cho Manager/Admin: một màn hình đọc-only tổng hợp doanh thu hôm nay, occupancy, forecast 7 ngày, payment REVIEW, SLA support, bảo trì quá hạn, sự cố staff và tồn kho thấp theo từng rạp hoặc toàn hệ thống. V53 giữ nguyên toàn bộ PWA/Mobile V52 và không tạo dữ liệu nghiệp vụ giả.
+V54 bổ sung Multi-Cinema Performance Benchmarking 3.0 cho Manager/Admin: so sánh doanh thu, tăng trưởng với kỳ trước, occupancy, AOV, forecast 7 ngày, top phim và nhịp doanh thu theo ngày trên dữ liệu giao dịch thật. V54 giữ nguyên Operations Command Center V53, không tạo migration mới và không tạo KPI giả.
 
 ## Quy ước chạy lệnh
 
@@ -88,6 +88,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V51** | **Analytics & Forecasting 3.0: period comparison, weekday-weighted forecast, margin/cost coverage, branch cost basis, durable scheduled snapshots** | **`V51__analytics_forecasting_3.sql`** |
 | **V52** | **PWA / Mobile Experience 3.0: VAPID Background Web Push, controlled cache, PWA devices, owner-scoped offline QR revalidation, persistent storage, mobile UX** | **`V52__pwa_mobile_experience_3.sql`** |
 | **V53** | **Operations Command Center 3.0: unified operational pulse, cinema scope, real-data attention signals, V51 forecast reuse** | **Không đổi schema** |
+| **V54** | **Multi-Cinema Performance Benchmarking 3.0: equal-window growth, branch revenue ranking/share, occupancy, top movies, V51 forecast reuse** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2367,4 +2368,113 @@ rc_number: 1
 ```
 
 Nếu `v53.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
+
+## V54 - Multi-Cinema Performance Benchmarking 3.0
+
+V54 thêm lớp **performance analytics read-only** cho Manager/Admin, tập trung vào việc so sánh hiệu suất giữa các rạp bằng cùng một cửa sổ thời gian. V54 không tạo điểm số tùy ý, không seed doanh thu/occupancy và không thay đổi trạng thái booking/payment/showtime.
+
+Trang mới:
+
+```text
+http://localhost/admin/performance
+```
+
+### Phạm vi V54
+
+- Admin có thể benchmark **Toàn hệ thống** hoặc chọn một rạp cụ thể.
+- Manager chỉ được xem rạp gắn với `staff_profile.cinema_id`; backend từ chối cinema khác.
+- Chỉ hỗ trợ cửa sổ **7 ngày** và **30 ngày** để so sánh nhất quán.
+- Kỳ hiện tại và kỳ trước luôn có cùng số ngày theo timezone `Asia/Ho_Chi_Minh`.
+- Doanh thu chỉ lấy `payment.status='SUCCESS'`.
+- Booking/vé chỉ lấy `booking.status='CONFIRMED'`; `booking_seat.released_at IS NOT NULL` không được tính là vé còn hiệu lực.
+- Occupancy lấy ghế đã bán thực tế trên showtime và capacity thật của auditorium; ghế `BLOCKED` không tính vào capacity, showtime `CANCELLED` không tính.
+- Branch ranking sắp theo doanh thu thật; `revenueSharePct` được tính từ tổng doanh thu trong đúng phạm vi đang xem.
+- Growth với kỳ trước trả `NULL`/`Mới` khi kỳ trước bằng 0 nhưng kỳ hiện tại có doanh thu, thay vì bịa phần trăm tăng trưởng.
+- Forecast 7 ngày tái sử dụng `AnalyticsForecastingService` V51 theo từng rạp rồi cộng lại cho phạm vi toàn hệ thống.
+- Top phim xếp theo doanh thu payment SUCCESS; daily series giữ cả ngày 0 doanh thu để không làm đứt chuỗi thời gian.
+
+### Database / migration V54
+
+**V54 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Schema tiếp tục giữ:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+Không chạy seed mới chỉ để làm đầy dashboard V54. Mọi KPI đều được tính từ giao dịch và lịch chiếu đang có.
+
+### API V54
+
+```text
+GET /api/admin/performance/cinemas
+GET /api/admin/performance/scorecard?periodDays=7&cinemaId=<optional-uuid>
+```
+
+`periodDays` chỉ nhận `7` hoặc `30`. `/api/admin/performance/**` cho phép `MANAGER` và `ADMIN`; rule đứng trước generic `/api/admin/**`.
+
+### Test source V54
+
+Chạy từ project root:
+
+```powershell
+bash tools/verify-v26-source.sh
+python .\tools\verify_v44_maintenance_reliability.py
+python .\tools\verify_v45_customer_support.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v51_utf8_real_data.py
+python .\tools\verify_v52_pwa_mobile_3.py
+python .\tools\verify_v53_operations_command_center.py
+python .\tools\verify_v54_performance_benchmarking.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v54.ps1
+```
+
+### Test bảng V54
+
+V54 không đổi schema nên vẫn kiểm tra 57 bảng:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng Flyway vẫn V52 và `public_tables = 57`. Không dùng `docker compose down -v` cho update bình thường.
+
+### CI / release V54
+
+Main CI chạy source regression **V26-V54**, backend integration, frontend lint/build, Docker validation và các gate dữ liệu hiện có. Browser E2E có thêm journey V54 và để GitHub Actions chạy trên disposable stack.
+
+Release candidate đầu tiên:
+
+```text
+v54.0.0-rc.1
+```
+
+Stable target:
+
+```text
+v54.0.0
+```
+
+Stable workflow inputs:
+
+```text
+version: 54.0.0
+rc_number: 1
+```
+
+Nếu `v54.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
 

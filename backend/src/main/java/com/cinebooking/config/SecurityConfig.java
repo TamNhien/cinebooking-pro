@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/attendance/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/analytics/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/command-center/**").hasAnyRole("MANAGER","ADMIN")
+                .requestMatchers("/api/admin/performance/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/maintenance/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/support/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

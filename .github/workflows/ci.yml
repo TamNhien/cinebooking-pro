@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V53 source regression
+    name: V26-V54 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -303,6 +303,9 @@ jobs:
 
       - name: Verify V53 Operations Command Center 3.0
         run: python3 tools/verify_v53_operations_command_center.py
+
+      - name: Verify V54 Multi-Cinema Performance Benchmarking 3.0
+        run: python3 tools/verify_v54_performance_benchmarking.py
 
   compose-config:
     name: Docker Compose validation
