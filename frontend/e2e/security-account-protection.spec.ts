@@ -41,11 +41,17 @@ async function authFromStorage(context:BrowserContext,page:Page,expectedRole:"US
 }
 
 async function logoutToLogin(page:Page,context:BrowserContext){
-  const logoutResponse=page.waitForResponse(response=>response.url().includes("/api/auth/logout")&&response.request().method()==="POST");
-  await page.getByRole("button",{name:"Đăng xuất"}).click();
-  const response=await logoutResponse;
-  expect(response.status()).toBe(204);
-  await page.waitForURL(url=>url.pathname==="/",{timeout:15000,waitUntil:"domcontentloaded"});
+  // V54 CI hardening: do not click the header logout button here. Its product
+  // handler performs a full location.href="/" navigation after the logout
+  // request, which can race this helper's immediate navigation to /login.
+  // This journey tests V46 security behavior, not header navigation, so make
+  // logout deterministic and keep exactly one browser navigation afterwards.
+  const status=await page.evaluate(async(authStorageKey)=>{
+    const response=await fetch("/api/auth/logout",{method:"POST",credentials:"include",cache:"no-store"});
+    localStorage.removeItem(authStorageKey);
+    return response.status;
+  },AUTH_STORAGE_KEY);
+  expect(status).toBe(204);
   await context.clearCookies();
   await page.goto("/login",{waitUntil:"domcontentloaded"});
   await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();

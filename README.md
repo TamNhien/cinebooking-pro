@@ -1,13 +1,13 @@
-# CineBooking Pro V54
+# CineBooking Pro V55
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V54 - Multi-Cinema Performance Benchmarking 3.0
+> **Current release:** V55 - Customer Retention & Cohort Intelligence 3.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V54 bổ sung Multi-Cinema Performance Benchmarking 3.0 cho Manager/Admin: so sánh doanh thu, tăng trưởng với kỳ trước, occupancy, AOV, forecast 7 ngày, top phim và nhịp doanh thu theo ngày trên dữ liệu giao dịch thật. V54 giữ nguyên Operations Command Center V53, không tạo migration mới và không tạo KPI giả.
+V55 bổ sung Customer Retention & Cohort Intelligence 3.0 cho Manager/Admin: khách mới/quay lại, repeat rate, lifecycle segments và cohort retention 30 ngày từ booking CONFIRMED + payment SUCCESS thật. V55 giữ nguyên Performance Benchmarking V54, không tạo migration mới, không dùng điểm churn tùy ý và không seed KPI giả.
 
 ## Quy ước chạy lệnh
 
@@ -89,6 +89,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V52** | **PWA / Mobile Experience 3.0: VAPID Background Web Push, controlled cache, PWA devices, owner-scoped offline QR revalidation, persistent storage, mobile UX** | **`V52__pwa_mobile_experience_3.sql`** |
 | **V53** | **Operations Command Center 3.0: unified operational pulse, cinema scope, real-data attention signals, V51 forecast reuse** | **Không đổi schema** |
 | **V54** | **Multi-Cinema Performance Benchmarking 3.0: equal-window growth, branch revenue ranking/share, occupancy, top movies, V51 forecast reuse** | **Không đổi schema** |
+| **V55** | **Customer Retention & Cohort Intelligence 3.0: new/returning customers, repeat rate, lifecycle segmentation, 30-day cohort retention** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2478,3 +2479,115 @@ rc_number: 1
 
 Nếu `v54.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.
 
+
+## V55 - Customer Retention & Cohort Intelligence 3.0
+
+V55 bổ sung lớp **customer retention analytics read-only** cho Manager/Admin. Mục tiêu là trả lời khách nào là mới/quay lại, tỷ lệ repeat thực, khách đang ở giai đoạn nào của vòng đời và cohort nào quay lại trong 30 ngày. V55 không dùng churn score tùy ý, không gọi khách là “rời bỏ” bằng mô hình không giải thích được và không tạo dữ liệu booking/payment giả để làm đầy dashboard.
+
+Trang mới:
+
+```text
+http://localhost/admin/retention
+```
+
+### Phạm vi V55
+
+- Admin xem **Toàn hệ thống** hoặc chọn một rạp cụ thể.
+- Manager chỉ xem rạp gắn với `staff_profile.cinema_id`; backend từ chối cinema khác.
+- Dashboard hỗ trợ cửa sổ hoạt động **30 ngày** và **90 ngày**.
+- Chỉ tài khoản `app_user.role='USER'` được tính vào retention; Manager/Admin không làm nhiễu chỉ số khách hàng.
+- Khách được quy về `booking.purchaser_user_id`, tức người mua gốc. Ticket transfer không biến người nhận vé thành khách mua mới.
+- Khách hoạt động là purchaser có ít nhất một `booking.status='CONFIRMED'` trong cửa sổ đang chọn.
+- Khách mới là purchaser có **lần booking CONFIRMED đầu tiên trong chính phạm vi rạp đang xem** nằm trong cửa sổ.
+- Khách quay lại là purchaser đã có lần mua CONFIRMED trước đầu cửa sổ và có mua lại trong cửa sổ hiện tại.
+- Repeat customer là khách hoạt động có ít nhất 2 booking CONFIRMED trong lịch sử cùng phạm vi; `repeatCustomerRate` là tỷ lệ repeat / active.
+- Revenue và revenue/customer chỉ lấy `payment.status='SUCCESS'` theo ngày thanh toán trong timezone `Asia/Ho_Chi_Minh`.
+- Daily series zero-fill cả ngày không có khách; new/returning được phân loại theo first CONFIRMED booking.
+- Cohort dùng tháng của lần mua CONFIRMED đầu tiên; chỉ cohort đã có **đủ 30 ngày quan sát** mới được đưa vào bảng. Retained 30d nghĩa là có booking CONFIRMED thứ hai sau lần đầu và không muộn hơn 30 ngày.
+- Lifecycle là rule-based, các nhóm loại trừ nhau: `NEW_30D`, `ACTIVE_REPEAT`, `AT_RISK`, `DORMANT`, `LAPSED`. Đây là quy tắc theo first/last booking, không phải dự đoán AI.
+
+### Database / migration V55
+
+**V55 không tạo migration Flyway mới.** Migration cao nhất vẫn là:
+
+```text
+V52__pwa_mobile_experience_3.sql
+```
+
+Schema tiếp tục giữ:
+
+```text
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+Không seed thêm customer/booking/payment chỉ để làm retention đẹp hơn. Dashboard đọc dữ liệu giao dịch hiện có.
+
+### API V55
+
+```text
+GET /api/admin/retention/cinemas
+GET /api/admin/retention/scorecard?periodDays=30&cinemaId=<optional-uuid>
+```
+
+`periodDays` chỉ nhận `30` hoặc `90`. `/api/admin/retention/**` cho phép `MANAGER` và `ADMIN`; rule đứng trước generic `/api/admin/**`.
+
+### Test source V55
+
+Chạy từ project root:
+
+```powershell
+bash tools/verify-v26-source.sh
+python .\tools\verify_v44_maintenance_reliability.py
+python .\tools\verify_v45_customer_support.py
+python .\tools\verify_v46_security_account_protection.py
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v48_concession_inventory_2.py
+python .\tools\verify_v49_smart_showtime_planning_2.py
+python .\tools\verify_v50_recommendation_intelligence_2.py
+python .\tools\verify_v51_analytics_forecasting_3.py
+python .\tools\verify_v51_utf8_real_data.py
+python .\tools\verify_v52_pwa_mobile_3.py
+python .\tools\verify_v53_operations_command_center.py
+python .\tools\verify_v54_performance_benchmarking.py
+python .\tools\verify_v55_customer_retention.py
+python .\tools\verify_seed_demo_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v55.ps1
+```
+
+### Test bảng V55
+
+V55 không đổi schema nên vẫn dùng 57-table gate:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\check-demo-57-table-counts.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\check-v51-data-utf8.ps1
+```
+
+Kỳ vọng Flyway vẫn V52, `public_tables = 57`, UTF-8 PASS và `required_empty_tables = 0`. Không dùng `docker compose down -v` cho update bình thường.
+
+### CI / release V55
+
+Main CI chạy source regression **V26-V55**, backend integration, frontend lint/build, Docker validation và các gate dữ liệu hiện có. Browser E2E có thêm journey V55 và để GitHub Actions chạy trên disposable stack.
+
+Release candidate đầu tiên:
+
+```text
+v55.0.0-rc.1
+```
+
+Stable target:
+
+```text
+v55.0.0
+```
+
+Stable workflow inputs:
+
+```text
+version: 55.0.0
+rc_number: 1
+```
+
+Nếu `v55.0.0-rc.1` đã tồn tại ở commit cũ, giữ tag immutable và tăng `rc_number` lên 2, 3, ...; không force-update RC cũ.

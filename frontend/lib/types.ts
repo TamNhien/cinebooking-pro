@@ -223,3 +223,14 @@ export type PerformanceScorecardV54 = {
   revenue:number; previousRevenue:number; revenueDeltaPct:number|null; bookings:number; tickets:number; occupancyRate:number; averageOrderValue:number; forecastNext7d:number;
   branches:PerformanceBranchV54[]; topMovies:PerformanceMovieV54[]; daily:PerformanceDailyV54[];
 };
+
+// V55 Customer Retention & Cohort Intelligence 3.0
+export type RetentionCinemaV55 = { cinemaId:string; cinemaName:string };
+export type RetentionLifecycleV55 = { code:"NEW_30D"|"ACTIVE_REPEAT"|"AT_RISK"|"DORMANT"|"LAPSED"; label:string; definition:string; customers:number };
+export type RetentionCohortV55 = { cohortMonth:string; acquiredCustomers:number; returnedWithin30Days:number; retention30dRate:number };
+export type RetentionDailyV55 = { day:string; newCustomers:number; returningCustomers:number; bookings:number; revenue:number };
+export type RetentionScorecardV55 = {
+  cinemaId?:string; cinemaName:string; scope:"ALL_CINEMAS"|"CINEMA"; periodDays:30|90; fromDate:string; toDate:string; generatedAt:string;
+  activeCustomers:number; newCustomers:number; returningCustomers:number; repeatCustomers:number; repeatCustomerRate:number; bookings:number; bookingsPerCustomer:number;
+  revenue:number; revenuePerCustomer:number; lifecycle:RetentionLifecycleV55[]; cohorts:RetentionCohortV55[]; daily:RetentionDailyV55[];
+};

@@ -71,7 +71,8 @@ release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
 check('Stable release defaults to V54-or-newer and runs V54 gate', bool(release_versions) and max(release_versions)>=54 and 'verify_v54_performance_benchmarking.py' in release)
 check('Makefile exposes V54 verify diagnose and unchanged 57-table lifecycle', all(x in make for x in ['verify-v54:','diagnose-v54:','verify-seed-demo-v54:','check-seed-demo-v54:','verify-reference-v54:','seed-reference-v54:']))
 check('V54 diagnostics chain V53 V54 and 57-table verifier', all(x in diagnose for x in ['verify_v53_operations_command_center.py','verify_v54_performance_benchmarking.py','verify_seed_demo_57.py','V54 source diagnostics passed.']))
-check('README identifies V54 Performance Benchmarking 3.0', '# CineBooking Pro V54' in readme and 'V54 - Multi-Cinema Performance Benchmarking 3.0' in readme)
+current_match=re.search(r'^# CineBooking Pro V(\d+)',readme,re.M)
+check('README retains V54 Performance Benchmarking in current-or-newer source', bool(current_match) and int(current_match.group(1))>=54 and 'V54 - Multi-Cinema Performance Benchmarking 3.0' in readme)
 check('README states V54 does not change schema and keeps 57 public tables', 'V54 không tạo migration Flyway mới' in readme and '57 public tables' in readme)
 check('README release lifecycle defaults to v54.0.0-rc.1 and v54.0.0', 'v54.0.0-rc.1' in readme and 'v54.0.0' in readme)
 
