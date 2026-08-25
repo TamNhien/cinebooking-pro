@@ -11,6 +11,7 @@ import com.cinebooking.user.StaffProfileRepository;
 import com.cinebooking.user.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -216,7 +217,7 @@ public class PerformanceBenchmarkService {
                         "join auditorium a on a.id=st.auditorium_id join booking_seat bs on bs.booking_id=b.id and bs.released_at is null " +
                         "where b.status='CONFIRMED' and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')>=? " +
                         "and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')<?" + filter + " group by st.movie_id",
-                rs -> tickets.put(rs.getObject("movie_id", UUID.class), rs.getLong("tickets")),
+                (RowCallbackHandler) rs -> tickets.put(rs.getObject("movie_id", UUID.class), rs.getLong("tickets")),
                 ticketArgs.toArray()
         );
 
@@ -245,7 +246,7 @@ public class PerformanceBenchmarkService {
                         "from payment p join booking b on b.id=p.booking_id join showtime st on st.id=b.showtime_id join auditorium a on a.id=st.auditorium_id " +
                         "where p.status='SUCCESS' and date(p.paid_at at time zone 'Asia/Ho_Chi_Minh')>=? " +
                         "and date(p.paid_at at time zone 'Asia/Ho_Chi_Minh')<?" + paymentFilter + " group by 1 order by 1",
-                rs -> revenue.put(rs.getObject("day", LocalDate.class), money(rs.getBigDecimal("revenue"))),
+                (RowCallbackHandler) rs -> revenue.put(rs.getObject("day", LocalDate.class), money(rs.getBigDecimal("revenue"))),
                 paymentArgs.toArray()
         );
 
@@ -258,7 +259,7 @@ public class PerformanceBenchmarkService {
                         "left join booking_seat bs on bs.booking_id=b.id and bs.released_at is null " +
                         "where b.status='CONFIRMED' and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')>=? " +
                         "and date(b.confirmed_at at time zone 'Asia/Ho_Chi_Minh')<?" + paymentFilter + " group by 1 order by 1",
-                rs -> volume.put(rs.getObject("day", LocalDate.class), new long[]{rs.getLong("bookings"), rs.getLong("tickets")}),
+                (RowCallbackHandler) rs -> volume.put(rs.getObject("day", LocalDate.class), new long[]{rs.getLong("bookings"), rs.getLong("tickets")}),
                 bookingArgs.toArray()
         );
 

@@ -52,6 +52,7 @@ check('V54 reuses V51 weekday-weighted forecast per cinema', 'AnalyticsForecasti
 check('V54 top movie ranking uses successful payment revenue', 'topMovies(' in service and 'join movie m' in service and 'order by revenue desc,m.title asc limit 5' in service)
 check('V54 daily series zero-fills missing calendar days', 'for (LocalDate day = from; day.isBefore(toExclusive); day = day.plusDays(1))' in service and 'revenue.getOrDefault(day' in service)
 check('V54 performance service is read-only', 'jdbc.update(' not in service and 'jdbc.batchUpdate(' not in service)
+check('V54 JdbcTemplate row callbacks are compile-unambiguous on Spring 7', 'import org.springframework.jdbc.core.RowCallbackHandler;' in service and service.count('(RowCallbackHandler) rs ->') >= 3)
 check('Frontend V54 page exposes performance source marker', 'Performance Benchmarking · V54' in page and 'performance-benchmarking-v54' in page)
 check('Frontend supports Admin cinema filter and Manager fixed scope', 'performance-cinema-filter-v54' in page and 'profile.role==="MANAGER"' in page and 'me?.role==="ADMIN"' in page)
 check('Frontend supports 7 and 30 day benchmark windows', 'performance-period-v54' in page and '<option value={7}>7 ngày</option>' in page and '<option value={30}>30 ngày</option>' in page)
