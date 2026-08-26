@@ -201,21 +201,21 @@ export default function Header(){
       <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-3 md:px-6">
         <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-bold tracking-tight 2xl:text-xl">🎬 CineBooking <span className="text-rose-500">Pro</span></Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-4 whitespace-nowrap text-[13px] font-semibold xl:flex 2xl:gap-5 2xl:text-sm">
+        <nav className="desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-3 whitespace-nowrap text-[13px] font-semibold 2xl:flex 2xl:text-sm">
           <Link href="/movies" className="nav-link">{en?"Movies":"Phim"}</Link>
           <Link href="/cinemas" className="nav-link">{en?"Cinemas & showtimes":"Rạp & lịch chiếu"}</Link>
           <Link href="/promotions" className="nav-link">{en?"Promotions":"Ưu đãi"}</Link>
           {auth&&<Link href="/bookings" className="nav-link">{en?"My tickets":"Vé của tôi"}</Link>}
           {auth&&<Link href="/payments" className="nav-link">{en?"Payments":"Thanh toán"}</Link>}
-          {auth&&<Link href="/favorites" className="nav-link">{en?"Favorites":"Yêu thích"}</Link>}
+          {auth&&<Link href="/favorites" className="nav-link desktop-nav-extra">{en?"Favorites":"Yêu thích"}</Link>}
           {auth&&<Link href="/for-you" className="nav-link">{en?"For you":"Gu phim"}</Link>}
-          {auth&&<Link href="/waitlist" className="nav-link">{en?"Seat alerts":"Chờ ghế"}</Link>}
-          {auth&&<Link href="/profile" className="nav-link">{en?"Account":"Tài khoản"}</Link>}
-          {auth&&<Link href="/security" className="nav-link">{en?"Security":"Bảo mật"}</Link>}
-          {auth&&<Link href="/support" className="nav-link">{en?"Support":"Hỗ trợ"}</Link>}
-          {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link">Ca làm</Link>}
-          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link">Check-in</Link>}
-          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link">Vận hành</Link>}
+          {auth&&<Link href="/waitlist" className="nav-link desktop-nav-extra">{en?"Seat alerts":"Chờ ghế"}</Link>}
+          {auth&&<Link href="/profile" className="nav-link desktop-nav-extra">{en?"Account":"Tài khoản"}</Link>}
+          {auth&&<Link href="/security" className="nav-link desktop-nav-extra">{en?"Security":"Bảo mật"}</Link>}
+          {auth&&<Link href="/support" className="nav-link desktop-nav-extra">{en?"Support":"Hỗ trợ"}</Link>}
+          {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link desktop-nav-extra">Ca làm</Link>}
+          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link desktop-nav-extra">Check-in</Link>}
+          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link desktop-nav-extra">Vận hành</Link>}
 
           {auth?.role==="MANAGER"&&<div className="nav-menu relative" data-desktop-menu-root="true">
             <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="manager"?"is-open":""}`} onClick={()=>toggleDesktop("manager")} aria-expanded={desktopMenu==="manager"}>Quản lý <span aria-hidden="true">⌄</span></button>

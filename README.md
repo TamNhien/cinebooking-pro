@@ -2965,6 +2965,10 @@ Flyway latest: V52
 
 Không cần seed thêm bảng và không thay đổi realistic-data audit 57 bảng.
 
+### V59.1 UI readability hardening
+
+Admin Dashboard được harden responsive để các nút dài không bị che/cắt chữ: quick actions và tab chuyển sang CSS grid `auto-fit`, `.btn` cho phép tự tăng chiều cao/wrap nhãn, và desktop header ẩn các link ưu tiên thấp vào navigation drawer trên viewport thông thường. Browser gate V59 kiểm tra tại viewport 1920x1080 rằng quick-action buttons không có `scrollWidth/scrollHeight` clipping và không chồng bounding box.
+
 ### Test source V59
 
 ```powershell
