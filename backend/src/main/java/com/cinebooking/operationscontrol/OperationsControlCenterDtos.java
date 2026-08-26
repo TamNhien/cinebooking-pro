@@ -20,12 +20,30 @@ public final class OperationsControlCenterDtos {
     ) {}
 
     public record AlertItem(
+            String fingerprint,
             String severity,
+            String effectiveSeverity,
+            String state,
             String domain,
             String title,
             String detail,
             long count,
-            String href
+            String href,
+            Instant firstSeenAt,
+            Instant stateChangedAt,
+            String stateActor,
+            boolean escalated
+    ) {}
+
+    public record AlertActionRequest(UUID cinemaId, String note) {}
+
+    public record AlertHistoryItem(
+            UUID id,
+            String fingerprint,
+            String action,
+            String actorEmail,
+            String detail,
+            Instant createdAt
     ) {}
 
     public record Snapshot(
@@ -35,6 +53,8 @@ public final class OperationsControlCenterDtos {
             String overallStatus,
             Instant generatedAt,
             int pollAfterSeconds,
+            String realtimeTransport,
+            String realtimeTopic,
             BigDecimal todayRevenue,
             long todayConfirmedBookings,
             long todayTickets,

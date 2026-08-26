@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V58 source regression
+    name: V26-V59 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -321,6 +321,9 @@ jobs:
 
       - name: Verify V58 Operations Control Center
         run: python3 tools/verify_v58_operations_control_center.py
+
+      - name: Verify V59 Realtime Operations 4.0
+        run: python3 tools/verify_v59_realtime_operations_4.py
 
   compose-config:
     name: Docker Compose validation

@@ -2,26 +2,31 @@ package com.cinebooking.operationscontrol;
 
 import com.cinebooking.commandcenter.CommandCenterDtos;
 import com.cinebooking.commandcenter.CommandCenterService;
+import com.cinebooking.common.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 import static com.cinebooking.operationscontrol.OperationsControlCenterDtos.*;
 
 @Service
 public class OperationsControlCenterService {
-    private static final int POLL_SECONDS = 5;
+    private static final int FALLBACK_REFRESH_SECONDS = 30;
+    private static final String REALTIME_TOPIC = "/topic/operations-control";
 
     private final JdbcTemplate jdbc;
     private final CommandCenterService commandCenter;
+    private final OperationsAlertStateService alertStates;
 
-    public OperationsControlCenterService(JdbcTemplate jdbc, CommandCenterService commandCenter) {
+    public OperationsControlCenterService(JdbcTemplate jdbc,
+                                          CommandCenterService commandCenter,
+                                          OperationsAlertStateService alertStates) {
         this.jdbc = jdbc;
         this.commandCenter = commandCenter;
+        this.alertStates = alertStates;
     }
 
     public List<CinemaOption> cinemaOptions(String email) {
@@ -96,29 +101,33 @@ public class OperationsControlCenterService {
                 pulse("INCIDENT", "Incident", criticalIncidents, Math.max(0, openIncidents - criticalIncidents), "/staff/operations", criticalIncidents > 0)
         );
 
-        List<AlertItem> alerts = new ArrayList<>();
-        add(alerts, "CRITICAL", "PAYMENT", "Thanh toán đang chờ đối soát", "Payment REVIEW cần kiểm tra thủ công.", paymentReview, "/admin/payments");
-        add(alerts, "CRITICAL", "BOOKING", "Booking PENDING đã quá hạn", "Job expiry chưa giải phóng các booking đã qua expires_at.", pendingPastDue, "/admin/bookings");
-        add(alerts, "CRITICAL", "EQUIPMENT", "Thiết bị ngừng hoạt động", "Thiết bị OUT_OF_SERVICE có thể ảnh hưởng vận hành rạp.", equipmentOut, "/admin/maintenance");
-        add(alerts, "CRITICAL", "SUPPORT", "Support quá SLA", "Case đang mở đã vượt sla_due_at.", overdueSupport, "/admin/support");
-        add(alerts, "CRITICAL", "INCIDENT", "Incident mức CRITICAL", "Sự cố staff đang mở với severity CRITICAL.", criticalIncidents, "/staff/operations");
-        add(alerts, "HIGH", "STAFF", "Ca hiện tại chưa có check-in", "Ca đã bắt đầu nhưng chưa có attendance WORKING.", uncoveredActiveShifts, "/staff/operations");
-        add(alerts, "HIGH", "INVENTORY", "Hết tồn khả dụng", "Stock on hand trừ reserved đã về 0.", soldOut, "/admin/inventory");
-        add(alerts, "MEDIUM", "BOOKING", "Booking sắp hết hạn", "Booking PENDING sẽ hết hạn trong 5 phút tới.", pendingExpiringSoon, "/admin/bookings");
-        add(alerts, "MEDIUM", "PAYMENT", "Payment FAILED trong 60 phút", "Tín hiệu lỗi payment gần đây để theo dõi provider/funnel.", paymentFailedLastHour, "/admin/payments");
-        add(alerts, "MEDIUM", "EQUIPMENT", "Thiết bị degraded / quá lịch service", "Thiết bị cần theo dõi trước khi thành outage.", equipmentDegraded + equipmentServiceOverdue, "/admin/maintenance");
-        add(alerts, "MEDIUM", "INVENTORY", "Tồn kho thấp", "Tồn khả dụng đã chạm low_stock_threshold.", lowStock, "/admin/inventory");
-        add(alerts, "LOW", "INCIDENT", "Incident đang mở", "Các incident chưa resolve ngoài mức CRITICAL.", Math.max(0, openIncidents - criticalIncidents), "/staff/operations");
-        alerts.sort(Comparator.comparingInt(a -> severityRank(a.severity())));
+        List<AlertItem> raw = new ArrayList<>();
+        add(raw, cinemaId, "CRITICAL", "PAYMENT", "Thanh toán đang chờ đối soát", "Payment REVIEW cần kiểm tra thủ công.", paymentReview, "/admin/payments");
+        add(raw, cinemaId, "CRITICAL", "BOOKING", "Booking PENDING đã quá hạn", "Job expiry chưa giải phóng các booking đã qua expires_at.", pendingPastDue, "/admin/bookings");
+        add(raw, cinemaId, "CRITICAL", "EQUIPMENT", "Thiết bị ngừng hoạt động", "Thiết bị OUT_OF_SERVICE có thể ảnh hưởng vận hành rạp.", equipmentOut, "/admin/maintenance");
+        add(raw, cinemaId, "CRITICAL", "SUPPORT", "Support quá SLA", "Case đang mở đã vượt sla_due_at.", overdueSupport, "/admin/support");
+        add(raw, cinemaId, "CRITICAL", "INCIDENT", "Incident mức CRITICAL", "Sự cố staff đang mở với severity CRITICAL.", criticalIncidents, "/staff/operations");
+        add(raw, cinemaId, "HIGH", "STAFF", "Ca hiện tại chưa có check-in", "Ca đã bắt đầu nhưng chưa có attendance WORKING.", uncoveredActiveShifts, "/staff/operations");
+        add(raw, cinemaId, "HIGH", "INVENTORY", "Hết tồn khả dụng", "Stock on hand trừ reserved đã về 0.", soldOut, "/admin/inventory");
+        add(raw, cinemaId, "MEDIUM", "BOOKING", "Booking sắp hết hạn", "Booking PENDING sẽ hết hạn trong 5 phút tới.", pendingExpiringSoon, "/admin/bookings");
+        add(raw, cinemaId, "MEDIUM", "PAYMENT", "Payment FAILED trong 60 phút", "Tín hiệu lỗi payment gần đây để theo dõi provider/funnel.", paymentFailedLastHour, "/admin/payments");
+        add(raw, cinemaId, "MEDIUM", "EQUIPMENT", "Thiết bị degraded / quá lịch service", "Thiết bị cần theo dõi trước khi thành outage.", equipmentDegraded + equipmentServiceOverdue, "/admin/maintenance");
+        add(raw, cinemaId, "MEDIUM", "INVENTORY", "Tồn kho thấp", "Tồn khả dụng đã chạm low_stock_threshold.", lowStock, "/admin/inventory");
+        add(raw, cinemaId, "LOW", "INCIDENT", "Incident đang mở", "Các incident chưa resolve ngoài mức CRITICAL.", Math.max(0, openIncidents - criticalIncidents), "/staff/operations");
 
-        String overall = alerts.stream().anyMatch(a -> "CRITICAL".equals(a.severity()))
+        List<AlertItem> alerts = new ArrayList<>(alertStates.decorate(raw));
+        alerts.sort(Comparator.comparingInt((AlertItem a) -> stateRank(a.state()))
+                .thenComparingInt(a -> severityRank(a.effectiveSeverity())));
+
+        String overall = alerts.stream().filter(a -> !"RESOLVED".equals(a.state())).anyMatch(a -> "CRITICAL".equals(a.effectiveSeverity()))
                 ? "ACTION_REQUIRED"
-                : alerts.stream().anyMatch(a -> "HIGH".equals(a.severity()) || "MEDIUM".equals(a.severity()))
+                : alerts.stream().filter(a -> !"RESOLVED".equals(a.state())).anyMatch(a -> "HIGH".equals(a.effectiveSeverity()) || "MEDIUM".equals(a.effectiveSeverity()))
                 ? "WATCH"
                 : "HEALTHY";
 
         return new Snapshot(
-                base.cinemaId(), base.cinemaName(), base.scope(), overall, base.generatedAt(), POLL_SECONDS,
+                base.cinemaId(), base.cinemaName(), base.scope(), overall, base.generatedAt(), FALLBACK_REFRESH_SECONDS,
+                "STOMP_WEBSOCKET", REALTIME_TOPIC,
                 base.todayRevenue(), base.todayConfirmedBookings(), base.todayTickets(), base.todayOccupancyRate(),
                 paymentReview, paymentFailedLastHour, pendingBookings, pendingPastDue, pendingExpiringSoon,
                 equipmentOut, equipmentDegraded, equipmentMaintenance, equipmentServiceOverdue,
@@ -128,13 +137,45 @@ public class OperationsControlCenterService {
         );
     }
 
+    public Snapshot acknowledge(String email, UUID cinemaId, String fingerprint, String note) {
+        AlertItem alert = requireVisibleAlert(email, cinemaId, fingerprint);
+        alertStates.acknowledge(alert, email, note);
+        return snapshot(email, cinemaId);
+    }
+
+    public Snapshot resolve(String email, UUID cinemaId, String fingerprint, String note) {
+        AlertItem alert = requireVisibleAlert(email, cinemaId, fingerprint);
+        alertStates.resolve(alert, email, note);
+        return snapshot(email, cinemaId);
+    }
+
+    public List<AlertHistoryItem> history(String email, UUID cinemaId) {
+        Set<String> visible = snapshot(email, cinemaId).alerts().stream().map(AlertItem::fingerprint).collect(java.util.stream.Collectors.toSet());
+        return alertStates.history(visible);
+    }
+
+    private AlertItem requireVisibleAlert(String email, UUID cinemaId, String fingerprint) {
+        if (fingerprint == null || fingerprint.isBlank()) throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu fingerprint cảnh báo");
+        return snapshot(email, cinemaId).alerts().stream()
+                .filter(a -> fingerprint.equals(a.fingerprint()))
+                .findFirst()
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Cảnh báo không còn tồn tại trong phạm vi hiện tại"));
+    }
+
     private DomainPulse pulse(String domain, String label, long primary, long warning, String href, boolean critical) {
         String status = critical ? "ACTION_REQUIRED" : (primary + warning > 0 ? "WATCH" : "HEALTHY");
         return new DomainPulse(domain, label, status, primary, warning, href);
     }
 
-    private void add(List<AlertItem> alerts, String severity, String domain, String title, String detail, long count, String href) {
-        if (count > 0) alerts.add(new AlertItem(severity, domain, title, detail, count, href));
+    private void add(List<AlertItem> alerts, UUID cinemaId, String severity, String domain, String title, String detail, long count, String href) {
+        if (count <= 0) return;
+        String scopeKey = cinemaId == null ? "ALL_CINEMAS" : cinemaId.toString();
+        String fingerprint = UUID.nameUUIDFromBytes((scopeKey + "|" + domain + "|" + title + "|" + href).getBytes(StandardCharsets.UTF_8)).toString();
+        alerts.add(new AlertItem(fingerprint, severity, severity, "OPEN", domain, title, detail, count, href, null, null, null, false));
+    }
+
+    private int stateRank(String state) {
+        return "RESOLVED".equals(state) ? 1 : 0;
     }
 
     private int severityRank(String severity) {

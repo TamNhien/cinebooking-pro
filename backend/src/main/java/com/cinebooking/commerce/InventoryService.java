@@ -8,6 +8,7 @@ import com.cinebooking.movie.CinemaRepository;
 import com.cinebooking.movie.ShowtimeRepository;
 import com.cinebooking.user.StaffProfileRepository;
 import com.cinebooking.user.UserRepository;
+import com.cinebooking.websocket.OperationsSignalPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,15 +33,16 @@ public class InventoryService {
     private final CinemaRepository cinemas;
     private final UserRepository users;
     private final StaffProfileRepository staffProfiles;
+    private final OperationsSignalPublisher operationsSignals;
 
     public InventoryService(ConcessionProductRepository products,CinemaConcessionInventoryRepository branchInventory,
                             CinemaConcessionPriceRepository branchPrices,InventoryMovementRepository movements,
                             BookingConcessionRepository bookingConcessions,BookingRepository bookings,
                             ShowtimeRepository showtimes,AuditoriumRepository auditoriums,CinemaRepository cinemas,
-                            UserRepository users,StaffProfileRepository staffProfiles){
+                            UserRepository users,StaffProfileRepository staffProfiles,OperationsSignalPublisher operationsSignals){
         this.products=products;this.branchInventory=branchInventory;this.branchPrices=branchPrices;this.movements=movements;
         this.bookingConcessions=bookingConcessions;this.bookings=bookings;this.showtimes=showtimes;this.auditoriums=auditoriums;this.cinemas=cinemas;
-        this.users=users;this.staffProfiles=staffProfiles;
+        this.users=users;this.staffProfiles=staffProfiles;this.operationsSignals=operationsSignals;
     }
 
     @Transactional
@@ -196,6 +198,6 @@ public class InventoryService {
     private CinemaConcessionInventory lockedOne(UUID cinemaId,UUID productId){Map<UUID,CinemaConcessionInventory> rows=lock(cinemaId,List.of(productId));CinemaConcessionInventory row=rows.get(productId);if(row==null)throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm chưa được cấu hình kho tại rạp này");return row;}
     private int available(CinemaConcessionInventory row){return Math.max(0,nz(row.getStockOnHand())-nz(row.getStockReserved()));}
     private InventoryProductResponse product(Cinema cinema,ConcessionProduct p,CinemaConcessionInventory row,CinemaConcessionPrice price){boolean tracked=Boolean.TRUE.equals(p.getInventoryEnabled())&&row!=null&&Boolean.TRUE.equals(row.getActive());int on=row==null?0:nz(row.getStockOnHand()),reserved=row==null?0:nz(row.getStockReserved()),available=Math.max(0,on-reserved),threshold=row==null?nz(p.getLowStockThreshold()):nz(row.getLowStockThreshold()),target=row==null?0:nz(row.getTargetStock());BigDecimal effective=price!=null&&Boolean.TRUE.equals(price.getActive())?price.getPrice():p.getPrice();boolean override=price!=null&&Boolean.TRUE.equals(price.getActive())&&effective.compareTo(p.getPrice())!=0;return new InventoryProductResponse(p.getId(),cinema.getId(),cinema.getName(),p.getName(),p.getPrice(),effective,override,Boolean.TRUE.equals(p.getActive())&&row!=null&&Boolean.TRUE.equals(row.getActive()),tracked,on,reserved,available,threshold,target,tracked&&available<=threshold,tracked&&available<=0);}
-    private void record(CinemaConcessionInventory row,UUID bookingId,String type,int qtyDelta,int reservedDelta,String actor,String referenceKey,String note){InventoryMovement m=new InventoryMovement();m.setProductId(row.getProductId());m.setCinemaId(row.getCinemaId());m.setBookingId(bookingId);m.setMovementType(type);m.setQuantityDelta(qtyDelta);m.setReservedDelta(reservedDelta);m.setStockAfter(nz(row.getStockOnHand()));m.setReservedAfter(nz(row.getStockReserved()));m.setActorEmail(actor);m.setReferenceKey(referenceKey);m.setNote(note);movements.save(m);}
+    private void record(CinemaConcessionInventory row,UUID bookingId,String type,int qtyDelta,int reservedDelta,String actor,String referenceKey,String note){InventoryMovement m=new InventoryMovement();m.setProductId(row.getProductId());m.setCinemaId(row.getCinemaId());m.setBookingId(bookingId);m.setMovementType(type);m.setQuantityDelta(qtyDelta);m.setReservedDelta(reservedDelta);m.setStockAfter(nz(row.getStockOnHand()));m.setReservedAfter(nz(row.getStockReserved()));m.setActorEmail(actor);m.setReferenceKey(referenceKey);m.setNote(note);movements.save(m);operationsSignals.publish("INVENTORY:"+type);}
     private int nz(Integer v){return v==null?0:v;} private String blank(String s){return s==null||s.isBlank()?null:s.trim();}
 }

@@ -12,6 +12,7 @@ import com.cinebooking.seat.SeatHoldService;
 import com.cinebooking.seat.SeatRepository;
 import com.cinebooking.user.UserRepository;
 import com.cinebooking.websocket.SeatEventPublisher;
+import com.cinebooking.websocket.OperationsSignalPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,7 @@ public class BookingService {
     private final UserRepository users;
     private final SeatHoldService holds;
     private final SeatEventPublisher events;
+    private final OperationsSignalPublisher operationsSignals;
     private final CommerceService commerce;
     private final InventoryService inventory;
     private final LoyaltyService loyalty;
@@ -52,13 +54,13 @@ public class BookingService {
 
     public BookingService(BookingRepository bookings, BookingSeatRepository bookingSeats, ShowtimeRepository showtimes, AuditoriumRepository auditoriums,
                           SeatRepository seats, MovieRepository movies, UserRepository users,
-                          SeatHoldService holds, SeatEventPublisher events, CommerceService commerce, InventoryService inventory,
+                          SeatHoldService holds, SeatEventPublisher events, OperationsSignalPublisher operationsSignals, CommerceService commerce, InventoryService inventory,
                           LoyaltyService loyalty, NotificationService notifications, PricingService pricing,
                           @Value("${app.booking.payment-window-seconds}") long paymentWindowSeconds,
                           @Value("${app.notifications.showtime-reminder-hours:3}") int showtimeReminderHours,
                           @Value("${app.notifications.showtime-final-reminder-minutes:30}") int showtimeFinalReminderMinutes) {
         this.bookings=bookings; this.bookingSeats=bookingSeats; this.showtimes=showtimes; this.auditoriums=auditoriums; this.seats=seats;
-        this.movies=movies; this.users=users; this.holds=holds; this.events=events; this.commerce=commerce; this.inventory=inventory;
+        this.movies=movies; this.users=users; this.holds=holds; this.events=events; this.operationsSignals=operationsSignals; this.commerce=commerce; this.inventory=inventory;
         this.loyalty=loyalty; this.notifications=notifications; this.pricing=pricing; this.paymentWindowSeconds=paymentWindowSeconds;
         this.showtimeReminderHours=Math.max(1,showtimeReminderHours); this.showtimeFinalReminderMinutes=Math.max(5,showtimeFinalReminderMinutes);
     }
@@ -179,6 +181,7 @@ public class BookingService {
                 events.publish(showtime.getId(),"BOOKED_PENDING",seatIds);
             }
         });
+        operationsSignals.publish("BOOKING:CREATED");
         return new BookingCreateResult(toDto(b), false);
     }
 
@@ -227,7 +230,7 @@ public class BookingService {
         if (b.getStatus() == BookingStatus.CONFIRMED) return b;
         if (b.getStatus() != BookingStatus.PENDING || (b.getExpiresAt()!=null && b.getExpiresAt().isBefore(Instant.now())))
             throw new ApiException(HttpStatus.CONFLICT,"Booking không còn hiệu lực");
-        b.setStatus(BookingStatus.CONFIRMED); b.setConfirmedAt(Instant.now()); return bookings.save(b);
+        b.setStatus(BookingStatus.CONFIRMED); b.setConfirmedAt(Instant.now()); Booking saved=bookings.save(b); operationsSignals.publish("BOOKING:CONFIRMED"); return saved;
     }
 
     @Transactional
@@ -238,7 +241,7 @@ public class BookingService {
         refundBenefitsIfNeeded(b);
         inventory.releaseReservation(bookingId, finalStatus==BookingStatus.EXPIRED?"Booking hết hạn - trả tồn kho đã giữ":"Booking bị huỷ - trả tồn kho đã giữ");
         bookingSeats.releaseByBookingId(bookingId);
-        b.setStatus(finalStatus); bookings.save(b);
+        b.setStatus(finalStatus); bookings.save(b); operationsSignals.publish("BOOKING:"+finalStatus.name());
         notifications.create(b.getUserId(),finalStatus==BookingStatus.EXPIRED?"BOOKING_EXPIRED":"BOOKING_CANCELLED",finalStatus==BookingStatus.EXPIRED?"Đơn đặt vé đã hết hạn":"Đơn đặt vé đã được huỷ","Booking "+b.getId()+" không còn hiệu lực. Điểm/voucher đã dùng (nếu có) được hoàn lại.","/bookings");
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization(){@Override public void afterCommit(){events.publish(b.getShowtimeId(),finalStatus.name(),seatIds);}});
     }

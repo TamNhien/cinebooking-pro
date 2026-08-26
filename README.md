@@ -1,13 +1,13 @@
-# CineBooking Pro V58
+# CineBooking Pro V59
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V58 - Operations Control Center
+> **Current release:** V59 - Realtime Operations 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V58 bám đúng roadmap Operations Control Center: dashboard hợp nhất tình trạng rạp từ payment, booking, equipment, staff, support, inventory và incident; cảnh báo được gom theo severity trên một màn hình và làm mới bằng 5-second server snapshot polling. V58 không giả vờ là WebSocket cho các domain chưa có event stream, không tạo cảnh báo giả, không thay đổi trạng thái nghiệp vụ và giữ nguyên contract 57 public tables.
+V59 nâng Operations Control Center của V58 thành **Realtime Operations 4.0**: Redis Pub/Sub phát tín hiệu nghiệp vụ sang STOMP WebSocket `/topic/operations-control`, frontend làm mới ngay khi payment/inventory/audit vận hành thay đổi, còn snapshot 30 giây chỉ là fallback. Alert có trạng thái OPEN/ACKNOWLEDGED/RESOLVED, cooldown và escalation minh bạch; lịch sử ACK/Resolve ghi vào `audit_log`. V59 không tạo bảng mới, nên contract vẫn là 57 public tables và Flyway latest vẫn V52.
 
 ## Quy ước chạy lệnh
 
@@ -93,6 +93,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V56** | **Customer Value & RFM Intelligence 3.0: realized lifetime revenue, RFM quintiles, value concentration, privacy-safe top customers** | **Không đổi schema** |
 | **V57** | **Booking & Seat Intelligence 3.0: best-seat ranking, contiguous groups, orphan-seat guard, realtime hold countdown, atomic contention, dynamic pricing transparency** | **Không đổi schema** |
 | **V58** | **Operations Control Center: payment, booking, equipment, staff, support, inventory, incident; centralized near-realtime alerts** | **Không đổi schema** |
+| **V59** | **Realtime Operations 4.0: Redis Pub/Sub + STOMP WebSocket, event-driven refresh, alert ACK/Resolve, cooldown, escalation, audit history** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -2895,3 +2896,104 @@ python .\tools\verify_seed_demo_57.py
 python .\tools\verify_reference_data_57.py
 python .\tools\verify_realistic_data_57.py
 ```
+
+## V59 - Realtime Operations 4.0
+
+V59 nâng trực tiếp V58, không tạo một dashboard rời. Control Center vẫn đọc **cùng dữ liệu nghiệp vụ thật** của payment, booking, equipment, staff, support, inventory và incident, nhưng cơ chế cập nhật chuyển sang event-driven realtime.
+
+### Realtime transport
+
+```text
+PaymentEventService ───────┐
+Inventory movement ────────┤
+Operational audit actions ─┤
+                           ↓
+                 Redis Pub/Sub
+          cinebooking:operations-control-events
+                           ↓
+             Spring STOMP WebSocket
+            /topic/operations-control
+                           ↓
+              Operations Control UI
+```
+
+- `PaymentEventService` phát tín hiệu sau payment event thực tế.
+- Inventory phát tín hiệu sau movement được lưu.
+- Audit actions liên quan booking/payment/refund/maintenance/support/staff/incident phát tín hiệu sau commit.
+- `ADMIN_GET` và `OPS_ALERT_*` không được phản chiếu lại qua AuditService, tránh vòng lặp reload.
+- WebSocket event chỉ mang `type` + timestamp; dữ liệu vận hành vẫn được đọc lại qua API có RBAC.
+- Nếu WebSocket mất kết nối, UI vẫn có **30-second fallback snapshot refresh**.
+
+### Alert lifecycle V59
+
+Alert V58 được gắn fingerprint ổn định và trạng thái realtime trong Redis:
+
+```text
+OPEN
+  ├─ ACKNOWLEDGED  (giữ 60 phút)
+  └─ RESOLVED      (suppress 15 phút)
+
+OPEN > 10 phút:
+LOW -> MEDIUM
+MEDIUM -> HIGH
+HIGH -> CRITICAL
+```
+
+ACK/Resolve đều ghi vào `audit_log` với `entity_type=OPERATIONS_ALERT`. Redis giữ state ngắn hạn; audit log giữ history durable. Khi cooldown hết mà tín hiệu nghiệp vụ vẫn còn, alert quay lại OPEN thay vì bị ẩn vĩnh viễn.
+
+### API V59
+
+```text
+GET  /api/admin/operations-control/snapshot?cinemaId={uuid}
+POST /api/admin/operations-control/alerts/{fingerprint}/acknowledge
+POST /api/admin/operations-control/alerts/{fingerprint}/resolve
+GET  /api/admin/operations-control/alerts/history?cinemaId={uuid}
+```
+
+RBAC tiếp tục là `MANAGER` / `ADMIN`; Manager chỉ thấy snapshot theo cinema scope từ Command Center authorization hiện có.
+
+### Database / migration V59
+
+**V59 không tạo Flyway migration mới.** Alert state realtime dùng Redis và action history dùng bảng `audit_log` đã có từ V8.
+
+```text
+Flyway latest: V52
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+Không cần seed thêm bảng và không thay đổi realistic-data audit 57 bảng.
+
+### Test source V59
+
+```powershell
+python .\tools\verify_v58_operations_control_center.py
+python .\tools\verify_v59_realtime_operations_4.py
+python .\tools\verify_realistic_data_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v59.ps1
+```
+
+Browser journey mới:
+
+```text
+frontend/e2e/realtime-operations-v59.spec.ts
+```
+
+GitHub Actions xác nhận STOMP WebSocket, dashboard realtime và alert action history trên disposable stack.
+
+### Release V59
+
+Release candidate mặc định:
+
+```text
+v59.0.0-rc.1
+```
+
+Stable:
+
+```text
+v59.0.0
+```
+
+Các RC đã tạo là immutable; nếu RC1 đã trỏ tới commit khác thì dùng RC2, RC3... và không force-update tag cũ.

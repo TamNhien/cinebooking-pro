@@ -44,7 +44,7 @@ check('V58 snapshot carries staff metrics', all(x in dtos for x in ['staffWorkin
 check('V58 snapshot carries support inventory incident metrics', all(x in dtos for x in ['openSupportCases','overdueSupportCases','lowStockItems','soldOutItems','openIncidents','criticalIncidents']))
 
 check('V58 service reuses cinema-scoped V53 command-center authorization', 'CommandCenterService commandCenter' in service and 'commandCenter.summary(email, requestedCinemaId)' in service)
-check('V58 service declares honest 5-second polling cadence', 'POLL_SECONDS = 5' in service)
+check('V58-or-newer service keeps explicit refresh cadence', ('POLL_SECONDS = 5' in service) or ('FALLBACK_REFRESH_SECONDS = 30' in service))
 check('Payment REVIEW is sourced from existing real operational summary', 'base.paymentReviewCount()' in service)
 check('Recent failed payment signal reads FAILED status from payment', "p.status='FAILED'" in service and "interval '1 hour'" in service)
 check('Pending booking signal reads actual PENDING rows', "b.status='PENDING'" in service)
@@ -64,7 +64,7 @@ check('Incident critical signal reads OPEN CRITICAL staff incidents', "i.status=
 for domain in ['PAYMENT','BOOKING','EQUIPMENT','STAFF','SUPPORT','INVENTORY','INCIDENT']:
     check(f'V58 operational pulse includes {domain}', f'pulse("{domain}"' in service)
 
-check('V58 alerts are emitted only for real counts greater than zero', 'if (count > 0) alerts.add' in service)
+check('V58 alerts are emitted only for real counts greater than zero', ('if (count > 0) alerts.add' in service) or ('if (count <= 0) return' in service))
 check('V58 critical alerts cover payment booking equipment support and incident', all(x in service for x in ['"CRITICAL", "PAYMENT"','"CRITICAL", "BOOKING"','"CRITICAL", "EQUIPMENT"','"CRITICAL", "SUPPORT"','"CRITICAL", "INCIDENT"']))
 check('V58 alert list is severity sorted', 'severityRank' in service and 'alerts.sort' in service)
 check('V58 overall status derives from actual alert severities', 'ACTION_REQUIRED' in service and 'WATCH' in service and 'HEALTHY' in service)
@@ -77,8 +77,8 @@ check('V58 API requires Manager/Admin in SecurityConfig', '"/api/admin/operation
 check('Frontend has V58 roadmap marker', 'Operations Control Center · V58' in page and 'operations-control-center-v58' in page)
 check('Frontend describes all seven requested domains', all(x in page for x in ['payment','booking','thiết bị','staff','support','inventory','incident']))
 check('Frontend uses server-provided pollAfterSeconds', 'data.pollAfterSeconds' in page)
-check('Frontend auto-refresh uses setInterval and can be disabled', 'setInterval(()=>load(selectedRef.current,true),ms)' in page and 'operations-control-auto-refresh-v58' in page)
-check('Frontend labels transport honestly as Live snapshot polling', 'Live snapshot' in page and 'không gọi đó là websocket' in page)
+check('Frontend auto-refresh/fallback uses setInterval and can be disabled', 'setInterval' in page and 'load(selectedRef.current,true)' in page and 'operations-control-auto-refresh-v58' in page)
+check('Frontend labels transport honestly for V58-or-newer', 'Live snapshot' in page and (('không gọi đó là websocket' in page) or ('STOMP_WEBSOCKET' in page) or ('WebSocket' in page)))
 check('Frontend renders central summary', 'operations-control-summary-v58' in page)
 check('Frontend renders seven-domain pulse', 'operations-control-domains-v58' in page)
 check('Frontend renders centralized alerts', 'operations-control-alerts-v58' in page)
@@ -86,7 +86,7 @@ check('Frontend renders operational detail metrics', 'operations-control-detail-
 check('Frontend supports Admin cinema filter and Manager fixed scope', 'operations-control-cinema-filter-v58' in page and 'me?.role==="ADMIN"' in page)
 check('Frontend types contain V58 control contracts', all(x in types for x in ['OperationsControlCinemaV58','OperationsControlDomainV58','OperationsControlAlertV58','OperationsControlSnapshotV58']))
 check('Header exposes V58 control center to operational menus', header.count('/admin/operations-control') >= 4)
-check('Admin dashboard links V58 Operations Control', '/admin/operations-control' in admin and 'Operations Control V58' in admin)
+check('Admin dashboard links V58-or-newer Operations Control', '/admin/operations-control' in admin and (('Operations Control V58' in admin) or ('Realtime Operations V59' in admin)))
 
 check('V58 Playwright journey exists', 'V58 admin sees centralized near-realtime payment booking equipment staff support inventory and incident control' in e2e)
 check('V58 Playwright checks summary domains alerts details and live marker', all(x in e2e for x in ['operations-control-summary-v58','operations-control-domains-v58','operations-control-alerts-v58','operations-control-detail-v58','operations-control-live-v58']))
@@ -101,7 +101,7 @@ rc_versions=[int(v) for v in re.findall(r'default: "v(\d+)\.0\.0-rc\.1"',rc)]
 check('Standalone RC defaults to V58-or-newer', bool(rc_versions) and max(rc_versions)>=58)
 check('Standalone RC uses V58-or-newer compose namespace', any(int(v)>=58 for v in re.findall(r'cinebooking_v(\d+)_rc_',rc)))
 check('Standalone RC runs V58 gate', 'Verify V58 source gate' in rc and 'verify_v58_operations_control_center.py' in rc)
-check('Standalone RC browser gate includes V58', '+ V58)' in rc)
+check('Standalone RC browser gate includes V58', '+ V58' in rc)
 release_versions=[int(v) for v in re.findall(r'default: "(\d+)\.0\.0"',release)]
 check('Stable release defaults to V58-or-newer', bool(release_versions) and max(release_versions)>=58)
 check('Stable release uses V58-or-newer compose namespace', any(int(v)>=58 for v in re.findall(r'cinebooking_v(\d+)_release_',release)))

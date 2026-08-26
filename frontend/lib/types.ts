@@ -258,3 +258,14 @@ export type OperationsControlSnapshotV58 = {
   openSupportCases:number; overdueSupportCases:number; lowStockItems:number; soldOutItems:number; openIncidents:number; criticalIncidents:number;
   domains:OperationsControlDomainV58[]; alerts:OperationsControlAlertV58[];
 };
+
+// V59 Realtime Operations 4.0
+export type OperationsControlAlertStateV59 = "OPEN"|"ACKNOWLEDGED"|"RESOLVED";
+export type OperationsControlAlertV59 = {
+  fingerprint:string; severity:"CRITICAL"|"HIGH"|"MEDIUM"|"LOW"; effectiveSeverity:"CRITICAL"|"HIGH"|"MEDIUM"|"LOW"; state:OperationsControlAlertStateV59;
+  domain:string; title:string; detail:string; count:number; href:string; firstSeenAt:string; stateChangedAt?:string; stateActor?:string; escalated:boolean;
+};
+export type OperationsControlHistoryV59 = { id:string; fingerprint:string; action:string; actorEmail?:string; detail?:string; createdAt:string };
+export type OperationsControlSnapshotV59 = Omit<OperationsControlSnapshotV58,"alerts"> & {
+  realtimeTransport:"STOMP_WEBSOCKET"; realtimeTopic:string; alerts:OperationsControlAlertV59[];
+};
