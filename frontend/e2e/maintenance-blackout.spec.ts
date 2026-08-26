@@ -13,7 +13,14 @@ test("admin maintenance blackout blocks showtime planning", async ({ page }) => 
 
   await page.goto("/admin/maintenance");
   await expect(page.getByRole("heading", { name: "Bảo trì & khóa phòng chiếu" })).toBeVisible();
-  await page.getByLabel("Phòng bảo trì", { exact: true }).selectOption({ label: "CineHub Quận 1 · Phòng 02" });
+  // V48 creates an additional cinema earlier in the serial E2E suite. Pin the
+  // migration-backed cinema explicitly instead of depending on alphabetical order.
+  const maintenanceCinema = page.getByLabel("Rạp bảo trì");
+  await expect.poll(async () => maintenanceCinema.locator("option").count()).toBeGreaterThan(0);
+  await maintenanceCinema.selectOption({ label: "CineHub Quận 1" });
+  const maintenanceRoom = page.getByLabel("Phòng bảo trì", { exact: true });
+  await expect.poll(async () => maintenanceRoom.locator("option").count()).toBeGreaterThan(1);
+  await maintenanceRoom.selectOption({ label: "CineHub Quận 1 · Phòng 02" });
   await page.getByLabel("Bắt đầu bảo trì").fill("2026-10-01T10:00");
   await page.getByLabel("Kết thúc bảo trì").fill("2026-10-01T13:00");
   await page.getByLabel("Lý do bảo trì").fill(reason);

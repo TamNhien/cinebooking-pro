@@ -14,8 +14,10 @@ test("V49 Smart Planner suggests demand-balanced conflict-free showtimes and com
   const movie=page.getByTestId("smart-movie-select");
   await expect.poll(async()=>cinema.locator("option").count()).toBeGreaterThan(1);
   await expect.poll(async()=>movie.locator("option").count()).toBeGreaterThan(1);
-  await cinema.selectOption({index:1});
-  await movie.selectOption({index:1});
+  // Do not select the first cinema: V48 creates a transfer-only branch with no
+  // auditorium earlier in this serial suite, which can sort before the baseline.
+  await cinema.selectOption({label:"CineHub Quận 1"});
+  await movie.selectOption({label:"Hành Trình Sao Hỏa · 128 phút"});
   await page.getByLabel("Từ ngày Smart Planner").fill("2026-10-15");
   await page.getByLabel("Đến ngày Smart Planner").fill("2026-10-15");
   await page.getByLabel("Mục tiêu suất mỗi ngày").fill("2");
