@@ -41,7 +41,14 @@ test("admin maintenance blackout blocks showtime planning", async ({ page }) => 
   await expect(page.getByText(new RegExp(`Xung đột: Bảo trì · ${reason}`))).toBeVisible();
 
   await page.goto("/admin/maintenance");
+  // Navigation reconstructs the page and defaults to the first cinema again.
+  // Re-pin the migration-backed cinema before looking for the blackout created above.
+  const cleanupCinema = page.getByLabel("Rạp bảo trì");
+  await expect.poll(async () => cleanupCinema.locator("option").count()).toBeGreaterThan(0);
+  await cleanupCinema.selectOption({ label: "CineHub Quận 1" });
+  const blackoutCard = page.getByLabel(`Khoảng bảo trì: ${reason}`);
+  await expect(blackoutCard).toBeVisible();
   page.once("dialog", dialog => dialog.accept());
-  await page.getByLabel(`Khoảng bảo trì: ${reason}`).getByRole("button", { name: "Mở lại phòng" }).click();
-  await expect(page.getByLabel(`Khoảng bảo trì: ${reason}`)).toHaveCount(0);
+  await blackoutCard.getByRole("button", { name: "Mở lại phòng" }).click();
+  await expect(blackoutCard).toHaveCount(0);
 });

@@ -56,7 +56,8 @@ check('Playwright uses Vietnam timezone for datetime-local determinism', 'timezo
 check('V34 browser journey creates maintenance window with natural maintenance reason', 'admin maintenance blackout blocks showtime planning' in e2e and 'Bảo trì định kỳ máy chiếu' in e2e and 'Lý do bảo trì' in e2e)
 check('V34 maintenance room selector is exact to avoid filter collision', 'getByLabel(\"Phòng bảo trì\", { exact: true })' in e2e)
 check('V34 browser journey proves planner conflict', 'Có thể tạo: 0' in e2e and 'Trùng lịch: 1' in e2e and 'Xung đột: Bảo trì' in e2e)
-check('V34 browser journey cleans up blackout', 'Mở lại phòng' in e2e and 'toHaveCount(0)' in e2e)
+check('V34 browser journey re-pins cinema before blackout cleanup', 'const cleanupCinema = page.getByLabel("Rạp bảo trì")' in e2e and e2e.count('selectOption({ label: "CineHub Quận 1" })') >= 2 and 'await expect(blackoutCard).toBeVisible()' in e2e)
+check('V34 browser journey cleans up blackout', 'Mở lại phòng' in e2e and 'await expect(blackoutCard).toHaveCount(0)' in e2e)
 latest_versions=[int(x) for x in re.findall(r'isEqualTo\("(\d+)"\)', it)]
 check('Testcontainers expects Flyway V34 or newer', bool(latest_versions) and max(latest_versions)>=34 and 'auditorium_blackout' in it)
 check('Testcontainers proves blackout blocks planner', 'showtimePlannerTreatsAuditoriumBlackoutAsConflict' in it and 'conflictType()).isEqualTo("BLACKOUT")' in it)
