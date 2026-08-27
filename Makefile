@@ -758,3 +758,27 @@ repair-realistic-data-v60:
 
 audit-realistic-data-v60:
 	powershell -ExecutionPolicy Bypass -File ./tools/audit-realistic-data-57-tables.ps1
+
+
+verify-v61:
+	python tools/verify_v47_payment_gateway_operations.py
+	python tools/verify_v59_realtime_operations_4.py
+	python tools/verify_v60_payment_production_4.py
+	python tools/verify_v61_fraud_risk_intelligence.py
+	python tools/verify_realistic_data_57.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v61:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v61.ps1
+
+verify-seed-demo-v61:
+	python tools/verify_seed_demo_57.py
+
+check-seed-demo-v61:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+verify-reference-v61:
+	python tools/verify_reference_data_57.py
+
+verify-realistic-data-v61:
+	python tools/verify_realistic_data_57.py

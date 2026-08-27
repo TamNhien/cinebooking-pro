@@ -1,13 +1,13 @@
-# CineBooking Pro V60
+# CineBooking Pro V61
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V60 - Payment Production 4.0
+> **Current release:** V61 - Fraud & Risk Intelligence
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V60 nâng payment stack hiện có thành **Payment Production 4.0**: production go-live guard kiểm tra merchant credentials, gateway endpoint và HTTPS callback; VNPay/MoMo callback được xác minh thêm merchant identity; webhook duplicate giữ idempotent ACK còn cùng event-key nhưng khác payload hash bị từ chối và ghi `WEBHOOK_REPLAY_CONFLICT`. Dashboard Admin hiển thị readiness nhưng không bao giờ xuất secret. V60 không tạo bảng mới, nên contract vẫn là 57 public tables và Flyway latest vẫn V52.
+V61 adds **Fraud & Risk Intelligence** on top of the existing booking, payment, voucher and account-security evidence. The score is deterministic and explainable, ADMIN-only, capped at 100, and never auto-blocks a customer. Manual dispositions are written to the existing `audit_log`, so V61 does not add a Flyway migration and the database contract remains 57 public tables with latest migration V52.
 
 ## Quy ước chạy lệnh
 
@@ -95,6 +95,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V58** | **Operations Control Center: payment, booking, equipment, staff, support, inventory, incident; centralized near-realtime alerts** | **Không đổi schema** |
 | **V59** | **Realtime Operations 4.0: Redis Pub/Sub + STOMP WebSocket, event-driven refresh, alert ACK/Resolve, cooldown, escalation, audit history** | **Không đổi schema** |
 | **V60** | **Payment Production 4.0: go-live readiness guard, HTTPS callback policy, merchant identity validation, webhook replay-conflict protection, production dashboard** | **Không đổi schema** |
+| **V61** | **Fraud & Risk Intelligence: explainable cross-domain scoring, evidence queue, ADMIN manual disposition, audit trail, no automatic blocking** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3096,3 +3097,83 @@ v60.0.0
 
 RC/stable tag là immutable; nếu RC1 đã tồn tại ở commit khác thì dùng RC2/RC3 thay vì force-update.
 
+
+## V61 - Fraud & Risk Intelligence
+
+V61 builds an ADMIN-only risk queue from existing operational evidence rather than inventing a black-box fraud model. It evaluates customer accounts using transparent windows across booking velocity, payment failures/attempts, voucher redemption velocity, refund concentration, security-alert risk, login failure bursts and distinct login IPs.
+
+### Risk scoring contract
+
+```text
+booking velocity 30m
+payment failures / attempts 24h
+voucher redemption 24h
+refund concentration 30d
+security alerts 7d
+login failures 1h
+login IP diversity 24h
+        |
+        v
+explainable points -> score 0..100 -> LOW / MEDIUM / HIGH / CRITICAL
+```
+
+The engine is deterministic (`V61_RULESET_1`). Every customer row carries the exact contributing signals, points, evidence and time window. V61 does **not** claim AI/ML fraud detection and a score is decision support, not proof of fraud.
+
+### Manual disposition
+
+ADMIN can record one of:
+
+```text
+CLEARED
+REVIEW
+CHALLENGE
+BLOCK_RECOMMENDED
+```
+
+The action is written as `RISK_DISPOSITION_SET` with entity type `RISK_CUSTOMER` in the existing `audit_log`. `BLOCK_RECOMMENDED` does not disable the account automatically; enforcement remains a separate explicit administrator action.
+
+### API V61
+
+```text
+GET  /api/admin/risk/scorecard
+POST /api/admin/risk/users/{userId}/disposition
+```
+
+Both endpoints are ADMIN-only.
+
+### Database / data V61
+
+V61 adds no migration and no synthetic fraud table. It reads `app_user`, `booking`, `payment`, `voucher_redemption`, `security_alert` and `audit_log`, and stores only manual disposition history in `audit_log`.
+
+```text
+Flyway latest: V52
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+No seed or realistic-data repair is required for V60 -> V61.
+
+### Source tests V61
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_realistic_data_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v61.ps1
+```
+
+Browser journey:
+
+```text
+frontend/e2e/fraud-risk-intelligence-v61.spec.ts
+```
+
+### Release V61
+
+```text
+v61.0.0-rc.1
+v61.0.0
+```
+
+RC/stable tags remain immutable.

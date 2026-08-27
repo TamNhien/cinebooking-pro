@@ -169,6 +169,7 @@ export default function Header(){
               <Link onClick={close} href="/admin">🧭 Dashboard</Link>
               <Link onClick={close} href="/admin/bookings">🎫 Booking</Link>
               <Link onClick={close} href="/admin/payments">💳 Payment Production V60</Link>
+              <Link onClick={close} href="/admin/risk">🕵 Fraud & Risk V61</Link>
               <Link onClick={close} href="/admin/staff">👨‍💼 {en?"Staff accounts":"Nhân viên"}</Link>
               <Link onClick={close} href="/admin/shifts">🕒 {en?"Shift scheduling":"Xếp ca"}</Link>
               <Link onClick={close} href="/admin/attendance">🧾 {en?"Timesheet & leave":"Bảng công & nghỉ phép"}</Link>
@@ -229,6 +230,7 @@ export default function Header(){
               {desktopMenu==="admin"&&<div className="nav-menu-panel">
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin">Dashboard</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/payments">Payment Production V60</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/risk">Fraud & Risk V61</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">Nhân viên</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>

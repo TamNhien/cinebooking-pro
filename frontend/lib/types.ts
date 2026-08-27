@@ -271,3 +271,14 @@ export type OperationsControlHistoryV59 = { id:string; fingerprint:string; actio
 export type OperationsControlSnapshotV59 = Omit<OperationsControlSnapshotV58,"alerts"> & {
   realtimeTransport:"STOMP_WEBSOCKET"; realtimeTopic:string; alerts:OperationsControlAlertV59[];
 };
+
+
+// V61 Fraud & Risk Intelligence
+export type FraudRiskRuleV61 = { code:string; label:string; window:string; maxPoints:number; explanation:string };
+export type FraudRiskSignalV61 = { code:string; label:string; points:number; evidence:string; window:string };
+export type FraudRiskCustomerV61 = {
+  userId:string; customerRef:string; fullName:string; email:string; accountEnabled:boolean; riskScore:number; riskLevel:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"; disposition:"UNREVIEWED"|"CLEARED"|"REVIEW"|"CHALLENGE"|"BLOCK_RECOMMENDED";
+  bookings30m:number; bookings24h:number; failedPayments24h:number; paymentAttempts24h:number; voucherRedemptions24h:number; refunds30d:number; securityAlerts7d:number; maxSecurityRisk7d:number; failedLogins1h:number; distinctLoginIps24h:number; lastActivityAt?:string|null; signals:FraudRiskSignalV61[];
+};
+export type FraudRiskSummaryV61 = { totalCustomers:number; watchCustomers:number; highRiskCustomers:number; criticalCustomers:number; customersWithPaymentFailureSignal:number; customersWithVelocitySignal:number; customersWithSecuritySignal:number; generatedAt:string; scoringVersion:string };
+export type FraudRiskScorecardV61 = { summary:FraudRiskSummaryV61; rules:FraudRiskRuleV61[]; customers:FraudRiskCustomerV61[] };
