@@ -27,6 +27,7 @@ public class VnPayGateway {
     @Value("${app.payment.vnpay.tmn-code}") private String tmnCode;
     @Value("${app.payment.vnpay.hash-secret}") private String hashSecret;
     @Value("${app.payment.vnpay.return-url}") private String returnUrl;
+    @Value("${app.payment.vnpay.ipn-url}") private String ipnUrl;
     private final ObjectMapper mapper;
     private final HttpClient http=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
 
@@ -91,6 +92,16 @@ public class VnPayGateway {
         }catch(ApiException e){throw e;}catch(Exception e){throw new ApiException(HttpStatus.BAD_GATEWAY,"Không truy vấn được trạng thái VNPAY");}
     }
 
+
+    public boolean merchantMatches(Map<String,String> params){
+        if(!configured()) return false;
+        String actual=params.getOrDefault("vnp_TmnCode","").trim();
+        return !actual.isBlank() && CryptoUtil.constantTimeEquals(actual,tmnCode);
+    }
+    public String paymentUrl(){return paymentUrl;}
+    public String queryUrl(){return queryUrl;}
+    public String returnUrl(){return returnUrl;}
+    public String ipnUrl(){return ipnUrl;}
     public boolean configured(){return tmnCode!=null&&!tmnCode.isBlank()&&hashSecret!=null&&!hashSecret.isBlank();}
     public String mode(){String u=paymentUrl==null?"":paymentUrl.toLowerCase(Locale.ROOT);return u.contains("sandbox")?"sandbox":"production";}
     private String normalizeIp(String ip){return ip==null||ip.isBlank()?"127.0.0.1":ip;}
