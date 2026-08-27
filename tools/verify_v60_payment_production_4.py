@@ -119,7 +119,7 @@ check('V60 Playwright checks MoMo readiness', 'payment-readiness-momo-v60' in e2
 check('V60 Playwright checks honest unconfigured CI state', 'NOT CONFIGURED' in e2e and 'CHƯA SẴN SÀNG PRODUCTION' in e2e)
 check('V60 Playwright rejects secret labels in rendered UI', all(x in e2e for x in ['not.toContain("VNPAY_HASH_SECRET")','not.toContain("MOMO_SECRET_KEY")','not.toContain("MOMO_ACCESS_KEY")']))
 check('Provider availability never renders credential environment-key names', all(x not in payment for x in ['VNPAY_HASH_SECRET','MOMO_SECRET_KEY','MOMO_ACCESS_KEY','VNPAY_TMN_CODE','MOMO_PARTNER_CODE']))
-check('Legacy booking flow follows current V60 payment heading', 'Thanh toán production & đối soát' in booking_e2e and 'Đối soát thanh toán' not in booking_e2e)
+check('Legacy booking flow follows current V60 payment UI contract', 'Thanh toán production & đối soát' in booking_e2e and 'Payment Production · V60' in booking_e2e and 'Payment Operations · V47' not in booking_e2e and 'Đối soát thanh toán' not in booking_e2e)
 check('V60 Playwright does not call live gateway', 'vnpayment.vn' not in e2e and 'momo.vn' not in e2e)
 
 ci_match=re.search(r'name:\s*V26-V(\d+) source regression',ci)
