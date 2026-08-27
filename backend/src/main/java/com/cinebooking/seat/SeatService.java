@@ -138,9 +138,14 @@ public class SeatService {
             String status = s.getSeatType()==com.cinebooking.domain.SeatType.BLOCKED ? "BLOCKED" : reserved.contains(s.getId()) ? "BOOKED" : holder != null ? "HELD" : "AVAILABLE";
             boolean heldByMe = currentUserId != null && currentUserId.toString().equals(holder);
             PricingService.PriceQuote quote=pricing.quote(pricingContext,s);
-            List<String> ruleNames=quote.appliedRules().stream().map(x->x.name()).toList();
+            List<String> ruleNames=new ArrayList<>();
+            ruleNames.addAll(quote.appliedRules().stream().map(x->x.name()).toList());
+            ruleNames.addAll(quote.intelligenceSignals().stream()
+                    .filter(x->x.adjustmentPercent()!=0)
+                    .map(x->"V62 " + x.label() + " " + (x.adjustmentPercent()>0?"+":"") + x.adjustmentPercent() + "%")
+                    .toList());
             result.add(new SeatResponse(s.getId(), s.getRowLabel()+s.getSeatNumber(), s.getRowLabel(), s.getSeatNumber(), s.getSeatType().name(),
-                    quote.basePrice(),quote.seatModifier(),quote.dynamicAdjustment(),quote.finalPrice(),ruleNames,status,heldByMe));
+                    quote.basePrice(),quote.seatModifier(),quote.dynamicAdjustment(),quote.finalPrice(),List.copyOf(ruleNames),status,heldByMe));
         }
         return result;
     }

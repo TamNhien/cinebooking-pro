@@ -22,6 +22,9 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, UUID> 
             "WHERE bs.showtime_id=:showtimeId AND bs.released_at IS NULL", nativeQuery = true)
     List<UUID> findReservedSeatIds(@Param("showtimeId") UUID showtimeId);
 
+    @Query(value = "SELECT COUNT(*) FROM booking_seat bs WHERE bs.showtime_id=:showtimeId AND bs.released_at IS NULL", nativeQuery = true)
+    long countActiveByShowtimeId(@Param("showtimeId") UUID showtimeId);
+
     @Modifying
     @Query(value = "UPDATE booking_seat bs SET released_at=COALESCE(b.refunded_at,b.expires_at,CURRENT_TIMESTAMP) " +
             "FROM booking b WHERE b.id=bs.booking_id AND bs.showtime_id=:showtimeId " +

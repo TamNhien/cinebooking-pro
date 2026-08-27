@@ -169,9 +169,14 @@ export type PricingRule = {
   adjustmentType:"FIXED"|"PERCENT"; adjustmentValue:number; priority:number; active:boolean; createdAt:string; updatedAt:string;
 };
 export type AppliedPricingRule = { ruleId:string; name:string; adjustmentType:"FIXED"|"PERCENT"; adjustmentValue:number; appliedAmount:number; priority:number };
+export type DynamicPricingSignalV62 = { code:string; label:string; adjustmentPercent:number; evidence:string; window:string };
+export type DynamicPricingStrategyRuleV62 = { code:string; label:string; condition:string; adjustmentPercent:number; explanation:string };
+export type DynamicPricingStrategyV62 = { strategyVersion:string; enabled:boolean; maxDiscountPercent:number; maxSurchargePercent:number; referencePricePolicy:string; snapshotPolicy:string; rules:DynamicPricingStrategyRuleV62[] };
+export type DynamicPricingSimulationV62 = { strategyVersion:string; enabled:boolean; occupancyRate:number; bookingAttempts30m:number; leadTimeHours:number; referencePrice:number; rawAdjustmentPercent:number; boundedAdjustmentPercent:number; adjustmentAmount:number; simulatedPrice:number; signals:DynamicPricingSignalV62[] };
 export type PricingQuote = {
   showtimeId:string; seatId:string; seatCode:string; seatType:string; cinemaName:string; auditoriumName:string; movieTitle:string; showtimeStart:string; pricingTimeZone:string;
-  basePrice:number; seatModifier:number; priceBeforeDynamic:number; dynamicAdjustment:number; finalPrice:number; appliedRules:AppliedPricingRule[];
+  basePrice:number; seatModifier:number; priceBeforeDynamic:number; manualDynamicAdjustment:number; intelligenceAdjustment:number; intelligencePercent:number; dynamicAdjustment:number; finalPrice:number;
+  occupancyRate:number; activeSeatReservations:number; sellableSeats:number; bookingAttempts30m:number; leadTimeHours:number; strategyVersion:string; intelligenceSignals:DynamicPricingSignalV62[]; appliedRules:AppliedPricingRule[];
 };
 
 export type WaitlistStatus = { showtimeId:string; subscribed:boolean; status:"NONE"|"ACTIVE"|"NOTIFIED"|"CANCELLED"|"EXPIRED"; availableSeats:number; createdAt?:string; notifiedAt?:string };

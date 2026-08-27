@@ -1,13 +1,13 @@
-# CineBooking Pro V61
+# CineBooking Pro V62
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V61 - Fraud & Risk Intelligence
+> **Current release:** V62 - Dynamic Pricing 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V61 adds **Fraud & Risk Intelligence** on top of the existing booking, payment, voucher and account-security evidence. The score is deterministic and explainable, ADMIN-only, capped at 100, and never auto-blocks a customer. Manual dispositions are written to the existing `audit_log`, so V61 does not add a Flyway migration and the database contract remains 57 public tables with latest migration V52.
+V62 upgrades the existing V18/V57 pricing path to **Dynamic Pricing 4.0**. The automatic component is deterministic and explainable: it reads live showtime occupancy, recent booking-attempt velocity and lead time, applies bounded percentage adjustments, keeps manual pricing rules additive, and continues to snapshot the final seat price into `booking_seat.price`. V62 adds no Flyway migration, so the database contract remains 57 public tables with latest migration V52.
 
 ## Quy ước chạy lệnh
 
@@ -96,6 +96,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V59** | **Realtime Operations 4.0: Redis Pub/Sub + STOMP WebSocket, event-driven refresh, alert ACK/Resolve, cooldown, escalation, audit history** | **Không đổi schema** |
 | **V60** | **Payment Production 4.0: go-live readiness guard, HTTPS callback policy, merchant identity validation, webhook replay-conflict protection, production dashboard** | **Không đổi schema** |
 | **V61** | **Fraud & Risk Intelligence: explainable cross-domain scoring, evidence queue, ADMIN manual disposition, audit trail, no automatic blocking** | **Không đổi schema** |
+| **V62** | **Dynamic Pricing 4.0: occupancy + booking velocity + lead-time pricing, bounded automation, explainable quote breakdown, what-if simulator** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3177,3 +3178,51 @@ v61.0.0
 ```
 
 RC/stable tags remain immutable.
+
+## V62 - Dynamic Pricing 4.0
+
+V62 nâng lớp pricing hiện có thay vì tạo một bảng giá giả mới. `DynamicPricingIntelligenceService` dùng strategy version `V62_RULESET_1` và đo ba tín hiệu trực tiếp từ dữ liệu vận hành hiện có:
+
+- **Occupancy realtime:** số `booking_seat` chưa `released_at` / tổng ghế bán được của auditorium.
+- **Demand velocity:** số booking attempt của đúng showtime trong 30 phút gần nhất.
+- **Lead time:** số giờ còn lại tới `showtime.start_time`.
+
+Rule tự động mặc định: occupancy <30% = -3%, occupancy 70-85% = +6%, occupancy >=85% = +12%; booking attempts/30m >=3 = +3%, >=6 = +6%; lead time >=168h = -4%, <=24h = +3%, <=6h = +5%. Tổng automatic adjustment được giới hạn bởi `PRICING_INTELLIGENCE_MAX_DISCOUNT_PERCENT` (mặc định -10%) và `PRICING_INTELLIGENCE_MAX_SURCHARGE_PERCENT` (mặc định +25%).
+
+V62 chỉ tính automation trên **base price + seat modifier**. Manual pricing rule V18 vẫn cộng độc lập, vì vậy rule thủ công không bị khuếch đại lại bởi demand percentage. `booking_seat.price` tiếp tục snapshot giá cuối tại thời điểm booking; thay đổi occupancy/rule sau đó không rewrite giá vé lịch sử.
+
+### API V62
+
+```text
+GET  /api/admin/pricing/strategy
+POST /api/admin/pricing/simulate
+POST /api/admin/pricing/preview
+```
+
+`/strategy` trả policy và ngưỡng minh bạch. `/simulate` là what-if simulator chỉ tính toán, không ghi database và không tạo booking giả. `/preview` được mở rộng với `manualDynamicAdjustment`, `intelligenceAdjustment`, `intelligencePercent`, occupancy, booking attempts, lead time và từng signal giải thích.
+
+### UI V62
+
+`/admin/pricing` hiển thị strategy `V62_RULESET_1`, guard -10%/+25%, what-if simulator, market snapshot của showtime và breakdown giá tách riêng manual rule / V62 intelligence. Seat map tiếp tục hiển thị `dynamicAdjustment` thật và thêm label V62 vào `pricingRules` khi signal có tác động khác 0.
+
+### Database / data V62
+
+V62 không có migration mới, không có entity pricing intelligence mới và không seed dữ liệu demand giả. Nó đọc `booking`, `booking_seat`, `seat`, `showtime` và `pricing_rule`. **Flyway latest: V52; 57 public tables.**
+
+### Source tests V62
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_v62_dynamic_pricing_4.py
+python .\tools\verify_realistic_data_57.py
+python .\tools\verify_seed_demo_57.py
+```
+
+### Release V62
+
+```text
+RC:     v62.0.0-rc.1
+Stable: v62.0.0
+```
+

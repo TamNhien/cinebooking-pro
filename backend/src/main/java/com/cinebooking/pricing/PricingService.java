@@ -24,12 +24,14 @@ public class PricingService {
     private final AuditoriumRepository auditoriums;
     private final CinemaRepository cinemas;
     private final MovieRepository movies;
+    private final DynamicPricingIntelligenceService intelligence;
     private final ZoneId zoneId;
 
     public PricingService(PricingRuleRepository rules, ShowtimeRepository showtimes, SeatRepository seats,
                           AuditoriumRepository auditoriums, CinemaRepository cinemas, MovieRepository movies,
+                          DynamicPricingIntelligenceService intelligence,
                           @Value("${app.pricing.time-zone:Asia/Ho_Chi_Minh}") String timeZone) {
-        this.rules=rules; this.showtimes=showtimes; this.seats=seats; this.auditoriums=auditoriums; this.cinemas=cinemas; this.movies=movies;
+        this.rules=rules; this.showtimes=showtimes; this.seats=seats; this.auditoriums=auditoriums; this.cinemas=cinemas; this.movies=movies; this.intelligence=intelligence;
         ZoneId parsed;
         try { parsed=ZoneId.of(timeZone); } catch(Exception e) { parsed=ZoneId.of("Asia/Ho_Chi_Minh"); }
         this.zoneId=parsed;
@@ -73,7 +75,8 @@ public class PricingService {
                 .orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phòng chiếu"));
         LocalDateTime local=LocalDateTime.ofInstant(showtime.getStartTime(),zoneId);
         List<PricingRule> active=rules.findByActiveTrueOrderByPriorityDescCreatedAtAsc();
-        return new PricingContext(showtime,auditorium,auditorium.getCinemaId(),local,active);
+        DynamicPricingIntelligenceService.MarketSnapshot market=intelligence.snapshot(showtime,auditorium);
+        return new PricingContext(showtime,auditorium,auditorium.getCinemaId(),local,active,market);
     }
 
     public PriceQuote quote(PricingContext context, Seat seat){
@@ -82,16 +85,18 @@ public class PricingService {
         BigDecimal base=nz(context.showtime().getBasePrice());
         BigDecimal seatModifier=nz(seat.getPriceModifier());
         BigDecimal before=base.add(seatModifier);
-        BigDecimal dynamic=BigDecimal.ZERO;
+        BigDecimal manualDynamic=BigDecimal.ZERO;
         List<AppliedPricingRule> applied=new ArrayList<>();
         for(PricingRule rule:context.rules()){
             if(!matches(rule,context,seat))continue;
             BigDecimal amount=appliedAmount(rule,before);
-            dynamic=dynamic.add(amount);
+            manualDynamic=manualDynamic.add(amount);
             applied.add(new AppliedPricingRule(rule.getId(),rule.getName(),rule.getAdjustmentType(),rule.getAdjustmentValue(),amount,rule.getPriority()));
         }
+        DynamicPricingIntelligenceService.Evaluation automatic=intelligence.evaluate(context.market(),before);
+        BigDecimal dynamic=manualDynamic.add(automatic.adjustmentAmount());
         BigDecimal finalPrice=before.add(dynamic).max(BigDecimal.ZERO).setScale(0,RoundingMode.HALF_UP);
-        return new PriceQuote(base,seatModifier,before,dynamic,finalPrice,List.copyOf(applied));
+        return new PriceQuote(base,seatModifier,before,manualDynamic,automatic.adjustmentAmount(),automatic.boundedAdjustmentPercent(),dynamic,finalPrice,automatic.signals(),List.copyOf(applied));
     }
 
     public PriceQuoteResponse preview(UUID showtimeId, UUID seatId){
@@ -101,9 +106,12 @@ public class PricingService {
         PriceQuote q=quote(context,seat);
         Cinema cinema=cinemas.findById(context.cinemaId()).orElse(null);
         Movie movie=movies.findById(showtime.getMovieId()).orElse(null);
+        DynamicPricingIntelligenceService.MarketSnapshot market=context.market();
         return new PriceQuoteResponse(showtime.getId(),seat.getId(),seat.getRowLabel()+seat.getSeatNumber(),seat.getSeatType().name(),
                 cinema==null?"-":cinema.getName(),context.auditorium().getName(),movie==null?"-":movie.getTitle(),showtime.getStartTime(),zoneId.getId(),
-                q.basePrice(),q.seatModifier(),q.priceBeforeDynamic(),q.dynamicAdjustment(),q.finalPrice(),q.appliedRules());
+                q.basePrice(),q.seatModifier(),q.priceBeforeDynamic(),q.manualDynamicAdjustment(),q.intelligenceAdjustment(),q.intelligencePercent(),q.dynamicAdjustment(),q.finalPrice(),
+                market.occupancyRate(),market.activeSeatReservations(),market.sellableSeats(),market.bookingAttempts30m(),market.leadTimeHours(),
+                DynamicPricingIntelligenceService.STRATEGY_VERSION,q.intelligenceSignals(),q.appliedRules());
     }
 
     private boolean matches(PricingRule rule,PricingContext c,Seat seat){
@@ -192,6 +200,6 @@ public class PricingService {
 
     private BigDecimal nz(BigDecimal value){return value==null?BigDecimal.ZERO:value;}
 
-    public record PricingContext(Showtime showtime, Auditorium auditorium, UUID cinemaId, LocalDateTime localShowtime, List<PricingRule> rules) {}
-    public record PriceQuote(BigDecimal basePrice, BigDecimal seatModifier, BigDecimal priceBeforeDynamic, BigDecimal dynamicAdjustment, BigDecimal finalPrice, List<AppliedPricingRule> appliedRules) {}
+    public record PricingContext(Showtime showtime, Auditorium auditorium, UUID cinemaId, LocalDateTime localShowtime, List<PricingRule> rules, DynamicPricingIntelligenceService.MarketSnapshot market) {}
+    public record PriceQuote(BigDecimal basePrice, BigDecimal seatModifier, BigDecimal priceBeforeDynamic, BigDecimal manualDynamicAdjustment, BigDecimal intelligenceAdjustment, int intelligencePercent, BigDecimal dynamicAdjustment, BigDecimal finalPrice, List<DynamicPricingSignal> intelligenceSignals, List<AppliedPricingRule> appliedRules) {}
 }

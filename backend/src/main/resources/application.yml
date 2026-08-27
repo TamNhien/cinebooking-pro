@@ -97,6 +97,10 @@ app:
     max-transfers: ${TICKET_MAX_TRANSFERS:1}
   pricing:
     time-zone: ${PRICING_TIME_ZONE:Asia/Ho_Chi_Minh}
+    intelligence:
+      enabled: ${PRICING_INTELLIGENCE_ENABLED:true}
+      max-discount-percent: ${PRICING_INTELLIGENCE_MAX_DISCOUNT_PERCENT:10}
+      max-surcharge-percent: ${PRICING_INTELLIGENCE_MAX_SURCHARGE_PERCENT:25}
   staff:
     time-zone: ${STAFF_TIME_ZONE:Asia/Ho_Chi_Minh}
     attendance-start-early-minutes: ${ATTENDANCE_START_EARLY_MINUTES:30}

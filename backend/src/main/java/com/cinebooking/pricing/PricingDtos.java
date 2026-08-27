@@ -59,6 +59,53 @@ public final class PricingDtos {
             Integer priority
     ) {}
 
+    public record DynamicPricingSignal(
+            String code,
+            String label,
+            int adjustmentPercent,
+            String evidence,
+            String window
+    ) {}
+
+    public record DynamicPricingStrategyRule(
+            String code,
+            String label,
+            String condition,
+            int adjustmentPercent,
+            String explanation
+    ) {}
+
+    public record DynamicPricingStrategyResponse(
+            String strategyVersion,
+            boolean enabled,
+            int maxDiscountPercent,
+            int maxSurchargePercent,
+            String referencePricePolicy,
+            String snapshotPolicy,
+            List<DynamicPricingStrategyRule> rules
+    ) {}
+
+    public record DynamicPricingSimulationRequest(
+            @NotNull @DecimalMin("0") @DecimalMax("100") BigDecimal occupancyRate,
+            @NotNull @Min(0) @Max(10000) Integer bookingAttempts30m,
+            @NotNull @DecimalMin("0") @DecimalMax("8760") BigDecimal leadTimeHours,
+            @NotNull @DecimalMin("1") @DecimalMax("100000000") BigDecimal referencePrice
+    ) {}
+
+    public record DynamicPricingSimulationResponse(
+            String strategyVersion,
+            boolean enabled,
+            BigDecimal occupancyRate,
+            int bookingAttempts30m,
+            BigDecimal leadTimeHours,
+            BigDecimal referencePrice,
+            int rawAdjustmentPercent,
+            int boundedAdjustmentPercent,
+            BigDecimal adjustmentAmount,
+            BigDecimal simulatedPrice,
+            List<DynamicPricingSignal> signals
+    ) {}
+
     public record PriceQuoteResponse(
             UUID showtimeId,
             UUID seatId,
@@ -72,8 +119,18 @@ public final class PricingDtos {
             BigDecimal basePrice,
             BigDecimal seatModifier,
             BigDecimal priceBeforeDynamic,
+            BigDecimal manualDynamicAdjustment,
+            BigDecimal intelligenceAdjustment,
+            int intelligencePercent,
             BigDecimal dynamicAdjustment,
             BigDecimal finalPrice,
+            BigDecimal occupancyRate,
+            long activeSeatReservations,
+            long sellableSeats,
+            long bookingAttempts30m,
+            BigDecimal leadTimeHours,
+            String strategyVersion,
+            List<DynamicPricingSignal> intelligenceSignals,
             List<AppliedPricingRule> appliedRules
     ) {}
 }

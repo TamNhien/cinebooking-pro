@@ -175,7 +175,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/attendance">🧾 {en?"Timesheet & leave":"Bảng công & nghỉ phép"}</Link>
               <Link onClick={close} href="/admin/vouchers">🎟 {en?"Vouchers":"Mã ưu đãi"}</Link>
               <Link onClick={close} href="/admin/loyalty">🏆 {en?"Loyalty":"Thành viên"}</Link>
-              <Link onClick={close} href="/admin/pricing">💰 {en?"Dynamic pricing":"Giá vé động"}</Link>
+              <Link onClick={close} href="/admin/pricing">💰 {en?"Dynamic Pricing V62":"Dynamic Pricing V62"}</Link>
               <Link onClick={close} href="/admin/commerce">🍿 {en?"Food & commerce":"Bắp nước & thương mại"}</Link><Link onClick={close} href="/admin/inventory">📦 {en?"Inventory":"Kho bắp nước"}</Link>
               <Link onClick={close} href="/admin/reviews">⭐ {en?"Review moderation":"Kiểm duyệt đánh giá"}</Link>
               <Link onClick={close} href="/admin/command-center">🧭 {en?"Command Center":"Trung tâm điều hành"}</Link><Link onClick={close} href="/admin/operations-control">🎛 {en?"Realtime Operations V59":"Vận hành realtime V59"}</Link>
@@ -236,7 +236,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành realtime</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">Mã ưu đãi</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/loyalty">Loyalty & thành viên</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">Giá vé động</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">Dynamic Pricing V62</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/commerce">Bắp nước & thương mại</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/inventory">Kho bắp nước</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/reviews">Kiểm duyệt đánh giá</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/command-center">Command Center</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">Realtime Operations V59</Link>

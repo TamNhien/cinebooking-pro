@@ -19,6 +19,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     Optional<Booking> findFirstByUserIdAndShowtimeIdAndStatusOrderByCreatedAtDesc(UUID userId, UUID showtimeId, BookingStatus status);
     Optional<Booking> findByUserIdAndIdempotencyKey(UUID userId, String idempotencyKey);
     boolean existsByShowtimeId(UUID showtimeId);
+    long countByShowtimeIdAndCreatedAtAfter(UUID showtimeId, Instant createdAt);
     List<Booking> findByStatusAndReminderSentFalse(BookingStatus status);
     List<Booking> findByStatusOrderByRefundRequestedAtAsc(BookingStatus status);
 
