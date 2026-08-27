@@ -104,7 +104,7 @@ check('Testcontainers expects Flyway V37 or newer and webhook schema', bool(m) a
 check('Testcontainers covers idempotent payment claim and payer ownership', 'paymentStartClaimIsIdempotentAndKeepsPayerOwnership' in it and 'second.replayed()).isTrue()' in it and 'getPayerUserId()' in it)
 check('Playwright covers V37 customer payment history', 'V37 payment history shows the successful payer-owned transaction' in e2e and 'Lịch sử thanh toán' in e2e)
 check('V37 payment history E2E scopes status/provider to the visible payment card', 'const paymentCard = page.locator("article").filter({ hasText: "Hành Trình Sao Hỏa" }).first();' in e2e and 'paymentCard.getByText("SUCCESS", { exact: true })' in e2e and 'paymentCard.getByText("MOCK", { exact: true })' in e2e)
-check('Playwright covers V37 admin payment operations page', '/admin/payments' in e2e and 'Đối soát thanh toán' in e2e)
+check('Playwright covers admin payment operations page', '/admin/payments' in e2e and ('Đối soát thanh toán' in e2e or 'Thanh toán production & đối soát' in e2e))
 check('main CI keeps V37 verifier in current source regression', 'python3 tools/verify_v37_payment_gateway.py' in ci and re.search(r'V26-V(?:3[7-9]|[4-9]\d)(?:\.\d+)? source regression',ci) is not None)
 check('standalone RC remains V37-or-newer and includes V37 journey', re.search(r'default: "v(\d+)\.\d+\.\d+-rc\.1"',rc) is not None and int(re.search(r'default: "v(\d+)\.\d+\.\d+-rc\.1"',rc).group(1))>=37 and 'V37' in rc)
 release_version=re.search(r'default: "(\d+)\.\d+\.\d+"',release)

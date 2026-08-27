@@ -114,8 +114,8 @@ public class PaymentService {
     public List<ProviderAvailability> providers(){
         return List.of(
             new ProviderAvailability("MOCK","Thanh toán nội bộ (MOCK)",mockEnabled,true,true,"local",List.of("redirect","idempotency","retry","cancel"),mockEnabled?"Sẵn sàng cho local/CI":"Đã tắt bằng cấu hình"),
-            new ProviderAvailability("VNPAY","VNPay",vnPay.configured(),vnPay.configured(),false,vnPay.mode(),List.of("redirect","qr","ipn","query","idempotency","retry","cancel"),vnPay.configured()?"Đã có merchant credentials":"Chưa cấu hình VNPAY_TMN_CODE/VNPAY_HASH_SECRET"),
-            new ProviderAvailability("MOMO","MoMo",momo.configured(),momo.configured(),false,momo.mode(),List.of("redirect","qr","deeplink","ipn","query","idempotency","retry","cancel"),momo.configured()?"Đã có merchant credentials":"Chưa cấu hình MOMO_PARTNER_CODE/MOMO_ACCESS_KEY/MOMO_SECRET_KEY")
+            new ProviderAvailability("VNPAY","VNPay",vnPay.configured(),vnPay.configured(),false,vnPay.mode(),List.of("redirect","qr","ipn","query","idempotency","retry","cancel"),vnPay.configured()?"Đã có merchant credentials":"Chưa cấu hình merchant credentials"),
+            new ProviderAvailability("MOMO","MoMo",momo.configured(),momo.configured(),false,momo.mode(),List.of("redirect","qr","deeplink","ipn","query","idempotency","retry","cancel"),momo.configured()?"Đã có merchant credentials":"Chưa cấu hình merchant credentials")
         );
     }
 

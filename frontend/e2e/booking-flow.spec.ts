@@ -153,7 +153,7 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await expect(page.getByText("Hành Trình Sao Hỏa").last()).toBeVisible();
 
     await page.goto("/admin/payments");
-    await expect(page.getByRole("heading", { name: "Đối soát thanh toán" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Thanh toán production & đối soát" })).toBeVisible();
     await expect(page.getByText("Payment Operations · V47")).toBeVisible();
     await expect(page.getByText("MOCK").first()).toBeVisible();
   });
