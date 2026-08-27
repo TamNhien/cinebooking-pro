@@ -17,13 +17,13 @@ import static com.cinebooking.payment.PaymentDtos.*;
 
 @Service
 public class AdminPaymentService {
-    private final PaymentRepository payments;private final PaymentWebhookEventRepository webhooks;private final VnPayGateway vnPay;private final MomoGateway momo;private final PaymentService paymentService;private final BookingService bookings;private final AuditService audit;private final PaymentEventService events;
+    private final PaymentRepository payments;private final PaymentWebhookEventRepository webhooks;private final VnPayGateway vnPay;private final MomoGateway momo;private final PaymentService paymentService;private final PaymentProductionReadinessService productionReadiness;private final BookingService bookings;private final AuditService audit;private final PaymentEventService events;
     private final int maxBatch;private final long minAgeSeconds;private final long maxBackoffSeconds;
-    public AdminPaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,VnPayGateway vnPay,MomoGateway momo,PaymentService paymentService,BookingService bookings,AuditService audit,PaymentEventService events,@Value("${app.payment.reconcile.max-batch:20}") int maxBatch,@Value("${app.payment.reconcile.min-age-seconds:45}") long minAgeSeconds,@Value("${app.payment.reconcile.max-backoff-seconds:900}") long maxBackoffSeconds){this.payments=payments;this.webhooks=webhooks;this.vnPay=vnPay;this.momo=momo;this.paymentService=paymentService;this.bookings=bookings;this.audit=audit;this.events=events;this.maxBatch=Math.max(1,Math.min(100,maxBatch));this.minAgeSeconds=Math.max(15,minAgeSeconds);this.maxBackoffSeconds=Math.max(this.minAgeSeconds,maxBackoffSeconds);}
+    public AdminPaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,VnPayGateway vnPay,MomoGateway momo,PaymentService paymentService,PaymentProductionReadinessService productionReadiness,BookingService bookings,AuditService audit,PaymentEventService events,@Value("${app.payment.reconcile.max-batch:20}") int maxBatch,@Value("${app.payment.reconcile.min-age-seconds:45}") long minAgeSeconds,@Value("${app.payment.reconcile.max-backoff-seconds:900}") long maxBackoffSeconds){this.payments=payments;this.webhooks=webhooks;this.vnPay=vnPay;this.momo=momo;this.paymentService=paymentService;this.productionReadiness=productionReadiness;this.bookings=bookings;this.audit=audit;this.events=events;this.maxBatch=Math.max(1,Math.min(100,maxBatch));this.minAgeSeconds=Math.max(15,minAgeSeconds);this.maxBackoffSeconds=Math.max(this.minAgeSeconds,maxBackoffSeconds);}
 
     public PaymentOpsDashboard dashboard(){
         List<Payment> rows=payments.findTop200ByOrderByCreatedAtDesc();List<PaymentWebhookEvent> hookRows=webhooks.findTop100ByOrderByReceivedAtDesc();
-        return new PaymentOpsDashboard(rows.size(),count(rows,PaymentStatus.PENDING),count(rows,PaymentStatus.SUCCESS),count(rows,PaymentStatus.FAILED),count(rows,PaymentStatus.EXPIRED),count(rows,PaymentStatus.CANCELLED),count(rows,PaymentStatus.REVIEW),count(rows,PaymentStatus.REFUNDED),hookRows.stream().filter(e->!e.isSignatureValid()).count(),hookRows.size(),payments.countByNextReconcileAtIsNotNullAndNextReconcileAtLessThanEqual(Instant.now()),paymentService.providers(),rows.stream().map(this::view).toList(),hookRows.stream().map(this::view).toList());
+        return new PaymentOpsDashboard(rows.size(),count(rows,PaymentStatus.PENDING),count(rows,PaymentStatus.SUCCESS),count(rows,PaymentStatus.FAILED),count(rows,PaymentStatus.EXPIRED),count(rows,PaymentStatus.CANCELLED),count(rows,PaymentStatus.REVIEW),count(rows,PaymentStatus.REFUNDED),hookRows.stream().filter(e->!e.isSignatureValid()).count(),hookRows.size(),payments.countByNextReconcileAtIsNotNullAndNextReconcileAtLessThanEqual(Instant.now()),productionReadiness.snapshot(),paymentService.providers(),rows.stream().map(this::view).toList(),hookRows.stream().map(this::view).toList());
     }
 
     @Transactional
@@ -64,6 +64,8 @@ public class AdminPaymentService {
         for(Payment p:due){ReconciliationResult r=reconcile(p.getId(),actor,ip,trigger);results.add(r);if(r.success())success++;}
         return new BatchReconciliationResult(due.size(),success,due.size()-success,results);
     }
+
+    public ProductionReadiness productionReadiness(){return productionReadiness.snapshot();}
 
     public PaymentTimelineAdmin timeline(UUID paymentId){if(!payments.existsById(paymentId))throw new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy payment");return new PaymentTimelineAdmin(paymentId,events.timeline(paymentId).stream().map(this::eventView).toList());}
 

@@ -94,7 +94,7 @@ check('customer payment history page exists', 'Lịch sử thanh toán' in histo
 check('admin payment operations API exists', '/api/admin/payments' in admin_controller and '@PostMapping("/{id}/reconcile")' in admin_controller)
 check('admin reconciliation supports VNPay and MoMo query APIs', 'vnPay.query(p,ip)' in admin_service and 'momo.query(p)' in admin_service)
 check('admin reconciliation rejects VNPay invalid query signature', 'query trả về chữ ký không hợp lệ' in admin_service)
-check('admin payment operations UI exists', 'Đối soát thanh toán' in admin_page and '/admin/payments/' in admin_page and 'Webhook / IPN' in admin_page)
+check('admin payment operations UI exists', ('Đối soát thanh toán' in admin_page or 'Thanh toán production & đối soát' in admin_page) and '/admin/payments/' in admin_page and 'Webhook / IPN' in admin_page)
 check('navigation exposes customer and admin payment centers', 'href="/payments"' in header and 'href="/admin/payments"' in header)
 check('application config exposes mock toggle and gateway create/query URLs', all(x in app for x in ['PAYMENT_MOCK_ENABLED','VNPAY_PAYMENT_URL','VNPAY_QUERY_URL','MOMO_CREATE_URL','MOMO_QUERY_URL']))
 check('Compose passes gateway URLs and mock toggle to both backend replicas', all(x in compose for x in ['PAYMENT_MOCK_ENABLED','VNPAY_PAYMENT_URL','VNPAY_QUERY_URL','MOMO_CREATE_URL','MOMO_QUERY_URL']) and 'environment: *backend_env' in compose)

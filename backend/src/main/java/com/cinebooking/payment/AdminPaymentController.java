@@ -11,6 +11,7 @@ import static com.cinebooking.payment.AdminPaymentDtos.*;
 public class AdminPaymentController {
     private final AdminPaymentService service;public AdminPaymentController(AdminPaymentService service){this.service=service;}
     @GetMapping public PaymentOpsDashboard dashboard(){return service.dashboard();}
+    @GetMapping("/production-readiness") public ProductionReadiness productionReadiness(){return service.productionReadiness();}
     @GetMapping("/{id}/timeline") public PaymentTimelineAdmin timeline(@PathVariable UUID id){return service.timeline(id);}
     @PostMapping("/{id}/reconcile") public ReconciliationResult reconcile(@PathVariable UUID id,Authentication auth,HttpServletRequest request){return service.reconcile(id,auth.getName(),ip(request),"MANUAL");}
     @PostMapping("/reconcile-due") public BatchReconciliationResult reconcileDue(Authentication auth,HttpServletRequest request){return service.reconcileDue(auth.getName(),ip(request),"MANUAL_BATCH");}

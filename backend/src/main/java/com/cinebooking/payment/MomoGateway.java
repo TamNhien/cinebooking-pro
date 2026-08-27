@@ -62,6 +62,16 @@ public class MomoGateway {
         }catch(ApiException e){throw e;}catch(Exception e){throw new ApiException(HttpStatus.BAD_GATEWAY,"Không truy vấn được trạng thái MoMo");}
     }
 
+
+    public boolean merchantMatches(Map<String,Object> params){
+        if(!configured()) return false;
+        String actual=val(params,"partnerCode").trim();
+        return !actual.isBlank() && CryptoUtil.constantTimeEquals(actual,partnerCode);
+    }
+    public String createUrl(){return createUrl;}
+    public String queryUrl(){return queryUrl;}
+    public String redirectUrl(){return redirectUrl;}
+    public String ipnUrl(){return ipnUrl;}
     public boolean configured(){return partnerCode!=null&&!partnerCode.isBlank()&&accessKey!=null&&!accessKey.isBlank()&&secretKey!=null&&!secretKey.isBlank();}
     public String mode(){String u=createUrl==null?"":createUrl.toLowerCase(Locale.ROOT);return u.contains("test-payment")||u.contains("test")?"sandbox":"production";}
     private String val(Map<String,Object> p,String k){Object v=p.get(k);return v==null?"":String.valueOf(v);}

@@ -1,13 +1,13 @@
-# CineBooking Pro V59
+# CineBooking Pro V60
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V59 - Realtime Operations 4.0
+> **Current release:** V60 - Payment Production 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V59 nâng Operations Control Center của V58 thành **Realtime Operations 4.0**: Redis Pub/Sub phát tín hiệu nghiệp vụ sang STOMP WebSocket `/topic/operations-control`, frontend làm mới ngay khi payment/inventory/audit vận hành thay đổi, còn snapshot 30 giây chỉ là fallback. Alert có trạng thái OPEN/ACKNOWLEDGED/RESOLVED, cooldown và escalation minh bạch; lịch sử ACK/Resolve ghi vào `audit_log`. V59 không tạo bảng mới, nên contract vẫn là 57 public tables và Flyway latest vẫn V52.
+V60 nâng payment stack hiện có thành **Payment Production 4.0**: production go-live guard kiểm tra merchant credentials, gateway endpoint và HTTPS callback; VNPay/MoMo callback được xác minh thêm merchant identity; webhook duplicate giữ idempotent ACK còn cùng event-key nhưng khác payload hash bị từ chối và ghi `WEBHOOK_REPLAY_CONFLICT`. Dashboard Admin hiển thị readiness nhưng không bao giờ xuất secret. V60 không tạo bảng mới, nên contract vẫn là 57 public tables và Flyway latest vẫn V52.
 
 ## Quy ước chạy lệnh
 
@@ -94,6 +94,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V57** | **Booking & Seat Intelligence 3.0: best-seat ranking, contiguous groups, orphan-seat guard, realtime hold countdown, atomic contention, dynamic pricing transparency** | **Không đổi schema** |
 | **V58** | **Operations Control Center: payment, booking, equipment, staff, support, inventory, incident; centralized near-realtime alerts** | **Không đổi schema** |
 | **V59** | **Realtime Operations 4.0: Redis Pub/Sub + STOMP WebSocket, event-driven refresh, alert ACK/Resolve, cooldown, escalation, audit history** | **Không đổi schema** |
+| **V60** | **Payment Production 4.0: go-live readiness guard, HTTPS callback policy, merchant identity validation, webhook replay-conflict protection, production dashboard** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -529,6 +530,7 @@ The repository contains **URLs only**, never merchant secrets:
 
 ```env
 PAYMENT_MOCK_ENABLED=true
+PAYMENT_PRODUCTION_GUARD_ENABLED=true
 VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
 VNPAY_QUERY_URL=https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
 VNPAY_TMN_CODE=
@@ -3001,3 +3003,96 @@ v59.0.0
 ```
 
 Các RC đã tạo là immutable; nếu RC1 đã trỏ tới commit khác thì dùng RC2, RC3... và không force-update tag cũ.
+
+## V60 - Payment Production 4.0
+
+V60 không thay payment provider thành một provider giả mới. Nó harden trực tiếp V37/V47 để cấu hình VNPay/MoMo hiện có có thể được đánh giá trước khi chuyển từ sandbox sang production.
+
+### Production readiness guard
+
+Admin Payment Operations có thêm **Payment Production Readiness · V60**. API:
+
+```text
+GET /api/admin/payments/production-readiness
+```
+
+Response chỉ trả trạng thái và hostname an toàn; **không trả TMN hash secret, MoMo secret key hoặc access key**. Với gateway ở `production`, guard yêu cầu:
+
+```text
+merchant credentials configured
++ checkout/query endpoint HTTPS
++ return URL HTTPS public
++ IPN URL HTTPS public
+= productionReady
+```
+
+Cấu hình:
+
+```text
+PAYMENT_PRODUCTION_GUARD_ENABLED=true
+```
+
+Khi guard bật, checkout production bị fail-closed nếu callback còn `http://localhost`, endpoint không HTTPS hoặc provider chưa đủ cấu hình. Sandbox vẫn chạy theo cấu hình hiện tại nhưng UI hiển thị warning rõ ràng rằng đó chưa phải production traffic.
+
+### Webhook/IPN hardening V60
+
+VNPay và MoMo callback được kiểm tra theo thứ tự:
+
+```text
+signature
+→ merchant identity (vnp_TmnCode / partnerCode)
+→ merchant order mapping
+→ amount
+→ event-key idempotency
+→ payload-hash consistency
+→ state transition
+```
+
+Duplicate callback có **cùng event key + cùng payload hash** được trả lại merchant response đã lưu, không chạy state transition lần hai. Nếu cùng event key nhưng payload khác, V60 trả lỗi `Replay payload mismatch`, không thay đổi payment và ghi timeline event:
+
+```text
+WEBHOOK_REPLAY_CONFLICT
+```
+
+Browser return URL tiếp tục chỉ là kết quả hiển thị; payment success vẫn đến từ server IPN/reconciliation.
+
+### Database / dữ liệu V60
+
+**V60 không tạo Flyway migration mới.** Webhook idempotency tiếp tục dùng `payment_webhook_event` từ V37 và timeline dùng `payment_event` từ V47.
+
+```text
+Flyway latest: V52
+56 application tables
++ flyway_schema_history
+= 57 public tables
+```
+
+Không cần seed hoặc repair database lại khi nâng V59 → V60.
+
+### Test source V60
+
+```powershell
+python .\tools\verify_v47_payment_gateway_operations.py
+python .\tools\verify_v59_realtime_operations_4.py
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_realistic_data_57.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v60.ps1
+```
+
+Browser journey:
+
+```text
+frontend/e2e/payment-production-v60.spec.ts
+```
+
+CI intentionally không cấu hình merchant secret thật. E2E chỉ xác nhận readiness fail-closed/honest, secret không bị render và payment dashboard vẫn hoạt động; live VNPay/MoMo traffic chỉ chạy khi bạn tự cung cấp sandbox/production credentials ngoài Git.
+
+### Release V60
+
+```text
+v60.0.0-rc.1
+v60.0.0
+```
+
+RC/stable tag là immutable; nếu RC1 đã tồn tại ở commit khác thì dùng RC2/RC3 thay vì force-update.
+

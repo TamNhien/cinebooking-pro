@@ -143,6 +143,7 @@ app:
   payment:
     provider: ${PAYMENT_PROVIDER:mock}
     mock-enabled: ${PAYMENT_MOCK_ENABLED:true}
+    production-guard-enabled: ${PAYMENT_PRODUCTION_GUARD_ENABLED:true}
     reconcile:
       auto-enabled: ${PAYMENT_AUTO_RECONCILE_ENABLED:false}
       scan-ms: ${PAYMENT_RECONCILE_SCAN_MS:60000}
