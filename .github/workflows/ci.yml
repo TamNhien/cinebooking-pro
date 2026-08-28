@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V64 source regression
+    name: V26-V65 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -339,6 +339,9 @@ jobs:
 
       - name: Verify V64 CRM & Marketing Automation 4.0
         run: python3 tools/verify_v64_crm_marketing_automation.py
+      - name: Verify V65 Observability & Reliability 4.0
+        run: python3 tools/verify_v65_observability_reliability.py
+
 
   compose-config:
     name: Docker Compose validation

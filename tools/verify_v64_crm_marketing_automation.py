@@ -179,7 +179,7 @@ rc_default=re.search(r'default: "v(\d+)\.0\.0-rc\.1"',rc)
 check('RC defaults to V64 or later', bool(rc_default) and int(rc_default.group(1))>=64)
 check('RC compose namespace is V64 or later', bool(re.search(r'cinebooking_v(6[4-9]|[7-9][0-9])_rc_',rc)))
 check('RC runs V64 source gate', 'Verify V64 source gate' in rc and 'verify_v64_crm_marketing_automation.py' in rc)
-check('RC browser label includes V64', '+ V63 + V64)' in rc)
+check('RC browser label includes V64', '+ V63 + V64' in rc)
 stable_default=re.search(r'default: "(\d+)\.0\.0"',release)
 check('Stable defaults to V64 or later', bool(stable_default) and int(stable_default.group(1))>=64)
 check('Stable compose namespace is V64 or later', bool(re.search(r'cinebooking_v(6[4-9]|[7-9][0-9])_release_',release)))
@@ -191,7 +191,7 @@ check('V63 verifier is forward-compatible with later releases', 'README current 
 
 # README / version order
 current_match=re.search(r'# CineBooking Pro V(\d+)',readme)
-check('README current release is V64', bool(current_match) and int(current_match.group(1))==64 and 'Current release:** V64 - CRM & Marketing Automation 4.0' in readme)
+check('README current release is V64 or later', bool(current_match) and int(current_match.group(1))>=64 and '| **V64** |' in readme)
 check('README version history has V64 after V63', readme.find('| **V63**') < readme.find('| **V64**'))
 check('README detailed V64 section is after V63', readme.find('## V63 - Recommendation 4.0') < readme.find('## V64 - CRM & Marketing Automation 4.0'))
 check('README documents all V64 APIs', all(x in readme for x in ['/api/admin/marketing/segments','/api/admin/marketing/campaigns/preview','/api/admin/marketing/campaigns/launch']))

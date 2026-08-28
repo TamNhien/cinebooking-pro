@@ -299,3 +299,19 @@ export type MarketingAudienceV64 = { customerRef:string; fullName:string; masked
 export type MarketingCampaignRequestV64 = { campaignCode:string; segmentCode:MarketingSegmentCodeV64; title:string; message:string; discountType:"PERCENT"|"FIXED"; discountValue:number; minOrderAmount:number; maxDiscount?:number; validityDays:number; confirmed:boolean };
 export type MarketingCampaignPreviewV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; segmentLabel:string; matchedCustomers:number; previewLimit:number; audience:MarketingAudienceV64[]; voucherPolicy:string; deliveryPolicy:string };
 export type MarketingCampaignLaunchV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; matchedCustomers:number; vouchersCreated:number; vouchersReused:number; notificationsCreated:number; notificationsSkipped:number; launchedAt:string };
+
+// V65 · Observability & Reliability 4.0
+export type ObservabilitySloV65 = {
+  code:string; label:string; status:"PASS"|"WARN"|"FAIL"|"NO_DATA";
+  currentValue:number; targetValue:number; unit:string; comparison:">="|"<="|string; sampleCount:number;
+};
+export type ObservabilityDependencyV65 = { name:string; status:"PASS"|"FAIL"; latencyMs:number; detail:string };
+export type ObservabilityRuntimeV65 = { uptimeSeconds:number; heapUsedBytes:number; heapMaxBytes:number; availableProcessors:number; liveThreads:number; activeRequests:number };
+export type ObservabilityRequestSampleV65 = { at:string; method:string; path:string; status:number; durationMs:number; traceId:string };
+export type ObservabilitySummaryV65 = {
+  strategyVersion:string; instanceId:string; generatedAt:string; windowMinutes:number;
+  requestsInWindow:number; serverErrorsInWindow:number; availabilityPercent:number; errorRatePercent:number; p95LatencyMs:number;
+  overallStatus:"PASS"|"WARN"|"FAIL"|"NO_DATA";
+  runtime:ObservabilityRuntimeV65; slos:ObservabilitySloV65[]; dependencies:ObservabilityDependencyV65[];
+  recentRequests:ObservabilityRequestSampleV65[]; prometheusPath:string; traceHeader:string; grafanaHint:string;
+};

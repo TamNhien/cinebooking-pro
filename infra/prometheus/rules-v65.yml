@@ -1,0 +1,37 @@
+groups:
+  - name: cinebooking-v65-slo
+    interval: 15s
+    rules:
+      - record: cinebooking:slo:availability_5m
+        expr: 1 - (sum(rate(cinebooking_api_responses_total{status="5xx"}[5m])) / sum(rate(cinebooking_api_responses_total[5m])))
+      - record: cinebooking:slo:error_rate_5m
+        expr: sum(rate(cinebooking_api_responses_total{status="5xx"}[5m])) / sum(rate(cinebooking_api_responses_total[5m]))
+      - record: cinebooking:slo:p95_latency_seconds_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(cinebooking_api_requests_seconds_bucket[5m])))
+      - alert: CineBookingBackendDown
+        expr: up{job="cinebooking-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          version: v65
+        annotations:
+          summary: CineBooking backend replica is unavailable
+          description: Prometheus cannot scrape one CineBooking backend replica for 2 minutes.
+      - alert: CineBookingAvailabilitySLOBreach
+        expr: cinebooking:slo:availability_5m < 0.999
+        for: 10m
+        labels:
+          severity: warning
+          version: v65
+        annotations:
+          summary: CineBooking availability is below 99.9%
+          description: The rolling 5-minute API availability SLI has stayed below the V65 target for 10 minutes.
+      - alert: CineBookingP95LatencySLOBreach
+        expr: cinebooking:slo:p95_latency_seconds_5m > 0.750
+        for: 10m
+        labels:
+          severity: warning
+          version: v65
+        annotations:
+          summary: CineBooking P95 API latency is above 750ms
+          description: The rolling 5-minute API P95 latency has stayed above the V65 target for 10 minutes.

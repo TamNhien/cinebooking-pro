@@ -109,6 +109,10 @@ services:
       FINANCE_DAILY_CLOSE_CRON: "${FINANCE_DAILY_CLOSE_CRON:-0 10 1 * * *}"
       ANALYTICS_SNAPSHOT_ENABLED: ${ANALYTICS_SNAPSHOT_ENABLED:-true}
       ANALYTICS_SNAPSHOT_SCAN_MS: ${ANALYTICS_SNAPSHOT_SCAN_MS:-900000}
+      OBSERVABILITY_SLO_WINDOW_MINUTES: ${OBSERVABILITY_SLO_WINDOW_MINUTES:-5}
+      OBSERVABILITY_AVAILABILITY_TARGET_PERCENT: ${OBSERVABILITY_AVAILABILITY_TARGET_PERCENT:-99.9}
+      OBSERVABILITY_MAX_ERROR_RATE_PERCENT: ${OBSERVABILITY_MAX_ERROR_RATE_PERCENT:-1.0}
+      OBSERVABILITY_P95_LATENCY_TARGET_MS: ${OBSERVABILITY_P95_LATENCY_TARGET_MS:-750}
       UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
       CHECKIN_EARLY_MINUTES: ${CHECKIN_EARLY_MINUTES:-2880}
       CHECKIN_LATE_MINUTES: ${CHECKIN_LATE_MINUTES:-240}
@@ -181,6 +185,7 @@ services:
       - "9090:9090"
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/rules-v65.yml:/etc/prometheus/rules-v65.yml:ro
     depends_on:
       - backend-1
       - backend-2
@@ -195,6 +200,8 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
 

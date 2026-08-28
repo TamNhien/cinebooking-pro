@@ -1,0 +1,65 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Availability · 5m",
+      "id": 1,
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+      "targets": [{"expr": "cinebooking:slo:availability_5m * 100", "legendFormat": "availability"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 3, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 99.9}]}}}
+    },
+    {
+      "type": "stat",
+      "title": "5xx error rate · 5m",
+      "id": 2,
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+      "targets": [{"expr": "cinebooking:slo:error_rate_5m * 100", "legendFormat": "5xx"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "decimals": 3}}
+    },
+    {
+      "type": "stat",
+      "title": "P95 API latency · 5m",
+      "id": 3,
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "targets": [{"expr": "cinebooking:slo:p95_latency_seconds_5m", "legendFormat": "p95"}],
+      "fieldConfig": {"defaults": {"unit": "s", "decimals": 3}}
+    },
+    {
+      "type": "stat",
+      "title": "Backend replicas up",
+      "id": 4,
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "targets": [{"expr": "sum(up{job=\"cinebooking-backend\"})", "legendFormat": "replicas"}],
+      "fieldConfig": {"defaults": {"decimals": 0}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Request rate by status",
+      "id": 5,
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "sum by(status) (rate(cinebooking_api_responses_total[5m]))", "legendFormat": "{{status}}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM heap used",
+      "id": 6,
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8},
+      "targets": [{"expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by(instance)", "legendFormat": "{{instance}}"}],
+      "fieldConfig": {"defaults": {"unit": "bytes"}}
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["cinebooking", "v65", "slo"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "CineBooking V65 · Observability & Reliability",
+  "uid": "cinebooking-v65",
+  "version": 1
+}

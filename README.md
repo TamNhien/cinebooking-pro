@@ -1,13 +1,13 @@
-# CineBooking Pro V64
+# CineBooking Pro V65
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V64 - CRM & Marketing Automation 4.0
+> **Current release:** V65 - Observability & Reliability 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V64 adds **CRM & Marketing Automation 4.0** on top of the existing V55 retention, V56 customer-value, V7/V40 voucher and V41 notification foundations. It derives audience segments only from real USER accounts, confirmed bookings, successful payments and membership data; previews campaigns before launch; issues owner-scoped one-use vouchers; and sends PROMOTION notifications through the existing preference-aware in-app/email/browser pipeline. Campaign codes are idempotency keys, promotion opt-out is respected, and V64 adds no Flyway migration or synthetic customer activity, so the database contract remains 57 public tables with latest migration V52.
+V65 adds **Observability & Reliability 4.0** without changing business schema: bounded-cardinality API metrics, correlation trace IDs in response/logs, local-replica SLO evaluation, PostgreSQL/Redis dependency probes, Prometheus recording/alert rules, and a provisioned Grafana dashboard. It builds on the existing Spring Boot Actuator + Micrometer/Prometheus foundation, adds no synthetic business data, and keeps the database contract at 57 public tables with latest migration V52.
 
 ## Quy ước chạy lệnh
 
@@ -23,7 +23,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V64 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ tài khoản và giao dịch thật đang có trong database.
+- V52/V65 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật, còn V65 chỉ đọc runtime/metrics/dependency health và không seed nghiệp vụ.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -99,6 +99,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V62** | **Dynamic Pricing 4.0: occupancy + booking velocity + lead-time pricing, bounded automation, explainable quote breakdown, what-if simulator** | **Không đổi schema** |
 | **V63** | **Recommendation 4.0: deep taste facets, language/duration/weekday context, FAMILIAR/BALANCED/DISCOVERY modes, diversity reranking, score breakdown** | **Không đổi schema** |
 | **V64** | **CRM & Marketing Automation 4.0: real-data audience segmentation, campaign preview/launch, owner-scoped one-use vouchers, preference-aware promotion delivery, idempotent campaign codes** | **Không đổi schema** |
+| **V65** | **Observability & Reliability 4.0: bounded-cardinality API metrics, X-Trace-Id log correlation, SLO health, PostgreSQL/Redis probes, Prometheus alerts, provisioned Grafana dashboard** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3450,5 +3451,154 @@ frontend/e2e/crm-marketing-automation-v64.spec.ts
 ```text
 RC:     v64.0.0-rc.1
 Stable: v64.0.0
+```
+
+## V65 - Observability & Reliability 4.0
+
+V65 bổ sung lớp observability production-oriented trên nền Actuator + Micrometer/Prometheus đã có. Không thay đổi schema nghiệp vụ, không tạo dữ liệu mẫu mới và không ghi payload/token/query-string vào request telemetry.
+
+Strategy version:
+
+```text
+V65-OBSERVABILITY-RELIABILITY-4
+```
+
+### Metrics + SLO V65
+
+Mọi API request (trừ `/actuator/**` và `/uploads/**`) được đo bằng Micrometer với path đã normalize ID để tránh metric cardinality bùng nổ. Các meter chính:
+
+```text
+cinebooking.api.requests       # Timer + histogram
+cinebooking.api.responses      # Counter theo status class
+cinebooking.api.server.errors  # 5xx counter
+cinebooking.api.active         # active requests gauge
+```
+
+Dashboard ADMIN local-replica tính rolling window mặc định 5 phút:
+
+```text
+Availability target      >= 99.9%
+5xx error-rate target    <= 1.0%
+API P95 latency target   <= 750 ms
+```
+
+Các target/window có thể đổi bằng:
+
+```text
+OBSERVABILITY_SLO_WINDOW_MINUTES
+OBSERVABILITY_AVAILABILITY_TARGET_PERCENT
+OBSERVABILITY_MAX_ERROR_RATE_PERCENT
+OBSERVABILITY_P95_LATENCY_TARGET_MS
+```
+
+Khi chưa có traffic, SLO trả `NO_DATA` thay vì báo PASS giả.
+
+### Logs + Trace correlation
+
+V65 phát/nhận header:
+
+```text
+X-Trace-Id
+```
+
+Trace ID chỉ chấp nhận chuỗi an toàn dài 8-64 ký tự; nếu thiếu/không hợp lệ backend tự sinh UUID compact. Cùng trace ID được:
+
+- trả về response header;
+- gắn vào MDC và console log `trace=<id>`;
+- lưu trong in-memory recent-request ring buffer của từng backend replica;
+- dùng để grep log khi điều tra lỗi/chậm.
+
+Path telemetry loại query-string và normalize UUID/ID dài thành `:id`; không ghi Authorization token, body hay query-string.
+
+### Dependency probes + runtime
+
+Endpoint ADMIN-only:
+
+```text
+GET /api/admin/observability/summary
+```
+
+Summary gồm:
+
+- PostgreSQL `SELECT 1` latency/status;
+- Redis `PING` latency/status;
+- JVM uptime, heap used/max, live threads, logical CPU;
+- active request count;
+- rolling availability/error-rate/P95;
+- 20 request traces gần nhất của replica đang phục vụ request.
+
+Probe chỉ đọc, không tạo/sửa dữ liệu nghiệp vụ.
+
+### Prometheus + Grafana V65
+
+Prometheus scrape trực tiếp hai backend replica trong Docker network qua:
+
+```text
+/actuator/prometheus
+```
+
+Nginx không proxy `/actuator/**`, nên endpoint metrics không được mở thành route web public mặc định. V65 thêm recording/alert rules:
+
+```text
+cinebooking:slo:availability_5m
+cinebooking:slo:error_rate_5m
+cinebooking:slo:p95_latency_seconds_5m
+CineBookingBackendDown
+CineBookingAvailabilitySLOBreach
+CineBookingP95LatencySLOBreach
+```
+
+Bật stack observability:
+
+```powershell
+docker compose --profile observability up -d prometheus grafana
+```
+
+Grafana được provision sẵn dashboard **CineBooking V65 · Observability & Reliability** tại cổng `3001` theo compose mặc định.
+
+### UI V65
+
+Trang mới:
+
+```text
+/admin/observability
+```
+
+Admin Dashboard có tile **📈 Observability V65**. Màn hình tự refresh mỗi 10 giây và hiển thị SLO, dependency probes, runtime, recent trace IDs và hướng dẫn bật Prometheus/Grafana.
+
+### Database / data V65
+
+V65 **không có Flyway migration mới** và không thêm table/entity nghiệp vụ. **Flyway latest: V52; 57 public tables.** Không có seed V65. Chính sách UTF-8 và 8 phim V29 được giữ nguyên.
+
+### Source tests V65
+
+Chạy từ:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_v62_dynamic_pricing_4.py
+python .\tools\verify_v63_recommendation_4.py
+python .\tools\verify_v64_crm_marketing_automation.py
+python .\tools\verify_v65_observability_reliability.py
+python .\tools\verify_realistic_data_57.py
+python .\tools\verify_seed_demo_57.py
+```
+
+Browser journey mới:
+
+```text
+frontend/e2e/observability-reliability-v65.spec.ts
+```
+
+### Release V65
+
+```text
+RC:     v65.0.0-rc.1
+Stable: v65.0.0
 ```
 

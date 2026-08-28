@@ -34,7 +34,8 @@ public class SecurityConfig {
         CorsConfiguration c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(frontendUrl, "http://localhost", "http://localhost:3000"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser"));
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "X-Trace-Id"));
+        c.setExposedHeaders(List.of("X-Trace-Id"));
         c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", c);
@@ -60,7 +61,7 @@ public class SecurityConfig {
                     response.getWriter().write("{\"message\":\"Bạn không có quyền thực hiện thao tác này\"}");
                 }))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health/**", "/ws/**").permitAll()
+                .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/ws/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                 .requestMatchers("/api/auth/**", "/api/payments/vnpay/**", "/api/payments/momo/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/recommendations/profile").authenticated()
