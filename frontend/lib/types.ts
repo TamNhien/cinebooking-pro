@@ -290,3 +290,12 @@ export type FraudRiskCustomerV61 = {
 };
 export type FraudRiskSummaryV61 = { totalCustomers:number; watchCustomers:number; highRiskCustomers:number; criticalCustomers:number; customersWithPaymentFailureSignal:number; customersWithVelocitySignal:number; customersWithSecuritySignal:number; generatedAt:string; scoringVersion:string };
 export type FraudRiskScorecardV61 = { summary:FraudRiskSummaryV61; rules:FraudRiskRuleV61[]; customers:FraudRiskCustomerV61[] };
+
+// V64 CRM & Marketing Automation 4.0
+export type MarketingSegmentCodeV64 = "ALL_ELIGIBLE"|"NEW_30D"|"ENGAGED_30D"|"VIP"|"AT_RISK_31_90D"|"LAPSED_90D_PLUS"|"PROSPECT_NO_BOOKING";
+export type MarketingSegmentV64 = { code:MarketingSegmentCodeV64; label:string; definition:string; customers:number; recommendedAction:string; defaultDiscountPercent:number };
+export type MarketingOverviewV64 = { strategyVersion:string; generatedAt:string; eligibleCustomers:number; segments:MarketingSegmentV64[] };
+export type MarketingAudienceV64 = { customerRef:string; fullName:string; maskedEmail:string; membershipTier:string; lastBookingDate?:string; recencyDays:number; lifetimeBookings:number; lifetimeRevenue:number };
+export type MarketingCampaignRequestV64 = { campaignCode:string; segmentCode:MarketingSegmentCodeV64; title:string; message:string; discountType:"PERCENT"|"FIXED"; discountValue:number; minOrderAmount:number; maxDiscount?:number; validityDays:number; confirmed:boolean };
+export type MarketingCampaignPreviewV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; segmentLabel:string; matchedCustomers:number; previewLimit:number; audience:MarketingAudienceV64[]; voucherPolicy:string; deliveryPolicy:string };
+export type MarketingCampaignLaunchV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; matchedCustomers:number; vouchersCreated:number; vouchersReused:number; notificationsCreated:number; notificationsSkipped:number; launchedAt:string };

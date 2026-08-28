@@ -1,13 +1,13 @@
-# CineBooking Pro V63
+# CineBooking Pro V64
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V63 - Recommendation 4.0
+> **Current release:** V64 - CRM & Marketing Automation 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V63 upgrades the existing V25/V50 recommendation path to **Recommendation 4.0**. The ranking is deterministic and explainable: it learns deeper taste facets from real favorites, reviews, confirmed bookings, recency events and explicit MORE/LESS/HIDE feedback; combines genre, language, content rating, duration and future-showtime context; exposes FAMILIAR/BALANCED/DISCOVERY ranking modes; and applies a bounded diversity reranker to reduce repetitive picks. V63 adds no Flyway migration and creates no synthetic movie/taste history, so the database contract remains 57 public tables with latest migration V52.
+V64 adds **CRM & Marketing Automation 4.0** on top of the existing V55 retention, V56 customer-value, V7/V40 voucher and V41 notification foundations. It derives audience segments only from real USER accounts, confirmed bookings, successful payments and membership data; previews campaigns before launch; issues owner-scoped one-use vouchers; and sends PROMOTION notifications through the existing preference-aware in-app/email/browser pipeline. Campaign codes are idempotency keys, promotion opt-out is respected, and V64 adds no Flyway migration or synthetic customer activity, so the database contract remains 57 public tables with latest migration V52.
 
 ## Quy ước chạy lệnh
 
@@ -23,7 +23,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V63 **không tạo phim giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29 và lịch sử nghiệp vụ thật đang có trong database.
+- V52/V64 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ tài khoản và giao dịch thật đang có trong database.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -98,6 +98,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V61** | **Fraud & Risk Intelligence: explainable cross-domain scoring, evidence queue, ADMIN manual disposition, audit trail, no automatic blocking** | **Không đổi schema** |
 | **V62** | **Dynamic Pricing 4.0: occupancy + booking velocity + lead-time pricing, bounded automation, explainable quote breakdown, what-if simulator** | **Không đổi schema** |
 | **V63** | **Recommendation 4.0: deep taste facets, language/duration/weekday context, FAMILIAR/BALANCED/DISCOVERY modes, diversity reranking, score breakdown** | **Không đổi schema** |
+| **V64** | **CRM & Marketing Automation 4.0: real-data audience segmentation, campaign preview/launch, owner-scoped one-use vouchers, preference-aware promotion delivery, idempotent campaign codes** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3277,6 +3278,7 @@ Mỗi `RecommendationItem` trả thêm:
 - Badge **MỚI VỚI BẠN**.
 - Ranking contribution chips cho từng phim.
 - Giữ nguyên nút **Thêm tương tự / Ít tương tự / Ẩn / Xóa phản hồi** của V50.
+- **Admin Dashboard** có tile **🧠 Recommendation V63** để mở trực tiếp `/for-you`, tránh tình trạng V63 đã có chức năng nhưng không xuất hiện trên màn hình quản trị.
 
 ### Database / data V63
 
@@ -3312,5 +3314,141 @@ frontend/e2e/recommendation-4-v63.spec.ts
 ```text
 RC:     v63.0.0-rc.1
 Stable: v63.0.0
+```
+
+## V64 - CRM & Marketing Automation 4.0
+
+V64 nối trực tiếp các lớp dữ liệu đã có của V55/V56 với voucher và notification hiện hữu để tạo một luồng marketing có thể kiểm tra được:
+
+```text
+real app_user + CONFIRMED booking + SUCCESS payment + membership
+                              ↓
+                    V64 audience segments
+                              ↓
+                       campaign preview
+                              ↓
+                     explicit admin launch
+                              ↓
+       owner-scoped one-use voucher + PROMOTION notification
+```
+
+Strategy version:
+
+```text
+V64-CRM-AUTOMATION-4
+```
+
+### Segment V64
+
+`GET /api/admin/marketing/segments` chỉ đọc dữ liệu nghiệp vụ thật và trả các segment có thể chồng lấp theo mục đích marketing:
+
+- `ALL_ELIGIBLE`: toàn bộ tài khoản `USER` đang hoạt động.
+- `NEW_30D`: tài khoản được tạo trong 30 ngày gần nhất.
+- `ENGAGED_30D`: có booking `CONFIRMED` trong 30 ngày gần nhất.
+- `VIP`: GOLD/DIAMOND, hoặc >=4 booking `CONFIRMED`, hoặc realized payment revenue >=1.000.000đ.
+- `AT_RISK_31_90D`: booking `CONFIRMED` gần nhất cách đây 31-90 ngày.
+- `LAPSED_90D_PLUS`: booking `CONFIRMED` gần nhất cách đây trên 90 ngày.
+- `PROSPECT_NO_BOOKING`: tài khoản USER đang hoạt động nhưng chưa có booking `CONFIRMED`.
+
+Không tạo customer profile giả, không seed hành vi giả và không suy diễn doanh thu từ booking chưa thanh toán. Revenue dùng đúng payment `SUCCESS` hiện có.
+
+### Campaign preview / launch
+
+API ADMIN-only:
+
+```text
+GET  /api/admin/marketing/segments
+POST /api/admin/marketing/campaigns/preview
+POST /api/admin/marketing/campaigns/launch
+```
+
+`preview` validate đầy đủ campaign/voucher nhưng **không ghi database**. UI bắt buộc preview trước khi bật nút Launch.
+
+`launch` yêu cầu `confirmed=true`. Mỗi người nhận được voucher riêng với policy:
+
+```text
+owner_user_id = đúng customer
+usage_limit   = 1
+active        = true
+starts_at     = thời điểm launch
+ends_at       = starts_at + validityDays (1..90)
+public list   = không xuất hiện vì owner_user_id != NULL
+```
+
+Voucher code deterministic theo `campaignCode + userId`, ví dụ dạng `M64-WINBACK-XXXXXXXXXXXX`. `campaignCode` vì vậy đóng vai trò idempotency key: chạy lại cùng campaign không tạo voucher trùng. Nếu cùng campaignCode nhưng thay discount configuration, backend trả `409 CONFLICT` và yêu cầu dùng campaignCode mới.
+
+### Promotion delivery / privacy guard
+
+Sau khi voucher được tạo, V64 gọi lại `NotificationService.createOnce(...)` với type `PROMOTION_V64` và dedupe key theo campaign + user. Không có kênh gửi riêng mới.
+
+Điều này giữ nguyên toàn bộ guard của Notification Center V41:
+
+- `promotionEnabled=false` => không gửi promotion.
+- In-app/email/browser chỉ dùng nếu user đã bật kênh tương ứng.
+- SMTP disabled không làm mất voucher cá nhân; email status vẫn được pipeline hiện hữu ghi nhận.
+- Preview chỉ hiển thị email đã mask; không cần lộ full email để chọn audience.
+- Account disabled và role khác `USER` không nằm trong audience V64.
+
+### UI V64
+
+Trang mới:
+
+```text
+/admin/marketing
+```
+
+Admin Dashboard có tile **📣 CRM & Marketing V64**. Màn hình gồm:
+
+- Segment cards với số khách tính từ dữ liệu hiện tại.
+- Gợi ý action + default discount theo segment.
+- Campaign composer: campaign code, segment, title/message, discount, minimum order, max discount, validity.
+- Preview audience trước khi launch.
+- Result counters: matched, voucher mới, voucher tái dùng, notification tạo/bỏ qua.
+- Link sang màn hình Voucher để đối soát khi cần.
+
+### Database / data V64
+
+V64 **không có Flyway migration mới**. Nó tái sử dụng:
+
+```text
+app_user
+booking
+payment
+voucher
+user_notification
+notification_preference
+```
+
+**Flyway latest: V52; 57 public tables.** Không có seed SQL mới cho V64. Dữ liệu tiếng Việt tiếp tục UTF-8 end-to-end (`server_encoding=UTF8`, JVM UTF-8, web `lang="vi"`).
+
+### Source tests V64
+
+Chạy từ:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_v62_dynamic_pricing_4.py
+python .\tools\verify_v63_recommendation_4.py
+python .\tools\verify_v64_crm_marketing_automation.py
+python .\tools\verify_realistic_data_57.py
+python .\tools\verify_seed_demo_57.py
+```
+
+Browser journey mới:
+
+```text
+frontend/e2e/crm-marketing-automation-v64.spec.ts
+```
+
+### Release V64
+
+```text
+RC:     v64.0.0-rc.1
+Stable: v64.0.0
 ```
 
