@@ -14,10 +14,13 @@ export type Movie = {
   reviewCount:number;
 };
 
-export type RecommendationItem = { movie:Movie; score:number; confidence:number; reason:string; matchedGenres:string[]; signals:string[]; feedback?:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE" };
+export type RecommendationScoreComponent = { key:string; label:string; contribution:number; evidence:string };
+export type RecommendationItem = { movie:Movie; score:number; confidence:number; reason:string; matchedGenres:string[]; signals:string[]; feedback?:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE"; newToYou:boolean; scoreBreakdown:RecommendationScoreComponent[] };
 export type RecommendationTasteGenre = { name:string; score:number };
-export type RecommendationTasteProfile = { algorithmVersion:string; personalized:boolean; summary:string; topGenres:RecommendationTasteGenre[]; preferredCinemaId?:string; preferredCinemaName?:string; preferredDaypart?:string; preferredDaypartLabel?:string; signalCount:number; feedbackCount:number; hiddenCount:number };
-export type RecommendationHome = { algorithmVersion:string; personalized:boolean; profileSummary:string; profile?:RecommendationTasteProfile|null; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[] };
+export type RecommendationTasteFacet = { name:string; score:number };
+export type RecommendationMode = "FAMILIAR"|"BALANCED"|"DISCOVERY";
+export type RecommendationTasteProfile = { algorithmVersion:string; personalized:boolean; summary:string; topGenres:RecommendationTasteGenre[]; topLanguages:RecommendationTasteFacet[]; preferredCinemaId?:string; preferredCinemaName?:string; preferredDaypart?:string; preferredDaypartLabel?:string; preferredWeekday?:number; preferredWeekdayLabel?:string; preferredDurationBand?:string; preferredDurationLabel?:string; profileStrength:number; signalCount:number; feedbackCount:number; hiddenCount:number };
+export type RecommendationHome = { algorithmVersion:string; mode:RecommendationMode; personalized:boolean; profileSummary:string; profile?:RecommendationTasteProfile|null; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[] };
 export type RecommendationFeedbackResponse = { movieId:string; feedbackType:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE"; message:string };
 export type Showtime = {
   id:string;

@@ -24,9 +24,10 @@ public class RecommendationController {
     @GetMapping("/home")
     public RecommendationHomeResponse home(Authentication authentication,
                                            @RequestParam(required = false) UUID cinemaId,
-                                           @RequestParam(defaultValue = "8") @Min(1) @Max(20) int limit) {
+                                           @RequestParam(defaultValue = "8") @Min(1) @Max(20) int limit,
+                                           @RequestParam(defaultValue = "BALANCED") String mode) {
         String email = authentication == null ? null : authentication.getName();
-        return service.home(email, cinemaId, limit);
+        return service.home(email, cinemaId, limit, mode);
     }
 
     @GetMapping("/trending")

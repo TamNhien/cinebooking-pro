@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V62 source regression
+    name: V26-V63 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -333,6 +333,9 @@ jobs:
 
       - name: Verify V62 Dynamic Pricing 4.0
         run: python3 tools/verify_v62_dynamic_pricing_4.py
+
+      - name: Verify V63 Recommendation 4.0
+        run: python3 tools/verify_v63_recommendation_4.py
 
   compose-config:
     name: Docker Compose validation

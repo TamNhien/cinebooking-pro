@@ -12,6 +12,13 @@ import java.util.UUID;
 public final class RecommendationDtos {
     private RecommendationDtos() {}
 
+    public record RecommendationScoreComponent(
+            String key,
+            String label,
+            double contribution,
+            String evidence
+    ) {}
+
     public record RecommendationItem(
             MovieResponse movie,
             double score,
@@ -19,20 +26,29 @@ public final class RecommendationDtos {
             String reason,
             List<String> matchedGenres,
             List<String> signals,
-            String feedback
+            String feedback,
+            boolean newToYou,
+            List<RecommendationScoreComponent> scoreBreakdown
     ) {}
 
     public record TasteGenre(String name, double score) {}
+    public record TasteFacet(String name, double score) {}
 
     public record RecommendationTasteProfile(
             String algorithmVersion,
             boolean personalized,
             String summary,
             List<TasteGenre> topGenres,
+            List<TasteFacet> topLanguages,
             UUID preferredCinemaId,
             String preferredCinemaName,
             String preferredDaypart,
             String preferredDaypartLabel,
+            Integer preferredWeekday,
+            String preferredWeekdayLabel,
+            String preferredDurationBand,
+            String preferredDurationLabel,
+            int profileStrength,
             int signalCount,
             long feedbackCount,
             long hiddenCount
@@ -40,6 +56,7 @@ public final class RecommendationDtos {
 
     public record RecommendationHomeResponse(
             String algorithmVersion,
+            String mode,
             boolean personalized,
             String profileSummary,
             RecommendationTasteProfile profile,

@@ -1,13 +1,13 @@
-# CineBooking Pro V62
+# CineBooking Pro V63
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V62 - Dynamic Pricing 4.0
+> **Current release:** V63 - Recommendation 4.0
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V62 upgrades the existing V18/V57 pricing path to **Dynamic Pricing 4.0**. The automatic component is deterministic and explainable: it reads live showtime occupancy, recent booking-attempt velocity and lead time, applies bounded percentage adjustments, keeps manual pricing rules additive, and continues to snapshot the final seat price into `booking_seat.price`. V62 adds no Flyway migration, so the database contract remains 57 public tables with latest migration V52.
+V63 upgrades the existing V25/V50 recommendation path to **Recommendation 4.0**. The ranking is deterministic and explainable: it learns deeper taste facets from real favorites, reviews, confirmed bookings, recency events and explicit MORE/LESS/HIDE feedback; combines genre, language, content rating, duration and future-showtime context; exposes FAMILIAR/BALANCED/DISCOVERY ranking modes; and applies a bounded diversity reranker to reduce repetitive picks. V63 adds no Flyway migration and creates no synthetic movie/taste history, so the database contract remains 57 public tables with latest migration V52.
 
 ## Quy ước chạy lệnh
 
@@ -23,7 +23,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52 **không tạo phim giả**. Mọi quan hệ phim tiếp tục tái sử dụng 8 phim V29 đang có trong database.
+- V52/V63 **không tạo phim giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29 và lịch sử nghiệp vụ thật đang có trong database.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -97,6 +97,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V60** | **Payment Production 4.0: go-live readiness guard, HTTPS callback policy, merchant identity validation, webhook replay-conflict protection, production dashboard** | **Không đổi schema** |
 | **V61** | **Fraud & Risk Intelligence: explainable cross-domain scoring, evidence queue, ADMIN manual disposition, audit trail, no automatic blocking** | **Không đổi schema** |
 | **V62** | **Dynamic Pricing 4.0: occupancy + booking velocity + lead-time pricing, bounded automation, explainable quote breakdown, what-if simulator** | **Không đổi schema** |
+| **V63** | **Recommendation 4.0: deep taste facets, language/duration/weekday context, FAMILIAR/BALANCED/DISCOVERY modes, diversity reranking, score breakdown** | **Không đổi schema** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3224,5 +3225,92 @@ python .\tools\verify_seed_demo_57.py
 ```text
 RC:     v62.0.0-rc.1
 Stable: v62.0.0
+```
+
+## V63 - Recommendation 4.0
+
+V63 nâng lớp `Recommendation Intelligence 2.0` của V50 thành Recommendation 4.0 nhưng **không tạo schema mới**. Thuật toán hiện tại được version hóa bằng:
+
+```text
+V63-DEEP-CONTEXT-4
+```
+
+### Deep taste profile
+
+V63 chỉ học từ dữ liệu thật đã có trong CineBooking và giữ nguyên MORE/LESS/HIDE của V50. Mỗi tín hiệu phim đồng thời đóng góp vào nhiều facet:
+
+- Thể loại (`movie.genre`).
+- Ngôn ngữ (`movie.movie_language`).
+- Phân loại nội dung (`movie.rating`).
+- Nhóm thời lượng: gọn `<=100`, vừa `101-130`, dài `>130` phút.
+- Rạp, khung giờ và **thứ trong tuần** từ booking `CONFIRMED`.
+- Click/view trong 120 ngày với recency decay.
+- Explicit `MORE_LIKE_THIS`, `LESS_LIKE_THIS`, `HIDE`.
+
+`GET /api/recommendations/profile` trả thêm `topLanguages`, `preferredWeekday`, `preferredDurationBand` và `profileStrength` 0-100. Không có bước seed lịch sử gu giả; profile được tính trực tiếp từ dữ liệu hiện hữu.
+
+### Context-aware ranking + discovery balance
+
+`GET /api/recommendations/home` giữ tương thích API cũ và thêm query tùy chọn:
+
+```text
+mode=FAMILIAR | BALANCED | DISCOVERY
+```
+
+- **FAMILIAR:** ưu tiên mạnh các facet đã học, diversity penalty thấp.
+- **BALANCED:** mặc định; cân bằng taste, lịch xem thật và khám phá.
+- **DISCOVERY:** tăng novelty bonus và diversity penalty để giảm echo-chamber, nhưng vẫn giữ các taste signal chính.
+
+Raw score tiếp tục giữ lineage V50 (genre affinity, popularity, preferred cinema/daypart, anchor feedback) rồi cộng các thành phần V63: language, rating, duration, weekday và novelty. Sau đó diversity reranker chọn tuần tự theo genre overlap; không random nên kết quả vẫn deterministic với cùng dữ liệu đầu vào.
+
+Mỗi `RecommendationItem` trả thêm:
+
+- `newToYou`: phim chưa xuất hiện trong favorites/bookings/reviews/recommendation events/feedback của user.
+- `scoreBreakdown[]`: tối đa 6 thành phần giải thích contribution như `GENRE_TASTE`, `LANGUAGE_FIT`, `DURATION_FIT`, `SCHEDULE_FIT`, `POPULARITY`, `NOVELTY`.
+
+### UI V63
+
+`/for-you` được nâng lên **V63 · Recommendation 4.0** với:
+
+- Thanh chọn Bám gu / Cân bằng / Khám phá.
+- Profile strength, top genres, top languages, thời lượng thường xem, ngày + khung giờ + rạp thường xem.
+- Badge **MỚI VỚI BẠN**.
+- Ranking contribution chips cho từng phim.
+- Giữ nguyên nút **Thêm tương tự / Ít tương tự / Ẩn / Xóa phản hồi** của V50.
+
+### Database / data V63
+
+V63 **không có Flyway migration mới**, không có recommendation table/entity mới và không seed phim mới. Thuật toán tái sử dụng `movie`, `movie_favorite`, `movie_review`, `booking`, `showtime`, `auditorium`, `recommendation_event` và `recommendation_feedback`. **Flyway latest: V52; 57 public tables.**
+
+Dữ liệu tiếng Việt tiếp tục dùng UTF-8 end-to-end; source, database và web không đổi chính sách encoding.
+
+### Source tests V63
+
+Chạy từ:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_v62_dynamic_pricing_4.py
+python .\tools\verify_v63_recommendation_4.py
+python .\tools\verify_realistic_data_57.py
+python .\tools\verify_seed_demo_57.py
+```
+
+Browser journey mới:
+
+```text
+frontend/e2e/recommendation-4-v63.spec.ts
+```
+
+### Release V63
+
+```text
+RC:     v63.0.0-rc.1
+Stable: v63.0.0
 ```
 

@@ -804,3 +804,26 @@ verify-reference-v62:
 
 verify-realistic-data-v62:
 	python tools/verify_realistic_data_57.py
+
+verify-v63:
+	python tools/verify_v60_payment_production_4.py
+	python tools/verify_v61_fraud_risk_intelligence.py
+	python tools/verify_v62_dynamic_pricing_4.py
+	python tools/verify_v63_recommendation_4.py
+	python tools/verify_realistic_data_57.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v63:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v63.ps1
+
+verify-seed-demo-v63:
+	python tools/verify_seed_demo_57.py
+
+check-seed-demo-v63:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+verify-reference-v63:
+	python tools/verify_reference_data_57.py
+
+verify-realistic-data-v63:
+	python tools/verify_realistic_data_57.py

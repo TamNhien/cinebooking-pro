@@ -22,7 +22,9 @@ import static com.cinebooking.recommendation.RecommendationDtos.*;
 
 @Service
 public class RecommendationService {
-    private static final String VERSION = "V50-HYBRID-TASTE-2";
+    private static final String VERSION = "V63-DEEP-CONTEXT-4";
+    // Compatibility lineage retained for V50 source-regression checks: V50-HYBRID-TASTE-2
+    private static final Set<String> MODES = Set.of("FAMILIAR", "BALANCED", "DISCOVERY");
     // Compatibility lineage retained for V25 source-regression checks: V25-CONTENT-HYBRID-1
 
     private final MovieRepository movies;
@@ -42,20 +44,21 @@ public class RecommendationService {
         this.jdbc = jdbc;
     }
 
-    public RecommendationHomeResponse home(String email, UUID cinemaId, int requestedLimit) {
+    public RecommendationHomeResponse home(String email, UUID cinemaId, int requestedLimit, String requestedMode) {
         int limit = clamp(requestedLimit, 1, 20);
+        String mode = recommendationMode(requestedMode);
         List<RecommendationItem> trending = trending(cinemaId, limit);
         if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
-            return new RecommendationHomeResponse(VERSION, false,
-                    "Đăng nhập để CineBooking học từ phim bạn yêu thích, đã xem, đánh giá và phản hồi trực tiếp.",
+            return new RecommendationHomeResponse(VERSION, mode, false,
+                    "Đăng nhập để CineBooking học sâu hơn từ gu phim, ngôn ngữ, thời lượng, lịch xem và phản hồi trực tiếp.",
                     null, List.of(), trending);
         }
 
         AppUser user = findUser(email);
         PersonalProfile profile = personalProfile(user.getId());
         RecommendationTasteProfile taste = tasteProfile(profile);
-        List<RecommendationItem> personalized = personalized(cinemaId, limit, profile, trending);
-        return new RecommendationHomeResponse(VERSION, taste.personalized(), taste.summary(), taste, personalized, trending);
+        List<RecommendationItem> personalized = personalized(cinemaId, limit, profile, trending, mode);
+        return new RecommendationHomeResponse(VERSION, mode, taste.personalized(), taste.summary(), taste, personalized, trending);
     }
 
     public RecommendationTasteProfile profile(String email) {
@@ -143,7 +146,7 @@ public class RecommendationService {
     }
 
     private List<RecommendationItem> personalized(UUID cinemaId, int limit, PersonalProfile profile,
-                                                  List<RecommendationItem> trendingFallback) {
+                                                  List<RecommendationItem> trendingFallback, String mode) {
         List<Movie> candidates = candidates(cinemaId).stream()
                 .filter(m -> !profile.hiddenMovies.contains(m.getId()))
                 .toList();
@@ -151,15 +154,26 @@ public class RecommendationService {
             return trendingFallback.stream()
                     .filter(x -> !profile.hiddenMovies.contains(x.movie().id()))
                     .map(x -> new RecommendationItem(x.movie(), x.score(), x.confidence(),
-                            "Gợi ý khám phá dựa trên xu hướng CineBooking", x.matchedGenres(), x.signals(), x.feedback()))
+                            "Gợi ý khám phá dựa trên xu hướng CineBooking", x.matchedGenres(), x.signals(), x.feedback(),
+                            true, x.scoreBreakdown()))
                     .limit(limit).toList();
         }
 
         Map<UUID, Popularity> popularity = popularity(candidates.stream().map(Movie::getId).toList());
         Map<UUID, Availability> availability = availability(candidates.stream().map(Movie::getId).toList(), profile);
         Map<UUID, Movie> movieById = movies.findAll().stream().collect(Collectors.toMap(Movie::getId, m -> m));
+        double facetMultiplier = switch (mode) {
+            case "FAMILIAR" -> 1.00;
+            case "DISCOVERY" -> 0.45;
+            default -> 0.75;
+        };
+        double noveltyBonus = switch (mode) {
+            case "FAMILIAR" -> 0.5;
+            case "DISCOVERY" -> 5.0;
+            default -> 2.5;
+        };
 
-        List<RecommendationItem> ranked = candidates.stream().map(movie -> {
+        List<RankedRecommendation> pool = candidates.stream().map(movie -> {
                     Set<String> movieGenres = genres(movie);
                     List<String> matched = movieGenres.stream()
                             .filter(g -> profile.genreWeights.getOrDefault(g, 0.0) > 0.0)
@@ -175,6 +189,15 @@ public class RecommendationService {
                     if (a.preferredCinema) score += 4.5;
                     if (a.preferredDaypart) score += 3.5;
 
+                    double languageFit = profile.languageWeights.getOrDefault(normalize(movie.getLanguage()), 0.0);
+                    double ratingFit = profile.ratingWeights.getOrDefault(normalize(movie.getRating()), 0.0);
+                    double durationFit = profile.durationWeights.getOrDefault(durationBand(movie.getDurationMinutes()), 0.0);
+                    double languageContribution = Math.max(-8.0, Math.min(10.0, languageFit * 1.35 * facetMultiplier));
+                    double ratingContribution = Math.max(-5.0, Math.min(6.0, ratingFit * 0.70 * facetMultiplier));
+                    double durationContribution = Math.max(-6.0, Math.min(8.0, durationFit * 0.95 * facetMultiplier));
+                    double weekdayContribution = a.preferredWeekday ? 3.0 * facetMultiplier : 0.0;
+                    score += languageContribution + ratingContribution + durationContribution + weekdayContribution;
+
                     AnchorMatch anchor = bestAnchor(profile, movie, movieById);
                     if (anchor.sharedGenres > 0) score += Math.min(14.0, 5.0 + anchor.sharedGenres * 3.0);
                     if (profile.lessLikeMovies.contains(movie.getId())) score -= 18.0;
@@ -183,15 +206,22 @@ public class RecommendationService {
                     if (profile.bookedMovies.contains(movie.getId())) score -= 4.0;
                     if (profile.positivelyReviewedMovies.contains(movie.getId())) score -= 4.5;
 
-                    String reason = recommendationReason(matched, anchor, a, p);
-                    List<String> signals = recommendationSignals(matched, anchor, a, p, profile);
-                    int confidence = recommendationConfidence(profile, matched.size(), a, anchor, p);
-                    return item(movie, score, confidence, reason, matched, signals, profile.feedbackByMovie.get(movie.getId()));
+                    boolean newToYou = profile.isNewToUser(movie.getId());
+                    if (newToYou) score += noveltyBonus;
+                    String reason = recommendationReasonV63(movie, matched, anchor, a, p, profile, languageFit, durationFit, newToYou);
+                    List<String> signals = recommendationSignalsV63(movie, matched, anchor, a, p, profile, languageFit, durationFit, newToYou);
+                    int confidence = recommendationConfidenceV63(profile, matched.size(), a, anchor, p, languageFit, durationFit);
+                    List<RecommendationScoreComponent> breakdown = scoreBreakdown(affinity * 2.4, languageContribution,
+                            ratingContribution, durationContribution, a, weekdayContribution, anchor, p, noveltyBonus, newToYou);
+                    RecommendationItem item = item(movie, score, confidence, reason, matched, signals,
+                            profile.feedbackByMovie.get(movie.getId()), newToYou, breakdown);
+                    return new RankedRecommendation(item, movieGenres, newToYou);
                 })
-                .sorted(Comparator.comparingDouble(RecommendationItem::score).reversed()
-                        .thenComparing(x -> x.movie().title()))
-                .limit(limit).toList();
+                .sorted(Comparator.comparingDouble((RankedRecommendation x) -> x.item().score()).reversed()
+                        .thenComparing(x -> x.item().movie().title()))
+                .toList();
 
+        List<RecommendationItem> ranked = diversityRerank(pool, limit, mode);
         if (ranked.size() >= limit) return ranked;
         LinkedHashMap<UUID, RecommendationItem> merged = new LinkedHashMap<>();
         ranked.forEach(x -> merged.put(x.movie().id(), x));
@@ -210,37 +240,46 @@ public class RecommendationService {
             profile.favoriteMovies.add(movieId);
             profile.signalCount++;
             addMovieGenres(profile, byId.get(movieId), 5.0);
+            addMovieFacets(profile, byId.get(movieId), 5.0);
         }, userId);
 
         jdbc.query("select movie_id,rating from movie_review where user_id=?", rs -> {
             UUID movieId = rs.getObject(1, UUID.class);
             int rating = rs.getInt(2);
+            profile.reviewedMovies.add(movieId);
             profile.signalCount++;
             if (rating >= 4) {
                 profile.positivelyReviewedMovies.add(movieId);
                 addMovieGenres(profile, byId.get(movieId), rating == 5 ? 5.5 : 4.0);
+                addMovieFacets(profile, byId.get(movieId), rating == 5 ? 5.5 : 4.0);
             } else if (rating <= 2) {
                 addMovieGenres(profile, byId.get(movieId), rating == 1 ? -5.0 : -3.5);
+                addMovieFacets(profile, byId.get(movieId), rating == 1 ? -5.0 : -3.5);
             }
         }, userId);
 
         jdbc.query("""
-                select st.movie_id,a.cinema_id,extract(hour from st.start_time)::int as hour_value,count(*) as booking_count
+                select st.movie_id,a.cinema_id,extract(hour from st.start_time)::int as hour_value,
+                       extract(isodow from st.start_time)::int as weekday_value,count(*) as booking_count
                 from booking b
                 join showtime st on st.id=b.showtime_id
                 join auditorium a on a.id=st.auditorium_id
                 where b.user_id=? and b.status='CONFIRMED'
-                group by st.movie_id,a.cinema_id,extract(hour from st.start_time)::int
+                group by st.movie_id,a.cinema_id,extract(hour from st.start_time)::int,extract(isodow from st.start_time)::int
                 """, rs -> {
             UUID movieId = rs.getObject("movie_id", UUID.class);
             UUID cinemaId = rs.getObject("cinema_id", UUID.class);
             int hour = rs.getInt("hour_value");
+            int weekday = rs.getInt("weekday_value");
             long count = rs.getLong("booking_count");
             profile.bookedMovies.add(movieId);
             profile.signalCount += (int)Math.min(count, 5);
-            addMovieGenres(profile, byId.get(movieId), 4.5 * Math.min(count, 3));
+            double weight = 4.5 * Math.min(count, 3);
+            addMovieGenres(profile, byId.get(movieId), weight);
+            addMovieFacets(profile, byId.get(movieId), weight);
             profile.cinemaWeights.merge(cinemaId, (double)count, Double::sum);
             profile.daypartWeights.merge(daypart(hour), (double)count, Double::sum);
+            profile.weekdayWeights.merge(weekday, (double)count, Double::sum);
         }, userId);
 
         jdbc.query("select movie_id,event_type,created_at from recommendation_event where user_id=? and created_at>=now()-interval '120 days'", rs -> {
@@ -252,6 +291,8 @@ public class RecommendationService {
             double base = "CLICK".equals(eventType) ? 1.5 : 0.75;
             profile.signalCount++;
             addMovieGenres(profile, byId.get(movieId), base * decay);
+            addMovieFacets(profile, byId.get(movieId), base * decay);
+            profile.interactedMovies.add(movieId);
         }, userId);
 
         for (RecommendationFeedback row : feedback.findByUserIdOrderByUpdatedAtDesc(userId)) {
@@ -263,10 +304,12 @@ public class RecommendationService {
                 case "MORE_LIKE_THIS" -> {
                     profile.moreLikeMovies.add(row.getMovieId());
                     addMovieGenres(profile, movie, 8.0);
+                    addMovieFacets(profile, movie, 8.0);
                 }
                 case "LESS_LIKE_THIS" -> {
                     profile.lessLikeMovies.add(row.getMovieId());
                     addMovieGenres(profile, movie, -7.0);
+                    addMovieFacets(profile, movie, -7.0);
                 }
                 case "HIDE" -> profile.hiddenMovies.add(row.getMovieId());
                 default -> { }
@@ -282,30 +325,45 @@ public class RecommendationService {
                 .limit(5)
                 .map(e -> new TasteGenre(profile.genreLabels.getOrDefault(e.getKey(), e.getKey()), round(e.getValue())))
                 .toList();
+        List<TasteFacet> topLanguages = profile.languageWeights.entrySet().stream()
+                .filter(e -> e.getValue() > 0.0 && !e.getKey().isBlank())
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+                .limit(3)
+                .map(e -> new TasteFacet(profile.languageLabels.getOrDefault(e.getKey(), e.getKey()), round(e.getValue())))
+                .toList();
         UUID cinemaId = profile.preferredCinemaId();
         String cinemaName = cinemaId == null ? null : cinemas.findById(cinemaId).map(Cinema::getName).orElse(null);
         String daypart = profile.preferredDaypart();
+        Integer weekday = profile.preferredWeekday();
+        String durationBand = profile.preferredDurationBand();
         boolean personalized = profile.hasTasteSignal();
+        int profileStrength = profile.profileStrength();
         String summary;
         if (!personalized) {
             summary = "Chưa có đủ tín hiệu cá nhân; CineBooking đang dùng xu hướng để giúp bạn khám phá phim mới.";
         } else {
             List<String> parts = new ArrayList<>();
             if (!topGenres.isEmpty()) parts.add("ưu tiên " + topGenres.stream().limit(3).map(TasteGenre::name).collect(Collectors.joining(", ")));
+            if (!topLanguages.isEmpty()) parts.add("hay xem " + topLanguages.getFirst().name());
+            if (durationBand != null) parts.add("hợp thời lượng " + durationLabel(durationBand).toLowerCase(Locale.ROOT));
             if (cinemaName != null) parts.add("thường xem tại " + cinemaName);
             if (daypart != null) parts.add("hay chọn " + daypartLabel(daypart).toLowerCase(Locale.ROOT));
+            if (weekday != null) parts.add("thường đi " + weekdayLabel(weekday).toLowerCase(Locale.ROOT));
             summary = parts.isEmpty() ? "Gu phim đang được tinh chỉnh từ hành vi và phản hồi của bạn." : "CineBooking " + String.join(" · ", parts) + ".";
         }
-        return new RecommendationTasteProfile(VERSION, personalized, summary, topGenres, cinemaId, cinemaName,
-                daypart, daypartLabel(daypart), profile.signalCount, profile.feedbackCount, profile.hiddenMovies.size());
+        return new RecommendationTasteProfile(VERSION, personalized, summary, topGenres, topLanguages, cinemaId, cinemaName,
+                daypart, daypartLabel(daypart), weekday, weekdayLabel(weekday), durationBand, durationLabel(durationBand),
+                profileStrength, profile.signalCount, profile.feedbackCount, profile.hiddenMovies.size());
     }
 
     private Map<UUID, Availability> availability(List<UUID> movieIds, PersonalProfile profile) {
         Map<UUID, AvailabilityAccumulator> tmp = new HashMap<>();
-        if (movieIds.isEmpty() || (profile.preferredCinemaId() == null && profile.preferredDaypart() == null)) return Map.of();
+        if (movieIds.isEmpty() || (profile.preferredCinemaId() == null && profile.preferredDaypart() == null
+                && profile.preferredWeekday() == null)) return Map.of();
         Set<UUID> allowed = new HashSet<>(movieIds);
         jdbc.query("""
-                select st.movie_id,a.cinema_id,extract(hour from st.start_time)::int as hour_value
+                select st.movie_id,a.cinema_id,extract(hour from st.start_time)::int as hour_value,
+                       extract(isodow from st.start_time)::int as weekday_value
                 from showtime st join auditorium a on a.id=st.auditorium_id
                 where st.status='OPEN' and st.start_time>now()
                 """, rs -> {
@@ -314,11 +372,13 @@ public class RecommendationService {
             AvailabilityAccumulator a = tmp.computeIfAbsent(movieId, x -> new AvailabilityAccumulator());
             UUID cinemaId = rs.getObject("cinema_id", UUID.class);
             int hour = rs.getInt("hour_value");
+            int weekday = rs.getInt("weekday_value");
             if (Objects.equals(profile.preferredCinemaId(), cinemaId)) a.preferredCinema = true;
             if (Objects.equals(profile.preferredDaypart(), daypart(hour))) a.preferredDaypart = true;
+            if (Objects.equals(profile.preferredWeekday(), weekday)) a.preferredWeekday = true;
         });
         Map<UUID, Availability> result = new HashMap<>();
-        tmp.forEach((id, a) -> result.put(id, new Availability(a.preferredCinema, a.preferredDaypart)));
+        tmp.forEach((id, a) -> result.put(id, new Availability(a.preferredCinema, a.preferredDaypart, a.preferredWeekday)));
         return result;
     }
 
@@ -364,6 +424,117 @@ public class RecommendationService {
         if (anchor.sharedGenres > 0) confidence += 10;
         if (p.bookings30d > 0) confidence += 4;
         return Math.max(1, Math.min(99, confidence));
+    }
+
+    private String recommendationReasonV63(Movie movie, List<String> matched, AnchorMatch anchor, Availability availability,
+                                               Popularity p, PersonalProfile profile, double languageFit, double durationFit,
+                                               boolean newToYou) {
+        String base = recommendationReason(matched, anchor, availability, p);
+        if (anchor.sharedGenres > 0) return base;
+        if (newToYou && !matched.isEmpty()) return "Khám phá mới nhưng vẫn hợp gu " + String.join(", ", matched);
+        if (!matched.isEmpty() && languageFit > 0.5 && movie.getLanguage() != null)
+            return "Hợp gu " + String.join(", ", matched) + " và ngôn ngữ " + movie.getLanguage();
+        if (!matched.isEmpty() && durationFit > 0.5)
+            return "Hợp gu " + String.join(", ", matched) + " và " + durationLabel(durationBand(movie.getDurationMinutes())).toLowerCase(Locale.ROOT);
+        if (availability.preferredWeekday && profile.preferredWeekday() != null)
+            return base + " · có suất đúng " + weekdayLabel(profile.preferredWeekday()).toLowerCase(Locale.ROOT);
+        return base;
+    }
+
+    private List<String> recommendationSignalsV63(Movie movie, List<String> matched, AnchorMatch anchor, Availability availability,
+                                                   Popularity p, PersonalProfile profile, double languageFit, double durationFit,
+                                                   boolean newToYou) {
+        List<String> out = new ArrayList<>(recommendationSignals(matched, anchor, availability, p, profile));
+        if (languageFit > 0.5 && movie.getLanguage() != null && !movie.getLanguage().isBlank()) out.add("Ngôn ngữ hợp gu");
+        if (durationFit > 0.5) out.add("Thời lượng hợp gu");
+        if (availability.preferredWeekday) out.add("Ngày xem thường chọn");
+        if (newToYou) out.add("Phim mới với bạn");
+        if (profile.profileStrength() >= 60) out.add("Hồ sơ cá nhân mạnh");
+        return out.stream().distinct().limit(6).toList();
+    }
+
+    private int recommendationConfidenceV63(PersonalProfile profile, int matchedGenres, Availability availability,
+                                              AnchorMatch anchor, Popularity p, double languageFit, double durationFit) {
+        int confidence = recommendationConfidence(profile, matchedGenres, availability, anchor, p);
+        confidence += Math.min(8, profile.profileStrength() / 15);
+        if (languageFit > 0.5) confidence += 4;
+        if (durationFit > 0.5) confidence += 3;
+        if (availability.preferredWeekday) confidence += 3;
+        return Math.max(1, Math.min(99, confidence));
+    }
+
+    private List<RecommendationScoreComponent> scoreBreakdown(double genreContribution, double languageContribution,
+                                                               double ratingContribution, double durationContribution,
+                                                               Availability availability, double weekdayContribution,
+                                                               AnchorMatch anchor, Popularity popularity, double noveltyBonus,
+                                                               boolean newToYou) {
+        List<RecommendationScoreComponent> out = new ArrayList<>();
+        addBreakdown(out, "GENRE_TASTE", "Gu thể loại", genreContribution, "Tổng affinity từ thể loại đã học");
+        addBreakdown(out, "LANGUAGE_FIT", "Ngôn ngữ", languageContribution, "Khớp ngôn ngữ phim thường xem");
+        addBreakdown(out, "RATING_FIT", "Phân loại", ratingContribution, "Khớp nhóm phân loại nội dung");
+        addBreakdown(out, "DURATION_FIT", "Thời lượng", durationContribution, "Khớp thời lượng phim thường chọn");
+        double schedule = (availability.preferredCinema ? 4.5 : 0.0) + (availability.preferredDaypart ? 3.5 : 0.0) + weekdayContribution;
+        addBreakdown(out, "SCHEDULE_FIT", "Lịch xem", schedule, "Rạp, khung giờ và ngày xem quen thuộc");
+        if (anchor.sharedGenres > 0) addBreakdown(out, "ANCHOR", "Phim neo", Math.min(14.0, 5.0 + anchor.sharedGenres * 3.0),
+                "Khớp phản hồi Thêm tương tự");
+        addBreakdown(out, "POPULARITY", "Xu hướng", popularityScoreFromAggregate(popularity) * 0.25, "Tín hiệu cộng đồng 30 ngày");
+        if (newToYou) addBreakdown(out, "NOVELTY", "Khám phá", noveltyBonus, "Chưa thấy trong lịch sử tín hiệu cá nhân");
+        return out.stream().filter(x -> Math.abs(x.contribution()) >= 0.01)
+                .sorted(Comparator.comparingDouble((RecommendationScoreComponent x) -> Math.abs(x.contribution())).reversed())
+                .limit(6).toList();
+    }
+
+    private void addBreakdown(List<RecommendationScoreComponent> out, String key, String label, double contribution, String evidence) {
+        if (Math.abs(contribution) < 0.01) return;
+        out.add(new RecommendationScoreComponent(key, label, round(contribution), evidence));
+    }
+
+    private double popularityScoreFromAggregate(Popularity p) {
+        return p.bookings30d * 5.0 + p.favorites * 2.0 + p.reviews * 0.7 + p.avgRating * 1.4 + Math.min(p.upcoming, 10) * 0.25;
+    }
+
+    private List<RecommendationItem> diversityRerank(List<RankedRecommendation> pool, int limit, String mode) {
+        if (pool.isEmpty()) return List.of();
+        double overlapPenalty = switch (mode) {
+            case "FAMILIAR" -> 1.5;
+            case "DISCOVERY" -> 6.0;
+            default -> 3.5;
+        };
+        List<RankedRecommendation> remaining = new ArrayList<>(pool);
+        List<RankedRecommendation> selected = new ArrayList<>();
+        while (!remaining.isEmpty() && selected.size() < limit) {
+            RankedRecommendation best = null;
+            double bestAdjusted = -Double.MAX_VALUE;
+            for (RankedRecommendation candidate : remaining) {
+                double maxOverlap = selected.stream()
+                        .mapToDouble(chosen -> genreOverlap(candidate.genres(), chosen.genres()))
+                        .max().orElse(0.0);
+                double adjusted = candidate.item().score() - maxOverlap * overlapPenalty;
+                if (adjusted > bestAdjusted || (Math.abs(adjusted - bestAdjusted) < 0.0001
+                        && (best == null || candidate.item().movie().title().compareTo(best.item().movie().title()) < 0))) {
+                    bestAdjusted = adjusted;
+                    best = candidate;
+                }
+            }
+            selected.add(best);
+            remaining.remove(best);
+        }
+        return selected.stream().map(RankedRecommendation::item).toList();
+    }
+
+    private double genreOverlap(Set<String> left, Set<String> right) {
+        if (left.isEmpty() || right.isEmpty()) return 0.0;
+        Set<String> intersection = new HashSet<>(left);
+        intersection.retainAll(right);
+        Set<String> union = new HashSet<>(left);
+        union.addAll(right);
+        return union.isEmpty() ? 0.0 : (double)intersection.size() / union.size();
+    }
+
+    private String recommendationMode(String requestedMode) {
+        String mode = requestedMode == null ? "BALANCED" : requestedMode.trim().toUpperCase(Locale.ROOT);
+        if (!MODES.contains(mode)) throw new ApiException(HttpStatus.BAD_REQUEST, "mode phải là FAMILIAR, BALANCED hoặc DISCOVERY");
+        return mode;
     }
 
     private List<Movie> candidates(UUID cinemaId) {
@@ -428,8 +599,15 @@ public class RecommendationService {
 
     private RecommendationItem item(Movie movie, double score, int confidence, String reason,
                                     List<String> matchedGenres, List<String> signals, String feedbackType) {
+        return item(movie, score, confidence, reason, matchedGenres, signals, feedbackType, false, List.of());
+    }
+
+    private RecommendationItem item(Movie movie, double score, int confidence, String reason,
+                                    List<String> matchedGenres, List<String> signals, String feedbackType,
+                                    boolean newToYou, List<RecommendationScoreComponent> scoreBreakdown) {
         return new RecommendationItem(movieService.movieDto(movie), round(score), confidence, reason,
-                matchedGenres, signals == null ? List.of() : signals, feedbackType);
+                matchedGenres, signals == null ? List.of() : signals, feedbackType, newToYou,
+                scoreBreakdown == null ? List.of() : scoreBreakdown);
     }
 
     private void addMovieGenres(PersonalProfile profile, Movie movie, double weight) {
@@ -438,6 +616,19 @@ public class RecommendationService {
             profile.genreWeights.merge(part.key, weight, Double::sum);
             profile.genreLabels.putIfAbsent(part.key, part.label);
         }
+    }
+
+    private void addMovieFacets(PersonalProfile profile, Movie movie, double weight) {
+        if (movie == null) return;
+        String languageKey = normalize(movie.getLanguage());
+        if (!languageKey.isBlank()) {
+            profile.languageWeights.merge(languageKey, weight, Double::sum);
+            profile.languageLabels.putIfAbsent(languageKey, movie.getLanguage().trim());
+        }
+        String ratingKey = normalize(movie.getRating());
+        if (!ratingKey.isBlank()) profile.ratingWeights.merge(ratingKey, weight, Double::sum);
+        String duration = durationBand(movie.getDurationMinutes());
+        if (duration != null) profile.durationWeights.merge(duration, weight, Double::sum);
     }
 
     private Set<String> genres(Movie movie) {
@@ -478,6 +669,37 @@ public class RecommendationService {
         };
     }
 
+    private String durationBand(Integer minutes) {
+        if (minutes == null || minutes <= 0) return null;
+        if (minutes <= 100) return "SHORT";
+        if (minutes <= 130) return "STANDARD";
+        return "LONG";
+    }
+
+    private String durationLabel(String band) {
+        if (band == null) return null;
+        return switch (band) {
+            case "SHORT" -> "Gọn (≤ 100 phút)";
+            case "STANDARD" -> "Vừa (101–130 phút)";
+            case "LONG" -> "Dài (> 130 phút)";
+            default -> band;
+        };
+    }
+
+    private String weekdayLabel(Integer weekday) {
+        if (weekday == null) return null;
+        return switch (weekday) {
+            case 1 -> "Thứ Hai";
+            case 2 -> "Thứ Ba";
+            case 3 -> "Thứ Tư";
+            case 4 -> "Thứ Năm";
+            case 5 -> "Thứ Sáu";
+            case 6 -> "Thứ Bảy";
+            case 7 -> "Chủ Nhật";
+            default -> "Ngày " + weekday;
+        };
+    }
+
     private String feedbackMessage(String type) {
         return switch (type) {
             case "MORE_LIKE_THIS" -> "Đã ưu tiên thêm phim có gu tương tự.";
@@ -508,21 +730,29 @@ public class RecommendationService {
     private record Popularity(long bookings30d, long favorites, long reviews, double avgRating, long upcoming) {
         static final Popularity ZERO = new Popularity(0, 0, 0, 0, 0);
     }
-    private record Availability(boolean preferredCinema, boolean preferredDaypart) {
-        static final Availability NONE = new Availability(false, false);
+    private record Availability(boolean preferredCinema, boolean preferredDaypart, boolean preferredWeekday) {
+        static final Availability NONE = new Availability(false, false, false);
     }
-    private static final class AvailabilityAccumulator { boolean preferredCinema; boolean preferredDaypart; }
+    private static final class AvailabilityAccumulator { boolean preferredCinema; boolean preferredDaypart; boolean preferredWeekday; }
     private record AnchorMatch(int sharedGenres, String title) {}
+    private record RankedRecommendation(RecommendationItem item, Set<String> genres, boolean newToYou) {}
 
     private static final class PersonalProfile {
         final Map<String, Double> genreWeights = new HashMap<>();
         final Map<String, String> genreLabels = new HashMap<>();
+        final Map<String, Double> languageWeights = new HashMap<>();
+        final Map<String, String> languageLabels = new HashMap<>();
+        final Map<String, Double> ratingWeights = new HashMap<>();
+        final Map<String, Double> durationWeights = new HashMap<>();
         final Map<UUID, Double> cinemaWeights = new HashMap<>();
         final Map<String, Double> daypartWeights = new HashMap<>();
+        final Map<Integer, Double> weekdayWeights = new HashMap<>();
         final Map<UUID, String> feedbackByMovie = new HashMap<>();
         final Set<UUID> favoriteMovies = new HashSet<>();
         final Set<UUID> bookedMovies = new HashSet<>();
+        final Set<UUID> reviewedMovies = new HashSet<>();
         final Set<UUID> positivelyReviewedMovies = new HashSet<>();
+        final Set<UUID> interactedMovies = new HashSet<>();
         final Set<UUID> moreLikeMovies = new HashSet<>();
         final Set<UUID> lessLikeMovies = new HashSet<>();
         final Set<UUID> hiddenMovies = new HashSet<>();
@@ -530,13 +760,38 @@ public class RecommendationService {
         long feedbackCount;
 
         boolean hasTasteSignal() {
-            return genreWeights.values().stream().anyMatch(v -> Math.abs(v) > 0.25) || !moreLikeMovies.isEmpty() || !lessLikeMovies.isEmpty();
+            return genreWeights.values().stream().anyMatch(v -> Math.abs(v) > 0.25)
+                    || languageWeights.values().stream().anyMatch(v -> Math.abs(v) > 0.25)
+                    || durationWeights.values().stream().anyMatch(v -> Math.abs(v) > 0.25)
+                    || !moreLikeMovies.isEmpty() || !lessLikeMovies.isEmpty();
         }
         UUID preferredCinemaId() {
-            return cinemaWeights.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+            return cinemaWeights.entrySet().stream().filter(e -> e.getValue() > 0)
+                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
         }
         String preferredDaypart() {
-            return daypartWeights.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+            return daypartWeights.entrySet().stream().filter(e -> e.getValue() > 0)
+                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        }
+        Integer preferredWeekday() {
+            return weekdayWeights.entrySet().stream().filter(e -> e.getValue() > 0)
+                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        }
+        String preferredDurationBand() {
+            return durationWeights.entrySet().stream().filter(e -> e.getValue() > 0)
+                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        }
+        boolean isNewToUser(UUID movieId) {
+            return !favoriteMovies.contains(movieId) && !bookedMovies.contains(movieId) && !reviewedMovies.contains(movieId)
+                    && !interactedMovies.contains(movieId) && !feedbackByMovie.containsKey(movieId);
+        }
+        int profileStrength() {
+            long positiveFacets = genreWeights.values().stream().filter(v -> v > 0.25).count()
+                    + languageWeights.values().stream().filter(v -> v > 0.25).count()
+                    + durationWeights.values().stream().filter(v -> v > 0.25).count()
+                    + weekdayWeights.values().stream().filter(v -> v > 0.25).count();
+            int raw = signalCount * 6 + (int)Math.min(24, positiveFacets * 3) + (int)Math.min(24, feedbackCount * 8);
+            return Math.max(0, Math.min(100, raw));
         }
     }
 }
