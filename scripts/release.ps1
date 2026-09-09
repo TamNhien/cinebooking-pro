@@ -36,6 +36,20 @@ if (-not $SkipVerify) {
     & python -X utf8 $check
     if ($LASTEXITCODE -ne 0) { throw "Verification failed: $check" }
   }
+
+  Write-Host "`n=== Frontend lint preflight ===" -ForegroundColor Cyan
+  $FrontendDir = Join-Path $Root 'frontend'
+  if (-not (Test-Path (Join-Path $FrontendDir 'node_modules'))) {
+    throw 'frontend/node_modules is missing. Run npm install in .\frontend before release.'
+  }
+  Push-Location $FrontendDir
+  try {
+    & npm run lint
+    if ($LASTEXITCODE -ne 0) { throw 'Frontend lint failed. Release was not committed or pushed.' }
+  }
+  finally {
+    Pop-Location
+  }
 }
 
 Write-Host "`n=== Stage source ===" -ForegroundColor Cyan
@@ -62,7 +76,11 @@ if (-not $SkipCiWait) {
   }
   if (-not $runId) { throw "Could not find CineBooking CI run for $sha" }
   gh run watch $runId --exit-status
-  if ($LASTEXITCODE -ne 0) { throw "CineBooking CI failed for $sha" }
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "`n=== Failed CI logs ===" -ForegroundColor Red
+    gh run view $runId --log-failed | Out-Host
+    throw "CineBooking CI failed for $sha"
+  }
 }
 
 $existingLocal = git tag --list $Version

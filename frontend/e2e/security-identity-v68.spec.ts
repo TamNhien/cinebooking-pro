@@ -36,6 +36,9 @@ test("V68 admin step-up protects sensitive writes and emits security headers",as
   const tile=page.getByTestId("admin-security-identity-v68");
   await expect(tile).toBeVisible();
   await expect(tile).toContainText("Security & Identity V68");
+  const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
+  const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
+  expect(versions).toEqual([...versions].sort((a,b)=>a-b));
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/security$/);
   await expect(page.getByTestId("security-identity-v68")).toContainText("V68 · SECURITY & IDENTITY 5.0");

@@ -4159,3 +4159,5 @@ Một lệnh để verify → commit nếu có thay đổi → push `main` → c
 ```
 
 Script từ chối version có hậu tố pre-release và không overwrite tag stable đã tồn tại.
+
+V68 stable release preflight chạy thêm `npm run lint` tại `frontend` **trước khi commit/push** để lỗi ESLint không tạo commit release đỏ trên `main`. Nếu GitHub CI vẫn fail sau push, script tự in `gh run view <runId> --log-failed` trước khi dừng để thấy lỗi thật ngay trong terminal. Clock countdown của trang `/admin/security` cũng không gọi `Date.now()` trong render initializer; thời gian hiện tại chỉ được lấy trong effect/timer để tương thích React compiler-era lint `react-hooks/purity`.

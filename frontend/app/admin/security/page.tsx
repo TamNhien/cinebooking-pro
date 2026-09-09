@@ -26,7 +26,7 @@ export default function AdminSecurity(){
  const [password,setPassword]=useState("");
  const [msg,setMsg]=useState("");
  const [busy,setBusy]=useState(false);
- const [clock,setClock]=useState(Date.now());
+ const [clock,setClock]=useState(0);
 
  const load=useCallback(async()=>{
   try{
@@ -43,7 +43,7 @@ export default function AdminSecurity(){
  },[]);
 
  useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/security&reason=required";return;}void load();},[load]);
- useEffect(()=>{const id=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(id);},[]);
+ useEffect(()=>{const tick=()=>setClock(Date.now());tick();const id=setInterval(tick,1000);return()=>clearInterval(id);},[]);
 
  const local=getStepUp();
  const remaining=useMemo(()=>Math.max(0,Math.ceil(((local?.expiresAt?new Date(local.expiresAt).getTime():0)-clock)/1000)),[local?.expiresAt,clock]);
