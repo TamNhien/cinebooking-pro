@@ -361,3 +361,16 @@ export type DisasterRecoverySummaryV69 = {
   backupFresh:boolean; drillFresh:boolean; rtoMet:boolean; immutableEvidence:boolean;
   latestBackup?:DrBackupEvidenceV69|null; latestSuccessfulDrill?:DrRestoreDrillEvidenceV69|null; criticalCatalog:string[];
 };
+
+// V70 Data Governance & Privacy 5.0
+export type RetentionPolicyV70 = {
+  id:string; policyKey:string; dataClass:string; tableName:string; retentionDays:number; retentionAction:"REVIEW"|"ANONYMIZE"|"DELETE"; enabled:boolean; destructiveExecutionEnabled:boolean; note?:string; updatedAt:string;
+};
+export type PrivacyRequestV70 = {
+  id:string; requestKey:string; subjectUserId:string; subjectEmail:string; subjectName:string; requestType:"EXPORT"|"ERASURE"|"RECTIFICATION"; status:"OPEN"|"APPROVED"|"REJECTED"|"COMPLETED"|"CANCELLED"; requestedByEmail?:string; reviewedByEmail?:string; reason:string; reviewNote?:string; dueAt:string; createdAt:string; reviewedAt?:string; completedAt?:string; overdue:boolean;
+};
+export type SubjectInventoryItemV70 = { dataDomain:string; source:string; recordCount:number; handling:string };
+export type SubjectInventoryV70 = { userId:string; email:string; fullName:string; generatedAt:string; totalRelatedRecords:number; items:SubjectInventoryItemV70[]; destructiveActionPerformed:boolean };
+export type PrivacyGovernanceSummaryV70 = {
+  strategyVersion:string; generatedAt:string; requestSlaHours:number; retentionExecutionEnabled:boolean; dryRunOnly:boolean; policyCount:number; enabledPolicyCount:number; openRequestCount:number; approvedRequestCount:number; overdueRequestCount:number; latestRequest?:PrivacyRequestV70|null; policyStatement:string;
+};

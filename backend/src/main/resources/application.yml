@@ -157,6 +157,9 @@ app:
     rto-target-minutes: ${DR_RTO_TARGET_MINUTES:15}
     backup-retention-days: ${DR_BACKUP_RETENTION_DAYS:30}
     drill-max-age-hours: ${DR_DRILL_MAX_AGE_HOURS:168}
+  privacy:
+    request-sla-hours: ${PRIVACY_REQUEST_SLA_HOURS:72}
+    retention-execution-enabled: ${PRIVACY_RETENTION_EXECUTION_ENABLED:false}
   admin:
     email: ${ADMIN_EMAIL:admin@cine.local}
     password: ${ADMIN_PASSWORD:Admin@123}

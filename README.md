@@ -1,12 +1,12 @@
-# CineBooking Pro V69
+# CineBooking Pro V70
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V69 - Backup & Disaster Recovery 5.0
+> **Current release:** V70 - Data Governance & Privacy 5.0
 
-V69 adds **Backup & Disaster Recovery 5.0** on top of V68 Security & Identity: verified PostgreSQL custom-format archives now receive SHA-256 + metadata manifests, DR evidence is stored in append-only tables, non-destructive restore drills restore into a temporary database before cleanup, and the Admin control plane measures RPO/RTO readiness from real backup/drill evidence. V69 adds Flyway `V69__backup_disaster_recovery_evidence.sql`; the database now has **61 public tables** (57 seeded/core tables + `seat_hold` + `admin_step_up_grant` + `dr_backup_record` + `dr_restore_drill`).
+V70 adds **Data Governance & Privacy 5.0** on top of V69 Backup & Disaster Recovery: the Admin control plane now has a privacy-request workflow, per-subject record inventory, explicit retention-policy catalog, SLA/overdue tracking, and step-up protection for privacy mutations. V70 adds Flyway `V70__data_governance_privacy.sql`; the database now has **63 public tables** (61 tables from V69 + `data_retention_policy` + `privacy_request`).
 
-V68 Security & Identity 5.0 remains the authorization layer for sensitive ADMIN writes. DR APIs are read-only in V69, while `/api/admin/disaster-recovery` is already included in the step-up protection boundary for any future mutating action.
+V70 deliberately keeps destructive retention execution **OFF by default**. Subject inventory is count-only and never deletes/anonymizes data. Retention rows are operational defaults, not legal/compliance claims; privacy request approval records workflow evidence but does not perform automatic erasure. V68 Security & Identity continues to require Admin step-up for mutating `/api/admin/privacy-governance/**` calls.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -110,6 +110,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V67** | **Payment Resilience & Reconciliation 5.0: auto gateway reconciliation, safe webhook recovery/dead-letter queue, refund settlement state, Admin recovery dashboard** | **`V67__payment_resilience_recovery.sql`** |
 | **V68** | **Security & Identity 5.0: session-bound Admin step-up authentication, protected sensitive writes, security headers, stable-only release flow** | **`V68__security_identity_step_up.sql`** |
 | **V69** | **Backup & Disaster Recovery 5.0: verified backup manifest, append-only DR evidence, non-destructive restore drills, RPO/RTO readiness dashboard** | **`V69__backup_disaster_recovery_evidence.sql`** |
+| **V70** | **Data Governance & Privacy 5.0: privacy request workflow, subject-data inventory, retention-policy catalog, SLA/overdue tracking, destructive-execution guardrail** | **`V70__data_governance_privacy.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4357,3 +4358,98 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 
 Không tạo `v69.0.0-rc.*` hoặc GitHub Pre-release.
 Các workflow RC/stable legacy vẫn được giữ để bảo toàn lịch sử V67 trở xuống, nhưng source V69 chặn chúng đối với V68+; release V69 chính thức đi qua `scripts/release.ps1` stable-only.
+
+## V70 - Data Governance & Privacy 5.0
+
+V70 đưa privacy/data-governance thành một control surface có thể kiểm chứng thay vì các thao tác xóa dữ liệu ad-hoc. Strategy:
+
+```text
+V70-DATA-GOVERNANCE-PRIVACY-5
+```
+
+### Mục tiêu và guardrail
+
+```text
+Privacy request
+  EXPORT / ERASURE / RECTIFICATION
+        ↓
+OPEN → APPROVED / REJECTED / CANCELLED
+        ↓
+Audit evidence
+```
+
+V70 **không tự động xóa/anonymize dữ liệu**. `PRIVACY_RETENTION_EXECUTION_ENABLED=false` là mặc định và các policy row trong migration đều có `destructive_execution_enabled=false`. Subject inventory chỉ đếm record liên quan; `destructiveActionPerformed=false`.
+
+Retention policy V70 là operational default để operator review, không phải tuyên bố đáp ứng bất kỳ luật/quy chuẩn cụ thể nào.
+
+### Database / dữ liệu V70
+
+```text
+Flyway latest: V70
+Public tables: 63
+New V70 tables: 2
+```
+
+- `data_retention_policy`: policy key, data class, table, retention window, action và destructive guardrail.
+- `privacy_request`: subject, request type/status, SLA due time, actor/reviewer và review evidence.
+- Active request cùng `subject_user_id + request_type` được chặn trùng bằng partial unique index.
+- Không seed privacy request giả; migration chỉ tạo 5 operational retention defaults.
+
+### Admin Privacy Governance V70
+
+Trang:
+
+```text
+https://localhost/admin/privacy-governance
+```
+
+API:
+
+```text
+GET  /api/admin/privacy-governance/summary
+GET  /api/admin/privacy-governance/policies
+GET  /api/admin/privacy-governance/requests
+GET  /api/admin/privacy-governance/subject-inventory?email=...
+POST /api/admin/privacy-governance/requests
+POST /api/admin/privacy-governance/requests/{id}/review
+```
+
+Hai endpoint POST yêu cầu Step-up V68 qua `X-Step-Up-Token`. Tile `🧾 Privacy Governance V70` nằm ngay sau `🛟 Backup & DR V69`, giữ thứ tự version tăng dần trên Admin Dashboard.
+
+Config mặc định:
+
+```env
+PRIVACY_REQUEST_SLA_HOURS=72
+PRIVACY_RETENTION_EXECUTION_ENABLED=false
+```
+
+### Verification V70
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v70_data_governance_privacy_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v70.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/data-governance-privacy-v70.spec.ts" --project=chromium
+```
+
+### Release V70 - chỉ Stable
+
+```text
+Stable only: v70.0.0
+```
+
+Sau khi verifier, Docker/Flyway, frontend lint/build và Browser E2E đều PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v70.0.0
+```
+
+Không tạo RC/Pre-release cho V70.

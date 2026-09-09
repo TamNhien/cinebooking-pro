@@ -10,22 +10,22 @@ async function loginAdmin(page:Page){
   await page.waitForURL(/\/admin$/,{timeout:15000});
 }
 
-test("V69 Backup & DR exposes readiness and keeps version tiles ascending",async({page})=>{
+test("V70 Data Governance & Privacy exposes dry-run governance and keeps version tiles ascending",async({page})=>{
   await loginAdmin(page);
-  const tile=page.getByTestId("admin-disaster-recovery-v69");
+  const tile=page.getByTestId("admin-privacy-governance-v70");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Backup & DR V69");
+  await expect(tile).toContainText("Privacy Governance V70");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
-  expect(versions.at(-1)).toBeGreaterThanOrEqual(69);
+  expect(versions.at(-1)).toBe(70);
 
   await tile.click();
-  await expect(page).toHaveURL(/\/admin\/disaster-recovery$/);
-  await expect(page.getByTestId("disaster-recovery-v69")).toContainText("V69 · BACKUP & DISASTER RECOVERY 5.0");
-  await expect(page.getByTestId("disaster-recovery-summary-v69")).toContainText("V69-BACKUP-DR-5");
-  await expect(page.getByTestId("dr-runbook-v69")).toContainText("backup-dr-v69.ps1");
-  await expect(page.getByTestId("dr-evidence-policy-v69")).toContainText("APPEND-ONLY");
-  await expect(page.getByTestId("disaster-recovery-error-v69")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/admin\/privacy-governance$/);
+  await expect(page.getByTestId("privacy-governance-v70")).toContainText("V70 · DATA GOVERNANCE & PRIVACY 5.0");
+  await expect(page.getByTestId("privacy-governance-summary-v70")).toContainText("V70-DATA-GOVERNANCE-PRIVACY-5");
+  await expect(page.getByTestId("privacy-governance-summary-v70")).toContainText("DRY-RUN ONLY");
+  await expect(page.getByTestId("privacy-retention-policies-v70")).toContainText("OFF");
+  await expect(page.getByTestId("privacy-governance-error-v70")).toHaveCount(0);
 });

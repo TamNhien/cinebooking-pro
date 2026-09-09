@@ -957,3 +957,12 @@ backup-v69:
 
 release-v69:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v69.0.0
+
+verify-v70:
+	python tools/verify_v70_data_governance_privacy_5.py
+
+diagnose-v70:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v70.ps1
+
+release-v70:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v70.0.0

@@ -117,8 +117,8 @@ class CineBookingIntegrationIT {
         // assertThat(publicTables).isGreaterThanOrEqualTo(57);
         // Historical V52 source-regression marker retained because this test still covers the full V52 catalog:
         // assertThat(latest).isEqualTo("52");
-        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(69);
-        assertThat(publicTables).isGreaterThanOrEqualTo(61);
+        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(70);
+        assertThat(publicTables).isGreaterThanOrEqualTo(63);
 
         Integer durableSeatHoldTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name='seat_hold'", Integer.class);
@@ -171,6 +171,16 @@ class CineBookingIntegrationIT {
         Integer disasterRecoveryV69Triggers = jdbc.queryForObject(
                 "select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_v69_dr_backup_immutable','trg_v69_dr_drill_immutable')", Integer.class);
         assertThat(disasterRecoveryV69Triggers).isEqualTo(2);
+
+        Integer privacyV70Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('data_retention_policy','privacy_request')", Integer.class);
+        assertThat(privacyV70Tables).isEqualTo(2);
+        Integer privacyV70Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_retention_policy_enabled','idx_retention_policy_action','uq_privacy_request_active_subject_type','idx_privacy_request_status_due','idx_privacy_request_subject_created','idx_privacy_request_requested_by')", Integer.class);
+        assertThat(privacyV70Indexes).isEqualTo(6);
+        Integer privacyV70Policies = jdbc.queryForObject(
+                "select count(*) from data_retention_policy where destructive_execution_enabled=false", Integer.class);
+        assertThat(privacyV70Policies).isGreaterThanOrEqualTo(5);
 
         Integer loyaltyV40UserColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);
