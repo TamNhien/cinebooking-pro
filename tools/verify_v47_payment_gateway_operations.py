@@ -69,7 +69,24 @@ check('Admin service supports manual and due-batch reconciliation', 'reconcileDu
 check('Admin controller exposes payment timeline and reconcile-due', '/{id}/timeline' in admin_controller and '/reconcile-due' in admin_controller)
 check('Admin DTOs include provider readiness and batch reconciliation', 'BatchReconciliationResult' in admin_dtos and 'PaymentTimelineAdmin' in admin_dtos and 'providers' in admin_dtos)
 check('Automatic reconciliation job is feature-flagged', 'PaymentReconciliationJob' in job and 'app.payment.reconcile.auto-enabled:false' in job and 'reconcileDue' in job)
-check('Automatic reconciliation defaults OFF in app env and compose', 'PAYMENT_AUTO_RECONCILE_ENABLED:false' in app and 'PAYMENT_AUTO_RECONCILE_ENABLED=false' in env and 'PAYMENT_AUTO_RECONCILE_ENABLED: ${PAYMENT_AUTO_RECONCILE_ENABLED:-false}' in compose)
+legacy_reconcile_default_off = (
+    'PAYMENT_AUTO_RECONCILE_ENABLED:false' in app
+    and 'PAYMENT_AUTO_RECONCILE_ENABLED=false' in env
+    and 'PAYMENT_AUTO_RECONCILE_ENABLED: ${PAYMENT_AUTO_RECONCILE_ENABLED:-false}' in compose
+)
+v67_or_newer = (
+    Path(ROOT/'tools/verify_v67_payment_resilience_reconciliation.py').exists()
+    and 'V67 - Payment Resilience & Reconciliation 5.0' in readme
+)
+v67_reconcile_default_on = (
+    'PAYMENT_AUTO_RECONCILE_ENABLED:true' in app
+    and 'PAYMENT_AUTO_RECONCILE_ENABLED=true' in env
+    and 'PAYMENT_AUTO_RECONCILE_ENABLED: ${PAYMENT_AUTO_RECONCILE_ENABLED:-true}' in compose
+)
+check(
+    'Automatic reconciliation defaults OFF before V67 and ON for V67+',
+    legacy_reconcile_default_off or (v67_or_newer and v67_reconcile_default_on),
+)
 check('Checkout renders only enabled provider options', 'providerReady("MOCK")' in booking and 'providerReady("VNPAY")' in booking and 'providerReady("MOMO")' in booking and 'Thanh toán nội bộ (MOCK)' in booking and '!providerReady(provider)' in booking)
 check('Customer Payment Center supports cancel retry and timeline', 'Payment Center · V47' in history and 'Hủy lần thanh toán' in history and 'Thử lại thanh toán' in history and 'Xem timeline' in history)
 check('Admin Payment Operations shows readiness attempts due reconcile and timeline', ('Payment Operations · V47' in admin_page or 'Payment Production · V60' in admin_page) and 'Attempt' in admin_page and 'Due reconcile' in admin_page and 'Đối soát giao dịch đến hạn' in admin_page and 'Timeline' in admin_page)

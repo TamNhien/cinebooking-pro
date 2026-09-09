@@ -5,6 +5,8 @@ CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer
 > **Current release:** V67 - Payment Resilience & Reconciliation 5.0
 
 V67 adds **Payment Resilience & Reconciliation 5.0** on top of V66 booking consistency: automatic remote-gateway reconciliation is enabled by default, valid orphan/pending webhook events gain a bounded recovery/dead-letter lifecycle, recovery never blindly replays stored callback payloads and instead re-links the payment then queries VNPay/MoMo, while refunds gain durable settlement metadata (`REQUESTED` / `EVIDENCE_REQUIRED` / `SETTLED` / `REJECTED` / `FAILED`). V67 adds Flyway `V67__payment_resilience_recovery.sql` but **does not add a new table**; the database remains **58 public tables**.
+
+> **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
