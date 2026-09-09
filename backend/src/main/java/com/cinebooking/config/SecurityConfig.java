@@ -1,6 +1,8 @@
 package com.cinebooking.config;
 
 import com.cinebooking.auth.JwtAuthenticationFilter;
+import com.cinebooking.identity.SecurityHeadersFilter;
+import com.cinebooking.identity.StepUpAuthorizationFilter;
 import com.cinebooking.user.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,15 +36,15 @@ public class SecurityConfig {
         CorsConfiguration c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(frontendUrl, "http://localhost", "http://localhost:3000", "https://localhost", "https://localhost:3000"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "X-Trace-Id"));
-        c.setExposedHeaders(List.of("X-Trace-Id"));
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "X-Trace-Id", "X-Step-Up-Token"));
+        c.setExposedHeaders(List.of("X-Trace-Id", "X-Step-Up-Required"));
         c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", c);
         return source;
     }
 
-    @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwt) throws Exception {
+    @Bean SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwt, StepUpAuthorizationFilter stepUp, SecurityHeadersFilter securityHeaders) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
@@ -81,7 +83,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/support/**").hasAnyRole("MANAGER","ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
-            .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwt, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(securityHeaders, JwtAuthenticationFilter.class)
+            .addFilterAfter(stepUp, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

@@ -29,6 +29,7 @@ export function setAuth(value: AuthResponse) {
 
 export function clearAuth() {
   localStorage.removeItem(KEY);
+  if (typeof window !== "undefined") sessionStorage.removeItem("cinebooking_admin_step_up_v68");
   cleanupLegacyAuth();
   window.dispatchEvent(new Event("auth-changed"));
 }

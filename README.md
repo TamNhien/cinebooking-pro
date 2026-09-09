@@ -1,10 +1,10 @@
-# CineBooking Pro V67
+# CineBooking Pro V68
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V67 - Payment Resilience & Reconciliation 5.0
+> **Current release:** V68 - Security & Identity 5.0
 
-V67 adds **Payment Resilience & Reconciliation 5.0** on top of V66 booking consistency: automatic remote-gateway reconciliation is enabled by default, valid orphan/pending webhook events gain a bounded recovery/dead-letter lifecycle, recovery never blindly replays stored callback payloads and instead re-links the payment then queries VNPay/MoMo, while refunds gain durable settlement metadata (`REQUESTED` / `EVIDENCE_REQUIRED` / `SETTLED` / `REJECTED` / `FAILED`). V67 adds Flyway `V67__payment_resilience_recovery.sql` but **does not add a new table**; the database remains **58 public tables**.
+V68 adds **Security & Identity 5.0** on top of V67 payment resilience: ADMIN sensitive writes can require short-lived password re-authentication, grants are bound to the exact user + auth session, only SHA-256 token hashes are persisted, the browser keeps the raw token in per-tab `sessionStorage`, and every response receives a security-header baseline including CSP/frame protection plus HSTS when HTTPS is actually in use. V68 adds Flyway `V68__security_identity_step_up.sql`; the database now has **59 public tables** (57 seeded/core tables + `seat_hold` + `admin_step_up_grant`).
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -27,7 +27,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -106,6 +106,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V65** | **Observability & Reliability 4.0: bounded-cardinality API metrics, X-Trace-Id log correlation, SLO health, PostgreSQL/Redis probes, Prometheus alerts, provisioned Grafana dashboard** | **Không đổi schema** |
 | **V66** | **Booking Consistency & Seat Locking 4.0: durable PostgreSQL holds, deterministic seat-row locks, Redis TTL mirror, checkout hold conversion, expiry/reconcile operations, multi-replica contention guard** | **`V66__durable_seat_holds.sql`** |
 | **V67** | **Payment Resilience & Reconciliation 5.0: auto gateway reconciliation, safe webhook recovery/dead-letter queue, refund settlement state, Admin recovery dashboard** | **`V67__payment_resilience_recovery.sql`** |
+| **V68** | **Security & Identity 5.0: session-bound Admin step-up authentication, protected sensitive writes, security headers, stable-only release flow** | **`V68__security_identity_step_up.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4012,6 +4013,149 @@ npx playwright test "e2e/payment-resilience-reconciliation-v67.spec.ts" --projec
 ### Release V67
 
 ```text
-RC:     v67.0.0-rc.1
-Stable: v67.0.0
+Stable only: v67.0.0
 ```
+
+## V68 - Security & Identity 5.0
+
+V68 nâng lớp Security & Account Protection V46 thành một lớp **step-up authorization** dành cho thao tác ADMIN nhạy cảm. Đây là password re-authentication ngắn hạn; source **không tuyên bố đây là MFA/Passkey**. Strategy:
+
+```text
+V68-SECURITY-IDENTITY-5
+```
+
+### Admin step-up authentication
+
+Luồng chuẩn:
+
+```text
+Admin access token + active auth_session
+        ↓
+nhập lại mật khẩu hiện tại
+        ↓
+POST /api/security/step-up
+        ↓
+raw token 48-byte random chỉ trả về browser
+        ↓
+browser giữ trong sessionStorage của tab
+        ↓
+DB chỉ lưu SHA-256(token)
+        ↓
+X-Step-Up-Token trên sensitive request
+        ↓
+user + session + expiry đều phải khớp
+```
+
+Mặc định:
+
+```text
+SECURITY_STEP_UP_ENABLED=true
+SECURITY_STEP_UP_TTL_SECONDS=600
+```
+
+TTL backend bị chặn trong khoảng 60-1800 giây. Khi cấp grant mới cho cùng auth session, grant active cũ bị revoke với lý do `SUPERSEDED`. Khi logout, frontend xóa step-up token khỏi `sessionStorage` cùng auth state.
+
+Nếu thao tác nhạy cảm thiếu/expired/sai token, backend trả:
+
+```text
+HTTP 428 Precondition Required
+X-Step-Up-Required: true
+```
+
+Access token bình thường **không bị xóa**; Admin chỉ cần mở `/admin/security`, nhập lại mật khẩu rồi thử thao tác lại.
+
+Các nhóm write được step-up bảo vệ trong V68:
+
+- create/update/delete tài khoản user;
+- create/promote/update/delete staff;
+- payment resilience recovery/reconciliation POST;
+- create/update/delete Dynamic Pricing rules;
+- CRM campaign launch;
+- Admin refund approve/reject;
+- Admin revoke user sessions;
+- booking cancel/refund/manual check-in nhạy cảm.
+
+GET/read-only dashboard không bị step-up chặn.
+
+### Security-header baseline
+
+V68 thêm response headers:
+
+```text
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Content-Security-Policy: default-src 'self'; ...; frame-ancestors 'none'
+```
+
+Khi request thật sự đi qua HTTPS (`request.isSecure()` hoặc `X-Forwarded-Proto=https`), backend thêm:
+
+```text
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
+
+CSP V68 là baseline tương thích Next.js hiện tại; nó không được mô tả như nonce-based strict CSP. WebSocket `ws:/wss:` và runtime assets cần thiết vẫn được cho phép.
+
+**V68 reverse-proxy header de-duplication:** Nginx là owner của bốn shared edge headers `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` và dùng `proxy_hide_header` để loại bản sao cùng tên từ upstream. Nhờ vậy API qua Nginx trả đúng một giá trị (`nosniff`, không còn `nosniff, nosniff`) và `Permissions-Policy` ở edge khớp backend: `camera=(), microphone=(), geolocation=(), payment=()`. Backend vẫn là owner của CSP và HSTS có điều kiện HTTPS. Sau khi áp dụng hotfix chỉ cần restart Nginx; không có Flyway/database change.
+
+### Admin Security & Identity V68
+
+```text
+/admin/security
+GET  /api/admin/identity-security/summary
+POST /api/security/step-up
+GET  /api/security/step-up/status
+DELETE /api/security/step-up
+```
+
+Admin Dashboard có tile `🔐 Security & Identity V68`. Màn hình giữ nguyên alert/trusted-device telemetry V46 và bổ sung step-up trạng thái, countdown, protected action groups và security-header posture.
+
+### Database / dữ liệu V68
+
+```text
+Flyway latest: V68
+Public tables: 59
+New V68 tables: 1  -> admin_step_up_grant
+Seeded/reference core tables: 57
+```
+
+`admin_step_up_grant` là operational security table. V68 không tạo phim/khách/booking/payment giả và không seed step-up grant giả. Raw token không được lưu; chỉ `token_hash` SHA-256 được persist.
+
+### Verification V68
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v68_security_identity_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v68.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+Remove-Item Env:E2E_ADMIN_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/security-identity-v68.spec.ts" --project=chromium
+```
+
+Với trusted local HTTPS của V65+, Chromium dùng Windows certificate store nên tin CA của `mkcert`, nhưng `BrowserContext.request`/`APIRequestContext` chạy qua Node.js và có thể không dùng cùng CA store. `frontend/playwright.config.ts` vì vậy chỉ đặt `ignoreHTTPSErrors=true` khi `PLAYWRIGHT_BASE_URL` là loopback HTTPS (`localhost`, `127.0.0.1`, `::1`). Remote HTTPS/CI vẫn giữ verify TLS bình thường; đây chỉ là compatibility bridge cho local mkcert E2E, không thay đổi Nginx/backend TLS.
+
+E2E chứng minh một write `/api/admin/users` bị `428` khi chưa step-up, sau đó re-auth bằng password Admin thật từ `.env`, write thành công với `X-Step-Up-Token`, cleanup user tạm và kiểm tra CSP/frame/nosniff headers.
+
+### Release V68 - chỉ Stable, không RC/Pre-release
+
+Từ V68, quy trình chính thức của project chỉ tạo version chính. Không tạo tag `-rc.*` cho V68+.
+
+```text
+Stable only: v68.0.0
+```
+
+Một lệnh để verify → commit nếu có thay đổi → push `main` → chờ exact GitHub CI commit → tạo immutable tag → tạo GitHub Release Latest:
+
+```powershell
+.\scripts\release.ps1 v68.0.0
+```
+
+Script từ chối version có hậu tố pre-release và không overwrite tag stable đã tồn tại.

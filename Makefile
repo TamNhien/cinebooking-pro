@@ -934,3 +934,14 @@ verify-reference-v67:
 verify-realistic-data-v67:
 	python tools/verify_realistic_data_57.py
 
+
+
+verify-v68:
+	python tools/verify_v68_security_identity_5.py
+
+
+diagnose-v68:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v68.ps1
+
+release-v68:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v68.0.0

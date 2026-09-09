@@ -1,6 +1,7 @@
 "use client";
 import { clearAuth, getAuth, setAuth, token } from "./auth";
 import type { AuthResponse } from "./types";
+import { stepUpToken } from "./step-up";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 let refreshPromise: Promise<AuthResponse | null> | null = null;
@@ -88,6 +89,8 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   const publicAuthCall = path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/auth/forgot-password") || path.startsWith("/auth/reset-password") || path.startsWith("/auth/refresh");
   const t = token();
   if (t && !publicAuthCall) headers.set("Authorization", `Bearer ${t}`);
+  const elevated = stepUpToken();
+  if (elevated && !publicAuthCall) headers.set("X-Step-Up-Token", elevated);
 
   await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });
@@ -115,6 +118,8 @@ export async function apiBlob(path: string, init: RequestInit = {}, retry = true
   const headers = new Headers(init.headers);
   const t = token();
   if (t) headers.set("Authorization", `Bearer ${t}`);
+  const elevated = stepUpToken();
+  if (elevated) headers.set("X-Step-Up-Token", elevated);
 
   await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });

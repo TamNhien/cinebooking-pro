@@ -117,8 +117,8 @@ class CineBookingIntegrationIT {
         // assertThat(publicTables).isGreaterThanOrEqualTo(57);
         // Historical V52 source-regression marker retained because this test still covers the full V52 catalog:
         // assertThat(latest).isEqualTo("52");
-        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(67);
-        assertThat(publicTables).isGreaterThanOrEqualTo(58);
+        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(68);
+        assertThat(publicTables).isGreaterThanOrEqualTo(59);
 
         Integer durableSeatHoldTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name='seat_hold'", Integer.class);
@@ -154,6 +154,13 @@ class CineBookingIntegrationIT {
         Integer webhookV67RecoveryColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='payment_webhook_event' and column_name in ('delivery_state','recovery_attempts','last_recovery_at','recovered_at','recovery_message')", Integer.class);
         assertThat(webhookV67RecoveryColumns).isEqualTo(5);
+
+        Integer securityV68StepUpTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='admin_step_up_grant'", Integer.class);
+        assertThat(securityV68StepUpTable).isEqualTo(1);
+        Integer securityV68StepUpIndexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and tablename='admin_step_up_grant' and indexname in ('idx_admin_step_up_active_session','idx_admin_step_up_active_user','idx_admin_step_up_expiry')", Integer.class);
+        assertThat(securityV68StepUpIndexes).isEqualTo(3);
 
         Integer loyaltyV40UserColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);

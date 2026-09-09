@@ -44,6 +44,24 @@ function loadProjectAdminCredentials(){
 
 loadProjectAdminCredentials();
 
+const baseURL=process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:18080";
+
+function isLoopbackHttps(url:string){
+  try{
+    const parsed=new URL(url);
+    return parsed.protocol==="https:" && ["localhost","127.0.0.1","::1"].includes(parsed.hostname);
+  }catch{
+    return false;
+  }
+}
+
+// Chromium trusts the mkcert root through the Windows certificate store, but
+// Playwright APIRequestContext runs in Node.js, whose CA trust can differ.
+// Ignore certificate verification only for the explicit loopback HTTPS E2E
+// target so local APIRequestContext calls use the same trusted-local stack
+// without weakening TLS verification for CI or remote environments.
+const ignoreLoopbackHttpsErrors=isLoopbackHttps(baseURL);
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -56,7 +74,8 @@ export default defineConfig({
     ["html", { outputFolder: "playwright-report", open: "never" }],
   ],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:18080",
+    baseURL,
+    ignoreHTTPSErrors: ignoreLoopbackHttpsErrors,
     locale: "vi-VN",
     timezoneId: "Asia/Ho_Chi_Minh",
     trace: "retain-on-failure",

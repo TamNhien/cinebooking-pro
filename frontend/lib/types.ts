@@ -333,3 +333,11 @@ export type SeatConsistencySummaryV66 = {
   releasedLast24Hours:number; conflictsLast24Hours:number; serverTime:string; recentHolds:SeatHoldItemV66[];
 };
 export type SeatReconcileResultV66 = { expiredRows:number; activeRows:number; mirroredRows:number; redisAvailable:boolean; authority:string };
+
+// V68 Security & Identity 5.0
+export type StepUpGrantV68 = { token:string; issuedAt:string; expiresAt:string; ttlSeconds:number; strategyVersion:string };
+export type StepUpStatusV68 = { enabled:boolean; active:boolean; expiresAt?:string; ttlSeconds:number; strategyVersion:string };
+export type AdminIdentitySecuritySummaryV68 = {
+  strategyVersion:string; stepUpEnabled:boolean; stepUpTtlSeconds:number; activeStepUpGrants:number;
+  protectedActionGroups:number; tokenStorage:string; cspMode:string; hstsWhenHttps:boolean; generatedAt:string;
+};
