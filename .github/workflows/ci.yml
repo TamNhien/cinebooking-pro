@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V70 source regression
+    name: V26-V71 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -359,6 +359,9 @@ jobs:
 
       - name: Verify V70 Data Governance & Privacy 5.0
         run: python3 tools/verify_v70_data_governance_privacy_5.py
+
+      - name: Verify V71 Secrets & Key Governance 5.0
+        run: python3 tools/verify_v71_secrets_key_governance_5.py
 
 
   compose-config:

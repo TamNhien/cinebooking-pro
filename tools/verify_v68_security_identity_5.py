@@ -198,18 +198,18 @@ check('Playwright APIRequestContext tolerates trusted local mkcert certificate',
 check('Playwright local TLS bypass does not apply to remote HTTPS','parsed.protocol==="https:"' in playwright and 'includes(parsed.hostname)' in playwright)
 
 # integration/data
-check('Integration expects Flyway >=68',any(x in itest for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)']))
-check('Integration expects at least 59 public tables',any(x in itest for x in ['publicTables).isGreaterThanOrEqualTo(59)','publicTables).isGreaterThanOrEqualTo(61)','publicTables).isGreaterThanOrEqualTo(63)']))
+check('Integration expects Flyway >=68',any(x in itest for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)']))
+check('Integration expects at least 59 public tables',any(x in itest for x in ['publicTables).isGreaterThanOrEqualTo(59)','publicTables).isGreaterThanOrEqualTo(61)','publicTables).isGreaterThanOrEqualTo(63)','publicTables).isGreaterThanOrEqualTo(65)']))
 check('Integration verifies V68 step-up table','securityV68StepUpTable' in itest and 'admin_step_up_grant' in itest)
 check('Integration verifies V68 step-up indexes','securityV68StepUpIndexes' in itest and 'isEqualTo(3)' in itest)
-check('V67 verifier forward-compatible with Flyway V68',any(x in v67verify for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)']))
+check('V67 verifier forward-compatible with Flyway V68',any(x in v67verify for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)']))
 check('V67 verifier forward-compatible with 59 tables',any(x in v67verify for x in ['isGreaterThanOrEqualTo(59)','isGreaterThanOrEqualTo(61)']))
-check('V66 verifier forward-compatible with Flyway V68',any(x in v66verify for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)']))
+check('V66 verifier forward-compatible with Flyway V68',any(x in v66verify for x in ['isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)']))
 check('V66 verifier forward-compatible with 59 tables',any(x in v66verify for x in ['isGreaterThanOrEqualTo(59)','isGreaterThanOrEqualTo(61)']))
 check('V68 adds no synthetic seed rows','V68' not in seed)
 
 # CI/diagnose/release
-check('CI source regression names V68 or later',any(x in ci for x in ['V26-V68 source regression','V26-V69 source regression','V26-V70 source regression']))
+check('CI source regression names V68 or later',any(x in ci for x in ['V26-V68 source regression','V26-V69 source regression','V26-V70 source regression','V26-V71 source regression']))
 check('CI runs V68 verifier','verify_v68_security_identity_5.py' in ci)
 check('Makefile exposes verify-v68','verify-v68:' in make and 'verify_v68_security_identity_5.py' in make)
 check('Makefile exposes diagnose-v68','diagnose-v68:' in make)
@@ -227,8 +227,8 @@ check('Stable-only release script marks latest','--latest' in release_script)
 check('Stable-only release script never creates rc tag','-rc.' not in release_script)
 
 # docs
-check('README current release is V68 or later',any(x in readme for x in ['Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**']))
-check('README title is V68 or later',any(x in readme for x in ['# CineBooking Pro V68','# CineBooking Pro V69','# CineBooking Pro V70']))
+check('README current release is V68 or later',any(x in readme for x in ['Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**']))
+check('README title is V68 or later',any(x in readme for x in ['# CineBooking Pro V68','# CineBooking Pro V69','# CineBooking Pro V70','# CineBooking Pro V71']))
 check('README history includes V68','| **V68** |' in readme)
 check('README V68 section exists','## V68 - Security & Identity 5.0' in readme)
 check('README documents strategy','V68-SECURITY-IDENTITY-5' in readme)

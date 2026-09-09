@@ -966,3 +966,12 @@ diagnose-v70:
 
 release-v70:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v70.0.0
+
+verify-v71:
+	python tools/verify_v71_secrets_key_governance_5.py
+
+diagnose-v71:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v71.ps1
+
+release-v71:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v71.0.0

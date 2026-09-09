@@ -1,12 +1,12 @@
-# CineBooking Pro V70
+# CineBooking Pro V71
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V70 - Data Governance & Privacy 5.0
+> **Current release:** V71 - Secrets & Key Governance 5.0
 
-V70 adds **Data Governance & Privacy 5.0** on top of V69 Backup & Disaster Recovery: the Admin control plane now has a privacy-request workflow, per-subject record inventory, explicit retention-policy catalog, SLA/overdue tracking, and step-up protection for privacy mutations. V70 adds Flyway `V70__data_governance_privacy.sql`; the database now has **63 public tables** (61 tables from V69 + `data_retention_policy` + `privacy_request`).
+V71 adds **Secrets & Key Governance 5.0** on top of V70 Data Governance & Privacy: the Admin control plane now has a metadata-only secret rotation catalog, configured-presence checks, rotation due/overdue posture, append-only evidence, and step-up protection for governance writes. V71 adds Flyway `V71__secrets_key_governance.sql`; the database now has **65 public tables** (63 tables from V70 + `secret_rotation_policy` + `secret_rotation_event`).
 
-V70 deliberately keeps destructive retention execution **OFF by default**. Subject inventory is count-only and never deletes/anonymizes data. Retention rows are operational defaults, not legal/compliance claims; privacy request approval records workflow evidence but does not perform automatic erasure. V68 Security & Identity continues to require Admin step-up for mutating `/api/admin/privacy-governance/**` calls.
+V71 never stores or returns secret values. JWT, SMTP, payment and VAPID credentials stay in environment/secret-manager boundaries; CineBooking stores only policy metadata, provider references and non-secret fingerprints. `KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED=false` is the default, so V71 records governance evidence but does not rotate credentials automatically. V68 Security & Identity requires Admin step-up for mutating `/api/admin/key-governance/**` calls.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -111,6 +111,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V68** | **Security & Identity 5.0: session-bound Admin step-up authentication, protected sensitive writes, security headers, stable-only release flow** | **`V68__security_identity_step_up.sql`** |
 | **V69** | **Backup & Disaster Recovery 5.0: verified backup manifest, append-only DR evidence, non-destructive restore drills, RPO/RTO readiness dashboard** | **`V69__backup_disaster_recovery_evidence.sql`** |
 | **V70** | **Data Governance & Privacy 5.0: privacy request workflow, subject-data inventory, retention-policy catalog, SLA/overdue tracking, destructive-execution guardrail** | **`V70__data_governance_privacy.sql`** |
+| **V71** | **Secrets & Key Governance 5.0: metadata-only rotation catalog, credential presence posture, due/overdue tracking, append-only rotation evidence, no secret-value persistence** | **`V71__secrets_key_governance.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4453,3 +4454,97 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V70.
+
+## V71 - Secrets & Key Governance 5.0
+
+V71 đưa secret/key rotation vào một control surface có thể kiểm chứng mà không đưa credential vào database. Strategy:
+
+```text
+V71-SECRETS-KEY-GOVERNANCE-5
+```
+
+### Mục tiêu và guardrail
+
+```text
+Secret manager / environment
+        ↓
+configured presence only
+        ↓
+rotation policy + due posture
+        ↓
+append-only evidence
+```
+
+V71 **không lưu hoặc trả secret value**. `JWT_SECRET`, `MAIL_PASSWORD`, `VNPAY_HASH_SECRET`, `MOMO_SECRET_KEY` và `WEB_PUSH_VAPID_PRIVATE_KEY` vẫn nằm ngoài database. API chỉ trả `configured=true/false`, policy metadata và fingerprint/reference do Admin ghi nhận.
+
+`KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED=false` là mặc định; V71 không tự động rotate/revoke credential. Rotation evidence là append-only và write action yêu cầu Step-up V68.
+
+### Database / dữ liệu V71
+
+```text
+Flyway latest: V71
+Public tables: 65
+New V71 tables: 2
+```
+
+- `secret_rotation_policy`: policy key, secret class, owner, rotation window và manual/auto execution flag.
+- `secret_rotation_event`: `ROTATED / VERIFIED / REVOKED / INCIDENT`, actor, provider reference, fingerprint và timestamp.
+- Trigger `trg_v71_secret_rotation_event_immutable` chặn UPDATE/DELETE evidence.
+- Migration chỉ seed 5 policy metadata; **không seed rotation event, credential hoặc dữ liệu nghiệp vụ giả**.
+
+### Admin Secrets & Key Governance V71
+
+Trang:
+
+```text
+https://localhost/admin/key-governance
+```
+
+API:
+
+```text
+GET  /api/admin/key-governance/summary
+GET  /api/admin/key-governance/policies
+GET  /api/admin/key-governance/events
+POST /api/admin/key-governance/events
+```
+
+POST yêu cầu Step-up V68 qua `X-Step-Up-Token`. Tile `🔑 Key Governance V71` nằm ngay sau `🧾 Privacy Governance V70`, giữ thứ tự version tăng dần trên Admin Dashboard.
+
+Config mặc định:
+
+```env
+KEY_GOVERNANCE_WARNING_DAYS=14
+KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED=false
+```
+
+### Verification V71
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v71_secrets_key_governance_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v71.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/secrets-key-governance-v71.spec.ts" --project=chromium
+```
+
+### Release V71 - chỉ Stable
+
+```text
+Stable only: v71.0.0
+```
+
+Sau khi verifier, Docker/Flyway, frontend lint/build và Browser E2E đều PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v71.0.0
+```
+
+Không tạo RC/Pre-release cho V71.

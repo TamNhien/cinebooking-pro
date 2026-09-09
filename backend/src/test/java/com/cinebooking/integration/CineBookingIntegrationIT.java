@@ -117,8 +117,8 @@ class CineBookingIntegrationIT {
         // assertThat(publicTables).isGreaterThanOrEqualTo(57);
         // Historical V52 source-regression marker retained because this test still covers the full V52 catalog:
         // assertThat(latest).isEqualTo("52");
-        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(70);
-        assertThat(publicTables).isGreaterThanOrEqualTo(63);
+        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(71);
+        assertThat(publicTables).isGreaterThanOrEqualTo(65);
 
         Integer durableSeatHoldTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name='seat_hold'", Integer.class);
@@ -181,6 +181,19 @@ class CineBookingIntegrationIT {
         Integer privacyV70Policies = jdbc.queryForObject(
                 "select count(*) from data_retention_policy where destructive_execution_enabled=false", Integer.class);
         assertThat(privacyV70Policies).isGreaterThanOrEqualTo(5);
+
+        Integer keyGovernanceV71Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('secret_rotation_policy','secret_rotation_event')", Integer.class);
+        assertThat(keyGovernanceV71Tables).isEqualTo(2);
+        Integer keyGovernanceV71Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_secret_policy_enabled','idx_secret_policy_owner','idx_secret_event_policy_occurred','idx_secret_event_type_occurred','idx_secret_event_recorded')", Integer.class);
+        assertThat(keyGovernanceV71Indexes).isEqualTo(5);
+        Integer keyGovernanceV71Policies = jdbc.queryForObject(
+                "select count(*) from secret_rotation_policy where auto_rotation_enabled=false", Integer.class);
+        assertThat(keyGovernanceV71Policies).isGreaterThanOrEqualTo(5);
+        Integer keyGovernanceV71Triggers = jdbc.queryForObject(
+                "select count(*) from pg_trigger where not tgisinternal and tgname='trg_v71_secret_rotation_event_immutable'", Integer.class);
+        assertThat(keyGovernanceV71Triggers).isEqualTo(1);
 
         Integer loyaltyV40UserColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);

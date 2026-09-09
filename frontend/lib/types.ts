@@ -374,3 +374,19 @@ export type SubjectInventoryV70 = { userId:string; email:string; fullName:string
 export type PrivacyGovernanceSummaryV70 = {
   strategyVersion:string; generatedAt:string; requestSlaHours:number; retentionExecutionEnabled:boolean; dryRunOnly:boolean; policyCount:number; enabledPolicyCount:number; openRequestCount:number; approvedRequestCount:number; overdueRequestCount:number; latestRequest?:PrivacyRequestV70|null; policyStatement:string;
 };
+
+// V71 Secrets & Key Governance 5.0
+export type SecretRotationPolicyV71 = {
+  id:string; policyKey:string; secretName:string; secretClass:"AUTH"|"MAIL"|"PAYMENT"|"PUSH"|"INFRA"; ownerTeam:string;
+  rotationDays:number; enabled:boolean; autoRotationEnabled:boolean; requiredWhen?:string|null; note?:string|null;
+  configured:boolean; lastRotatedAt?:string|null; nextRotationDueAt?:string|null; rotationStatus:"DISABLED"|"NO_EVIDENCE"|"HEALTHY"|"DUE_SOON"|"OVERDUE";
+};
+export type SecretRotationEventV71 = {
+  id:string; eventKey:string; policyKey:string; eventType:"ROTATED"|"VERIFIED"|"REVOKED"|"INCIDENT"; actorEmail?:string|null;
+  providerRef?:string|null; keyFingerprint?:string|null; note?:string|null; occurredAt:string; recordedAt:string;
+};
+export type KeyGovernanceSummaryV71 = {
+  strategyVersion:string; generatedAt:string; warningDays:number; autoRotationExecutionEnabled:boolean; dryRunOnly:boolean;
+  enabledPolicyCount:number; configuredSecretCount:number; noEvidenceCount:number; dueSoonCount:number; overdueCount:number;
+  posture:"READY"|"REVIEW"|"ACTION_REQUIRED"; storagePolicy:string[]; latestEvent?:SecretRotationEventV71|null;
+};

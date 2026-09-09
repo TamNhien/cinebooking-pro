@@ -160,6 +160,9 @@ app:
   privacy:
     request-sla-hours: ${PRIVACY_REQUEST_SLA_HOURS:72}
     retention-execution-enabled: ${PRIVACY_RETENTION_EXECUTION_ENABLED:false}
+  key-governance:
+    warning-days: ${KEY_GOVERNANCE_WARNING_DAYS:14}
+    auto-rotation-execution-enabled: ${KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED:false}
   admin:
     email: ${ADMIN_EMAIL:admin@cine.local}
     password: ${ADMIN_PASSWORD:Admin@123}
