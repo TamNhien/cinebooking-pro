@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V68 source regression
+    name: V26-V69 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -353,6 +353,9 @@ jobs:
 
       - name: Verify V68 Security & Identity 5.0
         run: python3 tools/verify_v68_security_identity_5.py
+
+      - name: Verify V69 Backup & Disaster Recovery 5.0
+        run: python3 tools/verify_v69_backup_disaster_recovery_5.py
 
 
   compose-config:

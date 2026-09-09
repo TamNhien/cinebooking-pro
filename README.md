@@ -1,10 +1,12 @@
-# CineBooking Pro V68
+# CineBooking Pro V69
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V68 - Security & Identity 5.0
+> **Current release:** V69 - Backup & Disaster Recovery 5.0
 
-V68 adds **Security & Identity 5.0** on top of V67 payment resilience: ADMIN sensitive writes can require short-lived password re-authentication, grants are bound to the exact user + auth session, only SHA-256 token hashes are persisted, the browser keeps the raw token in per-tab `sessionStorage`, and every response receives a security-header baseline including CSP/frame protection plus HSTS when HTTPS is actually in use. V68 adds Flyway `V68__security_identity_step_up.sql`; the database now has **59 public tables** (57 seeded/core tables + `seat_hold` + `admin_step_up_grant`).
+V69 adds **Backup & Disaster Recovery 5.0** on top of V68 Security & Identity: verified PostgreSQL custom-format archives now receive SHA-256 + metadata manifests, DR evidence is stored in append-only tables, non-destructive restore drills restore into a temporary database before cleanup, and the Admin control plane measures RPO/RTO readiness from real backup/drill evidence. V69 adds Flyway `V69__backup_disaster_recovery_evidence.sql`; the database now has **61 public tables** (57 seeded/core tables + `seat_hold` + `admin_step_up_grant` + `dr_backup_record` + `dr_restore_drill`).
+
+V68 Security & Identity 5.0 remains the authorization layer for sensitive ADMIN writes. DR APIs are read-only in V69, while `/api/admin/disaster-recovery` is already included in the step-up protection boundary for any future mutating action.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -27,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -107,6 +109,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V66** | **Booking Consistency & Seat Locking 4.0: durable PostgreSQL holds, deterministic seat-row locks, Redis TTL mirror, checkout hold conversion, expiry/reconcile operations, multi-replica contention guard** | **`V66__durable_seat_holds.sql`** |
 | **V67** | **Payment Resilience & Reconciliation 5.0: auto gateway reconciliation, safe webhook recovery/dead-letter queue, refund settlement state, Admin recovery dashboard** | **`V67__payment_resilience_recovery.sql`** |
 | **V68** | **Security & Identity 5.0: session-bound Admin step-up authentication, protected sensitive writes, security headers, stable-only release flow** | **`V68__security_identity_step_up.sql`** |
+| **V69** | **Backup & Disaster Recovery 5.0: verified backup manifest, append-only DR evidence, non-destructive restore drills, RPO/RTO readiness dashboard** | **`V69__backup_disaster_recovery_evidence.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4161,3 +4164,196 @@ Một lệnh để verify → commit nếu có thay đổi → push `main` → c
 Script từ chối version có hậu tố pre-release và không overwrite tag stable đã tồn tại.
 
 V68 stable release preflight chạy thêm `npm run lint` tại `frontend` **trước khi commit/push** để lỗi ESLint không tạo commit release đỏ trên `main`. Nếu GitHub CI vẫn fail sau push, script tự in `gh run view <runId> --log-failed` trước khi dừng để thấy lỗi thật ngay trong terminal. Clock countdown của trang `/admin/security` cũng không gọi `Date.now()` trong render initializer; thời gian hiện tại chỉ được lấy trong effect/timer để tương thích React compiler-era lint `react-hooks/purity`.
+
+## V69 - Backup & Disaster Recovery 5.0
+
+V69 biến bộ backup/restore an toàn từ V27 thành một DR workflow có bằng chứng vận hành và RPO/RTO rõ ràng. Strategy:
+
+```text
+V69-BACKUP-DR-5
+```
+
+### Kiến trúc backup evidence
+
+Archive vẫn là PostgreSQL custom-format dump trong thư mục `./backups`; database **không lưu binary dump** và manifest **không chứa credential**.
+
+```text
+live PostgreSQL
+      ↓
+tools/backup-db.ps1
+      ↓
+custom .dump + .sha256
+      ↓
+V69 metadata manifest JSON
+      ↓
+tools/verify-dr-backup-v69.ps1
+      ↓
+append-only dr_backup_record
+```
+
+Manifest V69 chỉ giữ metadata an toàn:
+
+```text
+manifestVersion
+strategyVersion
+backupKey
+backupFile
+sha256
+sizeBytes
+latestFlywayVersion
+publicTableCount
+sourceCommit
+createdAtUtc
+verifiedAtUtc
+retentionUntilUtc
+```
+
+Không ghi `POSTGRES_PASSWORD`, JWT secret, SMTP secret, payment credential hay raw database URL vào manifest/evidence.
+
+### RPO / RTO policy
+
+Mặc định:
+
+```text
+DR_RPO_TARGET_MINUTES=60
+DR_RTO_TARGET_MINUTES=15
+DR_BACKUP_RETENTION_DAYS=30
+DR_DRILL_MAX_AGE_HOURS=168
+```
+
+Admin readiness:
+
+```text
+READY
+  = latest verified backup age <= RPO target
+  + latest successful drill age <= drill freshness window
+  + restore duration <= RTO target
+
+DEGRADED
+  = có evidence nhưng một hoặc nhiều mục tiêu chưa đạt
+
+NO_DATA
+  = chưa có backup/drill evidence
+```
+
+### Non-destructive restore drill
+
+`tools/dr-restore-drill-v69.ps1` **không overwrite database đang chạy**. Script:
+
+```text
+verified backup
+      ↓
+create temporary PostgreSQL database
+      ↓
+pg_restore --exit-on-error
+      ↓
+verify Flyway >= V69
+verify >= 61 public tables
+verify critical catalog
+      ↓
+measure restore duration + backup age
+      ↓
+append-only dr_restore_drill
+      ↓
+drop temporary database --force
+```
+
+Critical catalog V69:
+
+```text
+booking
+payment
+seat_hold
+admin_step_up_grant
+dr_backup_record
+dr_restore_drill
+```
+
+Nếu drill fail, production database không bị recreate; failure evidence được ghi nếu backup đã được register, sau đó temporary database vẫn được cleanup trong `finally`.
+
+### Database / dữ liệu V69
+
+```text
+Flyway latest: V69
+Public tables: 61
+New V69 tables: 2
+  -> dr_backup_record
+  -> dr_restore_drill
+```
+
+Hai bảng evidence dùng trigger append-only:
+
+```text
+trg_v69_dr_backup_immutable
+trg_v69_dr_drill_immutable
+```
+
+V69 không seed backup/drill giả. Evidence chỉ xuất hiện sau khi operator thực sự chạy backup/drill.
+
+### Admin Backup & DR V69
+
+```text
+/admin/disaster-recovery
+GET /api/admin/disaster-recovery/summary
+GET /api/admin/disaster-recovery/backups
+GET /api/admin/disaster-recovery/drills
+```
+
+Dashboard hiển thị readiness, RPO/RTO target, backup age, restore-drill age/duration, checksum evidence, Flyway/table count và runbook. Tile `🛟 Backup & DR V69` nằm ngay sau `Security & Identity V68` để thứ tự version trên Admin Dashboard tiếp tục tăng dần.
+
+### Tạo verified backup V69
+
+Từ thư mục gốc:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+powershell -ExecutionPolicy Bypass -File .\tools\backup-dr-v69.ps1
+```
+
+Có thể chỉ định tên file an toàn trong `./backups`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\backup-dr-v69.ps1 `
+  -OutputFile .\backups\cinebooking-v69-manual.dump
+```
+
+### Chạy restore drill V69
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\dr-restore-drill-v69.ps1 `
+  -BackupFile .\backups\cinebooking-v69-YYYYMMDD-HHMMSS.dump
+```
+
+### Verification V69
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v69_backup_disaster_recovery_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v69.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+Remove-Item Env:E2E_ADMIN_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/backup-disaster-recovery-v69.spec.ts" --project=chromium
+```
+
+### Release V69 - chỉ Stable
+
+```text
+Stable only: v69.0.0
+```
+
+Sau khi verifier, Docker runtime, backup/drill và Browser E2E đều PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v69.0.0
+```
+
+Không tạo `v69.0.0-rc.*` hoặc GitHub Pre-release.
+Các workflow RC/stable legacy vẫn được giữ để bảo toàn lịch sử V67 trở xuống, nhưng source V69 chặn chúng đối với V68+; release V69 chính thức đi qua `scripts/release.ps1` stable-only.

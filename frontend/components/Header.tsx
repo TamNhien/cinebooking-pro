@@ -187,6 +187,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/maintenance">🛠 {en?"Maintenance & assets":"Bảo trì & thiết bị"}</Link>
               <Link onClick={close} href="/admin/support">🎧 {en?"Customer support":"Hỗ trợ khách hàng"}</Link>
               <Link onClick={close} href="/admin/security">🔐 {en?"Security & Identity V68":"Security & Identity V68"}</Link>
+              <Link onClick={close} href="/admin/disaster-recovery">🛟 {en?"Backup & DR V69":"Sao lưu & DR V69"}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {en?"Refunds":"Hoàn vé"}</Link>
               <Link onClick={close} href="/admin/audit">🛡 Audit log</Link>
             </div>}
@@ -247,6 +248,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/security">Security & Identity V68</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/disaster-recovery">Backup & DR V69</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Audit log</Link>
               </div>}

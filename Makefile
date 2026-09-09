@@ -945,3 +945,15 @@ diagnose-v68:
 
 release-v68:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v68.0.0
+
+verify-v69:
+	python tools/verify_v69_backup_disaster_recovery_5.py
+
+diagnose-v69:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v69.ps1
+
+backup-v69:
+	powershell -ExecutionPolicy Bypass -File ./tools/backup-dr-v69.ps1
+
+release-v69:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v69.0.0

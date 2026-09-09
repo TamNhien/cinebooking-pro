@@ -152,6 +152,11 @@ app:
     step-up:
       enabled: ${SECURITY_STEP_UP_ENABLED:true}
       ttl-seconds: ${SECURITY_STEP_UP_TTL_SECONDS:600}
+  disaster-recovery:
+    rpo-target-minutes: ${DR_RPO_TARGET_MINUTES:60}
+    rto-target-minutes: ${DR_RTO_TARGET_MINUTES:15}
+    backup-retention-days: ${DR_BACKUP_RETENTION_DAYS:30}
+    drill-max-age-hours: ${DR_DRILL_MAX_AGE_HOURS:168}
   admin:
     email: ${ADMIN_EMAIL:admin@cine.local}
     password: ${ADMIN_PASSWORD:Admin@123}

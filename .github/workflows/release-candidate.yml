@@ -38,6 +38,12 @@ jobs:
             echo "Invalid version label: $APP_VERSION" >&2
             exit 2
           fi
+          numeric="${APP_VERSION#v}"
+          major="${numeric%%.*}"
+          if [[ "$major" =~ ^[0-9]+$ ]] && (( major >= 68 )); then
+            echo "V68+ is stable-only. Release-candidate tags are disabled; use scripts/release.ps1 with a stable tag." >&2
+            exit 3
+          fi
 
       - name: Verify V57 source gate
         run: |

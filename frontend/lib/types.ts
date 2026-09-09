@@ -341,3 +341,23 @@ export type AdminIdentitySecuritySummaryV68 = {
   strategyVersion:string; stepUpEnabled:boolean; stepUpTtlSeconds:number; activeStepUpGrants:number;
   protectedActionGroups:number; tokenStorage:string; cspMode:string; hstsWhenHttps:boolean; generatedAt:string;
 };
+
+// V69 Backup & Disaster Recovery 5.0
+export type DrBackupEvidenceV69 = {
+  id:string; backupKey:string; storageName:string; checksumSha256:string; sizeBytes:number;
+  latestFlywayVersion:number; publicTableCount:number; sourceCommit?:string|null; strategyVersion:string;
+  createdAt:string; verifiedAt:string; retentionUntil?:string|null; recordedAt:string;
+};
+export type DrRestoreDrillEvidenceV69 = {
+  id:string; drillKey:string; backupId:string; status:"SUCCESS"|"FAILED"; startedAt:string; completedAt:string;
+  restoreDurationSeconds?:number|null; rpoSeconds?:number|null; restoredFlywayVersion?:number|null;
+  restoredPublicTableCount?:number|null; checksumVerified:boolean; criticalCatalogVerified:boolean;
+  message?:string|null; recordedAt:string;
+};
+export type DisasterRecoverySummaryV69 = {
+  strategyVersion:string; evaluatedAt:string; readiness:"READY"|"DEGRADED"|"NO_DATA";
+  rpoTargetMinutes:number; rtoTargetMinutes:number; backupRetentionDays:number; drillMaxAgeHours:number;
+  verifiedBackupCount:number; successfulDrillCount:number; latestBackupAgeMinutes?:number|null; latestDrillAgeHours?:number|null;
+  backupFresh:boolean; drillFresh:boolean; rtoMet:boolean; immutableEvidence:boolean;
+  latestBackup?:DrBackupEvidenceV69|null; latestSuccessfulDrill?:DrRestoreDrillEvidenceV69|null; criticalCatalog:string[];
+};

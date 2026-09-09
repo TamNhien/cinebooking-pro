@@ -9,7 +9,7 @@ $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 if ($Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-  throw "Version must be a stable tag such as v68.0.0. RC/pre-release tags are not allowed."
+  throw "Version must be a stable tag such as v69.0.0. RC/pre-release tags are not allowed."
 }
 if ($Version -match '-') { throw "Pre-release tags are disabled for CineBooking V68+." }
 
@@ -28,6 +28,7 @@ if (-not $SkipVerify) {
     'tools/verify_v66_booking_consistency_seat_locking.py',
     'tools/verify_v67_payment_resilience_reconciliation.py',
     'tools/verify_v68_security_identity_5.py',
+    'tools/verify_v69_backup_disaster_recovery_5.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'
   )
