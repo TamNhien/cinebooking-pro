@@ -92,6 +92,7 @@ public class RefundService {
         String defaultReason=admin?"Admin tạo yêu cầu hoàn vé":"Khách hàng yêu cầu hoàn vé";
         b.setRefundReason(reason==null||reason.isBlank()?defaultReason:reason.trim());
         bookings.save(b);
+        beginRefundState(payment,b,q.gatewayConfirmationRequired());
 
         audit.record(actorEmail,admin?"REFUND_REQUEST_ADMIN":"REFUND_REQUEST","BOOKING",b.getId().toString(),
                 "policy="+q.policyCode()+", amount="+q.refundAmount()+", fee="+q.feeAmount()+", auto="+q.automatic(),ip);
@@ -107,7 +108,7 @@ public class RefundService {
     @Transactional
     public RefundView approve(UUID bookingId,String adminEmail,String providerReference,String ip){
         Booking b=bookings.findByIdForUpdate(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy booking"));
-        if(b.getStatus()==BookingStatus.REFUNDED) return view(b);
+        if(b.getStatus()==BookingStatus.REFUNDED){Payment settled=latestPayment(b);if(providerReference!=null&&!providerReference.isBlank()&&settled.getRefundReference()!=null&&!settled.getRefundReference().equals(providerReference.trim()))throw new ApiException(HttpStatus.CONFLICT,"Booking đã hoàn tiền với provider reference khác");return view(b);}
         if(b.getStatus()!=BookingStatus.REFUND_REQUESTED)throw new ApiException(HttpStatus.CONFLICT,"Booking không nằm trong hàng đợi hoàn tiền");
         Payment p=latestPayment(b);
         if(!"MOCK".equals(p.getProvider()) && (providerReference==null || providerReference.isBlank())) {
@@ -133,6 +134,7 @@ public class RefundService {
         bookings.save(b);
 
         p.setStatus(PaymentStatus.REFUNDED); p.setRefundedAmount(b.getRefundAmount()); p.setRefundedAt(now); p.setRefundReference(providerReference);
+        p.setRefundState("SETTLED");p.setRefundSettledAt(now);p.setRefundAttempts(n(p.getRefundAttempts())+1);p.setRefundLastError(null);if(p.getRefundOperationKey()==null)p.setRefundOperationKey("refund:"+b.getId());if(p.getRefundRequestedAt()==null)p.setRefundRequestedAt(b.getRefundRequestedAt()==null?now:b.getRefundRequestedAt());
         p.setProviderMessage("Refund recorded: "+b.getRefundAmount()+" / "+p.getAmount()+"; policy="+b.getRefundPolicyCode());
         payments.save(p);
         finance.recordRefund(p,b);
@@ -152,7 +154,7 @@ public class RefundService {
     public RefundView reject(UUID bookingId,String adminEmail,String ip){
         Booking b=bookings.findByIdForUpdate(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy booking"));
         if(b.getStatus()!=BookingStatus.REFUND_REQUESTED)throw new ApiException(HttpStatus.CONFLICT,"Booking không nằm trong hàng đợi hoàn tiền");
-        String old=b.getRefundReason(); b.setStatus(BookingStatus.CONFIRMED); clearRequestSnapshot(b); bookings.save(b);
+        String old=b.getRefundReason();Payment p=latestPayment(b);p.setRefundState("REJECTED");p.setRefundLastError("Refund request rejected by admin");payments.save(p);b.setStatus(BookingStatus.CONFIRMED); clearRequestSnapshot(b); bookings.save(b);
         notifications.create(b.getUserId(),"REFUND_REJECTED","Yêu cầu hoàn vé chưa được duyệt","Yêu cầu hoàn vé cho booking "+b.getId()+" đã bị từ chối. Vé vẫn còn hiệu lực.","/bookings");
         audit.record(adminEmail,"REFUND_REJECT","BOOKING",b.getId().toString(),old,ip); return view(b);
     }
@@ -192,9 +194,11 @@ public class RefundService {
         if(b.getStatus()!=BookingStatus.CONFIRMED && b.getStatus()!=BookingStatus.REFUND_REQUESTED)throw new ApiException(HttpStatus.CONFLICT,"Chỉ booking đã thanh toán mới có thể yêu cầu hoàn tiền");
         if(b.getCheckedInAt()!=null)throw new ApiException(HttpStatus.CONFLICT,"Vé đã check-in nên không thể hoàn tiền");
     }
+    private void beginRefundState(Payment p,Booking b,boolean evidenceRequired){Instant now=Instant.now();if(p.getRefundOperationKey()==null)p.setRefundOperationKey("refund:"+b.getId());if(p.getRefundRequestedAt()==null)p.setRefundRequestedAt(now);p.setRefundState(evidenceRequired?"EVIDENCE_REQUIRED":"REQUESTED");p.setRefundLastError(null);payments.save(p);}
     private void clearRequestSnapshot(Booking b){b.setRefundRequestedAt(null);b.setRefundAmount(null);b.setRefundReason(null);b.setRefundRatePercent(null);b.setRefundFeeAmount(null);b.setRefundPolicyCode(null);b.setRefundAutomatic(false);}
     private RefundView view(Booking b){return new RefundView(b.getId(),b.getUserId(),b.getShowtimeId(),b.getStatus().name(),b.getTotalAmount(),b.getRefundAmount(),b.getRefundFeeAmount(),b.getRefundRatePercent(),b.getRefundPolicyCode(),Boolean.TRUE.equals(b.getRefundAutomatic()),b.getRefundReason(),b.getRefundRequestedAt(),b.getRefundedAt(),b.getRefundProcessedAt(),b.getRefundProcessedBy(),b.getRefundProviderReference());}
     private BigDecimal nz(BigDecimal v){return v==null?BigDecimal.ZERO:v;}
+    private int n(Integer v){return v==null?0:v;}
 
     public record RefundQuote(UUID bookingId,boolean refundable,String policyCode,BigDecimal ratePercent,BigDecimal refundAmount,
                               BigDecimal feeAmount,boolean automatic,boolean requiresAdmin,boolean gatewayConfirmationRequired,

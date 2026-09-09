@@ -9,6 +9,7 @@ python .\tools\verify_v62_dynamic_pricing_4.py
 python .\tools\verify_v63_recommendation_4.py
 python .\tools\verify_v64_crm_marketing_automation.py
 python .\tools\verify_v65_observability_reliability.py
+python .\tools\verify_v65_local_https.py
 python .\tools\verify_realistic_data_57.py
 python .\tools\verify_seed_demo_57.py
 

@@ -35,7 +35,13 @@ public class Payment {
  @Column(name="refunded_amount") private BigDecimal refundedAmount;
  @Column(name="refunded_at") private Instant refundedAt;
  @Column(name="refund_reference") private String refundReference;
- @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();if(updatedAt==null)updatedAt=createdAt;if(status==null)status=PaymentStatus.PENDING;if(loyaltyPointsAwarded==null)loyaltyPointsAwarded=0;if(attemptNo==null)attemptNo=1;if(reconciliationFailures==null)reconciliationFailures=0;}
+ @Column(name="refund_state",nullable=false) private String refundState;
+ @Column(name="refund_requested_at") private Instant refundRequestedAt;
+ @Column(name="refund_settled_at") private Instant refundSettledAt;
+ @Column(name="refund_attempts",nullable=false) private Integer refundAttempts;
+ @Column(name="refund_operation_key") private String refundOperationKey;
+ @Column(name="refund_last_error") private String refundLastError;
+ @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(createdAt==null)createdAt=Instant.now();if(updatedAt==null)updatedAt=createdAt;if(status==null)status=PaymentStatus.PENDING;if(loyaltyPointsAwarded==null)loyaltyPointsAwarded=0;if(attemptNo==null)attemptNo=1;if(reconciliationFailures==null)reconciliationFailures=0;if(refundState==null)refundState="NONE";if(refundAttempts==null)refundAttempts=0;}
  @PreUpdate void update(){updatedAt=Instant.now();}
  public UUID getId(){return id;} public void setId(UUID id){this.id=id;}
  public UUID getBookingId(){return bookingId;} public void setBookingId(UUID bookingId){this.bookingId=bookingId;}
@@ -70,4 +76,10 @@ public class Payment {
  public BigDecimal getRefundedAmount(){return refundedAmount;} public void setRefundedAmount(BigDecimal v){refundedAmount=v;}
  public Instant getRefundedAt(){return refundedAt;} public void setRefundedAt(Instant v){refundedAt=v;}
  public String getRefundReference(){return refundReference;} public void setRefundReference(String v){refundReference=v;}
+ public String getRefundState(){return refundState;} public void setRefundState(String v){refundState=v;}
+ public Instant getRefundRequestedAt(){return refundRequestedAt;} public void setRefundRequestedAt(Instant v){refundRequestedAt=v;}
+ public Instant getRefundSettledAt(){return refundSettledAt;} public void setRefundSettledAt(Instant v){refundSettledAt=v;}
+ public Integer getRefundAttempts(){return refundAttempts;} public void setRefundAttempts(Integer v){refundAttempts=v;}
+ public String getRefundOperationKey(){return refundOperationKey;} public void setRefundOperationKey(String v){refundOperationKey=v;}
+ public String getRefundLastError(){return refundLastError;} public void setRefundLastError(String v){refundLastError=v;}
 }

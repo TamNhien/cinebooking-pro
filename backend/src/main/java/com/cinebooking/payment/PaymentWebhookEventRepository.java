@@ -5,8 +5,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,6 +18,12 @@ import java.util.UUID;
 public interface PaymentWebhookEventRepository extends JpaRepository<PaymentWebhookEvent, UUID> {
     Optional<PaymentWebhookEvent> findByProviderAndEventKey(String provider, String eventKey);
     List<PaymentWebhookEvent> findTop100ByOrderByReceivedAtDesc();
+    long countByDeliveryState(String deliveryState);
+    long countByDeliveryStateIn(Collection<String> deliveryStates);
+    List<PaymentWebhookEvent> findByDeliveryStateInAndSignatureValidTrueOrderByReceivedAtAsc(Collection<String> deliveryStates, Pageable pageable);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from PaymentWebhookEvent e where e.id = :id")
+    Optional<PaymentWebhookEvent> findByIdForUpdate(@Param("id") UUID id);
 
     @Modifying
     @Query(value = """

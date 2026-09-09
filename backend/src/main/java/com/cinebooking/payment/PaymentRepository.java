@@ -26,6 +26,9 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query("select p from Payment p where p.provider in :providers and p.status in :statuses and p.nextReconcileAt is not null and p.nextReconcileAt <= :now order by p.nextReconcileAt asc")
     List<Payment> findDueForReconciliation(@Param("providers") Collection<String> providers,@Param("statuses") Collection<PaymentStatus> statuses,@Param("now") Instant now,Pageable pageable);
     long countByNextReconcileAtIsNotNullAndNextReconcileAtLessThanEqual(Instant now);
+    long countByRefundState(String refundState);
+    long countByRefundStateIn(Collection<String> refundStates);
+    long countByStatusInAndProviderIn(Collection<PaymentStatus> statuses,Collection<String> providers);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Payment p where p.id = :id")
     Optional<Payment> findByIdForUpdate(@Param("id") UUID id);

@@ -39,7 +39,7 @@ export type Showtime = {
   planningScore?:number;
 };
 export type Seat = { id:string; code:string; rowLabel:string; seatNumber:number; seatType:string; basePrice:number; seatModifier:number; dynamicAdjustment:number; price:number; pricingRules:string[]; status:"AVAILABLE"|"HELD"|"BOOKED"|"BLOCKED"; heldByMe:boolean };
-export type SeatMap = { showtimeId:string; holdTtlSeconds:number; holdRemainingSeconds:number; serverEpochMs:number; holdExpiresAtEpochMs:number; maxSelectableSeats:number; preventSingleGap:boolean; seats:Seat[] };
+export type SeatMap = { showtimeId:string; holdTtlSeconds:number; holdRemainingSeconds:number; serverEpochMs:number; holdExpiresAtEpochMs:number; maxSelectableSeats:number; preventSingleGap:boolean; seats:Seat[]; holdAuthority?:"POSTGRESQL_WITH_REDIS_MIRROR"|string };
 export type SeatSuggestion = { seatIds:string[]; seatCodes:string[]; totalPrice:number; dynamicAdjustment:number; score:number; centerScore:number; rowScore:number; orphanSafetyScore:number; qualityLabel:"BEST"|"GREAT"|"GOOD"|string; reason:string };
 export type SeatSuggestionResponse = { showtimeId:string; requestedCount:number; suggestions:SeatSuggestion[] };
 export type SeatSelectionValidation = { allowed:boolean; orphanSeatCodes:string[]; message:string };
@@ -61,11 +61,16 @@ export type PaymentGatewayReadinessV60 = { provider:string; displayName:string; 
 export type PaymentProductionReadinessV60 = { guardEnabled:boolean; allRemoteProductionReady:boolean; evaluatedAt:string; gateways:PaymentGatewayReadinessV60[] };
 export type PaymentEventItem = { id:string; paymentId:string; eventType:string; actorType:string; actorRef?:string; fromStatus?:string; toStatus?:string; code?:string; message?:string; detailsJson?:string; createdAt:string };
 export type PaymentAdminView = { id:string; bookingId:string; payerUserId:string; provider:string; status:string; amount:number; providerOrderId?:string; providerTransactionId?:string; responseCode?:string; message?:string; createdAt:string; updatedAt:string; expiresAt?:string; paidAt?:string; failedAt?:string; cancelledAt?:string; lastWebhookAt?:string; attemptNo:number; retryOfPaymentId?:string; lastReconciledAt?:string; nextReconcileAt?:string; reconciliationFailures:number; lastReconcileMessage?:string };
-export type PaymentWebhookAdminView = { id:string; provider:string; eventKey:string; paymentId?:string; payloadHash:string; signatureValid:boolean; resultCode?:string; responseCode?:string; responseMessage?:string; receivedAt:string; processedAt?:string };
+export type PaymentWebhookAdminView = { id:string; provider:string; eventKey:string; paymentId?:string; payloadHash:string; signatureValid:boolean; resultCode?:string; responseCode?:string; responseMessage?:string; receivedAt:string; processedAt?:string; deliveryState:string; recoveryAttempts:number; lastRecoveryAt?:string; recoveredAt?:string; recoveryMessage?:string };
 export type PaymentOpsDashboard = { total:number; pending:number; success:number; failed:number; expired:number; cancelled:number; review:number; refunded:number; invalidWebhooks:number; webhookEvents:number; dueReconcile:number; readiness:PaymentProductionReadinessV60; providers:PaymentProviderAvailability[]; payments:PaymentAdminView[]; webhooks:PaymentWebhookAdminView[] };
 export type PaymentReconciliationResult = { paymentId:string; provider:string; localStatus:string; providerStatus:string; providerTransactionId?:string; message:string; changed:boolean; success:boolean; trigger:string };
 export type PaymentBatchReconciliationResult = { scanned:number; succeeded:number; failed:number; results:PaymentReconciliationResult[] };
 export type PaymentTimelineAdmin = { paymentId:string; events:PaymentEventItem[] };
+export type PaymentWebhookRecoveryItemV67 = { id:string; provider:string; eventKey:string; paymentId?:string; signatureValid:boolean; deliveryState:string; recoveryAttempts:number; recoveryMessage?:string; receivedAt:string; processedAt?:string; lastRecoveryAt?:string; recoveredAt?:string };
+export type PaymentResilienceSummaryV67 = { strategyVersion:string; evaluatedAt:string; autoReconcileEnabled:boolean; webhookRecoveryEnabled:boolean; reconcileScanMs:number; reconcileMinAgeSeconds:number; reconcileMaxBatch:number; reconcileMaxBackoffSeconds:number; webhookRecoveryMaxAttempts:number; dueReconcile:number; remotePendingOrReview:number; webhookOrphaned:number; webhookRecoveryPending:number; webhookDeadLetter:number; webhookRecovered:number; refundRequested:number; refundEvidenceRequired:number; refundSettled:number; refundFailed:number; recoveryQueue:PaymentWebhookRecoveryItemV67[] };
+export type PaymentWebhookRecoveryResultV67 = { webhookId:string; paymentId?:string; provider:string; deliveryState:string; recoveryAttempts:number; linked:boolean; recovered:boolean; message:string; reconciliation?:PaymentReconciliationResult };
+export type PaymentWebhookRecoveryBatchResultV67 = { scanned:number; recovered:number; pending:number; deadLetter:number; results:PaymentWebhookRecoveryResultV67[] };
+
 export type FinancialLedgerLine = { accountCode:string; direction:"DEBIT"|"CREDIT"; amount:number; currency:"VND" };
 export type FinancialLedgerEntry = { id:string; eventKey:string; eventType:"PAYMENT_CAPTURED"|"REFUND_SETTLED"; bookingId?:string; paymentId?:string; userId?:string; description?:string; occurredAt:string; lines:FinancialLedgerLine[] };
 export type FinancialReconciliationIssue = { id:string; runId:string; issueType:string; severity:"INFO"|"WARNING"|"CRITICAL"; entityType:string; entityId?:string; expectedValue?:number; actualValue?:number; message:string; status:"OPEN"|"RESOLVED"; createdAt:string; resolvedAt?:string; resolvedBy?:string };
@@ -315,3 +320,16 @@ export type ObservabilitySummaryV65 = {
   runtime:ObservabilityRuntimeV65; slos:ObservabilitySloV65[]; dependencies:ObservabilityDependencyV65[];
   recentRequests:ObservabilityRequestSampleV65[]; prometheusPath:string; traceHeader:string; grafanaHint:string;
 };
+
+// V66 · Booking Consistency & Seat Locking 4.0
+export type SeatHoldItemV66 = {
+  id:string; holdToken:string; showtimeId:string; movieTitle:string; seatCode:string; userEmail:string;
+  state:"HELD"|"RELEASED"|"EXPIRED"|"CONVERTED"; createdAt:string; refreshedAt:string; expiresAt:string;
+  releasedAt?:string|null; convertedBookingId?:string|null; lastEvent:string;
+};
+export type SeatConsistencySummaryV66 = {
+  strategyVersion:string; holdAuthority:string; redisAvailable:boolean; holdTtlSeconds:number;
+  activeHolds:number; expiringWithin60Seconds:number; convertedLast24Hours:number; expiredLast24Hours:number;
+  releasedLast24Hours:number; conflictsLast24Hours:number; serverTime:string; recentHolds:SeatHoldItemV66[];
+};
+export type SeatReconcileResultV66 = { expiredRows:number; activeRows:number; mirroredRows:number; redisAvailable:boolean; authority:string };

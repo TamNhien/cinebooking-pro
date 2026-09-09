@@ -23,7 +23,7 @@ export default function AdminBookingsPage(){
   const [selected,setSelected]=useState<AdminBookingView|null>(null);
   const [ticket,setTicket]=useState<AdminTicketInfo|null>(null);
   const [q,setQ]=useState(""); const [status,setStatus]=useState("ALL"); const [payment,setPayment]=useState("ALL"); const [cinema,setCinema]=useState("ALL");
-  const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(""); const [msg,setMsg]=useState("");
+  const [loading,setLoading]=useState(true); const [busy,setBusy]=useState(""); const [msg,setMsg]=useState(""); const [msgKind,setMsgKind]=useState<"success"|"error">("error");
 
   async function load(){
     setLoading(true);
@@ -32,7 +32,7 @@ export default function AdminBookingsPage(){
       if(me.role!=="ADMIN"){ clearAuth(); location.href="/login?returnTo=/admin/bookings&reason=admin"; return; }
       const data=await api<AdminBookingView[]>("/admin/booking-ops"); setItems(data);
       const wanted=new URLSearchParams(location.search).get("booking"); if(wanted){ const found=data.find(x=>x.id===wanted); if(found) await openDetail(found.id); }
-    }catch(e){setMsg((e as Error).message)}finally{setLoading(false)}
+    }catch(e){setMsgKind("error");setMsg((e as Error).message)}finally{setLoading(false)}
   }
   useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/bookings&reason=required";return;}void load()},[]);
 
@@ -47,13 +47,18 @@ export default function AdminBookingsPage(){
   }),[items,q,status,payment,cinema]);
   const stats=useMemo(()=>({total:items.length,confirmed:items.filter(x=>x.status==="CONFIRMED").length,refund:items.filter(x=>x.status==="REFUND_REQUESTED").length,revenue:items.filter(x=>x.latestPayment?.status==="SUCCESS").reduce((s,x)=>s+x.totalAmount,0)}),[items]);
 
-  async function openDetail(id:string){try{setBusy("detail");const d=await api<AdminBookingView>(`/admin/booking-ops/${id}`);setSelected(d);setTicket(null)}catch(e){setMsg((e as Error).message)}finally{setBusy("")}}
-  async function refreshOne(id:string){const d=await api<AdminBookingView>(`/admin/booking-ops/${id}`);setSelected(d);setItems(v=>v.map(x=>x.id===id?{...d,timeline:[]}:x));}
+  async function openDetail(id:string){try{setBusy("detail");setMsg("");const d=await api<AdminBookingView>(`/admin/booking-ops/${id}`);setSelected(d);setTicket(null)}catch(e){setMsgKind("error");setMsg((e as Error).message)}finally{setBusy("")}}
   async function action(path:string,body?:unknown,confirmText?:string){
     if(!selected)return; if(confirmText&&!confirm(confirmText))return;
-    try{setBusy(path);const r=await api<AdminBookingActionResult>(path,{method:"POST",body:body===undefined?undefined:JSON.stringify(body)});setMsg(r.message);await refreshOne(selected.id)}catch(e){setMsg((e as Error).message)}finally{setBusy("")}
+    try{
+      setBusy(path);setMsg("");
+      const r=await api<AdminBookingActionResult>(path,{method:"POST",body:body===undefined?undefined:JSON.stringify(body)});
+      setSelected(r.booking);
+      setItems(v=>v.map(x=>x.id===r.booking.id?r.booking:x));
+      setMsgKind("success");setMsg(r.message);
+    }catch(e){setMsgKind("error");setMsg((e as Error).message)}finally{setBusy("")}
   }
-  async function showQr(){if(!selected)return;try{setBusy("qr");setTicket(await api<AdminTicketInfo>(`/admin/booking-ops/${selected.id}/ticket`))}catch(e){setMsg((e as Error).message)}finally{setBusy("")}}
+  async function showQr(){if(!selected)return;try{setBusy("qr");setMsg("");setTicket(await api<AdminTicketInfo>(`/admin/booking-ops/${selected.id}/ticket`))}catch(e){setMsgKind("error");setMsg((e as Error).message)}finally{setBusy("")}}
   async function refundRequest(){if(!selected)return;const reason=prompt("Lý do hoàn vé (không bắt buộc):","Admin hỗ trợ khách hàng hoàn vé");if(reason===null)return;await action(`/admin/booking-ops/${selected.id}/refund-request`,{reason},"Tạo yêu cầu hoàn tiền cho booking này?")}
   async function approveRefund(){
     if(!selected)return;
@@ -62,7 +67,7 @@ export default function AdminBookingsPage(){
     if(provider!=="MOCK"){
       const entered=prompt(`Reference hoàn tiền ${provider||"gateway"}:`,"");
       if(entered===null)return;
-      if(!entered.trim()){setMsg("Cần nhập reference hoàn tiền từ cổng thanh toán trước khi duyệt.");return;}
+      if(!entered.trim()){setMsgKind("error");setMsg("Cần nhập reference hoàn tiền từ cổng thanh toán trước khi duyệt.");return;}
       providerReference=entered.trim();
     }
     await action(`/admin/booking-ops/${selected.id}/refund-approve`,{providerReference},"Duyệt hoàn tiền? Ghế sẽ được mở bán lại và payment chuyển REFUNDED.")
@@ -89,6 +94,7 @@ export default function AdminBookingsPage(){
         </div>
         <div className="admin-booking-modal-scroll">
           <div className="admin-booking-modal-content grid gap-5 lg:grid-cols-[1.35fr_.8fr]">
+            {msg&&<div data-testid="booking-action-feedback" className={`card lg:col-span-2 border p-4 text-sm ${msgKind==="success"?"border-emerald-500/30 bg-emerald-500/10 text-emerald-200":"border-rose-500/30 bg-rose-500/10 text-rose-200"}`}>{msg}</div>}
             <div className="space-y-5">
               <section className="card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black">Khách hàng</h3><div>{selected.customerName}</div><div className="text-sm text-slate-400">{selected.customerEmail} · {selected.customerPhone||"-"}</div></div><span className={`rounded-full border px-3 py-1 text-xs font-black ${badge(selected.status)}`}>{selected.status}</span></div></section>
               <section className="card p-5"><h3 className="mb-3 font-black">Vé & suất chiếu</h3><div className="grid gap-2 text-sm sm:grid-cols-2"><div><span className="text-slate-400">Rạp:</span> {selected.cinemaName}</div><div><span className="text-slate-400">Phòng:</span> {selected.auditoriumName}</div><div><span className="text-slate-400">Suất:</span> {dateTime(selected.showtimeStart)}</div><div><span className="text-slate-400">Ghế:</span> {selected.seats.map(s=>s.code).join(", ")||"-"}</div><div><span className="text-slate-400">Tạo:</span> {dateTime(selected.createdAt)}</div><div><span className="text-slate-400">Check-in:</span> {selected.checkedInAt?dateTime(selected.checkedInAt):"Chưa"}</div></div></section>
@@ -100,7 +106,8 @@ export default function AdminBookingsPage(){
               <div className="card p-5"><h3 className="mb-4 font-black">Thao tác Admin</h3><div className="grid gap-2">
                 {selected.status==="CONFIRMED"&&<button className="btn btn-primary w-full" disabled={!!busy} onClick={showQr}>🎫 Xem QR vé</button>}
                 {selected.status==="CONFIRMED"&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/resend-ticket`,undefined,"Gửi lại vé qua email khách hàng?")}>📧 Gửi lại vé qua email</button>}
-                {selected.status==="CONFIRMED"&&!selected.checkedInAt&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/manual-checkin`,undefined,"Check-in thủ công booking này? Chỉ dùng khi đã xác minh khách tại rạp.")}>✅ Check-in thủ công</button>}
+                {selected.status==="CONFIRMED"&&!selected.checkedInAt&&<button data-testid="admin-manual-checkin" className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/manual-checkin`,undefined,"Check-in thủ công booking này? Admin có thể override khung giờ sau khi đã xác minh khách tại rạp.")}>✅ Check-in thủ công</button>}
+                {selected.checkedInAt&&<div data-testid="admin-manual-checkin-result" className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200"><div className="font-black">✅ Đã check-in</div><div className="mt-1">{dateTime(selected.checkedInAt)}</div>{selected.checkedInByEmail&&<div className="mt-1 text-xs text-emerald-300/80">Bởi {selected.checkedInByEmail}</div>}</div>}
                 {selected.status==="PENDING"&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={cancelPending}>❌ Huỷ đơn PENDING</button>}
                 {selected.status==="CONFIRMED"&&!selected.checkedInAt&&<button className="btn btn-secondary w-full" disabled={!!busy} onClick={refundRequest}>↩ Tạo yêu cầu hoàn tiền</button>}
                 {selected.status==="REFUND_REQUESTED"&&<><button className="btn btn-primary w-full" disabled={!!busy} onClick={approveRefund}>✅ Duyệt hoàn tiền</button><button className="btn btn-secondary w-full" disabled={!!busy} onClick={()=>action(`/admin/booking-ops/${selected.id}/refund-reject`,undefined,"Từ chối yêu cầu hoàn tiền?")}>⛔ Từ chối hoàn tiền</button></>}
@@ -115,7 +122,7 @@ export default function AdminBookingsPage(){
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><div className="text-xs font-black uppercase tracking-[.25em] text-rose-400">Booking Operations · V13</div><h1 className="text-3xl font-black">Quản lý booking</h1><p className="text-slate-400">Booking, payment, QR, check-in và refund trên cùng một màn hình.</p></div><div className="flex gap-2"><Link href="/admin" className="btn btn-secondary">← Dashboard</Link><Link href="/admin/refunds" className="btn btn-secondary">↩ Hàng đợi hoàn vé</Link></div></div>
-    {msg&&<div className="card border border-rose-500/30 p-4 text-sm">{msg}</div>}
+    {msg&&!selected&&<div className={`card border p-4 text-sm ${msgKind==="success"?"border-emerald-500/30 bg-emerald-500/10 text-emerald-200":"border-rose-500/30 bg-rose-500/10 text-rose-200"}`}>{msg}</div>}
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div className="card p-4"><div className="text-xs text-slate-400">Tổng booking</div><div className="text-2xl font-black">{stats.total}</div></div><div className="card p-4"><div className="text-xs text-slate-400">CONFIRMED</div><div className="text-2xl font-black text-emerald-300">{stats.confirmed}</div></div><div className="card p-4"><div className="text-xs text-slate-400">Chờ hoàn tiền</div><div className="text-2xl font-black text-amber-300">{stats.refund}</div></div><div className="card p-4"><div className="text-xs text-slate-400">Giá trị payment SUCCESS</div><div className="text-2xl font-black">{currency(stats.revenue)}</div></div></div>
     <div className="card grid gap-3 p-4 md:grid-cols-4"><input className="input" placeholder="Mã booking, khách, phim, ghế..." value={q} onChange={e=>setQ(e.target.value)}/><select className="input" value={status} onChange={e=>setStatus(e.target.value)}>{statuses.map(x=><option key={x}>{x}</option>)}</select><select className="input" value={payment} onChange={e=>setPayment(e.target.value)}>{paymentStatuses.map(x=><option key={x}>{x}</option>)}</select><select className="input" value={cinema} onChange={e=>setCinema(e.target.value)}><option>ALL</option>{cinemas.map(x=><option key={x}>{x}</option>)}</select></div>
     <div className="card overflow-x-auto p-3">{loading?<div className="p-6 text-slate-400">Đang tải booking...</div>:<table className="w-full min-w-[1050px] text-sm"><thead><tr className="text-left text-slate-400"><th className="p-3">Booking / Khách</th><th className="p-3">Phim / Rạp</th><th className="p-3">Suất & ghế</th><th className="p-3">Booking</th><th className="p-3">Payment</th><th className="p-3">Tổng</th><th className="p-3">Thao tác</th></tr></thead><tbody>{filtered.map(x=><tr key={x.id} className="border-t border-slate-800 align-top"><td className="p-3"><button className="text-left font-bold text-rose-300 hover:underline" onClick={()=>openDetail(x.id)}>#{x.id.slice(0,8)}</button><div>{x.customerName}</div><div className="text-xs text-slate-400">{x.customerEmail}</div></td><td className="p-3"><b>{x.movieTitle}</b><div className="text-xs text-slate-400">{x.cinemaName} · {x.auditoriumName}</div></td><td className="p-3">{dateTime(x.showtimeStart)}<div className="text-xs text-slate-400">Ghế {x.seats.map(s=>s.code).join(", ")||"-"}</div></td><td className="p-3"><span className={`rounded-full border px-2 py-1 text-xs font-bold ${badge(x.status)}`}>{x.status}</span>{x.checkedInAt&&<div className="mt-2 text-xs text-emerald-300">✓ Đã check-in</div>}</td><td className="p-3">{x.latestPayment?<><span className={`rounded-full border px-2 py-1 text-xs font-bold ${badge(x.latestPayment.status)}`}>{x.latestPayment.status}</span><div className="mt-2 text-xs text-slate-400">{x.latestPayment.provider}</div></>:<span className="text-slate-500">Chưa có</span>}</td><td className="p-3 font-bold">{currency(x.totalAmount)}</td><td className="p-3"><button className="btn btn-primary !px-3 !py-2" onClick={()=>openDetail(x.id)}>Quản lý</button></td></tr>)}{filtered.length===0&&<tr><td colSpan={7} className="p-8 text-center text-slate-500">Không có booking phù hợp.</td></tr>}</tbody></table>}</div>

@@ -86,6 +86,8 @@ app:
     dir: ${UPLOAD_DIR:/app/uploads}
   seat-hold:
     ttl-seconds: ${SEAT_HOLD_TTL_SECONDS:300}
+    expiry-scan-ms: ${SEAT_HOLD_EXPIRY_SCAN_MS:5000}
+    expiry-batch-size: ${SEAT_HOLD_EXPIRY_BATCH_SIZE:200}
   seat-selection:
     max-seats: ${SEAT_MAX_PER_BOOKING:8}
     prevent-single-gap: ${SEAT_PREVENT_SINGLE_GAP:true}
@@ -162,11 +164,18 @@ app:
     mock-enabled: ${PAYMENT_MOCK_ENABLED:true}
     production-guard-enabled: ${PAYMENT_PRODUCTION_GUARD_ENABLED:true}
     reconcile:
-      auto-enabled: ${PAYMENT_AUTO_RECONCILE_ENABLED:false}
+      auto-enabled: ${PAYMENT_AUTO_RECONCILE_ENABLED:true}
       scan-ms: ${PAYMENT_RECONCILE_SCAN_MS:60000}
       min-age-seconds: ${PAYMENT_RECONCILE_MIN_AGE_SECONDS:45}
       max-batch: ${PAYMENT_RECONCILE_MAX_BATCH:20}
       max-backoff-seconds: ${PAYMENT_RECONCILE_MAX_BACKOFF_SECONDS:900}
+    webhook-recovery:
+      enabled: ${PAYMENT_WEBHOOK_RECOVERY_ENABLED:true}
+      scan-ms: ${PAYMENT_WEBHOOK_RECOVERY_SCAN_MS:60000}
+      min-age-seconds: ${PAYMENT_WEBHOOK_RECOVERY_MIN_AGE_SECONDS:30}
+      max-batch: ${PAYMENT_WEBHOOK_RECOVERY_MAX_BATCH:20}
+      max-attempts: ${PAYMENT_WEBHOOK_RECOVERY_MAX_ATTEMPTS:5}
+      max-backoff-seconds: ${PAYMENT_WEBHOOK_RECOVERY_MAX_BACKOFF_SECONDS:900}
     vnpay:
       payment-url: ${VNPAY_PAYMENT_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       query-url: ${VNPAY_QUERY_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}

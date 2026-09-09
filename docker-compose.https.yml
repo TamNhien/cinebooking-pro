@@ -1,0 +1,25 @@
+services:
+  backend-1:
+    environment:
+      FRONTEND_URL: https://localhost
+      REFRESH_COOKIE_SECURE: "true"
+      VNPAY_RETURN_URL: https://localhost/payment/result
+      VNPAY_IPN_URL: https://localhost/api/payments/vnpay/ipn
+      MOMO_REDIRECT_URL: https://localhost/payment/result
+      MOMO_IPN_URL: https://localhost/api/payments/momo/ipn
+
+  backend-2:
+    environment:
+      FRONTEND_URL: https://localhost
+      REFRESH_COOKIE_SECURE: "true"
+      VNPAY_RETURN_URL: https://localhost/payment/result
+      VNPAY_IPN_URL: https://localhost/api/payments/vnpay/ipn
+      MOMO_REDIRECT_URL: https://localhost/payment/result
+      MOMO_IPN_URL: https://localhost/api/payments/momo/ipn
+
+  nginx:
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/nginx/nginx.https.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro

@@ -859,6 +859,7 @@ verify-v65:
 	python tools/verify_v63_recommendation_4.py
 	python tools/verify_v64_crm_marketing_automation.py
 	python tools/verify_v65_observability_reliability.py
+	python tools/verify_v65_local_https.py
 	python tools/verify_realistic_data_57.py
 	python tools/verify_seed_demo_57.py
 
@@ -875,5 +876,61 @@ verify-reference-v65:
 	python tools/verify_reference_data_57.py
 
 verify-realistic-data-v65:
+	python tools/verify_realistic_data_57.py
+
+
+verify-v66:
+	python tools/verify_v60_payment_production_4.py
+	python tools/verify_v61_fraud_risk_intelligence.py
+	python tools/verify_v62_dynamic_pricing_4.py
+	python tools/verify_v63_recommendation_4.py
+	python tools/verify_v64_crm_marketing_automation.py
+	python tools/verify_v65_observability_reliability.py
+	python tools/verify_v65_local_https.py
+	python tools/verify_v66_booking_consistency_seat_locking.py
+	python tools/verify_realistic_data_57.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v66:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v66.ps1
+
+verify-seed-demo-v66:
+	python tools/verify_seed_demo_57.py
+
+check-seed-demo-v66:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+verify-reference-v66:
+	python tools/verify_reference_data_57.py
+
+verify-realistic-data-v66:
+	python tools/verify_realistic_data_57.py
+
+verify-v67:
+	python tools/verify_v60_payment_production_4.py
+	python tools/verify_v61_fraud_risk_intelligence.py
+	python tools/verify_v62_dynamic_pricing_4.py
+	python tools/verify_v63_recommendation_4.py
+	python tools/verify_v64_crm_marketing_automation.py
+	python tools/verify_v65_observability_reliability.py
+	python tools/verify_v65_local_https.py
+	python tools/verify_v66_booking_consistency_seat_locking.py
+	python tools/verify_v67_payment_resilience_reconciliation.py
+	python tools/verify_realistic_data_57.py
+	python tools/verify_seed_demo_57.py
+
+diagnose-v67:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v67.ps1
+
+verify-seed-demo-v67:
+	python tools/verify_seed_demo_57.py
+
+check-seed-demo-v67:
+	powershell -ExecutionPolicy Bypass -File ./tools/check-demo-57-table-counts.ps1
+
+verify-reference-v67:
+	python tools/verify_reference_data_57.py
+
+verify-realistic-data-v67:
 	python tools/verify_realistic_data_57.py
 

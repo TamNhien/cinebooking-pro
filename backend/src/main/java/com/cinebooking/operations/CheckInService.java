@@ -58,12 +58,14 @@ public class CheckInService {
         Cinema c=cinemas.findById(a.getCinemaId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));
         if(b.getStatus()!=BookingStatus.CONFIRMED)throw new ApiException(HttpStatus.CONFLICT,"Chỉ booking CONFIRMED mới được check-in");
         if(b.getCheckedInAt()!=null)throw new ApiException(HttpStatus.CONFLICT,"Vé đã check-in lúc "+b.getCheckedInAt());
-        if(!withinTicketWindow(st))throw new ApiException(HttpStatus.CONFLICT,"Vé chưa đến hoặc đã quá khung thời gian check-in");
+        // ADMIN manual check-in is an explicit operational override. QR/staff scanning still obeys withinTicketWindow().
+        boolean outsideTicketWindow=!withinTicketWindow(st);
         AppUser admin=users.findByEmailIgnoreCase(adminEmail).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Không tìm thấy tài khoản Admin"));
         if(admin.getRole()!=Role.ADMIN)throw new ApiException(HttpStatus.FORBIDDEN,"Chỉ Admin mới được check-in thủ công");
         Instant now=Instant.now(); b.setCheckedInAt(now);b.setCheckedInBy(admin.getId());bookings.save(b);
         TicketCheckInLog log=new TicketCheckInLog();log.setBookingId(b.getId());log.setStaffUserId(admin.getId());log.setCinemaId(c.getId());log.setCheckedInAt(now);log.setIpAddress(ip);log.setSource("MANUAL");logs.save(log);
-        audit.record(adminEmail,"TICKET_CHECK_IN_MANUAL","BOOKING",b.getId().toString(),m.getTitle()+" · "+c.getName()+" · "+a.getName(),ip);
+        String auditDetail=m.getTitle()+" · "+c.getName()+" · "+a.getName()+(outsideTicketWindow?" · ADMIN_OVERRIDE_OUTSIDE_TICKET_WINDOW":"");
+        audit.record(adminEmail,"TICKET_CHECK_IN_MANUAL","BOOKING",b.getId().toString(),auditDetail,ip);
         staffEvents.publish(c.getId(),"TICKET_CHECKED_IN");
         return new Result(b.getId(),m.getTitle(),c.getName(),a.getName(),st.getStartTime(),now,"CHECKED_IN");
     }

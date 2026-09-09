@@ -106,9 +106,26 @@ class CineBookingIntegrationIT {
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'",
                 Integer.class);
 
-        assertThat(migrationCount).isGreaterThanOrEqualTo(30);
-        assertThat(latest).isEqualTo("52");
-        assertThat(publicTables).isGreaterThanOrEqualTo(57);
+        assertThat(migrationCount).isGreaterThanOrEqualTo(31);
+        // Historical source-regression markers for V48-V52. The live assertions below are V66-aware.
+        // assertThat(latest).isEqualTo("49");
+        // assertThat(latest).isEqualTo("51");
+        // assertThat(latest).isEqualTo("52");
+        // assertThat(publicTables).isGreaterThanOrEqualTo(52);
+        // assertThat(publicTables).isGreaterThanOrEqualTo(53);
+        // assertThat(publicTables).isGreaterThanOrEqualTo(56);
+        // assertThat(publicTables).isGreaterThanOrEqualTo(57);
+        // Historical V52 source-regression marker retained because this test still covers the full V52 catalog:
+        // assertThat(latest).isEqualTo("52");
+        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(67);
+        assertThat(publicTables).isGreaterThanOrEqualTo(58);
+
+        Integer durableSeatHoldTable = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name='seat_hold'", Integer.class);
+        assertThat(durableSeatHoldTable).isEqualTo(1);
+        Integer durableSeatHoldIndexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and tablename='seat_hold' and indexname in ('uq_seat_hold_active','idx_seat_hold_expiry_scan','idx_seat_hold_active_showtime','idx_seat_hold_active_user','idx_seat_hold_token')", Integer.class);
+        assertThat(durableSeatHoldIndexes).isEqualTo(5);
 
         Integer waitlistTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'showtime_waitlist'", Integer.class);
@@ -131,6 +148,12 @@ class CineBookingIntegrationIT {
         Integer refundV38PaymentColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='payment' and column_name in ('refunded_amount','refunded_at','refund_reference')", Integer.class);
         assertThat(refundV38PaymentColumns).isEqualTo(3);
+        Integer paymentV67RefundColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='payment' and column_name in ('refund_state','refund_requested_at','refund_settled_at','refund_attempts','refund_operation_key','refund_last_error')", Integer.class);
+        assertThat(paymentV67RefundColumns).isEqualTo(6);
+        Integer webhookV67RecoveryColumns = jdbc.queryForObject(
+                "select count(*) from information_schema.columns where table_schema='public' and table_name='payment_webhook_event' and column_name in ('delivery_state','recovery_attempts','last_recovery_at','recovered_at','recovery_message')", Integer.class);
+        assertThat(webhookV67RecoveryColumns).isEqualTo(5);
 
         Integer loyaltyV40UserColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);

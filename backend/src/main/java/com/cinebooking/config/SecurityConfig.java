@@ -32,7 +32,7 @@ public class SecurityConfig {
 
     @Bean CorsConfigurationSource cors(@Value("${app.frontend-url}") String frontendUrl) {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of(frontendUrl, "http://localhost", "http://localhost:3000"));
+        c.setAllowedOrigins(List.of(frontendUrl, "http://localhost", "http://localhost:3000", "https://localhost", "https://localhost:3000"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "X-Trace-Id"));
         c.setExposedHeaders(List.of("X-Trace-Id"));

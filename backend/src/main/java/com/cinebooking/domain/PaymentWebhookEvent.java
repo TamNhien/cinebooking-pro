@@ -18,8 +18,13 @@ public class PaymentWebhookEvent {
     @Column(name="response_message") private String responseMessage;
     @Column(name="received_at",nullable=false) private Instant receivedAt;
     @Column(name="processed_at") private Instant processedAt;
+    @Column(name="delivery_state",nullable=false) private String deliveryState;
+    @Column(name="recovery_attempts",nullable=false) private Integer recoveryAttempts;
+    @Column(name="last_recovery_at") private Instant lastRecoveryAt;
+    @Column(name="recovered_at") private Instant recoveredAt;
+    @Column(name="recovery_message") private String recoveryMessage;
 
-    @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(receivedAt==null)receivedAt=Instant.now();}
+    @PrePersist void pre(){if(id==null)id=UUID.randomUUID();if(receivedAt==null)receivedAt=Instant.now();if(deliveryState==null)deliveryState="RECEIVED";if(recoveryAttempts==null)recoveryAttempts=0;}
     public UUID getId(){return id;} public void setId(UUID id){this.id=id;}
     public String getProvider(){return provider;} public void setProvider(String provider){this.provider=provider;}
     public String getEventKey(){return eventKey;} public void setEventKey(String eventKey){this.eventKey=eventKey;}
@@ -31,4 +36,9 @@ public class PaymentWebhookEvent {
     public String getResponseMessage(){return responseMessage;} public void setResponseMessage(String responseMessage){this.responseMessage=responseMessage;}
     public Instant getReceivedAt(){return receivedAt;} public void setReceivedAt(Instant receivedAt){this.receivedAt=receivedAt;}
     public Instant getProcessedAt(){return processedAt;} public void setProcessedAt(Instant processedAt){this.processedAt=processedAt;}
+    public String getDeliveryState(){return deliveryState;} public void setDeliveryState(String v){deliveryState=v;}
+    public Integer getRecoveryAttempts(){return recoveryAttempts;} public void setRecoveryAttempts(Integer v){recoveryAttempts=v;}
+    public Instant getLastRecoveryAt(){return lastRecoveryAt;} public void setLastRecoveryAt(Instant v){lastRecoveryAt=v;}
+    public Instant getRecoveredAt(){return recoveredAt;} public void setRecoveredAt(Instant v){recoveredAt=v;}
+    public String getRecoveryMessage(){return recoveryMessage;} public void setRecoveryMessage(String v){recoveryMessage=v;}
 }

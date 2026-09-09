@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V65 source regression
+    name: V26-V67 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -341,6 +341,15 @@ jobs:
         run: python3 tools/verify_v64_crm_marketing_automation.py
       - name: Verify V65 Observability & Reliability 4.0
         run: python3 tools/verify_v65_observability_reliability.py
+
+      - name: Verify V65 trusted local HTTPS hotfix
+        run: python3 tools/verify_v65_local_https.py
+
+      - name: Verify V66 Booking Consistency & Seat Locking 4.0
+        run: python3 tools/verify_v66_booking_consistency_seat_locking.py
+
+      - name: Verify V67 Payment Resilience & Reconciliation 5.0
+        run: python3 tools/verify_v67_payment_resilience_reconciliation.py
 
 
   compose-config:

@@ -39,7 +39,8 @@ public class AuditService {
     private boolean isOperationsSignal(String action, String entityType) {
         if (action == null) return false;
         if (action.startsWith("OPS_ALERT_") || action.startsWith("ADMIN_")) return false;
-        return action.startsWith("BOOKING_")
+        return action.startsWith("SEAT_HOLD_")
+                || action.startsWith("BOOKING_")
                 || action.startsWith("PAYMENT_")
                 || action.startsWith("REFUND_")
                 || action.startsWith("MAINTENANCE_")

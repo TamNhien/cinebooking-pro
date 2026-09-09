@@ -23,6 +23,7 @@ import static com.cinebooking.payment.PaymentDtos.*;
 public class PaymentService {
     private final PaymentRepository payments;
     private final PaymentWebhookEventRepository webhooks;
+    private final PaymentWebhookReceiptService webhookReceipts;
     private final PaymentAttemptService attempts;
     private final PaymentEventService events;
     private final BookingService bookingService;
@@ -37,8 +38,8 @@ public class PaymentService {
     private final boolean mockEnabled;
     private final long reconcileMinAgeSeconds;
 
-    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentAttemptService attempts,PaymentEventService events,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyService loyalty,NotificationService notifications,InventoryService inventory,FinancialLedgerService finance,PaymentProductionReadinessService productionReadiness,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled,@Value("${app.payment.reconcile.min-age-seconds:45}") long reconcileMinAgeSeconds){
-        this.payments=payments;this.webhooks=webhooks;this.attempts=attempts;this.events=events;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyalty=loyalty;this.notifications=notifications;this.inventory=inventory;this.finance=finance;this.productionReadiness=productionReadiness;this.mockEnabled=mockEnabled;this.reconcileMinAgeSeconds=Math.max(15,reconcileMinAgeSeconds);
+    public PaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,PaymentWebhookReceiptService webhookReceipts,PaymentAttemptService attempts,PaymentEventService events,BookingService bookingService,UserRepository users,VnPayGateway vnPay,MomoGateway momo,LoyaltyService loyalty,NotificationService notifications,InventoryService inventory,FinancialLedgerService finance,PaymentProductionReadinessService productionReadiness,@Value("${app.payment.mock-enabled:true}") boolean mockEnabled,@Value("${app.payment.reconcile.min-age-seconds:45}") long reconcileMinAgeSeconds){
+        this.payments=payments;this.webhooks=webhooks;this.webhookReceipts=webhookReceipts;this.attempts=attempts;this.events=events;this.bookingService=bookingService;this.users=users;this.vnPay=vnPay;this.momo=momo;this.loyalty=loyalty;this.notifications=notifications;this.inventory=inventory;this.finance=finance;this.productionReadiness=productionReadiness;this.mockEnabled=mockEnabled;this.reconcileMinAgeSeconds=Math.max(15,reconcileMinAgeSeconds);
     }
 
     public PaymentStartResponse start(UUID bookingId,String email,String providerRaw,String ipAddress,String idempotencyKey){
@@ -206,7 +207,7 @@ public class PaymentService {
     private boolean validMomoAmount(Payment p,Map<String,Object> params){try{return p.getAmount().longValueExact()==Long.parseLong(String.valueOf(params.getOrDefault("amount","-1")));}catch(Exception e){return false;}}
     private enum WebhookClaim { NEW, DUPLICATE, CONFLICT }
     private WebhookClaim claimWebhook(String provider,String eventKey,Payment p,String payloadHash,boolean signatureValid,String resultCode){
-        if(webhooks.claim(UUID.randomUUID(),provider,eventKey,p==null?null:p.getId(),payloadHash,signatureValid,resultCode,Instant.now())==1)return WebhookClaim.NEW;
+        if(webhookReceipts.claim(UUID.randomUUID(),provider,eventKey,p==null?null:p.getId(),payloadHash,signatureValid,resultCode,Instant.now()))return WebhookClaim.NEW;
         return webhooks.findByProviderAndEventKey(provider,eventKey)
                 .map(existing->CryptoUtil.constantTimeEquals(existing.getPayloadHash(),payloadHash)?WebhookClaim.DUPLICATE:WebhookClaim.CONFLICT)
                 .orElse(WebhookClaim.CONFLICT);
@@ -217,7 +218,8 @@ public class PaymentService {
     private Map<String,String> finishVnPay(String eventKey,Payment p,String code,String message){finishWebhook("VNPAY",eventKey,p,code,message);return Map.of("RspCode",code,"Message",message);}
     private Map<String,Object> finishMomo(String eventKey,Payment p,int code,String message){finishWebhook("MOMO",eventKey,p,String.valueOf(code),message);return Map.of("resultCode",code,"message",message);}
     private String rejectedWebhookKey(String reason,String payloadHash){return bounded("rejected:"+reason+":"+payloadHash,240);}
-    private void finishWebhook(String provider,String eventKey,Payment p,String code,String message){webhooks.findByProviderAndEventKey(provider,eventKey).ifPresent(e->{e.setPaymentId(p==null?e.getPaymentId():p.getId());e.setResponseCode(code);e.setResponseMessage(message);e.setProcessedAt(Instant.now());webhooks.save(e);});}
+    private void finishWebhook(String provider,String eventKey,Payment p,String code,String message){webhooks.findByProviderAndEventKey(provider,eventKey).ifPresent(e->{e.setPaymentId(p==null?e.getPaymentId():p.getId());e.setResponseCode(code);e.setResponseMessage(message);e.setProcessedAt(Instant.now());e.setDeliveryState(webhookDeliveryState(e,p,message));if("PROCESSED".equals(e.getDeliveryState()))e.setRecoveryMessage(null);webhooks.save(e);});}
+    private String webhookDeliveryState(PaymentWebhookEvent e,Payment p,String message){if(!e.isSignatureValid())return "REJECTED";String m=message==null?"":message.toLowerCase(Locale.ROOT);if(m.contains("invalid merchant")||m.contains("invalid amount")||m.contains("invalid checksum")||m.contains("invalid signature"))return "REJECTED";if(p==null)return "ORPHANED";return "PROCESSED";}
     private String normalizeProvider(String raw){if(raw==null||raw.isBlank())throw new ApiException(HttpStatus.BAD_REQUEST,"provider không hợp lệ");String v=raw.trim().toUpperCase(Locale.ROOT);if(!Set.of("MOCK","VNPAY","VNPAY_QR","MOMO","MOMO_QR").contains(v))throw new ApiException(HttpStatus.BAD_REQUEST,"provider không hợp lệ");return v;}
     private void ensureProviderAvailable(String provider){if("MOCK".equals(provider)&&!mockEnabled)throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Thanh toán MOCK đã bị tắt trên môi trường này");if(provider.startsWith("VNPAY")&&!vnPay.configured())throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"VNPay chưa được cấu hình merchant credentials");if(provider.startsWith("MOMO")&&!momo.configured())throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"MoMo chưa được cấu hình merchant credentials");productionReadiness.ensureAllowed(provider);}
     private boolean realProvider(String provider){return provider!=null&&(provider.startsWith("VNPAY")||provider.startsWith("MOMO"));}

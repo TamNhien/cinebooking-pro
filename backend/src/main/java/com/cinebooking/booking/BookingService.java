@@ -101,9 +101,9 @@ public class BookingService {
         if (!holds.ownsAll(showtime.getId(), seatIds, user.getId()))
             throw new ApiException(HttpStatus.CONFLICT,"Bạn chưa giữ đủ ghế hoặc thời gian giữ ghế đã hết");
 
-        // Redis protects the short hold window, while PostgreSQL remains the final authority.
-        // The explicit pre-check gives a friendly response in the common case; the unique index
-        // still protects the race between this check and the INSERT below.
+        // V66: PostgreSQL is the durable hold authority and the seat-row lock is still held here.
+        // This explicit reservation pre-check gives a friendly response; uq_showtime_seat_active
+        // remains the final booking-seat invariant if another legacy/import path races this INSERT.
         Set<UUID> alreadyReserved = new HashSet<>(bookingSeats.findReservedSeatIds(showtime.getId()));
         List<UUID> blocked = seatIds.stream().filter(alreadyReserved::contains).toList();
         if(!blocked.isEmpty())
@@ -175,9 +175,11 @@ public class BookingService {
             }
             throw ex;
         }
+        // V66 converts the durable hold inside the same checkout transaction. If any later work rolls
+        // back, the hold stays HELD; if the booking commits, PostgreSQL records the exact conversion.
+        holds.convertToBooking(showtime.getId(), seatIds, user.getId(), b.getId());
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() {
-                holds.release(showtime.getId(), seatIds, user.getId());
                 events.publish(showtime.getId(),"BOOKED_PENDING",seatIds);
             }
         });

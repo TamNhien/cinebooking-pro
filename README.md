@@ -1,13 +1,15 @@
-# CineBooking Pro V65
+# CineBooking Pro V67
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V65 - Observability & Reliability 4.0
+> **Current release:** V67 - Payment Resilience & Reconciliation 5.0
+
+V67 adds **Payment Resilience & Reconciliation 5.0** on top of V66 booking consistency: automatic remote-gateway reconciliation is enabled by default, valid orphan/pending webhook events gain a bounded recovery/dead-letter lifecycle, recovery never blindly replays stored callback payloads and instead re-links the payment then queries VNPay/MoMo, while refunds gain durable settlement metadata (`REQUESTED` / `EVIDENCE_REQUIRED` / `SETTLED` / `REJECTED` / `FAILED`). V67 adds Flyway `V67__payment_resilience_recovery.sql` but **does not add a new table**; the database remains **58 public tables**.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
-V65 adds **Observability & Reliability 4.0** without changing business schema: bounded-cardinality API metrics, correlation trace IDs in response/logs, local-replica SLO evaluation, PostgreSQL/Redis dependency probes, Prometheus recording/alert rules, and a provisioned Grafana dashboard. It builds on the existing Spring Boot Actuator + Micrometer/Prometheus foundation, adds no synthetic business data, and keeps the database contract at 57 public tables with latest migration V52.
+V66 adds **Booking Consistency & Seat Locking 4.0** on top of V65 observability: PostgreSQL is now the durable authority for short-lived seat holds, seat-row pessimistic locks serialize contenders across backend replicas, Redis is only a best-effort TTL mirror, checkout converts a durable hold in the same transaction, and existing `uq_showtime_seat_active` remains the final booking invariant. V66 adds Flyway `V66__durable_seat_holds.sql`; the database now has **58 public tables**: 57 seeded/core tables plus the transient operational `seat_hold` table. No synthetic movie/customer/booking/payment activity is seeded for V66.
 
 ## Quy ước chạy lệnh
 
@@ -23,7 +25,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật, còn V65 chỉ đọc runtime/metrics/dependency health và không seed nghiệp vụ.
+- V52/V65/V66/V67 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -100,6 +102,8 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V63** | **Recommendation 4.0: deep taste facets, language/duration/weekday context, FAMILIAR/BALANCED/DISCOVERY modes, diversity reranking, score breakdown** | **Không đổi schema** |
 | **V64** | **CRM & Marketing Automation 4.0: real-data audience segmentation, campaign preview/launch, owner-scoped one-use vouchers, preference-aware promotion delivery, idempotent campaign codes** | **Không đổi schema** |
 | **V65** | **Observability & Reliability 4.0: bounded-cardinality API metrics, X-Trace-Id log correlation, SLO health, PostgreSQL/Redis probes, Prometheus alerts, provisioned Grafana dashboard** | **Không đổi schema** |
+| **V66** | **Booking Consistency & Seat Locking 4.0: durable PostgreSQL holds, deterministic seat-row locks, Redis TTL mirror, checkout hold conversion, expiry/reconcile operations, multi-replica contention guard** | **`V66__durable_seat_holds.sql`** |
+| **V67** | **Payment Resilience & Reconciliation 5.0: auto gateway reconciliation, safe webhook recovery/dead-letter queue, refund settlement state, Admin recovery dashboard** | **`V67__payment_resilience_recovery.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -3602,3 +3606,410 @@ RC:     v65.0.0-rc.1
 Stable: v65.0.0
 ```
 
+### Hotfix V65 · Admin manual check-in
+
+Đã sửa luồng **Admin → Quản lý booking → Check-in thủ công**:
+
+- Admin manual check-in là thao tác override có chủ đích nên không còn bị chặn bởi khung giờ QR/staff (`CHECKIN_EARLY_MINUTES` / `CHECKIN_LATE_MINUTES`).
+- Luồng quét QR/staff bình thường **vẫn giữ nguyên** kiểm tra khung giờ.
+- Nếu Admin check-in ngoài khung giờ, `ticket_checkin_log.source` vẫn ghi `MANUAL` để tương thích CHECK constraint của Flyway V11; audit ghi marker `ADMIN_OVERRIDE_OUTSIDE_TICKET_WINDOW` để phân biệt thao tác override.
+- Modal booking hiển thị ngay thông báo thành công/lỗi; sau khi thành công hiển thị thời gian + tài khoản Admin đã check-in và ẩn nút check-in.
+- Frontend dùng trực tiếp `ActionResult.booking`, tránh GET lại gây cảm giác thao tác xong nhưng UI chưa đổi.
+
+Kiểm tra hotfix:
+
+```powershell
+python .\tools\verify_v13.py
+python .\tools\verify_v65_manual_checkin_hotfix.py
+```
+
+
+
+### V65 manual check-in hotfix v3 — DB constraint compatibility
+- Sửa lỗi HTTP 409/DataIntegrityViolation khi Admin check-in thủ công ngoài khung giờ.
+- Nguyên nhân: Flyway V11 chỉ cho phép `ticket_checkin_log.source IN (QR, URL, MANUAL)`, trong khi hotfix trước ghi `MANUAL_OVERRIDE`.
+- Giữ `source=MANUAL` để không cần migration mới và không thay đổi schema 57 bảng.
+- Vẫn audit đầy đủ override bằng marker `ADMIN_OVERRIDE_OUTSIDE_TICKET_WINDOW`.
+- `verify_v65_manual_checkin_hotfix.py` kiểm tra trực tiếp tính tương thích giữa code và CHECK constraint V11.
+
+### V65 Trusted local HTTPS hotfix
+
+This hotfix fixes `ERR_CONNECTION_REFUSED` at `https://localhost`. The base stack still supports the existing HTTP workflow, while `docker-compose.https.yml` enables a trusted local TLS endpoint on port 443 without committing certificates or private keys.
+
+One-time Windows setup from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\setup-local-https.ps1 -InstallMkcert -Start
+```
+
+The setup script:
+
+- creates `.env` with a random JWT secret when `.env` is missing;
+- installs `mkcert` through `winget` only when `-InstallMkcert` is requested;
+- runs `mkcert -install` so Windows/browser trusts the local CA;
+- generates `infra/nginx/certs/localhost.pem` and `localhost-key.pem` for `localhost`, `127.0.0.1` and `::1`;
+- validates the merged Docker Compose configuration;
+- starts nginx on ports 80 and 443 when `-Start` is supplied.
+
+HTTPS runtime command after the certificate already exists:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.https.yml ps
+```
+
+Open:
+
+```text
+https://localhost
+```
+
+When the HTTPS override is active, `http://localhost` returns HTTP 308 to HTTPS. Backend forwarded headers use `X-Forwarded-Proto=https`, refresh cookies are Secure, and local payment return/IPN URLs use HTTPS. The local certificate/private key are ignored by Git and are not shipped in release archives.
+
+Source verification:
+
+```powershell
+python .\tools\verify_v65_local_https.py
+python .\tools\verify_v13.py
+python .\tools\verify_v65_manual_checkin_hotfix.py
+python .\tools\verify_v65_observability_reliability.py
+```
+
+## V66 - Booking Consistency & Seat Locking 4.0
+
+V66 nâng lớp giữ ghế của V57/V24 từ **Redis-only lease** thành durable consistency model. Redis vẫn được dùng cho realtime/TTL mirror nhưng **không còn là nguồn sự thật duy nhất**.
+
+Strategy version:
+
+```text
+V66-BOOKING-CONSISTENCY-4
+```
+
+### Consistency model V66
+
+```text
+User A / backend-1        User B / backend-2
+        \                     /
+         \                   /
+          PostgreSQL seat row
+               FOR UPDATE
+                  |
+                  v
+          durable seat_hold
+                  |
+        uq_seat_hold_active
+                  |
+             Redis mirror
+                  |
+              checkout
+                  |
+       uq_showtime_seat_active
+```
+
+Luồng acquire giữ ghế:
+
+1. Chuẩn hóa seat IDs và lock các row `seat` theo thứ tự UUID để giảm deadlock.
+2. Dưới cùng DB transaction, chuyển hold hết hạn của chính các ghế đang tranh chấp sang `EXPIRED`.
+3. Kiểm tra `booking_seat` đang active để không tạo hold lên ghế đã được booking khác xác nhận.
+4. Kiểm tra owner hiện tại trong `seat_hold`.
+5. Insert/refresh toàn bộ cụm ghế atomically; partial unique index `uq_seat_hold_active(showtime_id,seat_id) WHERE state='HELD'` là invariant cuối của lớp hold.
+6. Chỉ sau commit mới mirror TTL sang Redis và ghi lifecycle audit.
+
+`seat_hold.state` chỉ nhận:
+
+```text
+HELD
+RELEASED
+EXPIRED
+CONVERTED
+```
+
+Lifecycle audit dùng:
+
+```text
+SEAT_HOLD_CREATED
+SEAT_HOLD_REFRESHED
+SEAT_HOLD_CONFLICT
+SEAT_HOLD_RELEASED
+SEAT_HOLD_EXPIRED
+SEAT_HOLD_CONVERTED
+```
+
+### Checkout consistency
+
+`BookingService.create(...)` vẫn giữ V24 `Idempotency-Key` + request fingerprint. V66 bổ sung:
+
+```text
+ownsAll()
+  -> lock seat rows trong transaction checkout
+  -> validate durable hold còn hợp lệ
+  -> tạo booking + booking_seat
+  -> flush uq_showtime_seat_active
+  -> convert durable hold -> CONVERTED
+  -> commit
+```
+
+Seat-row locks được giữ đến commit/rollback của checkout, nên expiry worker hoặc contender khác không thể lấy lại cùng ghế giữa lúc checkout đang chạy. Nếu checkout rollback, hold không bị convert nhầm; expiry job sẽ xử lý sau khi TTL hết.
+
+### Redis degradation / recovery
+
+Redis chỉ là mirror. `SeatEventPublisher` V66 là best-effort: lỗi Redis không được rollback durable seat ownership. Seat map đọc owner từ PostgreSQL và hydrate lại Redis khi có thể.
+
+Scheduled expiry:
+
+```text
+SEAT_HOLD_EXPIRY_SCAN_MS=5000
+SEAT_HOLD_EXPIRY_BATCH_SIZE=200
+SEAT_HOLD_TTL_SECONDS=300
+```
+
+Expiry worker dùng seat-row lock trước khi chuyển `HELD -> EXPIRED`, nên không đạp lên checkout transaction đang giữ cùng ghế.
+
+Admin có thể chạy đối soát DB ↔ Redis tại:
+
+```text
+POST /api/admin/seat-operations/reconcile
+```
+
+### Admin Seat Operations V66
+
+Admin Dashboard có tile:
+
+```text
+🎫 Seat Operations V66
+```
+
+Route:
+
+```text
+/admin/seat-operations
+```
+
+API:
+
+```text
+GET  /api/admin/seat-operations/summary
+GET  /api/admin/seat-operations/holds?limit=80
+POST /api/admin/seat-operations/reconcile
+```
+
+Dashboard hiển thị active holds, hold sắp hết hạn, converted/expired/released/conflict 24h, trạng thái Redis mirror và lifecycle gần đây. UI refresh mỗi 5 giây.
+
+### Database / data V66
+
+V66 có migration mới:
+
+```text
+V66__durable_seat_holds.sql
+```
+
+Sau migrate:
+
+```text
+Flyway latest: V66
+Public tables: 58
+Core/reference seeded tables: 57
+Transient operational table: seat_hold
+```
+
+`seat_hold` **được phép rỗng** khi không có người đang/đã giữ ghế trên database mới. Vì vậy các gate `verify_realistic_data_57.py` và `verify_seed_demo_57.py` vẫn kiểm tra 57 bảng dữ liệu core/reference; chúng không bịa row `seat_hold` chỉ để làm đẹp số lượng. V66 verifier kiểm tra schema/invariant riêng cho bảng thứ 58.
+
+Không có seed phim, khách hàng, booking, payment hoặc seat-hold giả trong V66. UTF-8 end-to-end và 8 phim V29 được giữ nguyên.
+
+### Source / runtime verification V66
+
+Chạy từ:
+
+```text
+D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+```
+
+```powershell
+python .\tools\verify_v60_payment_production_4.py
+python .\tools\verify_v61_fraud_risk_intelligence.py
+python .\tools\verify_v62_dynamic_pricing_4.py
+python .\tools\verify_v63_recommendation_4.py
+python .\tools\verify_v64_crm_marketing_automation.py
+python .\tools\verify_v65_observability_reliability.py
+python .\tools\verify_v65_local_https.py
+python .\tools\verify_v66_booking_consistency_seat_locking.py
+python .\tools\verify_realistic_data_57.py
+python .\tools\verify_seed_demo_57.py
+```
+
+Hoặc:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v66.ps1
+```
+
+Build/migrate:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.https.yml up -d --build
+
+docker compose -f docker-compose.yml -f docker-compose.https.yml ps
+```
+
+Kiểm tra Flyway/table sau khi backend healthy:
+
+```powershell
+docker compose exec postgres psql -U cinebooking -d cinebooking -c "select version,description,success from flyway_schema_history order by installed_rank desc limit 3;"
+docker compose exec postgres psql -U cinebooking -d cinebooking -c "select count(*) as public_tables from information_schema.tables where table_schema='public' and table_type='BASE TABLE';"
+```
+
+Mong đợi:
+
+```text
+Flyway latest = 66
+public_tables = 58
+```
+
+Browser journey mới:
+
+```text
+frontend/e2e/booking-consistency-seat-locking-v66.spec.ts
+
+> **V66 Playwright Admin credentials:** `frontend/playwright.config.ts` now reads the project-root `.env` automatically and maps `ADMIN_EMAIL` / `ADMIN_PASSWORD` to `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` when explicit E2E variables are not already set. This keeps local Playwright aligned with the actual Compose/Spring Admin account without copying a real password into source. Explicit `E2E_ADMIN_*` values still have highest priority for CI or one-off runs. The login helper reports the current URL and rendered login error instead of timing out silently.
+
+```
+
+Journey tạo hai USER thật theo shape test hiện hữu, race cùng một cụm ghế qua `/api`, yêu cầu đúng **1 winner / 1 HTTP 409**, kiểm tra response `POSTGRESQL_WITH_REDIS_MIRROR`, rồi xác nhận hold xuất hiện trên Admin Seat Operations.
+
+### Lưu ý rollout V65 → V66
+
+V65 trước đó giữ ghế ngắn hạn chỉ trong Redis. **V66 không backfill các hold Redis đang tồn tại sang `seat_hold`**, vì các hold này là trạng thái tạm thời và không có transaction-safe owner record để migrate. Khi nâng production nên deploy trong cửa sổ ngắn không có checkout đang hoạt động (hoặc đợi tối đa một TTL hold hiện tại) rồi mới mở traffic. Booking `PENDING`/`CONFIRMED` và payment hiện có không bị xoá hay reset. **Không chạy `docker compose down -v`**.
+
+### Release V66
+
+```text
+RC:     v66.0.0-rc.1
+Stable: v66.0.0
+```
+
+Trusted local HTTPS của V65 vẫn được giữ nguyên. Sau khi đã cài `mkcert`, chạy stack bằng:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\setup-local-https.ps1 -Start
+```
+
+và mở:
+
+```text
+https://localhost
+```
+
+
+### V66 runtime hotfix - Admin Seat Operations summary (PgJDBC TIMESTAMPTZ binding)
+
+Nếu race E2E đã tạo được durable hold (HTTP `200 + 409`) nhưng `/admin/seat-operations` vẫn hiện `Lỗi hệ thống`, `Server: —` và `0 dòng`, nguyên nhân là Admin summary dùng raw `JdbcTemplate` với `java.time.Instant` làm bind parameter cho các cột `TIMESTAMPTZ`. Repository/Hibernate tự chuyển kiểu, nhưng PgJDBC không nên nhận `Instant` thô qua varargs trong đường này. V66 hotfix chuẩn hóa các tham số thời gian sang `java.sql.Timestamp` trước khi query.
+
+Sau hotfix:
+
+- `/api/admin/seat-operations/summary` trả summary thật thay vì HTTP 500 do bind type.
+- Admin UI chỉ hiển thị Redis `DEGRADED` khi summary tải thành công và Redis thực sự không khả dụng; nếu summary chưa tải thì hiển thị `UNKNOWN`.
+- E2E bắt buộc summary không có error banner, metric không còn `—`, rồi mới kiểm tra durable hold đang hiển thị.
+- Không thêm migration, không reset database, giữ Flyway V66 / 58 public tables.
+
+
+## V67 - Payment Resilience & Reconciliation 5.0
+
+V67 tập trung vào khả năng phục hồi thanh toán khi callback bị mất, gateway trả trạng thái chưa chắc chắn, hoặc webhook hợp lệ tới trước khi hệ thống liên kết được payment. Strategy:
+
+```text
+V67-PAYMENT-RESILIENCE-5
+```
+
+### Gateway reconciliation mặc định bật
+
+```text
+PAYMENT_AUTO_RECONCILE_ENABLED=true
+PAYMENT_RECONCILE_SCAN_MS=60000
+PAYMENT_RECONCILE_MIN_AGE_SECONDS=45
+PAYMENT_RECONCILE_MAX_BATCH=20
+PAYMENT_RECONCILE_MAX_BACKOFF_SECONDS=900
+```
+
+PENDING/REVIEW của VNPay/MoMo được query lại theo lịch. Chỉ response query hợp lệ và amount khớp mới được phép đưa payment sang SUCCESS. Lỗi query dùng bounded exponential backoff và vẫn giữ payment ở trạng thái an toàn để retry sau.
+
+### Webhook recovery / dead-letter
+
+V67 mở rộng `payment_webhook_event` với lifecycle:
+
+```text
+RECEIVED -> PROCESSED
+        -> REJECTED
+        -> ORPHANED -> RECOVERY_PENDING -> RECOVERED
+                                      \-> DEAD_LETTER
+```
+
+Webhook receipt được claim bằng transaction `REQUIRES_NEW`, vì vậy nếu transaction xử lý callback phía sau rollback thì event `RECEIVED` vẫn tồn tại để recovery job query gateway lại. Recovery **không replay mù payload webhook đã lưu**. Với event có chữ ký hợp lệ, hệ thống lấy provider order từ event key, liên kết lại payment nếu có thể rồi gọi query API của VNPay/MoMo. Điều này tránh dùng callback cũ như nguồn sự thật. Event chữ ký sai/merchant sai/amount sai nằm ở `REJECTED` và không được recovery.
+
+```text
+PAYMENT_WEBHOOK_RECOVERY_ENABLED=true
+PAYMENT_WEBHOOK_RECOVERY_SCAN_MS=60000
+PAYMENT_WEBHOOK_RECOVERY_MIN_AGE_SECONDS=30
+PAYMENT_WEBHOOK_RECOVERY_MAX_BATCH=20
+PAYMENT_WEBHOOK_RECOVERY_MAX_ATTEMPTS=5
+PAYMENT_WEBHOOK_RECOVERY_MAX_BACKOFF_SECONDS=900
+```
+
+### Refund settlement state
+
+V67 không thay đổi policy hoàn vé V38, nhưng payment có durable metadata để tránh ghi nhận hoàn tiền mơ hồ:
+
+```text
+NONE
+REQUESTED
+EVIDENCE_REQUIRED
+SETTLED
+REJECTED
+FAILED
+```
+
+`refund_operation_key` là idempotency key nội bộ theo booking. Provider remote vẫn phải có provider reference trước khi booking/payment được ghi `REFUNDED`; request bị từ chối chuyển refund state sang `REJECTED`. Dữ liệu refund cũ đã `REFUNDED` được Flyway backfill thành `SETTLED` mà không sửa lịch sử nghiệp vụ.
+
+### Admin Payment Resilience V67
+
+```text
+/admin/payment-resilience
+GET  /api/admin/payment-resilience/summary
+POST /api/admin/payment-resilience/reconcile-due
+POST /api/admin/payment-resilience/recover-due
+POST /api/admin/payment-resilience/webhooks/{id}/recover
+```
+
+Dashboard hiển thị due reconciliation, remote PENDING/REVIEW, ORPHANED/RECOVERY_PENDING/DEAD_LETTER webhook, refund settlement counts, policy/backoff và recovery queue. Tile `💳 Payment Resilience V67` nằm trên Admin Dashboard.
+
+### Database / dữ liệu V67
+
+```text
+Flyway latest: V67
+Public tables: 58
+New V67 tables: 0
+```
+
+V67 chỉ ALTER `payment` và `payment_webhook_event`, không seed payment/webhook/refund giả. 57 bảng core/reference vẫn dùng data-policy hiện có; `seat_hold` tiếp tục là bảng transient thứ 58.
+
+### Verification V67
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python .\tools\verify_v67_payment_resilience_reconciliation.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v67.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/payment-resilience-reconciliation-v67.spec.ts" --project=chromium
+```
+
+### Release V67
+
+```text
+RC:     v67.0.0-rc.1
+Stable: v67.0.0
+```

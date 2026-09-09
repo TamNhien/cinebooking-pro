@@ -51,7 +51,7 @@ public class SeatService {
         long remainingMs = holds.remainingMillis(showtimeId,mine,currentUserId);
         long expiresAt = remainingMs <= 0 ? 0 : now + remainingMs;
         return new SeatMapResponse(showtimeId, holds.ttlSeconds(), remaining, now, expiresAt,
-                maxSelectableSeats, preventSingleGap, result);
+                maxSelectableSeats, preventSingleGap, result, SeatHoldService.AUTHORITY);
     }
 
     public SeatSuggestionResponse suggestions(UUID showtimeId, int count, UUID currentUserId) {
@@ -88,13 +88,10 @@ public class SeatService {
             if (!validation.allowed()) throw new ApiException(HttpStatus.CONFLICT,validation.message());
         }
 
-        boolean ok = holds.acquire(showtimeId, unique, userId);
-        if (!ok) throw new ApiException(HttpStatus.CONFLICT,"Có ghế đang được người khác giữ");
+        SeatHoldService.AcquireResult acquired = holds.acquire(showtimeId, unique, userId);
         events.publish(showtimeId,"HELD",unique);
-        long now = System.currentTimeMillis();
-        long remainingMs = holds.remainingMillis(showtimeId,unique,userId);
-        long expiresAt = remainingMs <= 0 ? now + holds.ttlSeconds()*1000L : now + remainingMs;
-        return new HoldResponse(true, holds.ttlSeconds(), now, expiresAt, unique);
+        return new HoldResponse(acquired.acquired(), acquired.holdToken(), acquired.ttlSeconds(),
+                acquired.serverEpochMs(), acquired.holdExpiresAtEpochMs(), acquired.seatIds(), acquired.authority());
     }
 
     public void release(UUID showtimeId, List<UUID> seatIds, UUID userId) {

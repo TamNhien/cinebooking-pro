@@ -12,10 +12,10 @@ public final class SeatDtos {
                                List<String> pricingRules, String status, boolean heldByMe) {}
     public record SeatMapResponse(UUID showtimeId, long holdTtlSeconds, long holdRemainingSeconds,
                                   long serverEpochMs, long holdExpiresAtEpochMs, int maxSelectableSeats,
-                                  boolean preventSingleGap, List<SeatResponse> seats) {}
+                                  boolean preventSingleGap, List<SeatResponse> seats, String holdAuthority) {}
     public record HoldRequest(@NotEmpty List<UUID> seatIds) {}
-    public record HoldResponse(boolean acquired, long ttlSeconds, long serverEpochMs,
-                               long holdExpiresAtEpochMs, List<UUID> seatIds) {}
+    public record HoldResponse(boolean acquired, UUID holdToken, long ttlSeconds, long serverEpochMs,
+                               long holdExpiresAtEpochMs, List<UUID> seatIds, String authority) {}
     public record SeatSuggestion(List<UUID> seatIds, List<String> seatCodes, BigDecimal totalPrice,
                                  BigDecimal dynamicAdjustment, int score, int centerScore, int rowScore,
                                  int orphanSafetyScore, String qualityLabel, String reason) {}
