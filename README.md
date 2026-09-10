@@ -3,6 +3,7 @@
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
 > **Current release:** V75 - Analytics & BI 5.0
+> **Current stable patch:** `v75.0.1` - Cost Coverage Drill-down for unknown concession cost basis.
 
 V75 adds **Analytics & BI 5.0** as the next roadmap milestone after V74 Reliability. It reuses existing operational data and the V51/V55/V56 analytics lineage to expose a booking-to-payment-to-check-in funnel, registration cohorts with explicit 30-day maturity, realized customer LTV, payment-provider conversion, and movie/cinema efficiency. V75 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**.
 
@@ -116,6 +117,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V73** | **GitHub Actions Runtime Modernization 5.0: Node 24 action baseline, upload-artifact v7, setup-java v6, legacy-action regression gate** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V74** | **Reliability & Resilience 5.0: multi-window burn-rate, incident timeline, controlled failover exercise, recovery runbook** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V75** | **Analytics & BI 5.0: booking/payment/check-in funnel, cohort activation + repeat 30d, realized LTV, provider conversion, movie/cinema efficiency** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V75.0.1** | **Cost Coverage Drill-down: chỉ đúng rạp/sản phẩm/đơn vị đã bán đang thiếu cost basis, affected revenue, cập nhật trực tiếp** | **Patch no-schema; giữ Flyway V72 / 67 tables** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4924,6 +4926,54 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V74.
+
+## V75.0.1 - Cost Coverage Drill-down
+
+Patch `v75.0.1` hoàn thiện phần **MARGIN & COST COVERAGE** của Analytics V51 mà V75 tiếp tục sử dụng. Khi `costCoverageRate < 100%`, thẻ **Giá vốn bắp nước / Chưa biết** trở thành drill-down thay vì chỉ hiển thị trạng thái. Strategy:
+
+```text
+V75.0.1-COST-COVERAGE-DRILLDOWN-1
+```
+
+API mới chỉ đọc dữ liệu vận hành thật:
+
+```text
+GET /api/admin/analytics/missing-cost-basis?days=30&cinemaId=<optional>
+```
+
+Backend đối chiếu `booking_concession` của booking `CONFIRMED` với `cinema_concession_cost_basis` theo đúng cặp **rạp + sản phẩm** và đúng cửa sổ Analytics. Chỉ các dòng `cb.unit_cost IS NULL` mới xuất hiện. Response cho biết chính xác `missingUnits`, số cặp rạp/sản phẩm bị ảnh hưởng, `affectedRevenue`, lần bán gần nhất và từng item đang thiếu cost. Giá vốn **không được ước lượng**, không dùng `COALESCE(cost,0)` và không sinh dữ liệu giả.
+
+Trên UI, Admin/Manager có thể bấm thẻ **Chưa biết**, xem các item thiếu cost và nhập giá vốn ngay tại dòng bằng nút **Cập nhật ngay**. Action tái sử dụng endpoint V51 hiện có:
+
+```text
+PUT /api/admin/analytics/cost-basis
+```
+
+Sau khi lưu, dashboard và drill-down được tải lại để `costCoverageRate`, `concessionCost` và `grossMargin` phản ánh dữ liệu mới ngay lập tức. Nếu một sản phẩm lịch sử đã bị xóa khiến `productId` không còn, hệ thống vẫn hiển thị evidence nhưng chặn cập nhật trực tiếp thay vì ghi nhầm cost vào sản phẩm khác.
+
+V75.0.1 là patch **no-schema**:
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V75.0.1 tables: 0
+```
+
+Verification:
+
+```powershell
+python -X utf8 .\tools\verify_v51_analytics_forecasting_3.py
+python -X utf8 .\tools\verify_v75_analytics_bi_5.py
+python -X utf8 .\tools\verify_v75_cost_coverage_drilldown.py
+```
+
+Stable patch tag:
+
+```text
+v75.0.1
+```
+
+V76 vẫn dành cho roadmap **Recommendation 5.0**; patch này không chiếm major version tiếp theo.
 
 ## V75 - Analytics & BI 5.0
 

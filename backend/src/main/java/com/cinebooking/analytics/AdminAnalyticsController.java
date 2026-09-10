@@ -52,6 +52,14 @@ public class AdminAnalyticsController {
         return forecastingService.costBasis(cinemaId);
     }
 
+    @GetMapping("/missing-cost-basis")
+    public MissingCostCoverage missingCostBasis(
+            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(required = false) UUID cinemaId
+    ) {
+        return forecastingService.missingCostBasis(days, cinemaId);
+    }
+
     @PutMapping("/cost-basis")
     public ConcessionCostBasis updateCostBasis(@RequestBody CostBasisUpdate request, Authentication authentication) {
         String actor = authentication == null ? "system" : authentication.getName();

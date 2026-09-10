@@ -374,6 +374,9 @@ jobs:
       - name: Verify V75 Analytics & BI 5.0
         run: python3 tools/verify_v75_analytics_bi_5.py
 
+      - name: Verify V75.0.1 Cost Coverage Drill-down
+        run: python3 tools/verify_v75_cost_coverage_drilldown.py
+
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
 

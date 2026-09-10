@@ -8,6 +8,8 @@ import { getAuth } from "@/lib/auth";
 import type {
   AnalyticsConcessionCostBasis,
   AnalyticsDashboard,
+  AnalyticsMissingCostBasisItemV75Patch,
+  AnalyticsMissingCostCoverageV75Patch,
   AnalyticsNameValue,
   AnalyticsSeatHeatCell,
   AnalyticsStatusCount,
@@ -32,6 +34,11 @@ export default function AnalyticsPage(){
   const [exporting,setExporting]=useState<"csvzip"|"xlsx"|null>(null);
   const [costDraft,setCostDraft]=useState<Record<string,string>>({});
   const [savingCost,setSavingCost]=useState<string|null>(null);
+  const [missingCostOpen,setMissingCostOpen]=useState(false);
+  const [missingCostLoading,setMissingCostLoading]=useState(false);
+  const [missingCost,setMissingCost]=useState<AnalyticsMissingCostCoverageV75Patch|null>(null);
+  const [missingCostDraft,setMissingCostDraft]=useState<Record<string,string>>({});
+  const [savingMissingCost,setSavingMissingCost]=useState<string|null>(null);
 
   useEffect(()=>{
     const auth=getAuth();
@@ -45,6 +52,7 @@ export default function AnalyticsPage(){
   useEffect(()=>{
     const auth=getAuth();
     if(!auth||!["MANAGER","ADMIN"].includes(auth.role)) return;
+    setMissingCostOpen(false); setMissingCost(null);
     setLoading(true); setError("");
     const query=new URLSearchParams({days:String(days)});
     if(cinemaId) query.set("cinemaId",cinemaId);
@@ -100,6 +108,70 @@ export default function AnalyticsPage(){
     }
   }
 
+  function analyticsQuery(){
+    const query=new URLSearchParams({days:String(days)});
+    if(cinemaId) query.set("cinemaId",cinemaId);
+    return query;
+  }
+
+  async function refreshAnalytics(){
+    const fresh=await api<AnalyticsDashboard>(`/admin/analytics?${analyticsQuery()}`);
+    setData(fresh);
+    return fresh;
+  }
+
+  async function loadMissingCost(){
+    setMissingCostLoading(true);
+    try{
+      const details=await api<AnalyticsMissingCostCoverageV75Patch>(`/admin/analytics/missing-cost-basis?${analyticsQuery()}`);
+      setMissingCost(details);
+      setMissingCostDraft(prev=>{
+        const next={...prev};
+        for(const item of details.items){
+          const key=`${item.cinemaId}:${item.productId||item.productName}`;
+          if(next[key]===undefined) next[key]="";
+        }
+        return next;
+      });
+      return details;
+    }finally{
+      setMissingCostLoading(false);
+    }
+  }
+
+  async function toggleMissingCost(){
+    if(missingCostOpen){setMissingCostOpen(false);return;}
+    setMissingCostOpen(true); setError("");
+    try{await loadMissingCost();}
+    catch(e){setError(e instanceof Error?e.message:"Không thể tải danh sách thiếu giá vốn.");}
+  }
+
+  async function saveMissingCost(item:AnalyticsMissingCostBasisItemV75Patch){
+    if(!item.productId||!item.actionable){
+      setError("Sản phẩm lịch sử này không còn productId nên không thể cập nhật cost basis trực tiếp.");
+      return;
+    }
+    const key=`${item.cinemaId}:${item.productId}`;
+    const raw=(missingCostDraft[key]??"").trim();
+    const unitCost=Number(raw);
+    if(raw===""||!Number.isFinite(unitCost)||unitCost<0){
+      setError("Nhập giá vốn không âm trước khi cập nhật.");
+      return;
+    }
+    setSavingMissingCost(key); setError("");
+    try{
+      await api<AnalyticsConcessionCostBasis>("/admin/analytics/cost-basis",{
+        method:"PUT",
+        body:JSON.stringify({cinemaId:item.cinemaId,productId:item.productId,unitCost}),
+      });
+      await Promise.all([refreshAnalytics(),loadMissingCost()]);
+    }catch(e){
+      setError(e instanceof Error?e.message:"Không thể cập nhật giá vốn từ danh sách thiếu cost.");
+    }finally{
+      setSavingMissingCost(null);
+    }
+  }
+
   async function saveCostBasis(row:AnalyticsConcessionCostBasis){
     const raw=(costDraft[row.productId]??"").trim();
     const unitCost=raw===""?null:Number(raw);
@@ -109,11 +181,12 @@ export default function AnalyticsPage(){
     }
     setSavingCost(row.productId); setError("");
     try{
-      const updated=await api<AnalyticsConcessionCostBasis>("/admin/analytics/cost-basis",{
+      await api<AnalyticsConcessionCostBasis>("/admin/analytics/cost-basis",{
         method:"PUT",
         body:JSON.stringify({cinemaId:row.cinemaId,productId:row.productId,unitCost}),
       });
-      setData(prev=>prev?{...prev,concessionCostBasis:prev.concessionCostBasis.map(x=>x.cinemaId===updated.cinemaId&&x.productId===updated.productId?updated:x)}:prev);
+      await refreshAnalytics();
+      if(missingCostOpen) await loadMissingCost();
     }catch(e){
       setError(e instanceof Error?e.message:"Không thể cập nhật giá vốn.");
     }finally{
@@ -188,9 +261,21 @@ export default function AnalyticsPage(){
           <Kpi title="Doanh thu" value={currency(data.margin.revenue)} note="Payment SUCCESS"/>
           <Kpi title="Vé / dịch vụ" value={currency(data.margin.ticketRevenue)} note="Revenue trừ concession"/>
           <Kpi title="Bắp nước" value={currency(data.margin.concessionRevenue)} note={`${number(data.margin.concessionUnits)} đơn vị`}/>
-          <Kpi title="Giá vốn bắp nước" value={moneyOrUnknown(data.margin.concessionCost)} note={`${number(data.margin.costedUnits)}/${number(data.margin.concessionUnits)} đơn vị có cost`}/>
+          {data.margin.costCoverageRate<100?<button data-testid="missing-cost-drilldown-toggle" type="button" className="card p-4 text-left transition hover:border-amber-600/70 hover:bg-amber-950/10" onClick={()=>void toggleMissingCost()}><div className="text-xs uppercase tracking-wider text-slate-500">Giá vốn bắp nước</div><div className="mt-1 text-2xl font-black text-amber-200">{moneyOrUnknown(data.margin.concessionCost)}</div><div className="mt-1 text-xs text-amber-300">{number(data.margin.costedUnits)}/{number(data.margin.concessionUnits)} đơn vị có cost · bấm để xem {number(data.margin.concessionUnits-data.margin.costedUnits)} đơn vị còn thiếu</div></button>:<Kpi title="Giá vốn bắp nước" value={moneyOrUnknown(data.margin.concessionCost)} note={`${number(data.margin.costedUnits)}/${number(data.margin.concessionUnits)} đơn vị có cost`}/>}
           <Kpi title="Gross margin" value={moneyOrUnknown(data.margin.grossMargin)} note={data.margin.grossMarginRate===null?"Chưa đủ cost basis":pct(data.margin.grossMarginRate)}/>
         </div>
+
+        {missingCostOpen&&<div data-testid="missing-cost-drilldown-v75-patch" className="mt-5 rounded-2xl border border-amber-800/50 bg-amber-950/10 p-4 sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div><div className="text-xs font-black uppercase tracking-wider text-amber-300">{missingCost?.strategyVersion||"V75.0.1-COST-COVERAGE-DRILLDOWN-1"}</div><h3 className="mt-1 text-lg font-black">Các giao dịch bắp nước đang thiếu giá vốn</h3><p className="mt-1 text-sm text-slate-400">Chỉ liệt kê sản phẩm đã bán trong đúng cửa sổ {days} ngày nhưng chưa có cost basis tại chi nhánh. Không ước lượng và không tự điền giá vốn.</p></div>
+            <button className="btn btn-secondary" type="button" onClick={()=>setMissingCostOpen(false)}>Đóng</button>
+          </div>
+          {missingCostLoading&&<div className="mt-4 text-sm text-slate-400">Đang đối chiếu booking concession với cost basis...</div>}
+          {!missingCostLoading&&missingCost&&<>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3"><Kpi title="Đơn vị thiếu cost" value={number(missingCost.missingUnits)} note={`${number(missingCost.affectedProductBranches)} cặp rạp/sản phẩm`}/><Kpi title="Doanh thu bị ảnh hưởng" value={currency(missingCost.affectedRevenue)} note="Chưa đủ cơ sở tính gross margin"/><Kpi title="Cửa sổ" value={`${missingCost.windowDays} ngày`} note={`${dateTime(missingCost.windowStart)} → ${dateTime(missingCost.windowEnd)}`}/></div>
+            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp</th><th>Sản phẩm</th><th>Thiếu cost</th><th>Doanh thu ảnh hưởng</th><th>Lần bán gần nhất</th><th>Giá vốn</th><th></th></tr></thead><tbody className="divide-y divide-slate-800/70">{missingCost.items.map(item=>{const key=`${item.cinemaId}:${item.productId||item.productName}`;return <tr data-testid="missing-cost-row-v75-patch" key={key}><td className="py-3 font-semibold">{item.cinemaName}</td><td>{item.productName}</td><td className="font-black text-amber-200">{number(item.missingUnits)} đơn vị</td><td>{currency(item.affectedRevenue)}</td><td>{item.lastConfirmedAt?dateTime(item.lastConfirmedAt):"-"}</td><td>{item.actionable?<input data-testid="missing-cost-input-v75-patch" className="input !w-36" inputMode="decimal" placeholder="Nhập giá vốn" value={missingCostDraft[key]??""} onChange={e=>setMissingCostDraft(v=>({...v,[key]:e.target.value}))}/>:<span className="text-xs text-slate-500">Sản phẩm lịch sử</span>}</td><td className="text-right">{item.actionable?<button data-testid="missing-cost-save-v75-patch" className="btn btn-primary" type="button" disabled={savingMissingCost===key} onClick={()=>void saveMissingCost(item)}>{savingMissingCost===key?"Đang cập nhật...":"Cập nhật ngay"}</button>:<span className="text-xs text-slate-500">Không thể cập nhật trực tiếp</span>}</td></tr>})}</tbody></table>{!missingCost.items.length&&<div className="py-6 text-center text-emerald-300">Đã đủ cost basis cho toàn bộ bắp nước bán trong cửa sổ này.</div>}</div>
+          </>}
+        </div>}
       </section>
 
       {cinemaId?<section data-testid="cost-basis-v51" className="card p-5 sm:p-6">

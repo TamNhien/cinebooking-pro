@@ -35,6 +35,7 @@ if (-not $SkipVerify) {
     'tools/verify_v73_github_actions_node24.py',
     'tools/verify_v74_reliability_resilience_5.py',
     'tools/verify_v75_analytics_bi_5.py',
+    'tools/verify_v75_cost_coverage_drilldown.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'
   )

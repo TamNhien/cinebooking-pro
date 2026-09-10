@@ -134,6 +134,29 @@ public final class AnalyticsDtos {
             BigDecimal unitCost
     ) {}
 
+    // V75.0.1 - exact drill-down for sold concession units whose branch cost basis is still unknown.
+    public record MissingCostBasisItem(
+            UUID cinemaId,
+            String cinemaName,
+            UUID productId,
+            String productName,
+            long missingUnits,
+            BigDecimal affectedRevenue,
+            Instant lastConfirmedAt,
+            boolean actionable
+    ) {}
+
+    public record MissingCostCoverage(
+            String strategyVersion,
+            int windowDays,
+            Instant windowStart,
+            Instant windowEnd,
+            long missingUnits,
+            BigDecimal affectedRevenue,
+            int affectedProductBranches,
+            List<MissingCostBasisItem> items
+    ) {}
+
     public record AnalyticsSnapshot(
             UUID id,
             UUID cinemaId,

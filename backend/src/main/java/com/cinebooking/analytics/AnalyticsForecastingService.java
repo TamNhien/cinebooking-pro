@@ -16,6 +16,7 @@ import static com.cinebooking.analytics.AnalyticsDtos.*;
 @Service
 public class AnalyticsForecastingService {
     public static final String FORECAST_ALGORITHM = "V51-WEEKDAY-WEIGHTED-MA-1";
+    public static final String COST_COVERAGE_DRILLDOWN_STRATEGY = "V75.0.1-COST-COVERAGE-DRILLDOWN-1";
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
@@ -149,6 +150,51 @@ public class AnalyticsForecastingService {
                 .filter(x -> x.productId().equals(request.productId()))
                 .findFirst()
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy cost basis sau khi cập nhật."));
+    }
+
+    public MissingCostCoverage missingCostBasis(int requestedDays, UUID cinemaId) {
+        int days = Math.max(7, Math.min(requestedDays, 365));
+        Instant end = Instant.now();
+        Instant start = end.minus(Duration.ofDays(days));
+        String cinemaFilter = cinemaId == null ? "" : " and a.cinema_id=?";
+
+        List<MissingCostBasisItem> items = jdbc.query(
+                "select a.cinema_id,c.name cinema_name,bc.product_id," +
+                        "coalesce(max(p.name),max(bc.product_name)) product_name," +
+                        "coalesce(sum(bc.quantity),0) missing_units," +
+                        "coalesce(sum(bc.subtotal),0) affected_revenue," +
+                        "max(b.confirmed_at) last_confirmed_at " +
+                        "from booking_concession bc join booking b on b.id=bc.booking_id " +
+                        "join showtime st on st.id=b.showtime_id join auditorium a on a.id=st.auditorium_id " +
+                        "join cinema c on c.id=a.cinema_id " +
+                        "left join concession_product p on p.id=bc.product_id " +
+                        "left join cinema_concession_cost_basis cb on cb.cinema_id=a.cinema_id and cb.product_id=bc.product_id " +
+                        "where b.status='CONFIRMED' and b.confirmed_at>=? and b.confirmed_at<? and cb.unit_cost is null" + cinemaFilter +
+                        " group by a.cinema_id,c.name,bc.product_id " +
+                        "order by missing_units desc,affected_revenue desc,c.name,product_name",
+                (rs, rowNum) -> {
+                    UUID productId = rs.getObject("product_id", UUID.class);
+                    return new MissingCostBasisItem(
+                            rs.getObject("cinema_id", UUID.class),
+                            rs.getString("cinema_name"),
+                            productId,
+                            rs.getString("product_name"),
+                            rs.getLong("missing_units"),
+                            money(rs.getBigDecimal("affected_revenue")),
+                            rs.getTimestamp("last_confirmed_at") == null ? null : rs.getTimestamp("last_confirmed_at").toInstant(),
+                            productId != null
+                    );
+                },
+                timeArgs(start, end, cinemaId)
+        );
+
+        long missingUnits = items.stream().mapToLong(MissingCostBasisItem::missingUnits).sum();
+        BigDecimal affectedRevenue = items.stream()
+                .map(MissingCostBasisItem::affectedRevenue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new MissingCostCoverage(
+                COST_COVERAGE_DRILLDOWN_STRATEGY, days, start, end, missingUnits, money(affectedRevenue), items.size(), List.copyOf(items)
+        );
     }
 
     public List<AuditoriumPerformance> auditoriumPerformance(int requestedDays, UUID cinemaId) {

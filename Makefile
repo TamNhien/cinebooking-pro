@@ -1018,3 +1018,9 @@ diagnose-v75:
 
 release-v75:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v75.0.0
+
+verify-v75-cost:
+	python tools/verify_v75_cost_coverage_drilldown.py
+
+release-v75-patch:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v75.0.1
