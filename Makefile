@@ -1033,3 +1033,12 @@ diagnose-v76:
 
 release-v76:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v76.0.0
+
+verify-v77:
+	python tools/verify_v77_crm_automation_5.py
+
+diagnose-v77:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v77.ps1
+
+release-v77:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.0

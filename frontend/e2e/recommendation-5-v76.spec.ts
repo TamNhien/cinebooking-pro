@@ -22,7 +22,7 @@ test("V76 Recommendation 5.0 exposes real-data quality and evidence",async({page
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
   expect(versions).toContain(75);
-  expect(versions.at(-1)).toBe(76);
+  expect(versions.at(-1)).toBeGreaterThanOrEqual(76);
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/recommendation$/);

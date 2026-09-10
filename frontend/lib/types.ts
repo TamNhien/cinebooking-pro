@@ -302,7 +302,7 @@ export type FraudRiskScorecardV61 = { summary:FraudRiskSummaryV61; rules:FraudRi
 export type MarketingSegmentCodeV64 = "ALL_ELIGIBLE"|"NEW_30D"|"ENGAGED_30D"|"VIP"|"AT_RISK_31_90D"|"LAPSED_90D_PLUS"|"PROSPECT_NO_BOOKING";
 export type MarketingSegmentV64 = { code:MarketingSegmentCodeV64; label:string; definition:string; customers:number; recommendedAction:string; defaultDiscountPercent:number };
 export type MarketingOverviewV64 = { strategyVersion:string; generatedAt:string; eligibleCustomers:number; segments:MarketingSegmentV64[] };
-export type MarketingAudienceV64 = { customerRef:string; fullName:string; maskedEmail:string; membershipTier:string; lastBookingDate?:string; recencyDays:number; lifetimeBookings:number; lifetimeRevenue:number };
+export type MarketingAudienceV64 = { customerRef:string; maskedEmail:string; membershipTier:string; lastBookingDate?:string; recencyDays:number; lifetimeBookings:number; lifetimeRevenue:number };
 export type MarketingCampaignRequestV64 = { campaignCode:string; segmentCode:MarketingSegmentCodeV64; title:string; message:string; discountType:"PERCENT"|"FIXED"; discountValue:number; minOrderAmount:number; maxDiscount?:number; validityDays:number; confirmed:boolean };
 export type MarketingCampaignPreviewV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; segmentLabel:string; matchedCustomers:number; previewLimit:number; audience:MarketingAudienceV64[]; voucherPolicy:string; deliveryPolicy:string };
 export type MarketingCampaignLaunchV64 = { strategyVersion:string; campaignCode:string; segmentCode:MarketingSegmentCodeV64; matchedCustomers:number; vouchersCreated:number; vouchersReused:number; notificationsCreated:number; notificationsSkipped:number; launchedAt:string };
@@ -473,4 +473,40 @@ export type RecommendationAdminSummaryV76 = {
   recommendationEvents:number; recommendationClicks:number; recommendationViews:number; explicitFeedback:number;
   moreLikeFeedback:number; lessLikeFeedback:number; hiddenFeedback:number; assistedConfirmedBookings:number; assistedRealizedRevenue:number;
   coverage:RecommendationCoverageV76; topMovies:RecommendationMovieMetricV76[]; topSources:RecommendationSourceMetricV76[]; evidencePolicy:string[];
+};
+
+// V77 CRM Automation 5.0
+export type CrmPlaybookCodeV77 = "WELCOME_FIRST_BOOKING"|"ENGAGED_CROSS_SELL"|"VIP_REWARD"|"AT_RISK_WINBACK"|"LAPSED_REACTIVATION";
+export type CrmPlaybookV77 = {
+  code:CrmPlaybookCodeV77; label:string; definition:string; recommendedAction:string; defaultDiscountPercent:number;
+  eligibleCustomers:number; contactableCustomers:number; suppressedCustomers:number;
+};
+export type CrmSuppressionMetricV77 = { reason:string; customers:number };
+export type CrmOutcomeV77 = {
+  windowDays:number; promotionMessages:number; inAppVisibleMessages:number; readMessages:number; readRatePercent:number;
+  assistedConfirmedBookings:number; assistedRealizedRevenue:number;
+};
+export type CrmAutomationSummaryV77 = {
+  strategyVersion:string; generatedAt:string; frequencyCap7d:number; cooldownHours:number;
+  eligibleCustomers:number; contactableCustomers:number; suppressedCustomers:number;
+  playbooks:CrmPlaybookV77[]; suppressions:CrmSuppressionMetricV77[]; outcome:CrmOutcomeV77; evidencePolicy:string[];
+};
+export type CrmAutomationRequestV77 = {
+  campaignCode:string; playbookCode:CrmPlaybookCodeV77; title:string; message:string; discountType:"PERCENT"|"FIXED";
+  discountValue:number; minOrderAmount:number; maxDiscount?:number; validityDays:number; maxRecipients:number; confirmed:boolean;
+};
+export type CrmAudienceMemberV77 = {
+  customerRef:string; maskedEmail:string; membershipTier:string; lastBookingDate?:string|null; recencyDays:number;
+  lifetimeBookings:number; lifetimeRevenue:number; promotionNotifications7d:number; lastPromotionAt?:string|null;
+  contactable:boolean; suppressionReason?:string|null;
+};
+export type CrmAutomationPreviewV77 = {
+  strategyVersion:string; campaignCode:string; playbookCode:CrmPlaybookCodeV77; playbookLabel:string;
+  eligibleCustomers:number; contactableCustomers:number; suppressedCustomers:number; maxRecipients:number; executable:boolean;
+  previewLimit:number; audience:CrmAudienceMemberV77[]; voucherPolicy:string; deliveryPolicy:string; safetyPolicy:string;
+};
+export type CrmAutomationExecutionV77 = {
+  strategyVersion:string; campaignCode:string; playbookCode:CrmPlaybookCodeV77; eligibleCustomers:number;
+  contactableCustomers:number; suppressedCustomers:number; vouchersCreated:number; vouchersReused:number;
+  notificationsCreated:number; notificationsSkipped:number; executedAt:string;
 };

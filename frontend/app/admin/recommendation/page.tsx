@@ -101,10 +101,53 @@ export default function RecommendationV76AdminPage(){
       </section>
     </div>
 
-    <section className="card p-5" data-testid="recommendation-assisted-v76">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h2 className="text-xl font-bold">Assisted confirmed bookings</h2><p className="mt-1 text-sm text-slate-500">Cùng user + cùng movie có recommendation CLICK/VIEW trong 7 ngày trước booking confirmed. Đây là assisted/correlation, không phải causal attribution.</p></div>
-        <div className="text-right"><div className="text-3xl font-black">{num(data?.assistedConfirmedBookings??0)}</div><div className="text-sm text-emerald-300">Realized SUCCESS revenue: {currency(data?.assistedRealizedRevenue??0)}</div></div>
+    <section className="card overflow-hidden" data-testid="recommendation-assisted-v76">
+      <div className="border-b border-slate-800/80 bg-gradient-to-r from-violet-500/10 via-slate-950/20 to-emerald-500/10 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-4xl">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-400/20 bg-violet-400/10 text-base" aria-hidden="true">↗</span>
+              <h2 className="text-xl font-bold sm:text-2xl">Assisted confirmed bookings</h2>
+            </div>
+            <p className="text-sm leading-6 text-slate-400">
+              Booking CONFIRMED có cùng user + cùng movie với recommendation CLICK/VIEW trong 7 ngày trước đó. Chỉ dùng để đo mức hỗ trợ của recommendation, không diễn giải là quan hệ nhân quả.
+            </p>
+          </div>
+          <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1.5 text-xs font-bold tracking-wide text-violet-200">
+            7-DAY ASSIST WINDOW
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
+        <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-inner shadow-black/10">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Assisted bookings</div>
+            <span className="rounded-md bg-violet-400/10 px-2 py-1 text-[11px] font-semibold text-violet-200">CONFIRMED</span>
+          </div>
+          <div className="mt-4 flex items-end gap-3">
+            <div className="text-4xl font-black tracking-tight text-white sm:text-5xl">{num(data?.assistedConfirmedBookings??0)}</div>
+            <div className="pb-1 text-sm text-slate-500">booking được hỗ trợ</div>
+          </div>
+          <div className="mt-4 h-1.5 rounded-full bg-gradient-to-r from-violet-400/80 via-violet-400/30 to-transparent" aria-hidden="true" />
+        </div>
+
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-5 shadow-inner shadow-black/10">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Realized revenue</div>
+            <span className="rounded-md bg-emerald-400/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">SUCCESS</span>
+          </div>
+          <div className="mt-4 text-3xl font-black tracking-tight text-emerald-300 sm:text-4xl">{currency(data?.assistedRealizedRevenue??0)}</div>
+          <div className="mt-2 text-sm text-slate-500">Doanh thu thực nhận từ payment SUCCESS đã dedupe theo booking.</div>
+          <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-emerald-300/90">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+            Realized SUCCESS revenue
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-800/70 bg-slate-950/30 px-5 py-3 text-xs leading-5 text-slate-500 sm:px-6">
+        <span className="font-semibold text-slate-400">Evidence note:</span> assisted booking = correlation signal trong cửa sổ 7 ngày, không phải causal attribution.
       </div>
     </section>
 

@@ -1,14 +1,14 @@
-# CineBooking Pro V76
+# CineBooking Pro V77
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V76 - Recommendation 5.0
-> **Previous stable patch incorporated:** `v75.0.1` - Cost Coverage Drill-down for unknown concession cost basis.
-> **V76 stable target:** `v76.0.0` (stable-only release flow).
+> **Current release:** V77 - CRM Automation 5.0
+> **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
+> **V77 stable target:** `v77.0.0` (stable-only release flow).
 
-V76 adds **Recommendation 5.0** after V75 Analytics & BI. The customer `/for-you` surface keeps the V63 deep taste model, three ranking modes, explainability, explicit MORE/LESS/HIDE controls and deterministic diversity reranking, while promoting the algorithm identity to `V76-EVIDENCE-AWARE-5` and exposing an explicit evidence policy in the API/UI.
+V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
-V76 also adds an Admin-only **Recommendation Quality & Evidence** surface at `/admin/recommendation`. It measures actionable movie coverage, metadata completeness, users with durable taste signals, observed click/view events, explicit feedback, source activity, and assisted confirmed bookings using existing operational tables only. Assisted booking is explicitly defined as correlation: the same user had a recommendation event for the same movie within seven days before the confirmed booking. It is **not** treated as causal attribution. V76 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and no synthetic movie/customer/booking/payment data is added.
+V77 adds contact-safety controls before any campaign execute: promotion opt-out, enabled-channel requirement, a maximum of 2 promotion notifications per 7 days, 72-hour promotion cooldown, mandatory Preview, explicit `maxRecipients` blast-radius guard, owner-scoped one-use vouchers and idempotent delivery. Outcome metrics use only `PROMOTION_V77` history and label booking/revenue lift as **correlation, not causal attribution**. V77 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and no synthetic customer/booking/payment data is added.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -31,7 +31,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75/V76 **không tạo phim/khách/booking/payment giả**. Recommendation 5.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75/V76/V77 **không tạo phim/khách/booking/payment giả**. Recommendation 5.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -120,6 +120,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V75** | **Analytics & BI 5.0: booking/payment/check-in funnel, cohort activation + repeat 30d, realized LTV, provider conversion, movie/cinema efficiency** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V75.0.1** | **Cost Coverage Drill-down: chỉ đúng rạp/sản phẩm/đơn vị đã bán đang thiếu cost basis, affected revenue, cập nhật trực tiếp** | **Patch no-schema; giữ Flyway V72 / 67 tables** |
 | **V76** | **Recommendation 5.0: evidence-aware For You, real-data recommendation quality dashboard, coverage, feedback/source metrics, assisted booking correlation** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77** | **CRM Automation 5.0: lifecycle playbooks, contactability/suppression, frequency cap, cooldown, preview-before-execute, blast-radius guard, idempotent owner-scoped vouchers, CRM outcome correlation** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -5393,3 +5394,279 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V76.
+
+## V77 - CRM Automation 5.0
+
+V77 tiếp tục roadmap sau V76 và nâng CRM từ **V64 CRM & Marketing Automation 4.0** lên **CRM Automation 5.0**. V64 vẫn được giữ tại `/admin/marketing` để tương thích; V77 bổ sung surface mới:
+
+```text
+/admin/crm-automation
+```
+
+Strategy:
+
+```text
+V77-CRM-AUTOMATION-5
+```
+
+### Lifecycle playbooks V77
+
+V77 phân khúc trực tiếp từ `app_user`, booking `CONFIRMED` và realized payment `SUCCESS` hiện có:
+
+```text
+WELCOME_FIRST_BOOKING
+ENGAGED_CROSS_SELL
+VIP_REWARD
+AT_RISK_WINBACK
+LAPSED_REACTIVATION
+```
+
+Định nghĩa chính:
+
+- `WELCOME_FIRST_BOOKING`: USER active, tài khoản <=30 ngày và chưa có booking `CONFIRMED`.
+- `ENGAGED_CROSS_SELL`: booking `CONFIRMED` gần nhất trong 30 ngày.
+- `VIP_REWARD`: GOLD/DIAMOND hoặc >=4 booking `CONFIRMED` hoặc realized revenue >=1.000.000đ.
+- `AT_RISK_WINBACK`: booking gần nhất cách 31-90 ngày.
+- `LAPSED_REACTIVATION`: booking gần nhất cách trên 90 ngày.
+
+Không có segment synthetic và không tạo customer/booking/payment giả để tăng số eligible.
+
+### Contactability & suppression V77
+
+Mỗi customer khớp playbook được kiểm tra theo thứ tự:
+
+```text
+PROMOTION_OPT_OUT
+NO_ENABLED_CHANNEL
+FREQUENCY_CAP_7D
+COOLDOWN_72H
+```
+
+Contactable chỉ khi:
+
+```text
+notification_preference.promotion_enabled = true
+AND ít nhất một trong in_app_enabled / email_enabled / browser_enabled = true
+AND promotion notifications trong 7 ngày < 2
+AND promotion gần nhất >= 72 giờ trước
+```
+
+Chính sách công khai:
+
+```text
+PROMOTION_OPT_OUT_RESPECTED
+CONTACTABILITY_CHANNEL_REQUIRED
+FREQUENCY_CAP_2_PER_7D
+PROMOTION_COOLDOWN_72H
+```
+
+### Preview-before-execute + blast-radius guard
+
+API V77:
+
+```text
+GET  /api/admin/crm-automation/summary?days=30
+POST /api/admin/crm-automation/preview
+POST /api/admin/crm-automation/execute
+```
+
+`summary.days` bị giới hạn trong `7..180`.
+
+Mọi campaign phải Preview trước trong UI. Request có `maxRecipients` từ `1..5000`; Execute bị chặn khi số customer contactable vượt giới hạn này. Đây là guard có chủ đích để Admin không vô tình phát chiến dịch quá rộng.
+
+`POST /execute` là sensitive write và được thêm vào Admin step-up protection hiện có.
+
+### Voucher + delivery idempotency
+
+V77 tiếp tục dùng voucher owner-scoped 1 lần:
+
+```text
+owner_user_id = customer
+usage_limit = 1
+code = C77-<CAMPAIGN>-<CUSTOMER_REF>
+```
+
+Notification:
+
+```text
+notification_type = PROMOTION_V77
+dedupe_key = CRM77:<campaignCode>:<userId>
+```
+
+Chạy lại cùng `campaignCode` không tạo notification trùng; voucher cũ chỉ được reuse nếu owner và cấu hình discount vẫn khớp.
+
+### CRM outcome evidence V77
+
+Dashboard đo riêng `PROMOTION_V77` trong cửa sổ đã chọn:
+
+```text
+promotionMessages
+inAppVisibleMessages
+readMessages
+readRatePercent
+assistedConfirmedBookings
+assistedRealizedRevenue
+```
+
+CRM-assisted booking = booking `CONFIRMED` của cùng user trong tối đa 7 ngày sau một `PROMOTION_V77`. Metric này chỉ là **correlation signal**:
+
+```text
+CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION
+```
+
+`assistedRealizedRevenue` chỉ cộng payment `SUCCESS` và dedupe retry theo booking bằng `max(payment.amount)` trước khi cộng.
+
+### Evidence / privacy policy V77
+
+```text
+REAL_OPERATIONAL_DATA_ONLY
+NO_SYNTHETIC_CUSTOMER_OR_BOOKING_DATA
+PROMOTION_OPT_OUT_RESPECTED
+CONTACTABILITY_CHANNEL_REQUIRED
+FREQUENCY_CAP_2_PER_7D
+PROMOTION_COOLDOWN_72H
+PREVIEW_BEFORE_EXECUTE
+MAX_RECIPIENTS_BLAST_RADIUS_GUARD
+OWNER_SCOPED_ONE_USE_VOUCHER
+IDEMPOTENT_CAMPAIGN_DELIVERY
+CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION
+NO_RAW_PERSONAL_DATA_IN_ADMIN_CRM_UI
+```
+
+Preview chỉ trả customer reference rút gọn + email masked. Không trả raw email trong bảng Admin V77.
+
+### Schema / dữ liệu V77
+
+V77 là **no-schema release**:
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V77 tables: 0
+```
+
+Không có:
+
+```text
+V77__*.sql
+```
+
+V77 tái sử dụng `app_user`, `booking`, `payment`, `notification_preference`, `user_notification`, `voucher`; không thêm seed business data.
+
+
+### V77 frontend build compatibility fix
+
+V77 giữ nguyên privacy contract của `MarketingAudienceV64`: trang `/admin/marketing` chỉ hiển thị `customerRef` và `maskedEmail`, không tham chiếu `fullName` vì DTO/type V64 không cung cấp trường này. Điều này loại bỏ lỗi TypeScript `TS2339` trong production build.
+
+`frontend/tsconfig.json` cũng khai báo sẵn cả hai generated type paths của Next.js 16:
+
+```text
+.next/types/**/*.ts
+.next/dev/types/**/*.ts
+```
+
+Nhờ vậy `next build` không cần tự sửa `tsconfig.json` chỉ để thêm dev generated types.
+
+### Verification V77
+
+Chạy từ thư mục chuẩn:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+python -X utf8 .\tools\verify_v64_crm_marketing_automation.py
+python -X utf8 .\tools\verify_v76_recommendation_5.py
+python -X utf8 .\tools\verify_v77_crm_automation_5.py
+
+powershell -ExecutionPolicy Bypass `
+  -File .\tools\diagnose-v77.ps1
+```
+
+### Docker + Runtime V77
+
+V77 thay đổi backend + frontend nên rebuild:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  up -d --build
+```
+
+Kiểm tra:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  ps
+```
+
+Mong đợi:
+
+```text
+postgres      healthy
+redis         healthy
+backend-1     Up
+backend-2     Up
+frontend      Up
+nginx         Up
+```
+
+### Flyway V77
+
+V77 không có migration. Dòng mới nhất vẫn phải là V72 và tổng public table vẫn là 67.
+
+### Zero-warning lint + Production build
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+
+npm run lint
+$LASTEXITCODE
+
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+```
+
+Route V77 phải xuất hiện:
+
+```text
+/admin/crm-automation
+```
+
+Các route `/admin/marketing`, `/admin/recommendation`, `/admin/analytics-bi` và `/for-you` vẫn phải còn.
+
+### Browser E2E V77
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+
+Remove-Item Env:E2E_ADMIN_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+
+npx playwright test `
+  "e2e/crm-automation-5-v77.spec.ts" `
+  --project=chromium
+```
+
+E2E kiểm tra tile V77, version order, strategy, real-data policy, opt-out/channel/frequency/cooldown suppression, blast-radius guard, outcome correlation, lifecycle playbooks và Preview không ghi dữ liệu.
+
+### Release V77 - chỉ Stable
+
+```text
+Stable only: v77.0.0
+```
+
+Sau khi source gates, Docker runtime, lint/build và Browser E2E PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.0
+```
+
+Không tạo RC/Pre-release cho V77.

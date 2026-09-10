@@ -56,6 +56,7 @@ public class StepUpAuthorizationFilter extends OncePerRequestFilter {
         if(path.startsWith("/api/admin/supply-chain")) return true;
         if(path.startsWith("/api/admin/pricing/rules")) return true;
         if(path.equals("/api/admin/marketing/campaigns/launch")) return true;
+        if(path.equals("/api/admin/crm-automation/execute")) return true;
         if(path.startsWith("/api/admin/refunds/")) return true;
         if(path.startsWith("/api/admin/security/users/") && "DELETE".equalsIgnoreCase(method)) return true;
         if(path.startsWith("/api/admin/booking-ops/")){
