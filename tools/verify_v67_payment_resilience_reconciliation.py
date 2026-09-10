@@ -58,7 +58,7 @@ for rel,label in [
  ('frontend/e2e/payment-resilience-reconciliation-v67.spec.ts','V67 browser E2E exists'),
  ('tools/diagnose-v67.ps1','V67 diagnose exists')]: check(label,exists(rel))
 check('V67 strategy version explicit','V67-PAYMENT-RESILIENCE-5' in resilience and 'V67-PAYMENT-RESILIENCE-5' in ui and 'V67-PAYMENT-RESILIENCE-5' in readme)
-check('README current release is V67 or later',any(x in readme for x in ['Current release:** V67','Current release: **V67**','Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
+check('README current release is V67 or later',(m:=re.search(r'Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*',readme)) is not None and int(next(g for g in m.groups() if g))>=67)
 check('README has V67 section','## V67 - Payment Resilience & Reconciliation 5.0' in readme)
 
 # migration payment refund state
@@ -221,7 +221,7 @@ check('V67 E2E checks safe replay wording','không được replay như nguồn 
 
 # release lifecycle
 check('CI runs V67 verifier','verify_v67_payment_resilience_reconciliation.py' in ci)
-check('CI source regression names V67 or later',any(x in ci for x in ['V26-V67 source regression','V26-V68 source regression','V26-V69 source regression','V26-V70 source regression','V26-V71 source regression','V26-V72 source regression']))
+check('CI source regression names V67 or later',(m:=re.search(r'V26-V(\d+) source regression',ci)) is not None and int(m.group(1))>=67)
 check('RC runs V67 verifier','verify_v67_payment_resilience_reconciliation.py' in rc)
 check('RC defaults v67 rc1','v67.0.0-rc.1' in rc)
 check('RC compose namespace V67','cinebooking_v67_rc_' in rc)

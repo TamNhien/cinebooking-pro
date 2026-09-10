@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -190,7 +191,7 @@ check('inventory captures Git source commit','git' in inventory_tool and 'rev-pa
 check('inventory labels Maven coverage as direct','direct dependencies declared in backend/pom.xml' in inventory_tool)
 check('inventory labels npm coverage honestly','resolved packages from frontend/package-lock.json' in inventory_tool and 'package-lock.json not shipped' in inventory_tool)
 check('CI generates V72 dependency inventory','generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72' in ci)
-check('CI uploads V72 dependency inventory','cinebooking-v72-dependency-inventory' in ci and 'actions/upload-artifact@v4' in ci)
+check('CI uploads V72 dependency inventory','cinebooking-v72-dependency-inventory' in ci and 'actions/upload-artifact@v7' in ci)
 check('Makefile inventory-v72 target','inventory-v72:' in make and 'generate_supply_chain_inventory_v72.py' in make)
 
 # E2E
@@ -216,7 +217,7 @@ check('V68 verifier forward-compatible with V72','72' in v68 and '67' in v68)
 check('V72 adds no synthetic seeded business rows','V72' not in seed)
 
 # CI/tooling/docs/release
-check('CI source regression names V72','V26-V72 source regression' in ci)
+check('CI source regression names V72 or later',re.search(r'V26-V(?:7[2-9]|[89][0-9]) source regression',ci) is not None)
 check('CI runs V72 verifier','verify_v72_software_supply_chain_5.py' in ci)
 check('Makefile verify-v72','verify-v72:' in make and 'verify_v72_software_supply_chain_5.py' in make)
 check('Makefile diagnose-v72','diagnose-v72:' in make and 'diagnose-v72.ps1' in make)
@@ -225,10 +226,10 @@ check('Diagnose V72 chains V68-V72',all(x in diag for x in ['verify_v68_security
 check('Diagnose states Flyway V72','Flyway V72' in diag)
 check('Diagnose states 67 public tables','67 public tables' in diag)
 check('Release preflight runs V72 verifier','verify_v72_software_supply_chain_5.py' in release)
-check('Release example is V72 stable','such as v72.0.0' in release)
+check('Release example is V72 or later stable',re.search(r'such as v(?:7[2-9]|[89][0-9])\.0\.0',release) is not None)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
-check('README current release V72','Current release:** V72' in readme or 'Current release: **V72**' in readme)
-check('README title V72','# CineBooking Pro V72' in readme)
+check('README current release V72 or later',re.search(r'Current release:\*\* V(?:7[2-9]|[89][0-9])',readme) is not None or re.search(r'Current release: \*\*V(?:7[2-9]|[89][0-9])\*\*',readme) is not None)
+check('README title V72 or later',re.search(r'^# CineBooking Pro V(?:7[2-9]|[89][0-9])$',readme,re.M) is not None)
 check('README history includes V72','| **V72** |' in readme)
 check('README V72 section','## V72 - Software Supply Chain Integrity 5.0' in readme)
 check('README strategy','V72-SUPPLY-CHAIN-INTEGRITY-5' in readme)
@@ -239,7 +240,7 @@ check('README has no concrete V72 RC tag','v72.0.0-rc.1' not in readme and 'v72.
 check('README documents advisory release gate','SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED=false' in readme)
 check('README documents no artifact binary','không lưu artifact binary' in readme)
 check('README documents offline dependency inventory','generate_supply_chain_inventory_v72.py' in readme and 'frontend/package.json' in readme)
-check('README preserves real-data policy','V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**' in readme)
+check('README preserves real-data policy','V52/V65/V66/V67/V68/V69/V70/V71/V72' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
 
 passed=sum(ok for _,ok in checks)
 print(f"\nV72 verification: {passed}/{len(checks)} checks passed")

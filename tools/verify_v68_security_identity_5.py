@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -209,7 +210,7 @@ check('V66 verifier forward-compatible with 59 tables',any(x in v66verify for x 
 check('V68 adds no synthetic seed rows','V68' not in seed)
 
 # CI/diagnose/release
-check('CI source regression names V68 or later',any(x in ci for x in ['V26-V68 source regression','V26-V69 source regression','V26-V70 source regression','V26-V71 source regression','V26-V72 source regression']))
+check('CI source regression names V68 or later',(m:=re.search(r'V26-V(\d+) source regression',ci)) is not None and int(m.group(1))>=68)
 check('CI runs V68 verifier','verify_v68_security_identity_5.py' in ci)
 check('Makefile exposes verify-v68','verify-v68:' in make and 'verify_v68_security_identity_5.py' in make)
 check('Makefile exposes diagnose-v68','diagnose-v68:' in make)
@@ -227,8 +228,8 @@ check('Stable-only release script marks latest','--latest' in release_script)
 check('Stable-only release script never creates rc tag','-rc.' not in release_script)
 
 # docs
-check('README current release is V68 or later',any(x in readme for x in ['Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
-check('README title is V68 or later',any(x in readme for x in ['# CineBooking Pro V68','# CineBooking Pro V69','# CineBooking Pro V70','# CineBooking Pro V71','# CineBooking Pro V72']))
+check('README current release is V68 or later',(m:=re.search(r'Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*',readme)) is not None and int(next(g for g in m.groups() if g))>=68)
+check('README title is V68 or later',(m:=re.search(r'^# CineBooking Pro V(\d+)$',readme,re.M)) is not None and int(m.group(1))>=68)
 check('README history includes V68','| **V68** |' in readme)
 check('README V68 section exists','## V68 - Security & Identity 5.0' in readme)
 check('README documents strategy','V68-SECURITY-IDENTITY-5' in readme)

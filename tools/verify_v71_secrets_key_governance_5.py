@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -187,7 +188,7 @@ check('V68 verifier forward-compatible with V71+','72' in v68verify and '67' in 
 check('V71 adds no synthetic seeded business rows','V71' not in seed)
 
 # CI/tooling/docs/release
-check('CI source regression names V71 or later',any(x in ci for x in ['V26-V71 source regression','V26-V72 source regression']))
+check('CI source regression names V71 or later',(m:=re.search(r'V26-V(\d+) source regression',ci)) is not None and int(m.group(1))>=71)
 check('CI runs V71 verifier','verify_v71_secrets_key_governance_5.py' in ci)
 check('Makefile verify-v71','verify-v71:' in make and 'verify_v71_secrets_key_governance_5.py' in make)
 check('Makefile diagnose-v71','diagnose-v71:' in make and 'diagnose-v71.ps1' in make)
@@ -196,10 +197,10 @@ check('Diagnose V71 chains V68-V71',all(x in diag for x in ['verify_v68_security
 check('Diagnose states Flyway V71','Flyway V71' in diag)
 check('Diagnose states 65 public tables','65 public tables' in diag)
 check('Release preflight runs V71 verifier','verify_v71_secrets_key_governance_5.py' in release)
-check('Release example is V71 or later stable',any(x in release for x in ['such as v71.0.0','such as v72.0.0']))
+check('Release example is V71 or later stable',(m:=re.search(r'such as v(\d+)\.0\.0',release)) is not None and int(m.group(1))>=71)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
-check('README current release V71 or later',any(x in readme for x in ['Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
-check('README title V71 or later',any(x in readme for x in ['# CineBooking Pro V71','# CineBooking Pro V72']))
+check('README current release V71 or later',(m:=re.search(r'Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*',readme)) is not None and int(next(g for g in m.groups() if g))>=71)
+check('README title V71 or later',(m:=re.search(r'^# CineBooking Pro V(\d+)$',readme,re.M)) is not None and int(m.group(1))>=71)
 check('README history includes V71','| **V71** |' in readme)
 check('README V71 section','## V71 - Secrets & Key Governance 5.0' in readme)
 check('README strategy','V71-SECRETS-KEY-GOVERNANCE-5' in readme)
@@ -209,7 +210,7 @@ check('README stable-only v71','Stable only: v71.0.0' in readme)
 check('README has no concrete V71 RC tag','v71.0.0-rc.1' not in readme and 'v71.0.0-rc.2' not in readme)
 check('README documents auto rotation off','KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED=false' in readme)
 check('README documents no secret values','không lưu hoặc trả secret value' in readme)
-check('README preserves real-data policy',any(x in readme for x in ['V52/V65/V66/V67/V68/V69/V70/V71 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**']))
+check('README preserves real-data policy','V52/V65/V66/V67/V68/V69/V70/V71' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
 
 passed=sum(ok for _,ok in checks)
 print(f"\nV71 verification: {passed}/{len(checks)} checks passed")

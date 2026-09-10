@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -167,7 +168,7 @@ check('V68 verifier forward-compatible with V70',any(x in v68verify for x in ['7
 check('V70 adds no synthetic seeded business rows','V70' not in seed)
 
 # CI / tooling / release / docs
-check('CI source regression names V70 or later',any(x in ci for x in ['V26-V70 source regression','V26-V71 source regression','V26-V72 source regression']))
+check('CI source regression names V70 or later',(m:=re.search(r'V26-V(\d+) source regression',ci)) is not None and int(m.group(1))>=70)
 check('CI runs V70 verifier','verify_v70_data_governance_privacy_5.py' in ci)
 check('Makefile verify-v70','verify-v70:' in make and 'verify_v70_data_governance_privacy_5.py' in make)
 check('Makefile diagnose-v70','diagnose-v70:' in make and 'diagnose-v70.ps1' in make)
@@ -176,10 +177,10 @@ check('Diagnose V70 chains V68 V69 V70','verify_v68_security_identity_5.py' in d
 check('Diagnose states Flyway V70','Flyway V70' in diag)
 check('Diagnose states 63 public tables','63 public tables' in diag)
 check('Release preflight runs V70 verifier','verify_v70_data_governance_privacy_5.py' in release)
-check('Release example is V70 or later stable',any(x in release for x in ['such as v70.0.0','such as v71.0.0','such as v72.0.0']))
+check('Release example is V70 or later stable',(m:=re.search(r'such as v(\d+)\.0\.0',release)) is not None and int(m.group(1))>=70)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
-check('README current release V70 or later',any(x in readme for x in ['Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
-check('README title V70 or later',any(x in readme for x in ['# CineBooking Pro V70','# CineBooking Pro V71','# CineBooking Pro V72']))
+check('README current release V70 or later',(m:=re.search(r'Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*',readme)) is not None and int(next(g for g in m.groups() if g))>=70)
+check('README title V70 or later',(m:=re.search(r'^# CineBooking Pro V(\d+)$',readme,re.M)) is not None and int(m.group(1))>=70)
 check('README history includes V70','| **V70** |' in readme)
 check('README V70 section','## V70 - Data Governance & Privacy 5.0' in readme)
 check('README strategy','V70-DATA-GOVERNANCE-PRIVACY-5' in readme)
@@ -189,7 +190,7 @@ check('README stable-only v70','Stable only: v70.0.0' in readme)
 check('README has no concrete V70 RC tag','v70.0.0-rc.1' not in readme and 'v70.0.0-rc.2' not in readme)
 check('README documents destructive execution off','PRIVACY_RETENTION_EXECUTION_ENABLED=false' in readme)
 check('README says retention defaults are not compliance claims','không phải tuyên bố đáp ứng bất kỳ luật/quy chuẩn cụ thể nào' in readme)
-check('README preserves real-data policy',any(x in readme for x in ['V52/V65/V66/V67/V68/V69/V70 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70/V71 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**']))
+check('README preserves real-data policy','V52/V65/V66/V67/V68/V69/V70' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
 
 passed=sum(ok for _,ok in checks)
 print(f"\nV70 verification: {passed}/{len(checks)} checks passed")

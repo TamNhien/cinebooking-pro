@@ -1,12 +1,12 @@
-# CineBooking Pro V72
+# CineBooking Pro V73
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V72 - Software Supply Chain Integrity 5.0
+> **Current release:** V73 - GitHub Actions Runtime Modernization 5.0
 
-V72 adds **Software Supply Chain Integrity 5.0** on top of V71 Secrets & Key Governance: the Admin control plane now records append-only artifact digests, source/build/SBOM references and dependency/security scan evidence. Scan decisions are derived server-side from configured severity thresholds so the browser cannot self-declare PASS. V72 adds Flyway `V72__software_supply_chain_integrity.sql`; the database now has **67 public tables** (65 tables from V71 + `software_artifact_evidence` + `software_supply_chain_scan`).
+V73 adds **GitHub Actions Runtime Modernization 5.0** on top of V72 Software Supply Chain Integrity. This is a tooling-only release: the remaining `actions/upload-artifact@v4` reference is upgraded to the Node.js 24-capable `actions/upload-artifact@v7`, Java setup moves to `actions/setup-java@v6`, and a dedicated regression gate prevents Node 20-era action majors from returning. V73 adds no Flyway migration; database authority remains **Flyway V72 / 67 public tables**.
 
-V72 stores evidence metadata only: SHA-256 digests, references, scanner identity/version and severity counters. It **không lưu artifact binary** hoặc scanner report body trong PostgreSQL. `SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED=false` is the default, so the V72 posture is advisory and does not silently override the existing CI/release pipeline. V68 Security & Identity requires Admin step-up for mutating `/api/admin/supply-chain/**` calls.
+The Node 24 migration is explicit rather than relying on runtime override flags. Hosted workflows keep `ubuntu-latest`; self-hosted runners must be **2.327.1 or newer** for the validated Node 24 action majors. The release pipeline does not use `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION` and does not mask stale actions with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -113,6 +113,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V70** | **Data Governance & Privacy 5.0: privacy request workflow, subject-data inventory, retention-policy catalog, SLA/overdue tracking, destructive-execution guardrail** | **`V70__data_governance_privacy.sql`** |
 | **V71** | **Secrets & Key Governance 5.0: metadata-only rotation catalog, credential presence posture, due/overdue tracking, append-only rotation evidence, no secret-value persistence** | **`V71__secrets_key_governance.sql`** |
 | **V72** | **Software Supply Chain Integrity 5.0: append-only artifact digests, build/SBOM references, server-derived scan decisions, advisory release posture** | **`V72__software_supply_chain_integrity.sql`** |
+| **V73** | **GitHub Actions Runtime Modernization 5.0: Node 24 action baseline, upload-artifact v7, setup-java v6, legacy-action regression gate** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -392,7 +393,7 @@ Verifier V28 được giữ backward-compatible: **setup-node v6 hoặc v7** đ�
 
 ```text
 actions/checkout@v7
-actions/setup-java@v5
+actions/setup-java@v6
 actions/setup-node@v7
 actions/upload-artifact@v7
 ```
@@ -4652,3 +4653,108 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V72.
+
+## V73 - GitHub Actions Runtime Modernization 5.0
+
+V73 xử lý dứt điểm cảnh báo GitHub Actions về Node.js 20 còn xuất hiện ở bước upload dependency inventory của V72. Strategy:
+
+```text
+V73-GITHUB-ACTIONS-NODE24-5
+```
+
+### Nguyên nhân cảnh báo và cách sửa
+
+Workflow cũ còn một tham chiếu:
+
+```text
+actions/upload-artifact@v4
+```
+
+Major này thuộc thế hệ Node 20. GitHub Actions đang chuyển runner JavaScript actions sang Node 24 và Node 20 sẽ bị loại khỏi runner vào **23/09/2026**. V73 chuyển toàn bộ upload artifact sang:
+
+```text
+actions/upload-artifact@v7
+```
+
+Đồng thời Java bootstrap trong CI chuyển từ `actions/setup-java@v5` sang baseline hiện tại:
+
+```text
+actions/setup-java@v6
+```
+
+Các action major được V73 xác thực:
+
+```text
+actions/checkout@v7
+actions/setup-java@v6
+actions/setup-node@v7
+actions/upload-artifact@v7
+docker/setup-buildx-action@v4
+docker/build-push-action@v7
+```
+
+V73 **không** dùng workaround `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true`. Repo cũng không cần `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` để che action cũ; action phải tự khai báo/runtime Node 24 đúng major. Với self-hosted runner, baseline tối thiểu là **Actions Runner 2.327.1**. GitHub-hosted `ubuntu-latest` tự đáp ứng baseline runner.
+
+### Regression gate V73
+
+Verifier mới:
+
+```text
+tools/verify_v73_github_actions_node24.py
+```
+
+Gate này kiểm tra:
+
+- không còn `actions/upload-artifact@v4` hoặc `@v5`;
+- tất cả upload artifact đều dùng `@v7`;
+- setup Java dùng `@v6`;
+- checkout/setup-node và Docker build actions giữ các major Node 24 đã xác thực;
+- không bật fallback Node 20 không an toàn;
+- V72 dependency inventory vẫn được tạo và upload;
+- historical verifier V28/V72 được forward-compatible;
+- V59 clipping regression gate vẫn nằm trong CI;
+- stable-only release flow tiếp tục được giữ.
+
+V73 không thay đổi frontend/backend nghiệp vụ, không thêm migration và không tạo dữ liệu giả:
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V73 tables: 0
+```
+
+### Verification V73
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+python -X utf8 .\tools\verify_v28_ci.py
+python -X utf8 .\tools\verify_v35_setup_node_compat.py
+python -X utf8 .\tools\verify_v59_realtime_operations_4.py
+python -X utf8 .\tools\verify_v72_software_supply_chain_5.py
+python -X utf8 .\tools\verify_v73_github_actions_node24.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v73.ps1
+```
+
+V73 là tooling-only nên **không cần Docker rebuild và không có Flyway mới** chỉ để áp dụng bản nâng cấp này. Frontend lint vẫn là zero-warning gate:
+
+```powershell
+cd .\frontend
+npm run lint
+```
+
+### Release V73 - chỉ Stable
+
+```text
+Stable only: v73.0.0
+```
+
+Sau khi source gates và GitHub CI PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v73.0.0
+```
+
+Không tạo RC/Pre-release cho V73.
+

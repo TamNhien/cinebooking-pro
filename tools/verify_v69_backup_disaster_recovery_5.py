@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -206,7 +207,7 @@ check('V66 verifier forward-compatible with 61 tables','isGreaterThanOrEqualTo(6
 check('V69 adds no synthetic seed rows','V69' not in seed)
 
 # CI / release / docs
-check('CI source regression names V69 or later',any(x in ci for x in ['V26-V69 source regression','V26-V70 source regression','V26-V71 source regression','V26-V72 source regression']))
+check('CI source regression names V69 or later',(m:=re.search(r'V26-V(\d+) source regression',ci)) is not None and int(m.group(1))>=69)
 check('CI runs V69 verifier','verify_v69_backup_disaster_recovery_5.py' in ci)
 check('Makefile exposes verify-v69','verify-v69:' in make and 'verify_v69_backup_disaster_recovery_5.py' in make)
 check('Makefile exposes diagnose-v69','diagnose-v69:' in make)
@@ -218,9 +219,9 @@ check('Diagnose V69 states Flyway V69','Flyway V69' in diag)
 check('Diagnose V69 states 61 public tables','61 public tables' in diag)
 check('Release preflight runs V69 verifier','verify_v69_backup_disaster_recovery_5.py' in release)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
-check('Release example is stable-only current version',any(x in release for x in ['such as v69.0.0','such as v70.0.0','such as v71.0.0','such as v72.0.0']))
-check('README current release is V69 or later',any(x in readme for x in ['Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
-check('README title is V69 or later',any(x in readme for x in ['# CineBooking Pro V69','# CineBooking Pro V70','# CineBooking Pro V71','# CineBooking Pro V72']))
+check('Release example is stable-only current version',(m:=re.search(r'such as v(\d+)\.0\.0',release)) is not None and int(m.group(1))>=69)
+check('README current release is V69 or later',(m:=re.search(r'Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*',readme)) is not None and int(next(g for g in m.groups() if g))>=69)
+check('README title is V69 or later',(m:=re.search(r'^# CineBooking Pro V(\d+)$',readme,re.M)) is not None and int(m.group(1))>=69)
 check('README history includes V69','| **V69** |' in readme)
 check('README V69 section exists','## V69 - Backup & Disaster Recovery 5.0' in readme)
 check('README documents 61 public tables','Public tables: 61' in readme or '61 public tables' in readme)
@@ -229,7 +230,7 @@ check('README documents stable-only v69','Stable only: v69.0.0' in readme)
 check('README has no concrete V69 RC tag','v69.0.0-rc.1' not in readme and 'v69.0.0-rc.2' not in readme)
 check('README documents non-destructive restore drill','không overwrite database đang chạy' in readme)
 check('README documents manifest has no credentials','không chứa credential' in readme)
-check('README preserves real-data policy',any(x in readme for x in ['V52/V65/V66/V67/V68/V69 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70/V71 **không tạo phim/khách/booking/payment giả**','V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**']))
+check('README preserves real-data policy','V52/V65/V66/V67/V68/V69' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
 
 passed=sum(ok for _,ok in checks)
 print(f"\nV69 verification: {passed}/{len(checks)} checks passed")

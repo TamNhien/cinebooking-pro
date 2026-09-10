@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V72 source regression
+    name: V26-V73 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -365,11 +365,14 @@ jobs:
       - name: Verify V72 Software Supply Chain Integrity 5.0
         run: python3 tools/verify_v72_software_supply_chain_5.py
 
+      - name: Verify V73 GitHub Actions Runtime Modernization 5.0
+        run: python3 tools/verify_v73_github_actions_node24.py
+
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
 
       - name: Upload V72 dependency inventory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cinebooking-v72-dependency-inventory
           path: build/supply-chain-v72/

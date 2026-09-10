@@ -69,7 +69,7 @@ check("V66 admin operations controller exists", bool(ops_controller))
 check("V66 admin operations UI exists", bool(ops_ui))
 check("V66 browser E2E exists", bool(e2e))
 check("V66 diagnose script exists", bool(diagnose))
-check("README current release is V66 or later", "Current release: **V66**" in readme or "Current release:** V66" in readme or "Current release:** V67" in readme or "Current release: **V68**" in readme or "Current release:** V68" in readme or "Current release: **V69**" in readme or "Current release:** V69" in readme or "Current release: **V70**" in readme or "Current release:** V70" in readme or "Current release: **V71**" in readme or "Current release:** V71" in readme or "Current release: **V72**" in readme or "Current release:** V72" in readme)
+check("README current release is V66 or later", (m:=re.search(r"Current release:\*\* V(\d+)|Current release: \*\*V(\d+)\*\*", readme)) is not None and int(next(g for g in m.groups() if g)) >= 66)
 check("README contains V66 section", "## V66 - Booking Consistency & Seat Locking 4.0" in readme)
 check("V66 strategy version is explicit", "V66-BOOKING-CONSISTENCY-4" in ops_service and "V66-BOOKING-CONSISTENCY-4" in readme)
 

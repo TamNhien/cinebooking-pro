@@ -987,3 +987,12 @@ diagnose-v72:
 
 release-v72:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v72.0.0
+
+verify-v73:
+	python tools/verify_v73_github_actions_node24.py
+
+diagnose-v73:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v73.ps1
+
+release-v73:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v73.0.0
