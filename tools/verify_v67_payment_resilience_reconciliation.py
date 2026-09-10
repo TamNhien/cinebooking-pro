@@ -58,7 +58,7 @@ for rel,label in [
  ('frontend/e2e/payment-resilience-reconciliation-v67.spec.ts','V67 browser E2E exists'),
  ('tools/diagnose-v67.ps1','V67 diagnose exists')]: check(label,exists(rel))
 check('V67 strategy version explicit','V67-PAYMENT-RESILIENCE-5' in resilience and 'V67-PAYMENT-RESILIENCE-5' in ui and 'V67-PAYMENT-RESILIENCE-5' in readme)
-check('README current release is V67 or later',any(x in readme for x in ['Current release:** V67','Current release: **V67**','Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**']))
+check('README current release is V67 or later',any(x in readme for x in ['Current release:** V67','Current release: **V67**','Current release:** V68','Current release: **V68**','Current release:** V69','Current release: **V69**','Current release:** V70','Current release: **V70**','Current release:** V71','Current release: **V71**','Current release:** V72','Current release: **V72**']))
 check('README has V67 section','## V67 - Payment Resilience & Reconciliation 5.0' in readme)
 
 # migration payment refund state
@@ -221,7 +221,7 @@ check('V67 E2E checks safe replay wording','không được replay như nguồn 
 
 # release lifecycle
 check('CI runs V67 verifier','verify_v67_payment_resilience_reconciliation.py' in ci)
-check('CI source regression names V67 or later',any(x in ci for x in ['V26-V67 source regression','V26-V68 source regression','V26-V69 source regression','V26-V70 source regression','V26-V71 source regression']))
+check('CI source regression names V67 or later',any(x in ci for x in ['V26-V67 source regression','V26-V68 source regression','V26-V69 source regression','V26-V70 source regression','V26-V71 source regression','V26-V72 source regression']))
 check('RC runs V67 verifier','verify_v67_payment_resilience_reconciliation.py' in rc)
 check('RC defaults v67 rc1','v67.0.0-rc.1' in rc)
 check('RC compose namespace V67','cinebooking_v67_rc_' in rc)
@@ -234,11 +234,11 @@ check('Makefile exposes diagnose-v67','diagnose-v67:' in make)
 check('Diagnose V67 chains V66','verify_v66_booking_consistency_seat_locking.py' in diagnose)
 check('Diagnose V67 runs V67 gate','verify_v67_payment_resilience_reconciliation.py' in diagnose)
 check('Diagnose V67 states Flyway V67','Flyway V67' in diagnose)
-check('Integration expects Flyway >=67',any(x in itest for x in ['isGreaterThanOrEqualTo(67)','isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)']))
-check('Integration still expects at least 58 tables',any(x in itest for x in ['publicTables).isGreaterThanOrEqualTo(58)','publicTables).isGreaterThanOrEqualTo(59)','publicTables).isGreaterThanOrEqualTo(61)','publicTables).isGreaterThanOrEqualTo(63)','publicTables).isGreaterThanOrEqualTo(65)']))
+check('Integration expects Flyway >=67',any(x in itest for x in ['isGreaterThanOrEqualTo(67)','isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)','isGreaterThanOrEqualTo(72)']))
+check('Integration still expects at least 58 tables',any(x in itest for x in ['publicTables).isGreaterThanOrEqualTo(58)','publicTables).isGreaterThanOrEqualTo(59)','publicTables).isGreaterThanOrEqualTo(61)','publicTables).isGreaterThanOrEqualTo(63)','publicTables).isGreaterThanOrEqualTo(65)','publicTables).isGreaterThanOrEqualTo(67)']))
 check('Integration verifies V67 refund columns','paymentV67RefundColumns' in itest and 'isEqualTo(6)' in itest)
 check('Integration verifies V67 webhook recovery columns','webhookV67RecoveryColumns' in itest and 'isEqualTo(5)' in itest)
-check('V66 verifier forward-compatible with V67 integration expectation',any(x in text('tools/verify_v66_booking_consistency_seat_locking.py') for x in ['isGreaterThanOrEqualTo(67)','isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)']))
+check('V66 verifier forward-compatible with V67 integration expectation',any(x in text('tools/verify_v66_booking_consistency_seat_locking.py') for x in ['isGreaterThanOrEqualTo(67)','isGreaterThanOrEqualTo(68)','isGreaterThanOrEqualTo(69)','isGreaterThanOrEqualTo(70)','isGreaterThanOrEqualTo(71)','isGreaterThanOrEqualTo(72)']))
 
 # docs/data
 check('README history includes V67','| **V67** |' in readme)

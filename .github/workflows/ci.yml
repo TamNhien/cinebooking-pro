@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V71 source regression
+    name: V26-V72 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -362,7 +362,18 @@ jobs:
 
       - name: Verify V71 Secrets & Key Governance 5.0
         run: python3 tools/verify_v71_secrets_key_governance_5.py
+      - name: Verify V72 Software Supply Chain Integrity 5.0
+        run: python3 tools/verify_v72_software_supply_chain_5.py
 
+      - name: Generate V72 dependency inventory
+        run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
+
+      - name: Upload V72 dependency inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: cinebooking-v72-dependency-inventory
+          path: build/supply-chain-v72/
+          if-no-files-found: error
 
   compose-config:
     name: Docker Compose validation

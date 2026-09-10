@@ -117,8 +117,8 @@ class CineBookingIntegrationIT {
         // assertThat(publicTables).isGreaterThanOrEqualTo(57);
         // Historical V52 source-regression marker retained because this test still covers the full V52 catalog:
         // assertThat(latest).isEqualTo("52");
-        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(71);
-        assertThat(publicTables).isGreaterThanOrEqualTo(65);
+        assertThat(Integer.parseInt(latest)).isGreaterThanOrEqualTo(72);
+        assertThat(publicTables).isGreaterThanOrEqualTo(67);
 
         Integer durableSeatHoldTable = jdbc.queryForObject(
                 "select count(*) from information_schema.tables where table_schema='public' and table_name='seat_hold'", Integer.class);
@@ -194,6 +194,19 @@ class CineBookingIntegrationIT {
         Integer keyGovernanceV71Triggers = jdbc.queryForObject(
                 "select count(*) from pg_trigger where not tgisinternal and tgname='trg_v71_secret_rotation_event_immutable'", Integer.class);
         assertThat(keyGovernanceV71Triggers).isEqualTo(1);
+
+        Integer supplyChainV72Tables = jdbc.queryForObject(
+                "select count(*) from information_schema.tables where table_schema='public' and table_name in ('software_artifact_evidence','software_supply_chain_scan')", Integer.class);
+        assertThat(supplyChainV72Tables).isEqualTo(2);
+        Integer supplyChainV72Indexes = jdbc.queryForObject(
+                "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_software_artifact_recorded','idx_software_artifact_type_created','idx_software_artifact_version','idx_supply_chain_scan_artifact_scanned','idx_supply_chain_scan_decision_scanned','idx_supply_chain_scan_recorded')", Integer.class);
+        assertThat(supplyChainV72Indexes).isEqualTo(6);
+        Integer supplyChainV72Triggers = jdbc.queryForObject(
+                "select count(*) from pg_trigger where not tgisinternal and tgname in ('trg_v72_software_artifact_immutable','trg_v72_supply_chain_scan_immutable')", Integer.class);
+        assertThat(supplyChainV72Triggers).isEqualTo(2);
+        Integer supplyChainV72Rows = jdbc.queryForObject(
+                "select (select count(*) from software_artifact_evidence)+(select count(*) from software_supply_chain_scan)", Integer.class);
+        assertThat(supplyChainV72Rows).isGreaterThanOrEqualTo(0);
 
         Integer loyaltyV40UserColumns = jdbc.queryForObject(
                 "select count(*) from information_schema.columns where table_schema='public' and table_name='app_user' and column_name in ('loyalty_lifetime_points','birth_date','birthday_reward_year')", Integer.class);

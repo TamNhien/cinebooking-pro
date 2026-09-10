@@ -390,3 +390,21 @@ export type KeyGovernanceSummaryV71 = {
   enabledPolicyCount:number; configuredSecretCount:number; noEvidenceCount:number; dueSoonCount:number; overdueCount:number;
   posture:"READY"|"REVIEW"|"ACTION_REQUIRED"; storagePolicy:string[]; latestEvent?:SecretRotationEventV71|null;
 };
+
+// V72 Software Supply Chain Integrity 5.0
+export type SoftwareArtifactEvidenceV72 = {
+  id:string; artifactKey:string; artifactType:"BACKEND_JAR"|"FRONTEND_BUNDLE"|"CONTAINER_IMAGE"|"DEPENDENCY_INVENTORY";
+  versionLabel:string; sha256:string; sourceCommit?:string|null; buildRef?:string|null; sbomRef?:string|null;
+  actorEmail?:string|null; note?:string|null; artifactCreatedAt:string; recordedAt:string;
+};
+export type SoftwareSupplyChainScanV72 = {
+  id:string; scanKey:string; artifactKey:string; artifactType:string; scanner:string; scannerVersion?:string|null; reportFingerprint:string;
+  criticalCount:number; highCount:number; mediumCount:number; lowCount:number; decision:"PASS"|"WARN"|"FAIL";
+  actorEmail?:string|null; note?:string|null; scannedAt:string; recordedAt:string;
+};
+export type SupplyChainSummaryV72 = {
+  strategyVersion:string; generatedAt:string; evidenceMaxAgeHours:number; maxCritical:number; maxHigh:number;
+  releaseGateEnforcementEnabled:boolean; advisoryOnly:boolean; artifactCount:number; scanCount:number; failedScanCount:number;
+  warningScanCount:number; latestEvidenceFresh:boolean; posture:"NO_EVIDENCE"|"READY"|"REVIEW"|"ACTION_REQUIRED";
+  evidencePolicy:string[]; latestArtifact?:SoftwareArtifactEvidenceV72|null; latestScan?:SoftwareSupplyChainScanV72|null;
+};

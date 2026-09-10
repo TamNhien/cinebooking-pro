@@ -1,12 +1,12 @@
-# CineBooking Pro V71
+# CineBooking Pro V72
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V71 - Secrets & Key Governance 5.0
+> **Current release:** V72 - Software Supply Chain Integrity 5.0
 
-V71 adds **Secrets & Key Governance 5.0** on top of V70 Data Governance & Privacy: the Admin control plane now has a metadata-only secret rotation catalog, configured-presence checks, rotation due/overdue posture, append-only evidence, and step-up protection for governance writes. V71 adds Flyway `V71__secrets_key_governance.sql`; the database now has **65 public tables** (63 tables from V70 + `secret_rotation_policy` + `secret_rotation_event`).
+V72 adds **Software Supply Chain Integrity 5.0** on top of V71 Secrets & Key Governance: the Admin control plane now records append-only artifact digests, source/build/SBOM references and dependency/security scan evidence. Scan decisions are derived server-side from configured severity thresholds so the browser cannot self-declare PASS. V72 adds Flyway `V72__software_supply_chain_integrity.sql`; the database now has **67 public tables** (65 tables from V71 + `software_artifact_evidence` + `software_supply_chain_scan`).
 
-V71 never stores or returns secret values. JWT, SMTP, payment and VAPID credentials stay in environment/secret-manager boundaries; CineBooking stores only policy metadata, provider references and non-secret fingerprints. `KEY_GOVERNANCE_AUTO_ROTATION_EXECUTION_ENABLED=false` is the default, so V71 records governance evidence but does not rotate credentials automatically. V68 Security & Identity requires Admin step-up for mutating `/api/admin/key-governance/**` calls.
+V72 stores evidence metadata only: SHA-256 digests, references, scanner identity/version and severity counters. It **không lưu artifact binary** hoặc scanner report body trong PostgreSQL. `SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED=false` is the default, so the V72 posture is advisory and does not silently override the existing CI/release pipeline. V68 Security & Identity requires Admin step-up for mutating `/api/admin/supply-chain/**` calls.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -112,6 +112,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V69** | **Backup & Disaster Recovery 5.0: verified backup manifest, append-only DR evidence, non-destructive restore drills, RPO/RTO readiness dashboard** | **`V69__backup_disaster_recovery_evidence.sql`** |
 | **V70** | **Data Governance & Privacy 5.0: privacy request workflow, subject-data inventory, retention-policy catalog, SLA/overdue tracking, destructive-execution guardrail** | **`V70__data_governance_privacy.sql`** |
 | **V71** | **Secrets & Key Governance 5.0: metadata-only rotation catalog, credential presence posture, due/overdue tracking, append-only rotation evidence, no secret-value persistence** | **`V71__secrets_key_governance.sql`** |
+| **V72** | **Software Supply Chain Integrity 5.0: append-only artifact digests, build/SBOM references, server-derived scan decisions, advisory release posture** | **`V72__software_supply_chain_integrity.sql`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4548,3 +4549,106 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V71.
+
+## V72 - Software Supply Chain Integrity 5.0
+
+V72 bổ sung control surface cho artifact provenance và dependency/security scan evidence mà không đưa artifact binary hoặc scanner report body vào database. Strategy:
+
+```text
+V72-SUPPLY-CHAIN-INTEGRITY-5
+```
+
+### Mục tiêu và guardrail
+
+```text
+Build / CI artifact
+       ↓
+SHA-256 + source/build/SBOM references
+       ↓
+append-only artifact evidence
+       ↓
+scan severity counters
+       ↓
+server-derived PASS / WARN / FAIL
+```
+
+- Browser không gửi `decision`; backend tự tính `PASS/WARN/FAIL` theo `SUPPLY_CHAIN_MAX_CRITICAL` và `SUPPLY_CHAIN_MAX_HIGH`.
+- PostgreSQL chỉ lưu digest/reference/counter/evidence metadata; **không lưu artifact binary** và không lưu scanner report body.
+- Evidence của `software_artifact_evidence` và `software_supply_chain_scan` là append-only; trigger V72 chặn UPDATE/DELETE.
+- `SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED=false` là mặc định. V72 chỉ cung cấp posture/advisory; CI và `scripts/release.ps1` vẫn là release authority.
+- Các POST `/api/admin/supply-chain/**` yêu cầu Step-up V68.
+- `tools/generate_supply_chain_inventory_v72.py` tạo source dependency inventory offline từ `backend/pom.xml` + `frontend/package.json` (hoặc `package-lock.json` nếu có), sinh file JSON và `.sha256`; CI upload inventory này làm build artifact.
+
+### Database / dữ liệu V72
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V72 tables: 2
+```
+
+- `software_artifact_evidence`: artifact type, version label, SHA-256, Git source commit, build reference, SBOM/inventory reference và actor/timestamps.
+- `software_supply_chain_scan`: scanner identity/version, report fingerprint, critical/high/medium/low counters và server-derived decision.
+- Trigger `trg_v72_software_artifact_immutable` và `trg_v72_supply_chain_scan_immutable` chặn sửa/xóa evidence.
+- Migration không seed artifact/scan evidence và **không tạo phim/khách/booking/payment giả**.
+
+### Admin Software Supply Chain V72
+
+Trang:
+
+```text
+https://localhost/admin/supply-chain
+```
+
+API:
+
+```text
+GET  /api/admin/supply-chain/summary
+GET  /api/admin/supply-chain/artifacts
+GET  /api/admin/supply-chain/scans
+POST /api/admin/supply-chain/artifacts
+POST /api/admin/supply-chain/scans
+```
+
+Tile `🧩 Supply Chain V72` nằm ngay sau `🔑 Key Governance V71`, giữ thứ tự version tăng dần trên Admin Dashboard.
+
+Config mặc định:
+
+```env
+SUPPLY_CHAIN_EVIDENCE_MAX_AGE_HOURS=168
+SUPPLY_CHAIN_MAX_CRITICAL=0
+SUPPLY_CHAIN_MAX_HIGH=0
+SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED=false
+```
+
+### Verification V72
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v72_software_supply_chain_5.py
+python -X utf8 .\tools\generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v72.ps1
+```
+
+Browser E2E:
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/software-supply-chain-v72.spec.ts" --project=chromium
+```
+
+### Release V72 - chỉ Stable
+
+```text
+Stable only: v72.0.0
+```
+
+Sau khi verifier, Docker/Flyway, frontend lint/build và Browser E2E đều PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v72.0.0
+```
+
+Không tạo RC/Pre-release cho V72.

@@ -975,3 +975,15 @@ diagnose-v71:
 
 release-v71:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v71.0.0
+
+inventory-v72:
+	python tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
+
+verify-v72:
+	python tools/verify_v72_software_supply_chain_5.py
+
+diagnose-v72:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v72.ps1
+
+release-v72:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v72.0.0

@@ -26,7 +26,7 @@ import static com.cinebooking.identity.StepUpDtos.*;
 @Service
 public class StepUpAuthenticationService {
     public static final String STRATEGY_VERSION="V68-SECURITY-IDENTITY-5";
-    public static final int PROTECTED_ACTION_GROUPS=11;
+    public static final int PROTECTED_ACTION_GROUPS=12;
     private static final SecureRandom RANDOM=new SecureRandom();
 
     private final AdminStepUpGrantRepository grants;
