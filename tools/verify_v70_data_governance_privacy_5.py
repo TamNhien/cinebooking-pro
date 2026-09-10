@@ -150,7 +150,7 @@ check('V70 UI review endpoint','/review' in ui and 'APPROVED' in ui and 'REJECTE
 # E2E
 check('V70 E2E real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
 check('V70 E2E verifies tile','admin-privacy-governance-v70' in e2e)
-check('V70 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBe(70)' in e2e)
+check('V70 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(70)' in e2e)
 check('V70 E2E verifies strategy','V70-DATA-GOVERNANCE-PRIVACY-5' in e2e)
 check('V70 E2E verifies dry-run','DRY-RUN ONLY' in e2e)
 check('V70 E2E verifies destructive policies OFF','privacy-retention-policies-v70' in e2e and 'OFF' in e2e)

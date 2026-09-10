@@ -1009,3 +1009,12 @@ failover-plan-v74:
 
 release-v74:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v74.0.0
+
+verify-v75:
+	python tools/verify_v75_analytics_bi_5.py
+
+diagnose-v75:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v75.ps1
+
+release-v75:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v75.0.0

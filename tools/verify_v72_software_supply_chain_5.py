@@ -197,7 +197,7 @@ check('Makefile inventory-v72 target','inventory-v72:' in make and 'generate_sup
 # E2E
 check('V72 E2E real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
 check('V72 E2E verifies tile','admin-supply-chain-v72' in e2e)
-check('V72 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBe(72)' in e2e)
+check('V72 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(72)' in e2e)
 check('V72 E2E verifies strategy','V72-SUPPLY-CHAIN-INTEGRITY-5' in e2e)
 check('V72 E2E verifies digest policy','DIGESTS_ONLY' in e2e)
 check('V72 E2E verifies advisory release gate','V72 mặc định không tự chặn release' in e2e)

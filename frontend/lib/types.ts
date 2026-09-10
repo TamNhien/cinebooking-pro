@@ -427,3 +427,36 @@ export type ReliabilitySummaryV74 = {
   dependencyStatus:"HEALTHY"|"DEGRADED"; disasterRecoveryReadiness:"READY"|"DEGRADED"|"NO_DATA";
   failoverAutomationRequiresExplicitExecute:boolean; evidencePolicy:string[];
 };
+
+// V75 Analytics & BI 5.0
+export type AnalyticsBiFunnelStageV75 = {
+  code:"BOOKING_ATTEMPT"|"CONFIRMED"|"PAYMENT_ATTEMPT"|"PAID"|"CHECKED_IN";
+  label:string; count:number; conversionFromPreviousPercent:number; conversionFromStartPercent:number;
+};
+export type AnalyticsBiFunnelV75 = { definition:string; stages:AnalyticsBiFunnelStageV75[] };
+export type AnalyticsBiCohortRowV75 = {
+  cohortMonth:string; registeredUsers:number; activatedUsers:number; repeat30dUsers:number;
+  activationRatePercent:number; repeat30dRatePercent:number; matured30d:boolean;
+};
+export type AnalyticsBiCustomerLtvV75 = {
+  customerRef:string; maskedEmail:string; paidBookings:number; realizedRevenue:number; averageOrderValue:number;
+  firstPaidAt?:string|null; lastPaidAt?:string|null;
+};
+export type AnalyticsBiPaymentConversionV75 = {
+  provider:string; attempts:number; successfulAttempts:number; failedAttempts:number; otherAttempts:number;
+  successRatePercent:number; successfulAmount:number;
+};
+export type AnalyticsBiMovieEfficiencyV75 = {
+  movieTitle:string; completedShowtimes:number; ticketsSold:number; seatCapacity:number; occupancyRatePercent:number;
+  realizedRevenue:number; revenuePerShowtime:number; revenuePerSeatOffered:number;
+};
+export type AnalyticsBiCinemaEfficiencyV75 = {
+  cinemaName:string; completedShowtimes:number; ticketsSold:number; seatCapacity:number; occupancyRatePercent:number;
+  realizedRevenue:number; revenuePerShowtime:number; revenuePerSeatOffered:number;
+};
+export type AnalyticsBiSummaryV75 = {
+  strategyVersion:string; generatedAt:string; windowDays:number; windowStart:string; windowEnd:string;
+  funnel:AnalyticsBiFunnelV75; cohorts:AnalyticsBiCohortRowV75[]; topCustomersByRealizedLtv:AnalyticsBiCustomerLtvV75[];
+  paymentConversion:AnalyticsBiPaymentConversionV75[]; movieEfficiency:AnalyticsBiMovieEfficiencyV75[];
+  cinemaEfficiency:AnalyticsBiCinemaEfficiencyV75[]; evidencePolicy:string[];
+};

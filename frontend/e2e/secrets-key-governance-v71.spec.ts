@@ -19,7 +19,7 @@ test("V71 Secrets & Key Governance exposes metadata-only posture and keeps versi
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
-  expect(versions.at(-1)).toBe(71);
+  expect(versions.at(-1)).toBeGreaterThanOrEqual(71);
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/key-governance$/);

@@ -168,7 +168,7 @@ check('V71 UI never asks for secret value','secretValue' not in ui and 'Nhập s
 # E2E
 check('V71 E2E real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
 check('V71 E2E verifies tile','admin-key-governance-v71' in e2e)
-check('V71 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBe(71)' in e2e)
+check('V71 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(71)' in e2e)
 check('V71 E2E verifies strategy','V71-SECRETS-KEY-GOVERNANCE-5' in e2e)
 check('V71 E2E verifies no secret storage policy','NO_SECRET_VALUES_IN_DATABASE' in e2e)
 check('V71 E2E verifies auto rotation off','Auto-rotation execution mặc định OFF' in e2e)

@@ -192,7 +192,9 @@ export default function Header(){
               <Link onClick={close} href="/admin/privacy-governance">🧾 {en?"Privacy Governance V70":"Quản trị dữ liệu V70"}</Link>
               <Link onClick={close} href="/admin/key-governance">🔑 {en?"Key Governance V71":"Quản trị khóa V71"}</Link>
               <Link onClick={close} href="/admin/supply-chain">🧩 {en?"Supply Chain V72":"Chuỗi cung ứng phần mềm V72"}</Link>
+              <Link onClick={close} href="/admin/actions-runtime">⚙ {en?"Actions Runtime V73":"GitHub Actions V73"}</Link>
               <Link onClick={close} href="/admin/reliability">🛡 {en?"Reliability V74":"Độ tin cậy V74"}</Link>
+              <Link onClick={close} href="/admin/analytics-bi">📊 {en?"Analytics & BI V75":"Analytics & BI V75"}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {en?"Refunds":"Hoàn vé"}</Link>
               <Link onClick={close} href="/admin/audit">🛡 Audit log</Link>
             </div>}
@@ -257,7 +259,9 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/privacy-governance">Privacy Governance V70</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/key-governance">Key Governance V71</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/supply-chain">Supply Chain V72</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/actions-runtime">Actions Runtime V73</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/reliability">Reliability V74</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics-bi">Analytics & BI V75</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Audit log</Link>
               </div>}

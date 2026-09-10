@@ -21,6 +21,7 @@ app=text('backend/src/main/resources/application.yml')
 compose=text('docker-compose.yml')
 env=text('.env.example')
 ui=text('frontend/app/admin/reliability/page.tsx')
+v73ui=text('frontend/app/admin/actions-runtime/page.tsx')
 types=text('frontend/lib/types.ts')
 admin=text('frontend/app/admin/page.tsx')
 header=text('frontend/components/Header.tsx')
@@ -41,6 +42,7 @@ for rel in [
     'backend/src/main/java/com/cinebooking/reliability/ReliabilityService.java',
     'backend/src/main/java/com/cinebooking/reliability/AdminReliabilityController.java',
     'frontend/app/admin/reliability/page.tsx',
+    'frontend/app/admin/actions-runtime/page.tsx',
     'frontend/e2e/reliability-resilience-v74.spec.ts',
     'tools/failover-drill-v74.ps1','tools/diagnose-v74.ps1']:
     check(f'V74 file exists: {rel}',(ROOT/rel).exists())
@@ -162,10 +164,16 @@ check('Failover does not stop redis','stop redis' not in failover.lower())
 # Frontend types/UI
 for token in ['ReliabilityBurnWindowV74','ReliabilityIncidentV74','ReliabilityRunbookStepV74','ReliabilitySummaryV74']:
     check('Frontend type '+token,token in types)
+check('Admin Dashboard V73 tile','admin-actions-runtime-v73' in admin and 'Actions Runtime V73' in admin and '/admin/actions-runtime' in admin)
 check('Admin Dashboard V74 tile','admin-reliability-v74' in admin and 'Reliability V74' in admin)
-labels=['Command Center V53','Performance V54','Retention V55','Customer Value V56','Realtime Operations V59','Payment Production V60','Fraud & Risk V61','Dynamic Pricing V62','Recommendation V63','CRM & Marketing V64','Observability V65','Seat Operations V66','Payment Resilience V67','Security & Identity V68','Backup & DR V69','Privacy Governance V70','Key Governance V71','Supply Chain V72','Reliability V74']
+labels=['Command Center V53','Performance V54','Retention V55','Customer Value V56','Realtime Operations V59','Payment Production V60','Fraud & Risk V61','Dynamic Pricing V62','Recommendation V63','CRM & Marketing V64','Observability V65','Seat Operations V66','Payment Resilience V67','Security & Identity V68','Backup & DR V69','Privacy Governance V70','Key Governance V71','Supply Chain V72','Actions Runtime V73','Reliability V74']
 check('Admin Dashboard versioned tiles ascend through V74',all(admin.index(a)<admin.index(b) for a,b in zip(labels,labels[1:])))
+check('Header links V73 actions runtime page','/admin/actions-runtime' in header and 'Actions Runtime V73' in header)
 check('Header links V74 reliability page','/admin/reliability' in header and 'Reliability V74' in header)
+check('V73 admin runtime surface root','actions-runtime-v73' in v73ui)
+check('V73 admin runtime surface strategy','V73-GITHUB-ACTIONS-NODE24-5' in v73ui)
+check('V73 admin runtime surface Node24 posture','NODE24 READY' in v73ui and 'actions/upload-artifact@v7' in v73ui and 'actions/setup-java@v6' in v73ui)
+check('V73 admin runtime surface exposes no secret values','GITHUB_TOKEN' not in v73ui and 'gho_' not in v73ui and 'password' not in v73ui.lower())
 check('V74 UI root test id','reliability-v74' in ui)
 check('V74 UI summary test id','reliability-summary-v74' in ui)
 check('V74 UI burn-rate panel','burn-rate-v74' in ui and 'Fast burn' in ui and 'Slow burn' in ui)
@@ -183,8 +191,10 @@ check('V74 UI says no down-volume action','down -v' in ui.lower())
 
 # E2E
 check('V74 E2E logs in as real admin','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
+check('V74 E2E verifies missing V73 tile regression','admin-actions-runtime-v73' in e2e and 'Actions Runtime V73' in e2e and 'toContain(73)' in e2e)
+check('V74 E2E verifies V73 runtime surface','actions-runtime-v73' in e2e and 'V73-GITHUB-ACTIONS-NODE24-5' in e2e)
 check('V74 E2E verifies tile','admin-reliability-v74' in e2e)
-check('V74 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBe(74)' in e2e)
+check('V74 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(74)' in e2e)
 check('V74 E2E verifies strategy','V74-RELIABILITY-RESILIENCE-5' in e2e)
 check('V74 E2E verifies fast slow burn','Fast burn' in e2e and 'Slow burn' in e2e)
 check('V74 E2E verifies evidence policy','NO_SYNTHETIC_INCIDENTS' in e2e)
@@ -193,7 +203,7 @@ check('V74 E2E verifies runbook','reliability-runbook-v74' in e2e and 'FAILOVER'
 check('V74 E2E rejects UI error banner','reliability-error-v74' in e2e and 'toHaveCount(0)' in e2e)
 
 # Lifecycle / historical compatibility
-check('CI source regression names V74','V26-V74 source regression' in ci)
+check('CI source regression names V74 or later',re.search(r'V26-V(?:7[4-9]|[89][0-9]) source regression',ci) is not None)
 check('CI runs V74 verifier','verify_v74_reliability_resilience_5.py' in ci)
 check('V73 verifier forward-compatible with V74','V73 or later' in v73 and 'V26-V(?:7[3-9]|[89][0-9]) source regression' in v73)
 check('V73 Node24 regression remains in CI','verify_v73_github_actions_node24.py' in ci)
@@ -205,12 +215,12 @@ check('Makefile exposes stable release-v74','release-v74:' in make and 'v74.0.0'
 check('Diagnose V74 chains V59/V65/V69/V72/V73/V74',all(x in diag for x in ['verify_v59_realtime_operations_4.py','verify_v65_observability_reliability.py','verify_v69_backup_disaster_recovery_5.py','verify_v72_software_supply_chain_5.py','verify_v73_github_actions_node24.py','verify_v74_reliability_resilience_5.py']))
 check('Diagnose states no-schema authority','Flyway V72 / 67 public tables' in diag)
 check('Release preflight runs V74 verifier','verify_v74_reliability_resilience_5.py' in release)
-check('Release example is V74 stable','such as v74.0.0' in release)
+check('Release example is V74 or later stable',re.search(r'such as v(?:7[4-9]|[89][0-9])\.0\.0',release) is not None)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
 
 # README/docs
-check('README title V74',re.search(r'^# CineBooking Pro V74$',readme,re.M) is not None)
-check('README current release V74','Current release:** V74 - Reliability & Resilience 5.0' in readme)
+check('README title V74 or later',re.search(r'^# CineBooking Pro V(?:7[4-9]|[89][0-9])$',readme,re.M) is not None)
+check('README current release V74 or later',re.search(r'Current release:\*\* V(?:7[4-9]|[89][0-9])',readme) is not None or re.search(r'Current release: \*\*V(?:7[4-9]|[89][0-9])\*\*',readme) is not None)
 check('README history V74 after V73','| **V73** |' in readme and '| **V74** |' in readme and readme.index('| **V73** |')<readme.index('| **V74** |'))
 check('README detailed V74 section','## V74 - Reliability & Resilience 5.0' in readme)
 check('README strategy V74','V74-RELIABILITY-RESILIENCE-5' in readme)

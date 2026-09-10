@@ -1,12 +1,12 @@
-# CineBooking Pro V74
+# CineBooking Pro V75
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V74 - Reliability & Resilience 5.0
+> **Current release:** V75 - Analytics & BI 5.0
 
-V74 adds **Reliability & Resilience 5.0** on top of the V65 observability foundation, V69 disaster-recovery evidence, and V73 Node 24 CI baseline. It adds multi-window error-budget burn-rate evaluation, a consolidated incident timeline, an explicit controlled failover drill, and an operational runbook. V74 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and it creates no synthetic incidents or business data.
+V75 adds **Analytics & BI 5.0** as the next roadmap milestone after V74 Reliability. It reuses existing operational data and the V51/V55/V56 analytics lineage to expose a booking-to-payment-to-check-in funnel, registration cohorts with explicit 30-day maturity, realized customer LTV, payment-provider conversion, and movie/cinema efficiency. V75 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**.
 
-The failover exercise is opt-in and fail-closed: `tools/failover-drill-v74.ps1` is PLAN ONLY unless `-Execute` is supplied, only targets one backend replica, probes through nginx while the peer serves traffic, never invokes `docker compose down -v`, and always requests restart of the stopped replica from `finally`. Runtime 5xx samples are labeled ephemeral; staff incidents and audit records remain the durable evidence sources.
+V75 does not invent browser/page-view events that the platform does not durably store. The funnel therefore starts from real `booking.created_at` records; downstream payment/check-in stages are nested inside confirmed and successfully paid bookings. LTV uses realized `SUCCESS` payments, deduped per booking, and the Admin UI receives only a privacy-safe customer reference plus masked email. No synthetic movie/customer/booking/payment data is added.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -115,6 +115,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V72** | **Software Supply Chain Integrity 5.0: append-only artifact digests, build/SBOM references, server-derived scan decisions, advisory release posture** | **`V72__software_supply_chain_integrity.sql`** |
 | **V73** | **GitHub Actions Runtime Modernization 5.0: Node 24 action baseline, upload-artifact v7, setup-java v6, legacy-action regression gate** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V74** | **Reliability & Resilience 5.0: multi-window burn-rate, incident timeline, controlled failover exercise, recovery runbook** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V75** | **Analytics & BI 5.0: booking/payment/check-in funnel, cohort activation + repeat 30d, realized LTV, provider conversion, movie/cinema efficiency** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4696,6 +4697,16 @@ docker/build-push-action@v7
 
 V73 **không** dùng workaround `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true`. Repo cũng không cần `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` để che action cũ; action phải tự khai báo/runtime Node 24 đúng major. Với self-hosted runner, baseline tối thiểu là **Actions Runner 2.327.1**. GitHub-hosted `ubuntu-latest` tự đáp ứng baseline runner.
 
+### Admin surface V73
+
+Từ V74 maintenance line, Admin Dashboard bổ sung tile còn thiếu giữa V72 và V74:
+
+```text
+⚙ Actions Runtime V73 → /admin/actions-runtime
+```
+
+Trang này chỉ hiển thị baseline tooling an toàn (`V73-GITHUB-ACTIONS-NODE24-5`, action majors, Node 24 posture, Flyway V72/67 tables) và lệnh verifier. Browser **không gọi GitHub API, không đọc GitHub token và không hiển thị secret**. Versioned quick-action tiles vì vậy liên tục `V72 → V73 → V74` thay vì bỏ trống V73.
+
 ### Regression gate V73
 
 Verifier mới:
@@ -4913,3 +4924,167 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V74.
+
+## V75 - Analytics & BI 5.0
+
+V75 quay lại roadmap Business Intelligence sau V74 Reliability và **tái sử dụng dữ liệu vận hành thật** thay vì tạo một kho sự kiện giả. Strategy:
+
+```text
+V75-ANALYTICS-BI-5
+```
+
+### Booking → Payment → Check-in funnel
+
+Admin API mới:
+
+```text
+GET /api/admin/analytics-bi/summary?days=90
+```
+
+`days` được giới hạn `30..365`. Funnel không bắt đầu từ visitor/page-view vì CineBooking hiện không có durable page-view stream. Các bước là:
+
+```text
+BOOKING_ATTEMPT
+  → CONFIRMED
+  → PAYMENT_ATTEMPT
+  → PAID
+  → CHECKED_IN
+```
+
+Booking được cohort theo `booking.created_at` trong cửa sổ chọn. `PAYMENT_ATTEMPT` chỉ tính booking đã confirmed có payment attempt; `PAID` chỉ tính booking có `payment.status='SUCCESS'`; `CHECKED_IN` chỉ tính booking đã confirmed, có SUCCESS payment và có `ticket_checkin_log`. Vì vậy V75 **không tạo page-view/visitor giả** để làm đẹp conversion funnel.
+
+### Cohort activation và 30-day repeat
+
+Cohort được nhóm theo tháng `app_user.created_at` với `role='USER'`:
+
+- `activatedUsers`: có ít nhất 1 booking confirmed trong 30 ngày đầu sau đăng ký;
+- `repeat30dUsers`: có ít nhất 2 booking confirmed trong 30 ngày đầu;
+- `matured30d`: chỉ `true` khi cohort đã qua đủ thời gian quan sát.
+
+Cohort chưa đủ tuổi hiển thị `PARTIAL`, tránh so sánh cohort non-matured như dữ liệu đầy đủ.
+
+### Realized customer LTV
+
+V75 tính **Realized customer LTV** từ payment `SUCCESS`. Retry/payment duplicate được gom theo booking bằng `max(amount)` trước khi cộng lifetime revenue. Bảng top customer chỉ trả:
+
+```text
+customerRef
+masked email
+paidBookings
+realizedRevenue
+averageOrderValue
+firstPaidAt / lastPaidAt
+```
+
+Backend không trả raw customer email trong DTO LTV; UI chỉ nhận **masked email**.
+
+### Payment conversion
+
+Theo từng provider trong cửa sổ chọn, V75 hiển thị:
+
+```text
+attempts
+successfulAttempts
+failedAttempts
+otherAttempts
+successRatePercent
+successfulAmount
+```
+
+`successfulAmount` chỉ cộng payment `SUCCESS`.
+
+### Hiệu suất phim/rạp
+
+V75 đo **Hiệu suất phim/rạp** trên các showtime đã bắt đầu trong cửa sổ:
+
+```text
+completedShowtimes
+ticketsSold
+seatCapacity
+occupancyRatePercent
+realizedRevenue
+revenuePerShowtime
+revenuePerSeatOffered
+```
+
+Seat capacity đọc trực tiếp từ `seat`; tickets dùng `booking_seat` chưa release của booking đã confirmed; revenue dùng realized SUCCESS payment. Không suy diễn doanh thu từ giá niêm yết.
+
+### Admin surface V75
+
+Dashboard thêm đúng sau V74:
+
+```text
+🛡 Reliability V74
+📊 Analytics & BI V75 → /admin/analytics-bi
+```
+
+Trang V75 liên kết ngược về `/admin/analytics` để giữ nguyên Analytics & Forecasting V51; V75 không thay thế export/snapshot/cost-basis hiện có.
+
+Evidence policy:
+
+```text
+REAL_OPERATIONAL_DATA_ONLY
+REALIZED_SUCCESS_PAYMENTS_ONLY
+NO_SYNTHETIC_FUNNEL_EVENTS
+NO_RAW_CUSTOMER_EMAIL_IN_LTV_TABLE
+COHORT_30D_MATURITY_EXPLICIT
+PAST_SHOWTIMES_ONLY_FOR_EFFICIENCY
+```
+
+### Schema / dữ liệu
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V75 tables: 0
+```
+
+V75 không thêm migration, không seed dữ liệu BI riêng và không tạo phim/khách/booking/payment giả.
+
+### Verification V75
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+python -X utf8 .\tools\verify_v51_analytics_forecasting_3.py
+python -X utf8 .\tools\verify_v55_customer_retention.py
+python -X utf8 .\tools\verify_v56_customer_value_rfm.py
+python -X utf8 .\tools\verify_v74_reliability_resilience_5.py
+python -X utf8 .\tools\verify_v75_analytics_bi_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v75.ps1
+```
+
+V75 thay đổi backend + frontend nên runtime cần rebuild, nhưng Flyway vẫn V72:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  up -d --build
+```
+
+Frontend zero-warning + Browser E2E:
+
+```powershell
+cd .\frontend
+npm run lint
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/analytics-bi-v75.spec.ts" --project=chromium
+```
+
+### Release V75 - chỉ Stable
+
+```text
+Stable only: v75.0.0
+```
+
+Sau khi source gates, runtime, lint/build và Browser E2E PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v75.0.0
+```
+
+Không tạo RC/Pre-release cho V75.

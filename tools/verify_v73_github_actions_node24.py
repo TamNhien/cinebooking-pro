@@ -28,6 +28,9 @@ readme = text('README.md')
 make = text('Makefile')
 diag = text('tools/diagnose-v73.ps1')
 itest = text('backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java')
+admin = text('frontend/app/admin/page.tsx')
+header = text('frontend/components/Header.tsx')
+ui = text('frontend/app/admin/actions-runtime/page.tsx')
 
 workflow_texts = {
     '.github/workflows/ci.yml': ci,
@@ -112,6 +115,15 @@ check('README documents Node 20 removal date', '23/09/2026' in readme or 'Septem
 check('README says no insecure Node 20 fallback', 'ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION' in readme and 'không' in readme.lower())
 check('README documents V73 stable release', 'Stable only: v73.0.0' in readme)
 check('README preserves real-data policy through V73+', 'V52/V65/V66/V67/V68/V69/V70/V71/V72/V73' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
+
+# V74 maintenance line closes the Admin Dashboard V73 gap without changing V73's tooling-only backend contract.
+check('V73 admin runtime page exists', (ROOT / 'frontend/app/admin/actions-runtime/page.tsx').exists())
+check('Admin Dashboard exposes V73 runtime tile', 'admin-actions-runtime-v73' in admin and 'Actions Runtime V73' in admin and '/admin/actions-runtime' in admin)
+check('V72 V73 tile order is contiguous', 'Supply Chain V72' in admin and 'Actions Runtime V73' in admin and admin.index('Supply Chain V72') < admin.index('Actions Runtime V73'))
+check('Header exposes V73 runtime surface', '/admin/actions-runtime' in header and 'Actions Runtime V73' in header)
+check('V73 runtime surface exposes strategy', 'actions-runtime-v73' in ui and 'V73-GITHUB-ACTIONS-NODE24-5' in ui)
+check('V73 runtime surface shows Node24 baseline', 'NODE24 READY' in ui and 'actions/upload-artifact@v7' in ui and 'actions/setup-java@v6' in ui)
+check('V73 runtime surface stays metadata-only', 'GITHUB_TOKEN' not in ui and 'gho_' not in ui and 'fetch(' not in ui and '/api/' not in ui)
 
 passed = sum(ok for _, ok in checks)
 print(f"\nV73 verification: {passed}/{len(checks)} checks passed")

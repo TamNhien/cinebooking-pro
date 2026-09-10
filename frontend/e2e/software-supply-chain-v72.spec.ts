@@ -19,7 +19,7 @@ test("V72 Software Supply Chain Integrity exposes append-only digest posture and
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
-  expect(versions.at(-1)).toBe(72);
+  expect(versions.at(-1)).toBeGreaterThanOrEqual(72);
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/supply-chain$/);
