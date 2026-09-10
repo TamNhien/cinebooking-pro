@@ -20,7 +20,7 @@ export type RecommendationTasteGenre = { name:string; score:number };
 export type RecommendationTasteFacet = { name:string; score:number };
 export type RecommendationMode = "FAMILIAR"|"BALANCED"|"DISCOVERY";
 export type RecommendationTasteProfile = { algorithmVersion:string; personalized:boolean; summary:string; topGenres:RecommendationTasteGenre[]; topLanguages:RecommendationTasteFacet[]; preferredCinemaId?:string; preferredCinemaName?:string; preferredDaypart?:string; preferredDaypartLabel?:string; preferredWeekday?:number; preferredWeekdayLabel?:string; preferredDurationBand?:string; preferredDurationLabel?:string; profileStrength:number; signalCount:number; feedbackCount:number; hiddenCount:number };
-export type RecommendationHome = { algorithmVersion:string; mode:RecommendationMode; personalized:boolean; profileSummary:string; profile?:RecommendationTasteProfile|null; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[] };
+export type RecommendationHome = { algorithmVersion:string; mode:RecommendationMode; personalized:boolean; profileSummary:string; profile?:RecommendationTasteProfile|null; personalizedMovies:RecommendationItem[]; trendingMovies:RecommendationItem[]; evidencePolicy:string[] };
 export type RecommendationFeedbackResponse = { movieId:string; feedbackType:"MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE"; message:string };
 export type Showtime = {
   id:string;
@@ -461,4 +461,16 @@ export type AnalyticsBiSummaryV75 = {
   funnel:AnalyticsBiFunnelV75; cohorts:AnalyticsBiCohortRowV75[]; topCustomersByRealizedLtv:AnalyticsBiCustomerLtvV75[];
   paymentConversion:AnalyticsBiPaymentConversionV75[]; movieEfficiency:AnalyticsBiMovieEfficiencyV75[];
   cinemaEfficiency:AnalyticsBiCinemaEfficiencyV75[]; evidencePolicy:string[];
+};
+
+// V76 Recommendation 5.0
+export type RecommendationCoverageV76 = { actionableMoviePercent:number; metadataCompletePercent:number; personalizableUserPercent:number; qualityStatus:string };
+export type RecommendationMovieMetricV76 = { movieId:string; movieTitle:string; clicks:number; views:number; feedback:number; assistedBookings:number };
+export type RecommendationSourceMetricV76 = { source:string; clicks:number; views:number; totalEvents:number };
+export type RecommendationAdminSummaryV76 = {
+  strategyVersion:string; generatedAt:string; windowDays:number; windowStart:string; windowEnd:string;
+  activeMovies:number; actionableMovies:number; metadataCompleteMovies:number; registeredUsers:number; personalizableUsers:number;
+  recommendationEvents:number; recommendationClicks:number; recommendationViews:number; explicitFeedback:number;
+  moreLikeFeedback:number; lessLikeFeedback:number; hiddenFeedback:number; assistedConfirmedBookings:number; assistedRealizedRevenue:number;
+  coverage:RecommendationCoverageV76; topMovies:RecommendationMovieMetricV76[]; topSources:RecommendationSourceMetricV76[]; evidencePolicy:string[];
 };

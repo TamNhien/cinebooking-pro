@@ -195,6 +195,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/actions-runtime">⚙ {en?"Actions Runtime V73":"GitHub Actions V73"}</Link>
               <Link onClick={close} href="/admin/reliability">🛡 {en?"Reliability V74":"Độ tin cậy V74"}</Link>
               <Link onClick={close} href="/admin/analytics-bi">📊 {en?"Analytics & BI V75":"Analytics & BI V75"}</Link>
+              <Link onClick={close} href="/admin/recommendation">🧠 {en?"Recommendation V76":"Recommendation V76"}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {en?"Refunds":"Hoàn vé"}</Link>
               <Link onClick={close} href="/admin/audit">🛡 Audit log</Link>
             </div>}
@@ -262,6 +263,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/actions-runtime">Actions Runtime V73</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/reliability">Reliability V74</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics-bi">Analytics & BI V75</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/recommendation">Recommendation V76</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Audit log</Link>
               </div>}

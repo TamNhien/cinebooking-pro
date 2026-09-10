@@ -61,7 +61,8 @@ public final class RecommendationDtos {
             String profileSummary,
             RecommendationTasteProfile profile,
             List<RecommendationItem> personalizedMovies,
-            List<RecommendationItem> trendingMovies
+            List<RecommendationItem> trendingMovies,
+            List<String> evidencePolicy
     ) {}
 
     public record RecommendationEventRequest(

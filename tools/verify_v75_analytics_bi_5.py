@@ -159,7 +159,7 @@ check('V75 UI marks partial cohorts','PARTIAL' in ui and 'MATURED' in ui)
 # E2E
 check('V75 E2E logs in real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
 check('V75 E2E verifies tile','admin-analytics-bi-v75' in e2e)
-check('V75 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBe(75)' in e2e)
+check('V75 E2E verifies ascending versions through V75 or later','sort((a,b)=>a-b)' in e2e and 'toContain(75)' in e2e and 'toBeGreaterThanOrEqual(75)' in e2e)
 check('V75 E2E verifies V74 before V75','toContain(74)' in e2e)
 check('V75 E2E verifies strategy','V75-ANALYTICS-BI-5' in e2e)
 check('V75 E2E verifies real data policy','REAL_OPERATIONAL_DATA_ONLY' in e2e)
@@ -172,7 +172,7 @@ check('V75 E2E verifies movie/cinema efficiency','movie-efficiency-v75' in e2e a
 check('V75 E2E rejects error banner','analytics-bi-error-v75' in e2e and 'toHaveCount(0)' in e2e)
 
 # Lifecycle wiring
-check('CI source regression names V75','V26-V75 source regression' in ci)
+check('CI source regression names V75 or later',re.search(r'V26-V(?:7[5-9]|[89][0-9]) source regression',ci) is not None)
 check('CI runs V75 verifier','verify_v75_analytics_bi_5.py' in ci)
 check('V74 verifier forward-compatible with V75','V74 or later' in v74 and 'V26-V(?:7[4-9]|[89][0-9]) source regression' in v74)
 check('Makefile verify-v75','verify-v75:' in make and 'verify_v75_analytics_bi_5.py' in make)
@@ -181,12 +181,12 @@ check('Makefile release-v75','release-v75:' in make and 'v75.0.0' in make)
 check('Diagnose V75 chains V51/V55/V56/V74/V75',all(x in diag for x in ['verify_v51_analytics_forecasting_3.py','verify_v55_customer_retention.py','verify_v56_customer_value_rfm.py','verify_v74_reliability_resilience_5.py','verify_v75_analytics_bi_5.py']))
 check('Diagnose V75 runs real data gates','verify_realistic_data_57.py' in diag and 'verify_seed_demo_57.py' in diag)
 check('Release preflight runs V75 verifier','verify_v75_analytics_bi_5.py' in release)
-check('Release example V75 stable','such as v75.0.0' in release)
+check('Release example remains stable semantic version','stable tag such as v' in release and '.0.0' in release)
 check('Release remains stable-only','Pre-release tags are disabled' in release and '-rc.' not in release)
 
 # README/current release
-check('README title V75',re.search(r'^# CineBooking Pro V75$',readme,re.M) is not None)
-check('README current release V75','Current release:** V75 - Analytics & BI 5.0' in readme)
+check('README title is V75 or later',re.search(r'^# CineBooking Pro V(?:7[5-9]|[89][0-9])$',readme,re.M) is not None)
+check('README retains V75 release identity','V75 - Analytics & BI 5.0' in readme)
 check('README V75 history after V74','| **V74** |' in readme and '| **V75** |' in readme and readme.index('| **V74** |')<readme.index('| **V75** |'))
 check('README detailed V75 section','## V75 - Analytics & BI 5.0' in readme)
 check('README documents funnel','Booking → Payment → Check-in funnel' in readme)

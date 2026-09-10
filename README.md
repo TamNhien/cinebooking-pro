@@ -1,13 +1,14 @@
-# CineBooking Pro V75
+# CineBooking Pro V76
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V75 - Analytics & BI 5.0
-> **Current stable patch:** `v75.0.1` - Cost Coverage Drill-down for unknown concession cost basis.
+> **Current release:** V76 - Recommendation 5.0
+> **Previous stable patch incorporated:** `v75.0.1` - Cost Coverage Drill-down for unknown concession cost basis.
+> **V76 stable target:** `v76.0.0` (stable-only release flow).
 
-V75 adds **Analytics & BI 5.0** as the next roadmap milestone after V74 Reliability. It reuses existing operational data and the V51/V55/V56 analytics lineage to expose a booking-to-payment-to-check-in funnel, registration cohorts with explicit 30-day maturity, realized customer LTV, payment-provider conversion, and movie/cinema efficiency. V75 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**.
+V76 adds **Recommendation 5.0** after V75 Analytics & BI. The customer `/for-you` surface keeps the V63 deep taste model, three ranking modes, explainability, explicit MORE/LESS/HIDE controls and deterministic diversity reranking, while promoting the algorithm identity to `V76-EVIDENCE-AWARE-5` and exposing an explicit evidence policy in the API/UI.
 
-V75 does not invent browser/page-view events that the platform does not durably store. The funnel therefore starts from real `booking.created_at` records; downstream payment/check-in stages are nested inside confirmed and successfully paid bookings. LTV uses realized `SUCCESS` payments, deduped per booking, and the Admin UI receives only a privacy-safe customer reference plus masked email. No synthetic movie/customer/booking/payment data is added.
+V76 also adds an Admin-only **Recommendation Quality & Evidence** surface at `/admin/recommendation`. It measures actionable movie coverage, metadata completeness, users with durable taste signals, observed click/view events, explicit feedback, source activity, and assisted confirmed bookings using existing operational tables only. Assisted booking is explicitly defined as correlation: the same user had a recommendation event for the same movie within seven days before the confirmed booking. It is **not** treated as causal attribution. V76 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and no synthetic movie/customer/booking/payment data is added.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -30,7 +31,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75/V76 **không tạo phim/khách/booking/payment giả**. Recommendation 5.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -118,6 +119,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V74** | **Reliability & Resilience 5.0: multi-window burn-rate, incident timeline, controlled failover exercise, recovery runbook** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V75** | **Analytics & BI 5.0: booking/payment/check-in funnel, cohort activation + repeat 30d, realized LTV, provider conversion, movie/cinema efficiency** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V75.0.1** | **Cost Coverage Drill-down: chỉ đúng rạp/sản phẩm/đơn vị đã bán đang thiếu cost basis, affected revenue, cập nhật trực tiếp** | **Patch no-schema; giữ Flyway V72 / 67 tables** |
+| **V76** | **Recommendation 5.0: evidence-aware For You, real-data recommendation quality dashboard, coverage, feedback/source metrics, assisted booking correlation** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4927,54 +4929,6 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 
 Không tạo RC/Pre-release cho V74.
 
-## V75.0.1 - Cost Coverage Drill-down
-
-Patch `v75.0.1` hoàn thiện phần **MARGIN & COST COVERAGE** của Analytics V51 mà V75 tiếp tục sử dụng. Khi `costCoverageRate < 100%`, thẻ **Giá vốn bắp nước / Chưa biết** trở thành drill-down thay vì chỉ hiển thị trạng thái. Strategy:
-
-```text
-V75.0.1-COST-COVERAGE-DRILLDOWN-1
-```
-
-API mới chỉ đọc dữ liệu vận hành thật:
-
-```text
-GET /api/admin/analytics/missing-cost-basis?days=30&cinemaId=<optional>
-```
-
-Backend đối chiếu `booking_concession` của booking `CONFIRMED` với `cinema_concession_cost_basis` theo đúng cặp **rạp + sản phẩm** và đúng cửa sổ Analytics. Chỉ các dòng `cb.unit_cost IS NULL` mới xuất hiện. Response cho biết chính xác `missingUnits`, số cặp rạp/sản phẩm bị ảnh hưởng, `affectedRevenue`, lần bán gần nhất và từng item đang thiếu cost. Giá vốn **không được ước lượng**, không dùng `COALESCE(cost,0)` và không sinh dữ liệu giả.
-
-Trên UI, Admin/Manager có thể bấm thẻ **Chưa biết**, xem các item thiếu cost và nhập giá vốn ngay tại dòng bằng nút **Cập nhật ngay**. Action tái sử dụng endpoint V51 hiện có:
-
-```text
-PUT /api/admin/analytics/cost-basis
-```
-
-Sau khi lưu, dashboard và drill-down được tải lại để `costCoverageRate`, `concessionCost` và `grossMargin` phản ánh dữ liệu mới ngay lập tức. Nếu một sản phẩm lịch sử đã bị xóa khiến `productId` không còn, hệ thống vẫn hiển thị evidence nhưng chặn cập nhật trực tiếp thay vì ghi nhầm cost vào sản phẩm khác.
-
-V75.0.1 là patch **no-schema**:
-
-```text
-Flyway latest: V72
-Public tables: 67
-New V75.0.1 tables: 0
-```
-
-Verification:
-
-```powershell
-python -X utf8 .\tools\verify_v51_analytics_forecasting_3.py
-python -X utf8 .\tools\verify_v75_analytics_bi_5.py
-python -X utf8 .\tools\verify_v75_cost_coverage_drilldown.py
-```
-
-Stable patch tag:
-
-```text
-v75.0.1
-```
-
-V76 vẫn dành cho roadmap **Recommendation 5.0**; patch này không chiếm major version tiếp theo.
-
 ## V75 - Analytics & BI 5.0
 
 V75 quay lại roadmap Business Intelligence sau V74 Reliability và **tái sử dụng dữ liệu vận hành thật** thay vì tạo một kho sự kiện giả. Strategy:
@@ -5138,3 +5092,304 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 ```
 
 Không tạo RC/Pre-release cho V75.
+
+## V75.0.1 - Cost Coverage Drill-down
+
+Patch `v75.0.1` hoàn thiện phần **MARGIN & COST COVERAGE** của Analytics V51 mà V75 tiếp tục sử dụng. Khi `costCoverageRate < 100%`, thẻ **Giá vốn bắp nước / Chưa biết** trở thành drill-down thay vì chỉ hiển thị trạng thái. Strategy:
+
+```text
+V75.0.1-COST-COVERAGE-DRILLDOWN-1
+```
+
+API mới chỉ đọc dữ liệu vận hành thật:
+
+```text
+GET /api/admin/analytics/missing-cost-basis?days=30&cinemaId=<optional>
+```
+
+Backend đối chiếu `booking_concession` của booking `CONFIRMED` với `cinema_concession_cost_basis` theo đúng cặp **rạp + sản phẩm** và đúng cửa sổ Analytics. Chỉ các dòng `cb.unit_cost IS NULL` mới xuất hiện. Response cho biết chính xác `missingUnits`, số cặp rạp/sản phẩm bị ảnh hưởng, `affectedRevenue`, lần bán gần nhất và từng item đang thiếu cost. Giá vốn **không được ước lượng**, không dùng `COALESCE(cost,0)` và không sinh dữ liệu giả.
+
+Trên UI, Admin/Manager có thể bấm thẻ **Chưa biết**, xem các item thiếu cost và nhập giá vốn ngay tại dòng bằng nút **Cập nhật ngay**. Action tái sử dụng endpoint V51 hiện có:
+
+```text
+PUT /api/admin/analytics/cost-basis
+```
+
+Sau khi lưu, dashboard và drill-down được tải lại để `costCoverageRate`, `concessionCost` và `grossMargin` phản ánh dữ liệu mới ngay lập tức. Nếu một sản phẩm lịch sử đã bị xóa khiến `productId` không còn, hệ thống vẫn hiển thị evidence nhưng chặn cập nhật trực tiếp thay vì ghi nhầm cost vào sản phẩm khác.
+
+V75.0.1 là patch **no-schema**:
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V75.0.1 tables: 0
+```
+
+Verification:
+
+```powershell
+python -X utf8 .\tools\verify_v51_analytics_forecasting_3.py
+python -X utf8 .\tools\verify_v75_analytics_bi_5.py
+python -X utf8 .\tools\verify_v75_cost_coverage_drilldown.py
+```
+
+Stable patch tag:
+
+```text
+v75.0.1
+```
+
+V76 vẫn dành cho roadmap **Recommendation 5.0**; patch này không chiếm major version tiếp theo.
+
+## V76 - Recommendation 5.0
+
+V76 tiếp tục roadmap sau V75 và nâng recommendation từ **V63 Recommendation 4.0** lên **Recommendation 5.0** mà không thay thế dữ liệu lịch sử. Hai strategy được công khai rõ:
+
+```text
+Customer algorithm: V76-EVIDENCE-AWARE-5
+Admin quality strategy: V76-RECOMMENDATION-5
+```
+
+### Customer For You V76
+
+Trang hiện có vẫn là:
+
+```text
+/for-you
+```
+
+V76 giữ nguyên các năng lực đã chứng minh ở V63 để không phá hành vi người dùng:
+
+```text
+FAMILIAR
+BALANCED
+DISCOVERY
+
+favorites + reviews + CONFIRMED bookings
+recommendation CLICK/VIEW với recency decay
+MORE_LIKE_THIS / LESS_LIKE_THIS / HIDE
+language / rating / duration / cinema / weekday / daypart
+future OPEN showtime context
+deterministic diversity reranking
+score breakdown + confidence + new-to-you
+```
+
+V76 đổi runtime source attribution sang:
+
+```text
+FOR_YOU_V76
+FOR_YOU_V76_<MODE>
+```
+
+và response `/api/recommendations/home` bổ sung `evidencePolicy`. Không tạo lịch sử gu giả và không tự sinh movie để làm đầy recommendation grid.
+
+### Admin Recommendation Quality & Evidence
+
+Dashboard Admin thêm đúng sau V75:
+
+```text
+🛡 Reliability V74
+📊 Analytics & BI V75
+🧠 Recommendation V76 → /admin/recommendation
+```
+
+API read-only:
+
+```text
+GET /api/admin/recommendation/summary?days=30
+```
+
+`days` được giới hạn trong `7..180`. API nằm dưới `/api/admin/**` nên chỉ `ADMIN` truy cập theo `SecurityConfig` hiện có.
+
+Summary đo trực tiếp từ dữ liệu vận hành:
+
+```text
+activeMovies
+actionableMovies
+metadataCompleteMovies
+registeredUsers
+personalizableUsers
+recommendationEvents
+recommendationClicks
+recommendationViews
+explicitFeedback
+moreLikeFeedback
+lessLikeFeedback
+hiddenFeedback
+assistedConfirmedBookings
+assistedRealizedRevenue
+coverage
+topMovies
+topSources
+```
+
+**Actionable movie** = movie `active=true` có ít nhất một `showtime.status='OPEN'` trong tương lai.
+
+**Metadata complete** = movie active có `genre`, `movie_language` và `duration_minutes > 0`.
+
+**Personalizable user** = USER đã có ít nhất một durable signal trong các bảng hiện có: `movie_favorite`, `movie_review`, booking đã confirmed, `recommendation_event` hoặc `recommendation_feedback`.
+
+### Assisted booking: correlation, không causal attribution
+
+V76 chỉ đánh dấu một booking là assisted khi thỏa đồng thời:
+
+```text
+booking.confirmed_at trong cửa sổ
+same user
+same movie
+có recommendation_event trước booking
+khoảng cách event → confirmed booking <= 7 ngày
+```
+
+Do hệ thống chưa có experiment assignment / impression exposure / randomized holdout đầy đủ, metric này **không được diễn giải là recommendation gây ra booking**. Policy bắt buộc:
+
+```text
+ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION
+```
+
+`assistedRealizedRevenue` chỉ cộng payment `SUCCESS`, dedupe retry theo booking bằng `max(payment.amount)` trước khi cộng.
+
+### Evidence Policy V76
+
+Customer policy:
+
+```text
+REAL_OPERATIONAL_DATA_ONLY
+NO_SYNTHETIC_MOVIE_DATA
+EXPLAINABLE_RECOMMENDATIONS
+DETERMINISTIC_DIVERSITY_RERANK
+EXPLICIT_FEEDBACK_CONTROLS
+```
+
+Admin policy bổ sung:
+
+```text
+ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION
+NO_RAW_PERSONAL_DATA_IN_ADMIN_RECOMMENDATION_UI
+```
+
+Admin summary không trả raw email, tên người dùng, phone hoặc taste profile theo từng người. Chỉ trả aggregate counts/percentages và movie/source metrics.
+
+### Schema / dữ liệu V76
+
+V76 là **no-schema release**:
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V76 tables: 0
+```
+
+Không có:
+
+```text
+V76__*.sql
+```
+
+V76 tái sử dụng `movie`, `showtime`, `app_user`, `movie_favorite`, `movie_review`, `booking`, `payment`, `recommendation_event`, `recommendation_feedback`; không thêm seed business data và không tạo phim/khách/booking/payment giả.
+
+### Verification V76
+
+Chạy từ thư mục chuẩn:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+python -X utf8 .\tools\verify_v63_recommendation_4.py
+python -X utf8 .\tools\verify_v74_reliability_resilience_5.py
+python -X utf8 .\tools\verify_v75_analytics_bi_5.py
+python -X utf8 .\tools\verify_v75_cost_coverage_drilldown.py
+python -X utf8 .\tools\verify_v76_recommendation_5.py
+
+powershell -ExecutionPolicy Bypass `
+  -File .\tools\diagnose-v76.ps1
+```
+
+### Docker + Runtime V76
+
+V76 thay đổi backend + frontend nên rebuild:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  up -d --build
+```
+
+Kiểm tra:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  ps
+```
+
+Mong đợi:
+
+```text
+postgres      healthy
+redis         healthy
+backend-1     Up
+backend-2     Up
+frontend      Up
+nginx         Up
+```
+
+### Flyway V76
+
+V76 không có migration. Dòng mới nhất vẫn phải là V72 và tổng public table vẫn là 67.
+
+### Zero-warning lint + Production build
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+
+npm run lint
+$LASTEXITCODE
+
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+```
+
+Route V76 phải xuất hiện trong production build:
+
+```text
+/admin/recommendation
+```
+
+và các route cũ như `/admin/reliability`, `/admin/analytics-bi`, `/for-you` vẫn còn.
+
+### Browser E2E V76
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+
+Remove-Item Env:E2E_ADMIN_EMAIL -ErrorAction SilentlyContinue
+Remove-Item Env:E2E_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+
+npx playwright test `
+  "e2e/recommendation-5-v76.spec.ts" `
+  --project=chromium
+```
+
+E2E kiểm tra tile V76, thứ tự version, strategy, evidence policy, coverage, feedback, assisted-booking disclaimer, top movie/source panels, For You V76 và không có error banner.
+
+### Release V76 - chỉ Stable
+
+```text
+Stable only: v76.0.0
+```
+
+Sau khi source gates, runtime, lint/build và Browser E2E PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v76.0.0
+```
+
+Không tạo RC/Pre-release cho V76.

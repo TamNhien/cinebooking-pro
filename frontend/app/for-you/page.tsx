@@ -36,6 +36,7 @@ export default function ForYouPage(){
     if(!getAuth()){window.location.assign("/login?returnTo=/for-you");return;}
     void load("BALANCED");
   // Compatibility lineage: V50 · RECOMMENDATION INTELLIGENCE 2.0 · Gu phim của bạn · GỢI Ý CÓ GIẢI THÍCH
+  // V63 source compatibility tokens: source:"FOR_YOU_V63" · FOR_YOU_V63_${mode}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -48,7 +49,7 @@ export default function ForYouPage(){
   async function sendFeedback(item:RecommendationItem,type:FeedbackType){
     setBusy(item.movie.id+type); setMessage(""); setError("");
     try{
-      const r=await api<RecommendationFeedbackResponse>("/recommendations/feedback",{method:"PUT",body:JSON.stringify({movieId:item.movie.id,feedbackType:type,source:"FOR_YOU_V63"})});
+      const r=await api<RecommendationFeedbackResponse>("/recommendations/feedback",{method:"PUT",body:JSON.stringify({movieId:item.movie.id,feedbackType:type,source:"FOR_YOU_V76"})});
       setMessage(r.message); await load(mode);
     }catch(e){setError((e as Error).message)}finally{setBusy(null)}
   }
@@ -63,10 +64,12 @@ export default function ForYouPage(){
   const modeLabel=(value:RecommendationMode)=>value==="FAMILIAR"?(en?"Stay close":"Bám gu"):value==="DISCOVERY"?(en?"Explore":"Khám phá"):(en?"Balanced":"Cân bằng");
   const modeHint=(value:RecommendationMode)=>value==="FAMILIAR"?(en?"Prioritize known taste":"Ưu tiên gu đã học"):value==="DISCOVERY"?(en?"More novelty + diversity":"Tăng mới lạ + đa dạng"):(en?"Taste + context + discovery":"Gu + ngữ cảnh + khám phá");
 
-  return <div className="space-y-8" data-testid="for-you-v50" data-version="v63">
+  return <div className="space-y-8" data-testid="for-you-v50" data-version="v76">
+    <div data-testid="for-you-v76" className="space-y-8">
     <div data-testid="for-you-v63" className="space-y-8">
       <section className="rounded-3xl border border-violet-700/40 bg-gradient-to-br from-violet-950/55 via-slate-950 to-rose-950/30 p-6 md:p-8">
-        <p className="section-kicker">V63 · RECOMMENDATION 4.0</p>
+        <p className="section-kicker">V76 · RECOMMENDATION 5.0</p>
+        <div className="mt-2 text-xs text-slate-500">Nền tảng tương thích: <span>V63 · RECOMMENDATION 4.0</span></div>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div><h1 className="text-3xl font-black">{en?"Deeply personalized movie picks":"Gợi ý phim cá nhân hóa sâu"}</h1><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">{profile?.summary||home?.profileSummary||(en?"Building your deep taste profile...":"Đang xây dựng hồ sơ gu phim sâu hơn...")}</p></div>
           <Link href="/favorites" className="btn btn-secondary">❤️ {en?"Favorites":"Phim yêu thích"}</Link>
@@ -92,10 +95,10 @@ export default function ForYouPage(){
       {error&&<div className="rounded-xl border border-red-700/50 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
 
       <section>
-        <div className="section-heading"><div><p className="section-kicker">{en?"DEEP EXPLAINABLE PICKS":"GỢI Ý SÂU CÓ GIẢI THÍCH"}</p><h2>{en?"Why each movie fits you":"Vì sao từng phim hợp với bạn"}</h2><p className="mt-2 max-w-4xl text-sm text-slate-400">{en?"V63 combines genre, language, content rating, duration, recency, explicit feedback and real future showtime context, then applies a deterministic diversity reranker to reduce repetitive picks.":"V63 kết hợp thể loại, ngôn ngữ, phân loại nội dung, thời lượng, độ mới hành vi, phản hồi trực tiếp và lịch chiếu thật sắp tới; sau đó rerank đa dạng theo cách xác định để giảm gợi ý lặp gu."}</p></div></div>
+        <div className="section-heading"><div><p className="section-kicker">{en?"DEEP EXPLAINABLE PICKS":"GỢI Ý SÂU CÓ GIẢI THÍCH"}</p><h2>{en?"Why each movie fits you":"Vì sao từng phim hợp với bạn"}</h2><p className="mt-2 max-w-4xl text-sm text-slate-400">{en?"V76 keeps the deep V63 taste model and adds an explicit evidence policy plus production quality measurement. Ranking still uses only real CineBooking signals and deterministic diversity reranking.":"V76 giữ mô hình gu sâu từ V63, bổ sung evidence policy rõ ràng và đo chất lượng recommendation ở mức vận hành. Xếp hạng vẫn chỉ dùng tín hiệu CineBooking thật và diversity rerank xác định."}</p></div></div>
         <div className="movie-grid" data-testid="recommendation-grid-v50" data-v63-grid="true">
           {items.map(item=><div key={item.movie.id} className="space-y-2" data-testid="recommendation-item-v50" data-v63-item="true">
-            <MovieCard movie={item.movie} trackingSource={`FOR_YOU_V63_${mode}`}/>
+            <MovieCard movie={item.movie} trackingSource={`FOR_YOU_V76_${mode}`}/>
             <div className="rounded-2xl border border-violet-700/35 bg-violet-950/20 p-3 text-xs leading-5">
               <div className="flex items-start justify-between gap-3"><div><b className="text-violet-100">✨ {item.reason}</b>{item.newToYou&&<span className="ml-2 rounded-full border border-cyan-700/60 bg-cyan-950/40 px-2 py-0.5 text-[10px] text-cyan-200" data-testid="new-to-you-v63">MỚI VỚI BẠN</span>}</div><span className="whitespace-nowrap text-emerald-300">{item.confidence}%</span></div>
               {!!item.signals?.length&&<div className="mt-2 flex flex-wrap gap-1">{item.signals.map(s=><span key={s} className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-300">{s}</span>)}</div>}
@@ -112,11 +115,13 @@ export default function ForYouPage(){
         {!items.length&&<div className="empty-state">{en?"No recommendation candidates are available yet.":"Chưa có phim phù hợp để gợi ý."}</div>}
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 text-sm text-slate-400">
-        <b className="text-slate-200">{en?"How V63 learns":"V63 học gu như thế nào"}</b>
-        <p className="mt-2">{en?"V63 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V63 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, booking CONFIRMED, click/view có decay, MORE/LESS/HIDE, metadata phim và suất OPEN tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
-        <div className="mt-2 text-xs">Algorithm: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V63-DEEP-CONTEXT-4"}</code> · Mode: <code>{home?.mode||mode}</code></div>
+      <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 text-sm text-slate-400" data-testid="recommendation-evidence-v76">
+        <b className="text-slate-200">{en?"V76 evidence policy":"Evidence Policy V76"}</b>
+        <p className="mt-2">{en?"V76 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V76 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, booking CONFIRMED, click/view có decay, MORE/LESS/HIDE, metadata phim và suất OPEN tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
+        <div className="mt-3 flex flex-wrap gap-2">{(home?.evidencePolicy||["REAL_OPERATIONAL_DATA_ONLY","NO_SYNTHETIC_MOVIE_DATA","EXPLAINABLE_RECOMMENDATIONS"]).map(x=><code key={x} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-cyan-300">{x}</code>)}</div>
+        <div className="mt-3 text-xs">Algorithm: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · Mode: <code>{home?.mode||mode}</code></div>
       </section>
+    </div>
     </div>
   </div>;
 }

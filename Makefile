@@ -1024,3 +1024,12 @@ verify-v75-cost:
 
 release-v75-patch:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v75.0.1
+
+verify-v76:
+	python tools/verify_v76_recommendation_5.py
+
+diagnose-v76:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v76.ps1
+
+release-v76:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v76.0.0

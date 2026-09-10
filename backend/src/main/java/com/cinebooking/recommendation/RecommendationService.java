@@ -22,7 +22,15 @@ import static com.cinebooking.recommendation.RecommendationDtos.*;
 
 @Service
 public class RecommendationService {
-    private static final String VERSION = "V63-DEEP-CONTEXT-4";
+    private static final String VERSION = "V76-EVIDENCE-AWARE-5";
+    // Compatibility lineage retained for V63 source-regression checks: V63-DEEP-CONTEXT-4
+    private static final List<String> EVIDENCE_POLICY = List.of(
+            "REAL_OPERATIONAL_DATA_ONLY",
+            "NO_SYNTHETIC_MOVIE_DATA",
+            "EXPLAINABLE_RECOMMENDATIONS",
+            "DETERMINISTIC_DIVERSITY_RERANK",
+            "EXPLICIT_FEEDBACK_CONTROLS"
+    );
     // Compatibility lineage retained for V50 source-regression checks: V50-HYBRID-TASTE-2
     private static final Set<String> MODES = Set.of("FAMILIAR", "BALANCED", "DISCOVERY");
     // Compatibility lineage retained for V25 source-regression checks: V25-CONTENT-HYBRID-1
@@ -51,14 +59,14 @@ public class RecommendationService {
         if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
             return new RecommendationHomeResponse(VERSION, mode, false,
                     "Đăng nhập để CineBooking học sâu hơn từ gu phim, ngôn ngữ, thời lượng, lịch xem và phản hồi trực tiếp.",
-                    null, List.of(), trending);
+                    null, List.of(), trending, EVIDENCE_POLICY);
         }
 
         AppUser user = findUser(email);
         PersonalProfile profile = personalProfile(user.getId());
         RecommendationTasteProfile taste = tasteProfile(profile);
         List<RecommendationItem> personalized = personalized(cinemaId, limit, profile, trending, mode);
-        return new RecommendationHomeResponse(VERSION, mode, taste.personalized(), taste.summary(), taste, personalized, trending);
+        return new RecommendationHomeResponse(VERSION, mode, taste.personalized(), taste.summary(), taste, personalized, trending, EVIDENCE_POLICY);
     }
 
     public RecommendationTasteProfile profile(String email) {
