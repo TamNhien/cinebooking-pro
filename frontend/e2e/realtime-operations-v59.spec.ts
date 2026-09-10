@@ -20,7 +20,7 @@ test("V59 admin receives websocket operations signals and manages alert state",a
   await expect(actionGrid).toBeVisible();
   const actionButtons=actionGrid.locator(".admin-action-btn");
   await expect.poll(async()=>actionButtons.count()).toBeGreaterThan(10);
-  const clipped=await actionButtons.evaluateAll(nodes=>nodes.filter(node=>{const el=node as HTMLElement;return el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1}).map(node=>node.textContent?.trim()));
+  const clipped=await actionButtons.evaluateAll(nodes=>nodes.filter(node=>node.scrollWidth>node.clientWidth+1||node.scrollHeight>node.clientHeight+1).map(node=>node.textContent?.trim()));
   expect(clipped).toEqual([]);
   const overlap=await actionButtons.evaluateAll(nodes=>{
     const rects=nodes.map(node=>({text:node.textContent?.trim(),rect:(node as HTMLElement).getBoundingClientRect()}));
