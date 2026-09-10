@@ -408,3 +408,22 @@ export type SupplyChainSummaryV72 = {
   warningScanCount:number; latestEvidenceFresh:boolean; posture:"NO_EVIDENCE"|"READY"|"REVIEW"|"ACTION_REQUIRED";
   evidencePolicy:string[]; latestArtifact?:SoftwareArtifactEvidenceV72|null; latestScan?:SoftwareSupplyChainScanV72|null;
 };
+
+// V74 Reliability & Resilience 5.0
+export type ReliabilityBurnWindowV74 = {
+  code:"FAST"|"SLOW"; windowMinutes:number; requests:number; serverErrors:number; availabilityPercent:number;
+  errorRatePercent:number; allowedErrorPercent:number; burnRate:number; alertThreshold:number; sampleBufferTruncated:boolean;
+  status:"NO_DATA"|"PARTIAL"|"HEALTHY"|"WATCH"|"ALERT";
+};
+export type ReliabilityIncidentV74 = {
+  id:string; source:"STAFF_INCIDENT"|"AUDIT_LOG"|"RUNTIME_5XX"|string; severity:"LOW"|"MEDIUM"|"HIGH"|"CRITICAL"|string;
+  status:string; title:string; detail:string; occurredAt:string; href:string; evidenceRef:string;
+};
+export type ReliabilityRunbookStepV74 = { order:number; code:string; title:string; objective:string; command:string; safety:string };
+export type ReliabilitySummaryV74 = {
+  strategyVersion:string; generatedAt:string; posture:"HEALTHY"|"WATCH"|"ACTION_REQUIRED"|"NO_DATA";
+  availabilityTargetPercent:number; errorBudgetPercent:number; fastWindow:ReliabilityBurnWindowV74; slowWindow:ReliabilityBurnWindowV74;
+  multiWindowBurnAlert:boolean; burnAlertSeverity:"NONE"|"HIGH"|"CRITICAL"; openIncidents:number; criticalOpenIncidents:number;
+  dependencyStatus:"HEALTHY"|"DEGRADED"; disasterRecoveryReadiness:"READY"|"DEGRADED"|"NO_DATA";
+  failoverAutomationRequiresExplicitExecute:boolean; evidencePolicy:string[];
+};

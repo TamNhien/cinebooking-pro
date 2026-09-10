@@ -168,6 +168,13 @@ app:
     max-critical: ${SUPPLY_CHAIN_MAX_CRITICAL:0}
     max-high: ${SUPPLY_CHAIN_MAX_HIGH:0}
     release-gate-enforcement-enabled: ${SUPPLY_CHAIN_RELEASE_GATE_ENFORCEMENT_ENABLED:false}
+  reliability:
+    availability-target-percent: ${RELIABILITY_AVAILABILITY_TARGET_PERCENT:99.9}
+    fast-window-minutes: ${RELIABILITY_FAST_WINDOW_MINUTES:5}
+    slow-window-minutes: ${RELIABILITY_SLOW_WINDOW_MINUTES:60}
+    fast-burn-threshold: ${RELIABILITY_FAST_BURN_THRESHOLD:14.4}
+    slow-burn-threshold: ${RELIABILITY_SLOW_BURN_THRESHOLD:6.0}
+    incident-lookback-hours: ${RELIABILITY_INCIDENT_LOOKBACK_HOURS:24}
   admin:
     email: ${ADMIN_EMAIL:admin@cine.local}
     password: ${ADMIN_PASSWORD:Admin@123}

@@ -996,3 +996,16 @@ diagnose-v73:
 
 release-v73:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v73.0.0
+
+verify-v74:
+	python tools/verify_v74_reliability_resilience_5.py
+
+
+diagnose-v74:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v74.ps1
+
+failover-plan-v74:
+	powershell -ExecutionPolicy Bypass -File ./tools/failover-drill-v74.ps1
+
+release-v74:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v74.0.0

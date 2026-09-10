@@ -1,12 +1,12 @@
-# CineBooking Pro V73
+# CineBooking Pro V74
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V73 - GitHub Actions Runtime Modernization 5.0
+> **Current release:** V74 - Reliability & Resilience 5.0
 
-V73 adds **GitHub Actions Runtime Modernization 5.0** on top of V72 Software Supply Chain Integrity. This is a tooling-only release: the remaining `actions/upload-artifact@v4` reference is upgraded to the Node.js 24-capable `actions/upload-artifact@v7`, Java setup moves to `actions/setup-java@v6`, and a dedicated regression gate prevents Node 20-era action majors from returning. V73 adds no Flyway migration; database authority remains **Flyway V72 / 67 public tables**.
+V74 adds **Reliability & Resilience 5.0** on top of the V65 observability foundation, V69 disaster-recovery evidence, and V73 Node 24 CI baseline. It adds multi-window error-budget burn-rate evaluation, a consolidated incident timeline, an explicit controlled failover drill, and an operational runbook. V74 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and it creates no synthetic incidents or business data.
 
-The Node 24 migration is explicit rather than relying on runtime override flags. Hosted workflows keep `ubuntu-latest`; self-hosted runners must be **2.327.1 or newer** for the validated Node 24 action majors. The release pipeline does not use `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION` and does not mask stale actions with `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`.
+The failover exercise is opt-in and fail-closed: `tools/failover-drill-v74.ps1` is PLAN ONLY unless `-Execute` is supplied, only targets one backend replica, probes through nginx while the peer serves traffic, never invokes `docker compose down -v`, and always requests restart of the stopped replica from `finally`. Runtime 5xx samples are labeled ephemeral; staff incidents and audit records remain the durable evidence sources.
 
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
@@ -29,7 +29,7 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - Database bắt buộc `server_encoding = UTF8`; script runtime kiểm tra cả `server_encoding` và `client_encoding`. `POSTGRES_INITDB_ARGS` chỉ áp dụng khi tạo cluster mới; không xóa volume chỉ để đổi encoding.
 - PostgreSQL init mới dùng `--encoding=UTF8`; backend JVM dùng `-Dfile.encoding=UTF-8`; nginx khai báo `charset utf-8`.
 - Web giữ `<html lang="vi">`; CSV Analytics trả `text/csv;charset=UTF-8` và CSV export có UTF-8 BOM.
-- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
+- V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74 **không tạo phim/khách/booking/payment giả**. Recommendation 4.0 tiếp tục tái sử dụng đúng 8 phim V29; CRM V64 chỉ phân khúc từ dữ liệu thật; V65 chỉ đọc runtime/metrics/dependency health; V66 chỉ ghi `seat_hold` khi người dùng thật sự thao tác giữ ghế.
 - `tools/seed-v51-real-data.ps1` không tạo cinema/product/booking/payment giả; nó chỉ tính `analytics_snapshot` từ giao dịch hiện có.
 - `cinema_concession_cost_basis` **không được tự bịa giá vốn**. Cost chưa biết thì giữ `NULL`; chỉ nhập/import giá vốn thật.
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
@@ -114,6 +114,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V71** | **Secrets & Key Governance 5.0: metadata-only rotation catalog, credential presence posture, due/overdue tracking, append-only rotation evidence, no secret-value persistence** | **`V71__secrets_key_governance.sql`** |
 | **V72** | **Software Supply Chain Integrity 5.0: append-only artifact digests, build/SBOM references, server-derived scan decisions, advisory release posture** | **`V72__software_supply_chain_integrity.sql`** |
 | **V73** | **GitHub Actions Runtime Modernization 5.0: Node 24 action baseline, upload-artifact v7, setup-java v6, legacy-action regression gate** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V74** | **Reliability & Resilience 5.0: multi-window burn-rate, incident timeline, controlled failover exercise, recovery runbook** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -4758,3 +4759,157 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 
 Không tạo RC/Pre-release cho V73.
 
+## V74 - Reliability & Resilience 5.0
+
+V74 quay lại roadmap reliability sau nhánh security/tooling V70-V73 và tái sử dụng các capability đã có thay vì tạo một stack giám sát song song. Strategy:
+
+```text
+V74-RELIABILITY-RESILIENCE-5
+```
+
+### Multi-window error-budget burn-rate
+
+V74 mở rộng ring-buffer telemetry V65 để đọc các cửa sổ tùy chọn tối đa 120 phút nhưng vẫn giữ giới hạn **2.000 request samples mỗi replica**. Hai cửa sổ mặc định:
+
+```text
+FAST window: 5 phút   · alert threshold 14.4x
+SLOW window: 60 phút  · alert threshold 6.0x
+Availability target: 99.9%
+Error budget: 0.1%
+```
+
+Công thức:
+
+```text
+burn rate = observed 5xx error rate / allowed error budget
+```
+
+Nếu ring-buffer đầy và không còn bao phủ đủ cửa sổ yêu cầu, API trả `sampleBufferTruncated=true` và UI hiển thị `PARTIAL`; hệ thống không tuyên bố window đầy đủ. `ACTION_REQUIRED` được dùng khi dependency fail, có incident CRITICAL đang mở, hoặc FAST + SLOW cùng vượt ngưỡng. Một cửa sổ đơn vượt ngưỡng chỉ đưa posture sang `WATCH` cho đến khi đủ điều kiện multi-window.
+
+Cấu hình:
+
+```env
+RELIABILITY_AVAILABILITY_TARGET_PERCENT=99.9
+RELIABILITY_FAST_WINDOW_MINUTES=5
+RELIABILITY_SLOW_WINDOW_MINUTES=60
+RELIABILITY_FAST_BURN_THRESHOLD=14.4
+RELIABILITY_SLOW_BURN_THRESHOLD=6.0
+RELIABILITY_INCIDENT_LOOKBACK_HOURS=24
+```
+
+### Incident timeline
+
+Admin API:
+
+```text
+GET /api/admin/reliability/summary
+GET /api/admin/reliability/incidents?limit=50
+GET /api/admin/reliability/runbook
+```
+
+Timeline hợp nhất ba nguồn có provenance rõ ràng:
+
+- `STAFF_INCIDENT`: dữ liệu incident thật trong PostgreSQL, durable;
+- `AUDIT_LOG`: recovery/security/payment/operations evidence phù hợp, durable;
+- `RUNTIME_5XX`: request sample từ V65 của replica hiện tại, **ephemeral** và gắn trace ID khi có.
+
+V74 không thêm incident giả để làm đẹp dashboard và không suy diễn trạng thái healthy khi không có request sample.
+
+### Controlled failover drill
+
+Script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\failover-drill-v74.ps1
+```
+
+Mặc định chỉ in kế hoạch:
+
+```text
+PLAN ONLY - no container will be stopped.
+```
+
+Chỉ chạy thật trong maintenance window khi thêm `-Execute`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\failover-drill-v74.ps1 -Execute
+```
+
+Guardrails:
+
+- chỉ cho target `backend-1` hoặc `backend-2`;
+- `BaseUrl` chỉ nhận loopback `localhost/127.0.0.1`;
+- baseline probe phải PASS trước khi dừng replica;
+- chỉ `docker compose stop <one-backend>`; không stop PostgreSQL, Redis, frontend hay nginx;
+- probe `/api/movies` qua nginx để xác nhận replica còn lại vẫn phục vụ request;
+- luôn `docker compose start <target>` trong `finally`;
+- không chứa `down -v`, không xóa volume và không recreate database.
+
+### Runbook V74
+
+Dashboard `/admin/reliability` hiển thị runbook bảy bước:
+
+```text
+DETECT → TRIAGE → STABILIZE → FAILOVER → RECOVER → VERIFY → CLOSE
+```
+
+Recovery dữ liệu tiếp tục dùng restore drill V69 trên database tạm; V74 không thêm chức năng restore đè database live.
+
+### Schema / dữ liệu
+
+```text
+Flyway latest: V72
+Public tables: 67
+New V74 tables: 0
+```
+
+V74 chỉ đọc telemetry, `staff_incident`, `audit_log` và DR evidence hiện có. Không seed phim, khách hàng, booking, payment hay incident giả.
+
+### Verification V74
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+python -X utf8 .\tools\verify_v59_realtime_operations_4.py
+python -X utf8 .\tools\verify_v65_observability_reliability.py
+python -X utf8 .\tools\verify_v69_backup_disaster_recovery_5.py
+python -X utf8 .\tools\verify_v72_software_supply_chain_5.py
+python -X utf8 .\tools\verify_v73_github_actions_node24.py
+python -X utf8 .\tools\verify_v74_reliability_resilience_5.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v74.ps1
+```
+
+V74 thay đổi backend + frontend nên runtime cần rebuild, nhưng không có Flyway mới:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  up -d --build
+```
+
+Frontend zero-warning gate:
+
+```powershell
+cd .\frontend
+npm run lint
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/reliability-resilience-v74.spec.ts" --project=chromium
+```
+
+### Release V74 - chỉ Stable
+
+```text
+Stable only: v74.0.0
+```
+
+Sau khi source gates, runtime, lint/build và Browser E2E PASS:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v74.0.0
+```
+
+Không tạo RC/Pre-release cho V74.

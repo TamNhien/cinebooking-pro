@@ -136,7 +136,7 @@ jobs:
           retention-days: 7
 
   source-regression:
-    name: V26-V73 source regression
+    name: V26-V74 source regression
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -367,6 +367,9 @@ jobs:
 
       - name: Verify V73 GitHub Actions Runtime Modernization 5.0
         run: python3 tools/verify_v73_github_actions_node24.py
+
+      - name: Verify V74 Reliability & Resilience 5.0
+        run: python3 tools/verify_v74_reliability_resilience_5.py
 
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72

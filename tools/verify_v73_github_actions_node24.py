@@ -87,7 +87,7 @@ check('V72 verifier expects Node 24 upload-artifact generation', 'actions/upload
 check('V59 clipping regression verifier remains in CI lineage', 'verify_v59_realtime_operations_4.py' in ci)
 
 # V73 lifecycle wiring.
-check('CI source regression names V73', 'V26-V73 source regression' in ci)
+check('CI source regression names V73 or later', re.search(r'V26-V(?:7[3-9]|[89][0-9]) source regression', ci) is not None)
 check('CI runs V73 Node24 verifier', 'verify_v73_github_actions_node24.py' in ci)
 check('Makefile exposes verify-v73', 'verify-v73:' in make and 'verify_v73_github_actions_node24.py' in make)
 check('Makefile exposes diagnose-v73', 'diagnose-v73:' in make and 'diagnose-v73.ps1' in make)
@@ -97,12 +97,12 @@ check('Diagnose V73 runs setup-node compatibility verifier', 'verify_v35_setup_n
 check('Diagnose V73 runs V59 clipping regression gate', 'verify_v59_realtime_operations_4.py' in diag)
 check('Diagnose V73 runs V72 and V73 gates', 'verify_v72_software_supply_chain_5.py' in diag and 'verify_v73_github_actions_node24.py' in diag)
 check('Release preflight runs V73 verifier', 'verify_v73_github_actions_node24.py' in release_script)
-check('Release example is V73 stable', 'such as v73.0.0' in release_script)
+check('Release example is V73 or later stable', re.search(r'such as v(?:7[3-9]|[89][0-9])\.0\.0', release_script) is not None)
 check('Release remains stable-only', 'Pre-release tags are disabled' in release_script and '-rc.' not in release_script)
 
 # Documentation/current release.
-check('README title is V73', re.search(r'^# CineBooking Pro V73$', readme, re.M) is not None)
-check('README current release is V73', 'Current release:** V73' in readme or 'Current release: **V73**' in readme)
+check('README title is V73 or later', re.search(r'^# CineBooking Pro V(?:7[3-9]|[89][0-9])$', readme, re.M) is not None)
+check('README current release is V73 or later', re.search(r'Current release:\*\* V(?:7[3-9]|[89][0-9])', readme) is not None or re.search(r'Current release: \*\*V(?:7[3-9]|[89][0-9])\*\*', readme) is not None)
 check('README history includes V73 after V72', '| **V72** |' in readme and '| **V73** |' in readme and readme.index('| **V72** |') < readme.index('| **V73** |'))
 check('README detailed V73 section exists', '## V73 - GitHub Actions Runtime Modernization 5.0' in readme)
 check('README documents upload-artifact v7 migration', 'actions/upload-artifact@v7' in readme and 'actions/upload-artifact@v4' in readme)
@@ -111,7 +111,7 @@ check('README documents self-hosted runner minimum', '2.327.1' in readme)
 check('README documents Node 20 removal date', '23/09/2026' in readme or 'September 23, 2026' in readme)
 check('README says no insecure Node 20 fallback', 'ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION' in readme and 'không' in readme.lower())
 check('README documents V73 stable release', 'Stable only: v73.0.0' in readme)
-check('README preserves real-data policy through V73', 'V52/V65/V66/V67/V68/V69/V70/V71/V72/V73' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
+check('README preserves real-data policy through V73+', 'V52/V65/V66/V67/V68/V69/V70/V71/V72/V73' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)
 
 passed = sum(ok for _, ok in checks)
 print(f"\nV73 verification: {passed}/{len(checks)} checks passed")

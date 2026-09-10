@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 @Service
 public class RequestObservabilityService {
     private static final int MAX_SAMPLES = 2_000;
+    private static final int MAX_RELIABILITY_WINDOW_MINUTES = 120;
     private static final Pattern UUID_SEGMENT = Pattern.compile("(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$");
     private static final Pattern LONG_ID_SEGMENT = Pattern.compile("^[A-Za-z0-9._~-]{24,}$");
 
@@ -79,8 +80,14 @@ public class RequestObservabilityService {
     }
 
     public WindowSnapshot snapshot() {
+        return snapshot(windowMinutes);
+    }
+
+    public WindowSnapshot snapshot(int requestedMinutes) {
         pruneOld();
-        Instant cutoff = Instant.now().minus(Duration.ofMinutes(windowMinutes));
+        int minutes = Math.max(1, Math.min(requestedMinutes, MAX_RELIABILITY_WINDOW_MINUTES));
+        Instant now = Instant.now();
+        Instant cutoff = now.minus(Duration.ofMinutes(minutes));
         List<ObservabilityDtos.RequestSample> current = samples.stream()
                 .filter(s -> !s.at().isBefore(cutoff))
                 .toList();
@@ -89,7 +96,9 @@ public class RequestObservabilityService {
         double availability = total == 0 ? 100.0 : ((double) (total - serverErrors) * 100.0 / total);
         double errorRate = total == 0 ? 0.0 : ((double) serverErrors * 100.0 / total);
         long p95 = percentile95(current);
-        return new WindowSnapshot(total, serverErrors, round3(availability), round3(errorRate), p95);
+        ObservabilityDtos.RequestSample oldestRetained = samples.peekLast();
+        boolean truncated = samples.size() >= MAX_SAMPLES && oldestRetained != null && oldestRetained.at().isAfter(cutoff);
+        return new WindowSnapshot(total, serverErrors, round3(availability), round3(errorRate), p95, truncated);
     }
 
     public List<ObservabilityDtos.RequestSample> recent(int limit) {
@@ -106,7 +115,7 @@ public class RequestObservabilityService {
     }
 
     private void pruneOld() {
-        Instant cutoff = Instant.now().minus(Duration.ofMinutes(Math.max(windowMinutes * 3L, 30L)));
+        Instant cutoff = Instant.now().minus(Duration.ofMinutes(Math.max(MAX_RELIABILITY_WINDOW_MINUTES, Math.max(windowMinutes * 3L, 30L))));
         while (true) {
             ObservabilityDtos.RequestSample last = samples.peekLast();
             if (last == null || !last.at().isBefore(cutoff)) break;
@@ -155,6 +164,7 @@ public class RequestObservabilityService {
             long serverErrors,
             double availabilityPercent,
             double errorRatePercent,
-            long p95LatencyMs
+            long p95LatencyMs,
+            boolean sampleBufferTruncated
     ) {}
 }
