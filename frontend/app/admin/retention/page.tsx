@@ -29,12 +29,12 @@ export default function CustomerRetentionV55(){
 
   useEffect(()=>{
     const local=getAuth();
-    if(!local){location.href="/login?returnTo=/admin/retention&reason=required";return;}
+    if(!local){window.location.assign("/login?returnTo=/admin/retention&reason=required");return;}
     (async()=>{
       try{
         const profile=await api<UserProfile>("/me");
         if(!["MANAGER","ADMIN"].includes(profile.role)){
-          clearAuth();location.href="/login?returnTo=/admin/retention&reason=admin";return;
+          clearAuth();window.location.assign("/login?returnTo=/admin/retention&reason=admin");return;
         }
         setMe(profile);
         const options=await api<RetentionCinemaV55[]>("/admin/retention/cinemas");

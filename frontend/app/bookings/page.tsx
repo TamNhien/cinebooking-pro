@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -14,7 +15,7 @@ export default function Bookings(){
  const [tab,setTab]=useState<TimeTab>("upcoming"); const [query,setQuery]=useState(""); const [status,setStatus]=useState("ALL"); const [sort,setSort]=useState<SortMode>("showtime-asc");
  const [busyId,setBusyId]=useState(""); const [now,setNow]=useState<number|null>(null); const [refundQuotes,setRefundQuotes]=useState<Record<string,RefundQuote>>({});
  async function load(){setItems(await api<Booking[]>("/bookings/me"));}
- useEffect(()=>{if(!getAuth()){location.href="/login";return;}load().catch(e=>setError(e.message));},[]);
+ useEffect(()=>{if(!getAuth()){window.location.assign("/login");return;}load().catch(e=>setError(e.message));},[]);
  useEffect(()=>{const refresh=()=>setNow(Date.now());const first=setTimeout(refresh,0);const timer=setInterval(refresh,60000);return()=>{clearTimeout(first);clearInterval(timer);};},[]);
  async function quoteRefund(b:Booking){setBusyId(b.id);setMsg("");try{const q=await api<RefundQuote>(`/bookings/${b.id}/refund-quote`);setRefundQuotes(v=>({...v,[b.id]:q}));}catch(e){setMsg((e as Error).message)}finally{setBusyId("")}}
  async function refund(b:Booking){setBusyId(b.id);setMsg("");try{const result=await api<{status:string;refundAmount:number;automatic:boolean}>(`/bookings/${b.id}/refund-request`,{method:"POST",body:JSON.stringify({reason:"Khách hàng xác nhận hủy vé từ ví vé"})});setRefundQuotes(v=>{const copy={...v};delete copy[b.id];return copy;});setMsg(result.status==="REFUNDED"?`Đã hoàn vé tự động ${currency(result.refundAmount)}. Ghế đã được mở bán lại.`:"Đã gửi yêu cầu hoàn vé. Admin sẽ xác nhận giao dịch hoàn tiền.");await load();}catch(e){setMsg((e as Error).message)}finally{setBusyId("")}}

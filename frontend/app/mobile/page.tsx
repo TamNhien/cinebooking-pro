@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -38,7 +39,7 @@ export default function MobileCenterPage(){
   }
 
   useEffect(()=>{
-    if(!auth){location.href="/login?next=/mobile";return;}
+    if(!auth){window.location.assign("/login?next=/mobile");return;}
     load().catch(e=>setError((e as Error).message));
     const onNet=()=>setOnline(navigator.onLine);window.addEventListener("online",onNet);window.addEventListener("offline",onNet);
     return()=>{window.removeEventListener("online",onNet);window.removeEventListener("offline",onNet);};

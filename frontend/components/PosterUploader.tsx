@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- native img is required for QR/data/user-provided image sources. */
 "use client";
 
 import { ChangeEvent, useRef, useState } from "react";

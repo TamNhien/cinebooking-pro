@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -53,13 +54,13 @@ export default function AdminVouchersPage(){
   async function load(){
     const me=await api<UserProfile>("/me");
     if(me.role!=="ADMIN"){
-      clearAuth(); location.href="/login?returnTo=/admin/vouchers&reason=admin"; return;
+      clearAuth(); window.location.assign("/login?returnTo=/admin/vouchers&reason=admin"); return;
     }
     setItems(await api<Voucher[]>("/admin/commerce/vouchers"));
   }
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?returnTo=/admin/vouchers&reason=required";return;}
+    if(!getAuth()){window.location.assign("/login?returnTo=/admin/vouchers&reason=required");return;}
     load().catch(e=>setMsg((e as Error).message));
   },[]);
 

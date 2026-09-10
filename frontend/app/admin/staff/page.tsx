@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -68,14 +69,14 @@ export default function AdminStaffPage(){
   async function load(){
     const me=await api<UserProfile>("/me");
     if(me.role!=="ADMIN"){
-      clearAuth(); location.href="/login?returnTo=/admin/staff&reason=admin"; return;
+      clearAuth(); window.location.assign("/login?returnTo=/admin/staff&reason=admin"); return;
     }
     const [staff,cs]=await Promise.all([api<StaffAccount[]>("/admin/staff"),api<Cinema[]>("/admin/cinemas")]);
     setItems(staff);setCinemas(cs);
   }
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?returnTo=/admin/staff&reason=required";return;}
+    if(!getAuth()){window.location.assign("/login?returnTo=/admin/staff&reason=required");return;}
     load().catch(e=>setMsg((e as Error).message));
   },[]);
 

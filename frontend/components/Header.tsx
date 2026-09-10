@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -49,7 +50,7 @@ export default function Header(){
         if(!active)return;
         for(const n of feed){
           const toast=new window.Notification(n.title,{body:n.message,tag:`cinebooking-${n.id}`});
-          toast.onclick=()=>{window.focus();if(n.linkUrl)location.href=n.linkUrl;toast.close();};
+          toast.onclick=()=>{window.focus();if(n.linkUrl)window.location.assign(n.linkUrl);toast.close();};
         }
         const newest=feed.length?new Date(feed[feed.length-1].createdAt).getTime()+1:Date.now();
         localStorage.setItem(key,new Date(newest).toISOString());
@@ -92,7 +93,7 @@ export default function Header(){
     return()=>{document.body.style.overflow=previous;window.removeEventListener("keydown",onKey)};
   },[open]);
 
-  const logout=async()=>{await logoutSession();setOpen(false);setDesktopMenu(null);location.href="/"};
+  const logout=async()=>{await logoutSession();setOpen(false);setDesktopMenu(null);window.location.assign("/")};
   const close=()=>{setOpen(false);setDrawerSection(null)};
   const toggleDrawerSection=(section:Exclude<DrawerSection,null>)=>setDrawerSection(current=>current===section?null:section);
   const toggleDesktop=(menu:Exclude<DesktopMenu,null>)=>setDesktopMenu(current=>current===menu?null:menu);

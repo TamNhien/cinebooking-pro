@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { Client } from "@stomp/stompjs";
@@ -71,12 +72,12 @@ export default function OperationsControlCenterV59(){
 
   useEffect(()=>{
     const local=getAuth();
-    if(!local){location.href="/login?returnTo=/admin/operations-control&reason=required";return;}
+    if(!local){window.location.assign("/login?returnTo=/admin/operations-control&reason=required");return;}
     (async()=>{
       try{
         const profile=await api<UserProfile>("/me");
         if(!["MANAGER","ADMIN"].includes(profile.role)){
-          clearAuth();location.href="/login?returnTo=/admin/operations-control&reason=admin";return;
+          clearAuth();window.location.assign("/login?returnTo=/admin/operations-control&reason=admin");return;
         }
         setMe(profile);
         const options=await api<OperationsControlCinemaV58[]>("/admin/operations-control/cinemas");
@@ -87,7 +88,6 @@ export default function OperationsControlCenterV59(){
         await Promise.all([load(initial),loadHistory(initial)]);
       }catch(e){setMessage((e as Error).message);setLoading(false)}
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   useEffect(()=>{
@@ -116,16 +116,14 @@ export default function OperationsControlCenterV59(){
     setRealtimeStatus("CONNECTING");
     client.activate();
     return ()=>{if(debounceRef.current!==null)window.clearTimeout(debounceRef.current);void client.deactivate();setRealtimeStatus("OFFLINE")};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[me?.email]);
+  },[me]);
 
   useEffect(()=>{
     if(!autoRefresh||!data)return;
     const ms=Math.max(15,data.pollAfterSeconds||30)*1000;
     const id=window.setInterval(()=>void load(selectedRef.current,true),ms);
     return ()=>window.clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[autoRefresh,data?.pollAfterSeconds]);
+  },[autoRefresh,data]);
 
   const criticalCount=useMemo(()=>data?.alerts.filter(x=>x.state!=="RESOLVED"&&x.effectiveSeverity==="CRITICAL").reduce((sum,x)=>sum+x.count,0)||0,[data]);
 

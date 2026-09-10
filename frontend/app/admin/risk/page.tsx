@@ -21,7 +21,7 @@ export default function FraudRiskV61(){
     catch(e){setMessage((e as Error).message)}finally{setLoading(false)}
   }
 
-  useEffect(()=>{const local=getAuth();if(!local){location.href="/login?returnTo=/admin/risk&reason=required";return;}(async()=>{try{const profile=await api<UserProfile>("/me");if(profile.role!=="ADMIN"){clearAuth();location.href="/login?returnTo=/admin/risk&reason=admin";return;}await load();}catch(e){setMessage((e as Error).message);setLoading(false)}})();},[]);
+  useEffect(()=>{const local=getAuth();if(!local){window.location.assign("/login?returnTo=/admin/risk&reason=required");return;}(async()=>{try{const profile=await api<UserProfile>("/me");if(profile.role!=="ADMIN"){clearAuth();window.location.assign("/login?returnTo=/admin/risk&reason=admin");return;}await load();}catch(e){setMessage((e as Error).message);setLoading(false)}})();},[]);
 
   async function saveDisposition(userId:string){
     const disposition=choices[userId]||"REVIEW";

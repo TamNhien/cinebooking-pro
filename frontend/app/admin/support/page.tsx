@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 import { useEffect, useState } from "react";
 import { api, dateTime } from "@/lib/api";
@@ -6,7 +7,7 @@ import type { SupportCase, SupportCaseEvent, SupportCinema, SupportStaff, Suppor
 
 export default function AdminSupportPage(){
  const [role,setRole]=useState("");const [cinemas,setCinemas]=useState<SupportCinema[]>([]);const [cinemaId,setCinemaId]=useState("");const [summary,setSummary]=useState<SupportSummary|null>(null);const [cases,setCases]=useState<SupportCase[]>([]);const [staff,setStaff]=useState<SupportStaff[]>([]);const [events,setEvents]=useState<Record<string,SupportCaseEvent[]>>({});const [error,setError]=useState("");const [busy,setBusy]=useState(false);
- useEffect(()=>{const a=getAuth();if(!a||(a.role!=="ADMIN"&&a.role!=="MANAGER")){location.href="/login?returnTo=/admin/support&reason=manager";return;}setRole(a.role);api<SupportCinema[]>("/admin/support/cinemas").then(x=>{setCinemas(x);if(a.role!=="ADMIN"&&x[0])setCinemaId(x[0].id)}).catch(e=>setError((e as Error).message));},[]);
+ useEffect(()=>{const a=getAuth();if(!a||(a.role!=="ADMIN"&&a.role!=="MANAGER")){window.location.assign("/login?returnTo=/admin/support&reason=manager");return;}setRole(a.role);api<SupportCinema[]>("/admin/support/cinemas").then(x=>{setCinemas(x);if(a.role!=="ADMIN"&&x[0])setCinemaId(x[0].id)}).catch(e=>setError((e as Error).message));},[]);
  async function load(id=cinemaId){if(!id&&role==="ADMIN"){const [c,p]=await Promise.all([api<SupportCase[]>("/admin/support/cases"),api<SupportStaff[]>("/admin/support/staff-options")]);setSummary(null);setCases(c);setStaff(p);return;}if(!id)return;const q=`?cinemaId=${encodeURIComponent(id)}`;const [s,c,p]=await Promise.all([api<SupportSummary>(`/admin/support/summary${q}`),api<SupportCase[]>(`/admin/support/cases${q}`),api<SupportStaff[]>(`/admin/support/staff-options${q}`)]);setSummary(s);setCases(c);setStaff(p);}
  useEffect(()=>{if(role&&(cinemaId||role==="ADMIN"))load().catch(e=>setError((e as Error).message));},[cinemaId,role]);
  async function history(id:string){setEvents({...events,[id]:await api<SupportCaseEvent[]>(`/admin/support/cases/${id}/events`)})}

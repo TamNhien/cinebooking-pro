@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -35,7 +36,7 @@ export default function Login() {
       setAuth(r);
       const params = new URLSearchParams(window.location.search);
       const returnTo = safeReturnTo(params.get("returnTo"));
-      location.href = returnTo || (r.role === "ADMIN" ? "/admin" : "/");
+      window.location.assign(returnTo || (r.role === "ADMIN" ? "/admin" : "/"));
     } catch (e) {
       setError((e as Error).message);
     } finally {

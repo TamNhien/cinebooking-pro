@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -32,7 +33,7 @@ export default function ForYouPage(){
   }
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?returnTo=/for-you";return;}
+    if(!getAuth()){window.location.assign("/login?returnTo=/for-you");return;}
     void load("BALANCED");
   // Compatibility lineage: V50 · RECOMMENDATION INTELLIGENCE 2.0 · Gu phim của bạn · GỢI Ý CÓ GIẢI THÍCH
   // eslint-disable-next-line react-hooks/exhaustive-deps

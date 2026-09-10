@@ -33,6 +33,11 @@ readme=text('README.md')
 itest=text('backend/src/test/java/com/cinebooking/integration/CineBookingIntegrationIT.java')
 seed=text('tools/seed-demo-57-tables-10-rows.sql')
 inventory_tool=text('tools/generate_supply_chain_inventory_v72.py')
+eslint_config=text('frontend/eslint.config.mjs')
+frontend_package=text('frontend/package.json')
+operations_control=text('frontend/app/admin/operations-control/page.tsx')
+offline_tickets=text('frontend/app/offline-tickets/page.tsx')
+staff_operations=text('frontend/app/staff/operations/page.tsx')
 v71=text('tools/verify_v71_secrets_key_governance_5.py')
 v70=text('tools/verify_v70_data_governance_privacy_5.py')
 v69=text('tools/verify_v69_backup_disaster_recovery_5.py')
@@ -49,6 +54,15 @@ for rel,label in [
  ('tools/generate_supply_chain_inventory_v72.py','V72 dependency inventory tool exists')]: check(label,exists(rel))
 
 check('V72 strategy version explicit','V72-SUPPLY-CHAIN-INTEGRITY-5' in service and 'V72-SUPPLY-CHAIN-INTEGRITY-5' in ui and 'V72-SUPPLY-CHAIN-INTEGRITY-5' in readme)
+
+# V72 lint-clean follow-up: zero-warning policy and stale generated-file hygiene.
+check('Frontend lint enforces zero warnings','eslint . --max-warnings=0' in frontend_package)
+check('Hard-navigation compatibility policy is explicit','@next/next/no-location-assign-relative-destination' in eslint_config and '"off"' in eslint_config)
+check('Stale Header.js duplicate is absent',not exists('frontend/components/Header.js'))
+check('Stale exhaustive-deps line suppressions removed','eslint-disable-next-line react-hooks/exhaustive-deps' not in operations_control and 'eslint-disable-next-line react-hooks/exhaustive-deps' not in offline_tickets)
+check('Staff operations documents bounded websocket dependencies','react-hooks/exhaustive-deps' in staff_operations.splitlines()[0] and 'cinemaId' in staff_operations.splitlines()[0])
+check('Operations control realtime effect depends on full me snapshot','},[me]);' in operations_control)
+check('Operations control polling effect depends on full data snapshot','},[autoRefresh,data]);' in operations_control)
 
 # Migration
 check('migration creates software_artifact_evidence','CREATE TABLE software_artifact_evidence' in migration)

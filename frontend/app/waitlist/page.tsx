@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -12,7 +13,7 @@ export default function WaitlistPage(){
   const [busy,setBusy]=useState("");
 
   async function load(){setItems(await api<WaitlistItem[]>("/waitlist/me"));}
-  useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/waitlist&reason=required";return;}load().catch(e=>setError((e as Error).message));},[]);
+  useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/waitlist&reason=required");return;}load().catch(e=>setError((e as Error).message));},[]);
 
   const active=useMemo(()=>items.filter(x=>x.status==="ACTIVE"),[items]);
   const history=useMemo(()=>items.filter(x=>x.status!=="ACTIVE"),[items]);

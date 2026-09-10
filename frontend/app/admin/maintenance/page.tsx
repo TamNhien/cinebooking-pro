@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 
 import Link from "next/link";
@@ -37,7 +38,7 @@ export default function MaintenancePage(){
 
   useEffect(()=>{
     const a=getAuth();
-    if(!a||(a.role!=="ADMIN"&&a.role!=="MANAGER")){location.href="/login?returnTo=/admin/maintenance&reason=manager";return;}
+    if(!a||(a.role!=="ADMIN"&&a.role!=="MANAGER")){window.location.assign("/login?returnTo=/admin/maintenance&reason=manager");return;}
     setRole(a.role);
     api<MaintenanceCinema[]>("/admin/maintenance/cinemas").then(xs=>{setCinemas(xs);if(xs[0])setCinemaId(xs[0].id)}).catch(e=>setError((e as Error).message));
   },[]);

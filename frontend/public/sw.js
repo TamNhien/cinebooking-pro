@@ -19,13 +19,6 @@ const APP_SHELL = [
 const PRIVATE_NAV_PREFIXES=["/admin","/staff","/profile","/security","/notifications","/payments","/bookings","/ticket/","/booking/","/support","/for-you","/favorites","/waitlist"];
 
 function isPrivateNavigation(pathname){return PRIVATE_NAV_PREFIXES.some(prefix=>pathname===prefix||pathname.startsWith(prefix.endsWith("/")?prefix:`${prefix}/`));}
-function isShellPath(pathname){return APP_SHELL.includes(pathname);}
-
-async function trimCache(name,maxEntries){
-  const cache=await caches.open(name);const keys=await cache.keys();
-  if(keys.length<=maxEntries)return;
-  await Promise.all(keys.slice(0,keys.length-maxEntries).map(key=>cache.delete(key)));
-}
 
 async function cachePageAndAssets(cache, path) {
   try {

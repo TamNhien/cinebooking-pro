@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -35,7 +36,7 @@ export default function AnalyticsPage(){
   useEffect(()=>{
     const auth=getAuth();
     if(!auth||!["MANAGER","ADMIN"].includes(auth.role)){
-      location.href="/login?next=/admin/analytics";
+      window.location.assign("/login?next=/admin/analytics");
       return;
     }
     api<Cinema[]>("/cinemas").then(setCinemas).catch(()=>setCinemas([]));

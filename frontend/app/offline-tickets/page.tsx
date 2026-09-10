@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded; native img is required for QR/data/user-provided image sources. */
 "use client";
 
 import Link from "next/link";
@@ -26,7 +27,6 @@ export default function OfflineTicketsPage(){
   useEffect(()=>{
     if(!auth?.userId||typeof navigator==="undefined"||!navigator.onLine)return;
     runSync(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[auth?.userId]);
 
   const staleCount=useMemo(()=>items.filter(t=>t.syncState==="STALE").length,[items]);

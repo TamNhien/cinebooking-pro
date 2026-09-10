@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -36,13 +37,13 @@ export default function AdminPricingPage(){
 
   async function load(){
     const me=await api<UserProfile>("/me");
-    if(me.role!=="ADMIN"){clearAuth();location.href="/login?returnTo=/admin/pricing&reason=admin";return;}
+    if(me.role!=="ADMIN"){clearAuth();window.location.assign("/login?returnTo=/admin/pricing&reason=admin");return;}
     const [r,c,a,m,s,st,strategyData]=await Promise.all([
       api<PricingRule[]>("/admin/pricing/rules"),api<Cinema[]>("/admin/cinemas"),api<Auditorium[]>("/admin/auditoriums"),api<Movie[]>("/admin/movies"),api<Showtime[]>("/admin/showtimes"),api<AdminSeat[]>("/admin/seats"),api<DynamicPricingStrategyV62>("/admin/pricing/strategy")
     ]);
     setRules(r);setCinemas(c);setAuditoriums(a);setMovies(m);setShowtimes(s);setSeats(st);setStrategy(strategyData);
   }
-  useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/pricing&reason=required";return;}load().catch(e=>setMsg((e as Error).message));},[]);
+  useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/admin/pricing&reason=required");return;}load().catch(e=>setMsg((e as Error).message));},[]);
 
   const roomOptions=useMemo(()=>auditoriums.filter(a=>!form.cinemaId||a.cinemaId===form.cinemaId),[auditoriums,form.cinemaId]);
   const selectedPreviewShowtime=showtimes.find(s=>s.id===previewShowtime);

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -28,7 +29,7 @@ export default function NotificationsPage(){
   };
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?next=/notifications";return;}
+    if(!getAuth()){window.location.assign("/login?next=/notifications");return;}
     if(typeof Notification!=="undefined")setBrowserPermission(Notification.permission);
     load("ACTIVE").catch(e=>setError(e.message));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,7 +38,7 @@ export default function NotificationsPage(){
   const visible=useMemo(()=>items.filter(n=>filter==="ALL"?true:filter==="UNREAD"?!n.read:n.category===filter),[items,filter]);
 
   async function switchView(next:View){setView(next);setFilter("ALL");setError("");await load(next);}
-  async function openNotification(n:NotificationItem){if(!n.read){await api(`/notifications/${n.id}/read`,{method:"POST"});await load();}if(n.linkUrl)location.href=n.linkUrl;}
+  async function openNotification(n:NotificationItem){if(!n.read){await api(`/notifications/${n.id}/read`,{method:"POST"});await load();}if(n.linkUrl)window.location.assign(n.linkUrl);}
   async function all(){await api("/notifications/read-all",{method:"POST"});await load();}
   async function archive(n:NotificationItem){await api(`/notifications/${n.id}/${n.archived?"unarchive":"archive"}`,{method:"POST"});await load();setMsg(n.archived?"Đã đưa thông báo trở lại hộp thư.":"Đã lưu trữ thông báo.");}
   async function testNotification(){setBusy(true);setError("");setMsg("");try{await api<NotificationItem>("/notifications/test",{method:"POST"});await switchView("ACTIVE");setMsg("Đã tạo thông báo thử theo các kênh bạn đang bật.");}catch(e){setError((e as Error).message);}finally{setBusy(false);}}

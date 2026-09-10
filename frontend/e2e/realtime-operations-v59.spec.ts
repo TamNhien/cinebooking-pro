@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function loginAdmin(page:any){
+async function loginAdmin(page:Page){
   const email=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
   const password=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
   await page.goto("/login");
@@ -20,10 +20,10 @@ test("V59 admin receives websocket operations signals and manages alert state",a
   await expect(actionGrid).toBeVisible();
   const actionButtons=actionGrid.locator(".admin-action-btn");
   await expect.poll(async()=>actionButtons.count()).toBeGreaterThan(10);
-  const clipped=await actionButtons.evaluateAll(nodes=>nodes.filter((node:any)=>node.scrollWidth>node.clientWidth+1||node.scrollHeight>node.clientHeight+1).map((node:any)=>node.textContent?.trim()));
+  const clipped=await actionButtons.evaluateAll(nodes=>nodes.filter(node=>{const el=node as HTMLElement;return el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1}).map(node=>node.textContent?.trim()));
   expect(clipped).toEqual([]);
   const overlap=await actionButtons.evaluateAll(nodes=>{
-    const rects=nodes.map((node:any)=>({text:node.textContent?.trim(),rect:node.getBoundingClientRect()}));
+    const rects=nodes.map(node=>({text:node.textContent?.trim(),rect:(node as HTMLElement).getBoundingClientRect()}));
     const collisions:string[]=[];
     for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
       const a=rects[i],b=rects[j];

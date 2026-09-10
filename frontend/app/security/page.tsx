@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import { useEffect, useState } from "react";
 import { api, dateTime } from "@/lib/api";

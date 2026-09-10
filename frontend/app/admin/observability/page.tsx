@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -18,7 +19,7 @@ export default function ObservabilityV65Page(){
     try{
       const me=await api<UserProfile>("/me");
       if(me.role!=="ADMIN"){
-        clearAuth();location.href="/login?returnTo=/admin/observability&reason=admin";return;
+        clearAuth();window.location.assign("/login?returnTo=/admin/observability&reason=admin");return;
       }
       setSummary(await api<ObservabilitySummaryV65>("/admin/observability/summary"));
       setMsg("");
@@ -28,7 +29,7 @@ export default function ObservabilityV65Page(){
   },[]);
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?returnTo=/admin/observability&reason=required";return;}
+    if(!getAuth()){window.location.assign("/login?returnTo=/admin/observability&reason=required");return;}
     void load();
     const timer=window.setInterval(()=>void load(),REFRESH_MS);
     return()=>window.clearInterval(timer);

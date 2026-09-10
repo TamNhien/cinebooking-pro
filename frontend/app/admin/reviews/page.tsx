@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -9,10 +10,10 @@ import type { MovieReview, UserProfile } from "@/lib/types";
 export default function AdminReviewsPage(){
   const [reviews,setReviews]=useState<MovieReview[]>([]); const [msg,setMsg]=useState("");
   async function load(){
-    try{const me=await api<UserProfile>("/me");if(me.role!=="ADMIN"){clearAuth();location.href="/login?returnTo=/admin/reviews";return;}setReviews(await api<MovieReview[]>("/admin/reviews"));}
+    try{const me=await api<UserProfile>("/me");if(me.role!=="ADMIN"){clearAuth();window.location.assign("/login?returnTo=/admin/reviews");return;}setReviews(await api<MovieReview[]>("/admin/reviews"));}
     catch(e){setMsg((e as Error).message)}
   }
-  useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/reviews";return;}void load();},[]);
+  useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/admin/reviews");return;}void load();},[]);
   async function remove(id:string){if(!confirm("Xoá đánh giá này?"))return;try{await api(`/admin/reviews/${id}`,{method:"DELETE"});await load();setMsg("Đã xoá đánh giá.");}catch(e){setMsg((e as Error).message)}}
   return <div className="space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="section-kicker">KIỂM DUYỆT</p><h1 className="text-3xl font-bold">Đánh giá phim</h1><p className="text-slate-400">Admin có thể theo dõi và xoá nội dung đánh giá không phù hợp.</p></div><Link href="/admin" className="btn btn-secondary">← Dashboard</Link></div>

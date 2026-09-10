@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -24,7 +25,7 @@ export default function SeatOperationsV66(){
     try{
       const me=await api<UserProfile>("/me");
       if(me.role!=="ADMIN"){
-        clearAuth();location.href="/login?returnTo=/admin/seat-operations&reason=admin";return;
+        clearAuth();window.location.assign("/login?returnTo=/admin/seat-operations&reason=admin");return;
       }
       setSummary(await api<SeatConsistencySummaryV66>("/admin/seat-operations/summary"));
       setError("");

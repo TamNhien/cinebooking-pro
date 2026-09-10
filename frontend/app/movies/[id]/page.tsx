@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded; native img is required for QR/data/user-provided image sources. */
 "use client";
 import Link from "next/link";
 import { FormEvent, use, useEffect, useMemo, useState } from "react";
@@ -27,8 +28,8 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
   useEffect(()=>{if(showtimeDates.length&&!showtimeDates.includes(selectedDate))setSelectedDate(showtimeDates[0]);if(!showtimeDates.length&&selectedDate)setSelectedDate("");},[showtimeDates,selectedDate]);
   const selectedShows=useMemo(()=>showtimes.filter(s=>!selectedDate||localDateKey(s.startTime)===selectedDate),[showtimes,selectedDate]);
   const grouped=useMemo(()=>{const m=new Map<string,Showtime[]>();selectedShows.forEach(s=>{const a=m.get(s.cinemaId)||[];a.push(s);m.set(s.cinemaId,a)});return [...m.values()];},[selectedShows]);
-  async function toggleFavorite(){ if(!getAuth()){location.href=`/login?returnTo=/movies/${id}`;return;} try{const r=await api<{favorite:boolean}>(`/me/favorites/${id}`,{method:"PUT",body:JSON.stringify({favorite:!favorite})});setFavorite(r.favorite);}catch(e){setError((e as Error).message)} }
-  async function saveReview(e:FormEvent){e.preventDefault();if(!getAuth()){location.href=`/login?returnTo=/movies/${id}`;return;}setSaving(true);try{await api(`/movies/${id}/reviews/me`,{method:"PUT",body:JSON.stringify({rating:stars,comment})});await load();}catch(e){setError((e as Error).message)}finally{setSaving(false)}}
+  async function toggleFavorite(){ if(!getAuth()){window.location.assign(`/login?returnTo=/movies/${id}`);return;} try{const r=await api<{favorite:boolean}>(`/me/favorites/${id}`,{method:"PUT",body:JSON.stringify({favorite:!favorite})});setFavorite(r.favorite);}catch(e){setError((e as Error).message)} }
+  async function saveReview(e:FormEvent){e.preventDefault();if(!getAuth()){window.location.assign(`/login?returnTo=/movies/${id}`);return;}setSaving(true);try{await api(`/movies/${id}/reviews/me`,{method:"PUT",body:JSON.stringify({rating:stars,comment})});await load();}catch(e){setError((e as Error).message)}finally{setSaving(false)}}
   async function removeReview(){if(!confirm("Xoá đánh giá của bạn?"))return;try{await api(`/movies/${id}/reviews/me`,{method:"DELETE"});setStars(5);setComment("");await load();}catch(e){setError((e as Error).message)}}
   if(error&&!movie) return <div className="card p-6 text-red-300">{error}</div>;
   if(!movie) return <div className="text-slate-400">Đang tải...</div>;

@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 const CUSTOMER_PASSWORD="Support!Customer123";
 const AUTH_STORAGE_KEY="cinebooking_auth_v3";
 
-async function logoutToLogin(page:any,context:any){
+async function logoutToLogin(page:Page,context:BrowserContext){
   const status=await page.evaluate(async(authStorageKey:string)=>{
     const response=await fetch("/api/auth/logout",{method:"POST",credentials:"include",cache:"no-store"});
     localStorage.removeItem(authStorageKey);

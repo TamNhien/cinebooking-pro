@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -10,7 +11,7 @@ const emptyVoucher={code:"",name:"",discountType:"PERCENT",discountValue:10,minO
 export default function CommerceAdmin(){
  const [products,setProducts]=useState<ConcessionProduct[]>([]);const [vouchers,setVouchers]=useState<Voucher[]>([]);const [product,setProduct]=useState({...emptyProduct});const [productId,setProductId]=useState<string|null>(null);const [voucher,setVoucher]=useState({...emptyVoucher});const [voucherId,setVoucherId]=useState<string|null>(null);const [msg,setMsg]=useState("");
  const load=async()=>{const [p,v]=await Promise.all([api<ConcessionProduct[]>("/admin/commerce/products"),api<Voucher[]>("/admin/commerce/vouchers")]);setProducts(p);setVouchers(v)};
- useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){location.href="/login?next=/admin/commerce";return;}load().catch(e=>setMsg(e.message));},[]);
+ useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){window.location.assign("/login?next=/admin/commerce");return;}load().catch(e=>setMsg(e.message));},[]);
  async function saveProduct(e:FormEvent){e.preventDefault();try{await api(productId?`/admin/commerce/products/${productId}`:"/admin/commerce/products",{method:productId?"PUT":"POST",body:JSON.stringify({...product,price:Number(product.price),sortOrder:Number(product.sortOrder),imageUrl:product.imageUrl||null})});setProduct({...emptyProduct});setProductId(null);await load();setMsg("Đã lưu sản phẩm.")}catch(e){setMsg((e as Error).message)}}
  async function saveVoucher(e:FormEvent){e.preventDefault();try{const body={...voucher,discountValue:Number(voucher.discountValue),minOrderAmount:Number(voucher.minOrderAmount),maxDiscount:voucher.maxDiscount?Number(voucher.maxDiscount):null,usageLimit:voucher.usageLimit?Number(voucher.usageLimit):null,startsAt:voucher.startsAt?new Date(voucher.startsAt).toISOString():null,endsAt:voucher.endsAt?new Date(voucher.endsAt).toISOString():null};await api(voucherId?`/admin/commerce/vouchers/${voucherId}`:"/admin/commerce/vouchers",{method:voucherId?"PUT":"POST",body:JSON.stringify(body)});setVoucher({...emptyVoucher});setVoucherId(null);await load();setMsg("Đã lưu voucher.")}catch(e){setMsg((e as Error).message)}}
  async function remove(path:string){if(!confirm("Xác nhận tạm dừng?"))return;try{await api(path,{method:"DELETE"});await load()}catch(e){setMsg((e as Error).message)}}

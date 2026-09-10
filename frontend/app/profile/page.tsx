@@ -34,7 +34,7 @@ export default function ProfilePage() {
     // first cards look as if they were hidden behind the sticky header.
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
     if (!getAuth()) {
-      location.href = "/login";
+      window.location.assign("/login");
       return;
     }
     Promise.all([
@@ -132,7 +132,7 @@ export default function ProfilePage() {
     setBusy(true); setMsg("");
     try {
       await api(`/me/security/sessions/${id}`, { method: "DELETE" });
-      if (current) { clearAuth(); location.href = "/login?reason=expired"; return; }
+      if (current) { clearAuth(); window.location.assign("/login?reason=expired"); return; }
       setSessions(await api<SecuritySession[]>("/me/security/sessions"));
       setMsg("Đã thu hồi phiên đăng nhập.");
     } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }

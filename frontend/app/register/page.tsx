@@ -37,7 +37,7 @@ export default function Register() {
         body: JSON.stringify({ fullName, email, password }),
       });
       setAuth(r);
-      location.href = "/";
+      window.location.assign("/");
     } catch (e) {
       setError((e as Error).message);
     } finally {

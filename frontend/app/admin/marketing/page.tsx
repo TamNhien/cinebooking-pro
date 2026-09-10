@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -37,13 +38,13 @@ export default function MarketingAutomationV64Page(){
   async function load(){
     const me=await api<UserProfile>("/me");
     if(me.role!=="ADMIN"){
-      clearAuth(); location.href="/login?returnTo=/admin/marketing&reason=admin"; return;
+      clearAuth(); window.location.assign("/login?returnTo=/admin/marketing&reason=admin"); return;
     }
     setOverview(await api<MarketingOverviewV64>("/admin/marketing/segments"));
   }
 
   useEffect(()=>{
-    if(!getAuth()){location.href="/login?returnTo=/admin/marketing&reason=required";return;}
+    if(!getAuth()){window.location.assign("/login?returnTo=/admin/marketing&reason=required");return;}
     load().catch(e=>setMsg((e as Error).message));
   },[]);
 

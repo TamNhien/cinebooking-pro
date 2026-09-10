@@ -32,12 +32,12 @@ export default function OperationsCommandCenterV53(){
 
   useEffect(()=>{
     const local=getAuth();
-    if(!local){location.href="/login?returnTo=/admin/command-center&reason=required";return;}
+    if(!local){window.location.assign("/login?returnTo=/admin/command-center&reason=required");return;}
     (async()=>{
       try{
         const profile=await api<UserProfile>("/me");
         if(!["MANAGER","ADMIN"].includes(profile.role)){
-          clearAuth();location.href="/login?returnTo=/admin/command-center&reason=admin";return;
+          clearAuth();window.location.assign("/login?returnTo=/admin/command-center&reason=admin");return;
         }
         setMe(profile);
         const options=await api<CommandCenterCinemaV53[]>("/admin/command-center/cinemas");

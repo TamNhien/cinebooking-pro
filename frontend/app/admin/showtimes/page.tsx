@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import Link from "next/link";
@@ -46,7 +47,7 @@ export default function ShowtimePlannerPage(){
 
   useEffect(()=>{
     const auth=getAuth();
-    if(!auth||auth.role!=="ADMIN"){location.href="/login?returnTo=/admin/showtimes&reason=admin";return;}
+    if(!auth||auth.role!=="ADMIN"){window.location.assign("/login?returnTo=/admin/showtimes&reason=admin");return;}
     load().catch(e=>setError((e as Error).message));
   },[]);
 

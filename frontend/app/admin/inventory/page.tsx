@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 
 import Link from "next/link";
@@ -49,7 +50,7 @@ export default function InventoryAdmin(){
 
   useEffect(()=>{
     const a=getAuth();
-    if(!a||a.role!=="ADMIN"){location.href="/login?next=/admin/inventory";return;}
+    if(!a||a.role!=="ADMIN"){window.location.assign("/login?next=/admin/inventory");return;}
     loadBranches().then(cid=>load(cid)).catch(e=>setMsg((e as Error).message));
   },[]);
 

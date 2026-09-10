@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 
 import { Client } from "@stomp/stompjs";
@@ -120,7 +121,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   const soldOut=Boolean(map&&map.seats.length>0&&availableSeats===0&&!map.seats.some(s=>s.heldByMe));
 
   async function toggleWaitlist(){
-    if(!auth){location.href=`/login?returnTo=${encodeURIComponent(`/booking/${showtimeId}`)}&reason=required`;return;}
+    if(!auth){window.location.assign(`/login?returnTo=${encodeURIComponent(`/booking/${showtimeId}`)}&reason=required`);return;}
     setWaitlistBusy(true);setMessage("");
     try{
       if(waitlist?.subscribed){setWaitlist(await api<WaitlistStatus>(`/waitlist/showtimes/${showtimeId}`,{method:"DELETE"}));setMessage(en?"Seat alert cancelled.":"Đã huỷ theo dõi ghế trống.");}
@@ -168,10 +169,10 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   function providerReady(value:string){const base=value.startsWith("VNPAY")?"VNPAY":value.startsWith("MOMO")?"MOMO":value;const row=providerAvailability.find(x=>x.provider===base);return Boolean(row?.enabled);}
 
   async function applyVoucher(){if(!voucherCode.trim())return;if(gross<=0){setVoucher(null);setMessage(en?"Select at least one seat before applying a voucher.":"Hãy chọn ít nhất 1 ghế trước khi áp dụng mã ưu đãi.");return;}setBusy(true);setMessage("");try{const q=await api<VoucherQuote>("/commerce/vouchers/quote",{method:"POST",body:JSON.stringify({code:voucherCode.trim(),orderAmount:gross})});setVoucher(q);setVoucherCode(q.code);}catch(e){setVoucher(null);setMessage((e as Error).message);}finally{setBusy(false);}}
-  async function holdSeats(){if(!auth){location.href=`/login?next=${encodeURIComponent(`/booking/${showtimeId}`)}`;return;}if(pendingBooking){setMessage(en?"You already have an unpaid booking for this showtime. Continue payment or cancel it first.":"Bạn đang có đơn chờ thanh toán cho suất này. Hãy tiếp tục thanh toán hoặc huỷ đơn cũ để mở ghế.");return;}if(!selected.length)return;setBusy(true);setMessage("");try{const validation=await api<SeatSelectionValidation>(`/showtimes/${showtimeId}/selection-validation`,{method:"POST",body:JSON.stringify({seatIds:selected})});if(!validation.allowed){setMessage(validation.message);return;}const r=await api<{ttlSeconds:number;serverEpochMs:number;holdExpiresAtEpochMs:number;holdToken?:string;authority?:string}>(`/showtimes/${showtimeId}/holds`,{method:"POST",body:JSON.stringify({seatIds:selected})});checkoutKeyRef.current=null;setServerClockOffset((r.serverEpochMs||Date.now())-Date.now());setHoldExpiresAt(r.holdExpiresAtEpochMs||Date.now()+r.ttlSeconds*1000);setHeld(true);setSeconds(r.ttlSeconds);await load();}catch(e){setMessage((e as Error).message);await load();}finally{setBusy(false);}}
+  async function holdSeats(){if(!auth){window.location.assign(`/login?next=${encodeURIComponent(`/booking/${showtimeId}`)}`);return;}if(pendingBooking){setMessage(en?"You already have an unpaid booking for this showtime. Continue payment or cancel it first.":"Bạn đang có đơn chờ thanh toán cho suất này. Hãy tiếp tục thanh toán hoặc huỷ đơn cũ để mở ghế.");return;}if(!selected.length)return;setBusy(true);setMessage("");try{const validation=await api<SeatSelectionValidation>(`/showtimes/${showtimeId}/selection-validation`,{method:"POST",body:JSON.stringify({seatIds:selected})});if(!validation.allowed){setMessage(validation.message);return;}const r=await api<{ttlSeconds:number;serverEpochMs:number;holdExpiresAtEpochMs:number;holdToken?:string;authority?:string}>(`/showtimes/${showtimeId}/holds`,{method:"POST",body:JSON.stringify({seatIds:selected})});checkoutKeyRef.current=null;setServerClockOffset((r.serverEpochMs||Date.now())-Date.now());setHoldExpiresAt(r.holdExpiresAtEpochMs||Date.now()+r.ttlSeconds*1000);setHeld(true);setSeconds(r.ttlSeconds);await load();}catch(e){setMessage((e as Error).message);await load();}finally{setBusy(false);}}
   async function release(){setBusy(true);try{if(selected.length)await api(`/showtimes/${showtimeId}/holds`,{method:"DELETE",body:JSON.stringify({seatIds:selected})});}catch{}finally{checkoutKeyRef.current=null;setHeld(false);setHoldExpiresAt(0);setSeconds(0);setSelected([]);setBusy(false);await load();}}
   async function refreshSeats(){setBusy(true);setMessage("");try{if(held&&selected.length){try{await api(`/showtimes/${showtimeId}/holds`,{method:"DELETE",body:JSON.stringify({seatIds:selected})});}catch{}}checkoutKeyRef.current=null;setHeld(false);setHoldExpiresAt(0);setSeconds(0);setSelected([]);await Promise.all([load(),loadPending()]);setMessage(en?"Seat map refreshed. Expired holds/bookings were cleaned up.":"Đã đồng bộ sơ đồ ghế. Các lượt giữ/đơn hết hạn và khóa ghế treo đã được kiểm tra, giải phóng nếu không còn hiệu lực.");}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}
-  async function resumePendingPayment(){if(!pendingBooking)return;setBusy(true);setMessage("");try{const payment=await api<PaymentStart>(`/payments/bookings/${pendingBooking.id}/start`,{method:"POST",headers:{"Idempotency-Key":paymentKey(pendingBooking.id,provider)},body:JSON.stringify({provider})});location.href=payment.paymentUrl;}catch(e){setMessage((e as Error).message);await Promise.all([load(),loadPending()]);setBusy(false);}}
+  async function resumePendingPayment(){if(!pendingBooking)return;setBusy(true);setMessage("");try{const payment=await api<PaymentStart>(`/payments/bookings/${pendingBooking.id}/start`,{method:"POST",headers:{"Idempotency-Key":paymentKey(pendingBooking.id,provider)},body:JSON.stringify({provider})});window.location.assign(payment.paymentUrl);}catch(e){setMessage((e as Error).message);await Promise.all([load(),loadPending()]);setBusy(false);}}
   async function cancelPendingBooking(){if(!pendingBooking)return;setBusy(true);setMessage("");try{await api<Booking>(`/bookings/${pendingBooking.id}/cancel`,{method:"POST"});checkoutKeyRef.current=null;setPendingBooking(null);setSelected([]);setHeld(false);setHoldExpiresAt(0);setSeconds(0);setVoucher(null);await Promise.all([load(),loadPending()]);setMessage(en?"Unpaid booking cancelled. Its seats are available again.":"Đã huỷ đơn chưa thanh toán và mở lại ghế.");}catch(e){setMessage((e as Error).message);}finally{setBusy(false);}}
   async function checkout(){if(!held||!selected.length)return;setBusy(true);setMessage("");let booking:Booking|null=null;try{
       const concessions=(Object.entries(addons) as [string,number][]).filter(([,q])=>q>0).map(([productId,quantity])=>({productId,quantity}));
@@ -183,9 +184,9 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       setPendingBooking(booking);setHeld(false);setHoldExpiresAt(0);setSeconds(0);
       try{
         const payment=await api<PaymentStart>(`/payments/bookings/${booking.id}/start`,{method:"POST",headers:{"Idempotency-Key":paymentKey(booking.id,provider)},body:JSON.stringify({provider})});
-        location.href=payment.paymentUrl;
+        window.location.assign(payment.paymentUrl);
         return;
-      }catch(paymentError){
+      }catch{
         setMessage(en?"The booking was created, but the payment page could not be opened. Use Continue payment below or cancel the unpaid booking to release the seats.":"Đơn đã được tạo nhưng chưa mở được trang thanh toán. Hãy bấm Tiếp tục thanh toán bên dưới, hoặc huỷ đơn chờ để mở lại ghế.");
         await Promise.all([load(),loadPending()]);
       }

@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function loginAdmin(page:any){
+async function loginAdmin(page:Page){
   const email=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
   const password=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
   await page.goto("/login");

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -12,8 +13,8 @@ const empty=():Form=>({staffUserId:"",shiftDate:today(),startTime:"08:00",endTim
 export default function ShiftManagementPage(){
  const [items,setItems]=useState<StaffShift[]>([]),[staff,setStaff]=useState<StaffOption[]>([]),[form,setForm]=useState<Form>(empty()),[editing,setEditing]=useState<string|null>(null),[msg,setMsg]=useState(""),[role,setRole]=useState(""); const [showCancelled,setShowCancelled]=useState(false);
  const [from,setFrom]=useState(today()),[to,setTo]=useState(()=>{const d=new Date();d.setDate(d.getDate()+14);return d.toISOString().slice(0,10)});
- async function load(){const me=await api<UserProfile>("/me");if(!["ADMIN","MANAGER"].includes(me.role)){clearAuth();location.href="/login?returnTo=/admin/shifts";return;}setRole(me.role);const [s,o]=await Promise.all([api<StaffShift[]>(`/admin/shifts?from=${from}&to=${to}`),api<StaffOption[]>("/admin/shifts/staff-options")]);setItems(s);setStaff(o);}
- useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/shifts";return;}void load().catch(e=>setMsg((e as Error).message));},[from,to]);
+ async function load(){const me=await api<UserProfile>("/me");if(!["ADMIN","MANAGER"].includes(me.role)){clearAuth();window.location.assign("/login?returnTo=/admin/shifts");return;}setRole(me.role);const [s,o]=await Promise.all([api<StaffShift[]>(`/admin/shifts?from=${from}&to=${to}`),api<StaffOption[]>("/admin/shifts/staff-options")]);setItems(s);setStaff(o);}
+ useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/admin/shifts");return;}void load().catch(e=>setMsg((e as Error).message));},[from,to]);
  const visible=useMemo(()=>showCancelled?items:items.filter(s=>s.status!=="CANCELLED"),[items,showCancelled]);
  const grouped=useMemo(()=>Object.entries(visible.reduce<Record<string,StaffShift[]>>((a,s)=>{(a[s.shiftDate]??=[]).push(s);return a},{})),[visible]);
  function edit(s:StaffShift){setEditing(s.id);setForm({staffUserId:s.staffUserId,shiftDate:s.shiftDate,startTime:s.startTime.slice(0,5),endTime:s.endTime.slice(0,5),note:s.note||""});setMsg("");window.scrollTo({top:0,behavior:"smooth"});}

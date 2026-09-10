@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
@@ -20,7 +21,7 @@ export default function AdminFinancePage(){
       setData(d);setDate(d.businessDate);
     }catch(e){setMsg((e as Error).message);}
   }
-  useEffect(()=>{const auth=getAuth();if(!auth){location.href="/login?returnTo=/admin/finance&reason=required";return;}void load();},[]);
+  useEffect(()=>{const auth=getAuth();if(!auth){window.location.assign("/login?returnTo=/admin/finance&reason=required");return;}void load();},[]);
   async function reconcile(){if(!date)return;setBusy(true);setMsg("");try{const run=await api<{status:string;issueCount:number}>(`/admin/finance/reconcile?date=${date}`,{method:"POST"});setMsg(run.status==="CLEAN"?"Đối soát sạch: không phát hiện sai lệch.":`Đối soát phát hiện ${run.issueCount} vấn đề cần kiểm tra.`);await load(date);}catch(e){setMsg((e as Error).message);}finally{setBusy(false);}}
   async function resolve(issue:FinancialReconciliationIssue){setBusy(true);try{await api(`/admin/finance/issues/${issue.id}/resolve`,{method:"POST"});await load(date);}catch(e){setMsg((e as Error).message);}finally{setBusy(false);}}
   const openForDate=useMemo(()=>data?.openIssues.filter(i=>i.runId===data.latestRun?.id)||[],[data]);

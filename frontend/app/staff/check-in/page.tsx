@@ -1,9 +1,18 @@
+/* eslint-disable react-hooks/exhaustive-deps -- dependency lifecycle is intentionally bounded. */
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import type { CheckInHistoryItem, CheckInPreview, CheckInResult, StaffGateStatus, LoyaltyConcessionClaim } from "@/lib/types";
+
+type BarcodeResult = { rawValue?: string };
+type BarcodeDetectorInstance = { detect(source: HTMLVideoElement | ImageBitmap): Promise<BarcodeResult[]> };
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorInstance;
+type BrowserWindowExtensions = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext;
+  BarcodeDetector?: BarcodeDetectorConstructor;
+};
 
 function currentReturnTo(){return typeof window==="undefined"?"/staff/check-in":window.location.pathname+window.location.search;}
 
@@ -12,7 +21,7 @@ export default function StaffCheckInPage(){
  useEffect(()=>{void boot();return stopCamera;},[]);
  async function boot(){
   const a=getAuth(); const returnTo=currentReturnTo();
-  if(!a||!["STAFF","MANAGER","ADMIN"].includes(a.role)){location.href=`/login?reason=required&returnTo=${encodeURIComponent(returnTo)}`;return;}
+  if(!a||!["STAFF","MANAGER","ADMIN"].includes(a.role)){window.location.assign(`/login?reason=required&returnTo=${encodeURIComponent(returnTo)}`);return;}
   try{
    const [g,h]=await Promise.all([api<StaffGateStatus>("/staff/gate-status"),api<CheckInHistoryItem[]>("/staff/check-in/history")]); setGate(g);setHistory(h);
    const ticket=new URLSearchParams(window.location.search).get("ticket");
@@ -22,7 +31,7 @@ export default function StaffCheckInPage(){
  async function refreshHistory(){try{setHistory(await api<CheckInHistoryItem[]>("/staff/check-in/history"))}catch{}}
  function feedback(ok:boolean){
   try{if(navigator.vibrate)navigator.vibrate(ok?[120]:[100,80,100]);}catch{}
-  try{const AC=(window as any).AudioContext||(window as any).webkitAudioContext;if(!AC)return;const ctx=new AC();const osc=ctx.createOscillator();const gain=ctx.createGain();osc.frequency.value=ok?880:220;gain.gain.value=0.05;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.12);}catch{}
+  try{const browserWindow=window as BrowserWindowExtensions;const AC=browserWindow.AudioContext||browserWindow.webkitAudioContext;if(!AC)return;const ctx=new AC();const osc=ctx.createOscillator();const gain=ctx.createGain();osc.frequency.value=ok?880:220;gain.gain.value=0.05;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.12);}catch{}
  }
  async function previewTicket(value=payload){const v=value.trim();if(!v)return null;const p=await api<CheckInPreview>("/staff/check-in/preview",{method:"POST",body:JSON.stringify({payload:v})});setPreview(p);return p;}
  async function inspectAndMaybeSubmit(value:string,knownGate=gate,auto=false){
@@ -35,8 +44,8 @@ export default function StaffCheckInPage(){
  async function doSubmit(value=payload){const v=value.trim();if(!v)return;setMessage("");setResult(null);try{const r=await api<CheckInResult>("/staff/check-in",{method:"POST",body:JSON.stringify({payload:v})});setResult(r);setPayload("");setPreview(null);setMessage("Check-in vé thành công.");feedback(true);window.history.replaceState({},"","/staff/check-in");await refreshHistory();}catch(e){setMessage((e as Error).message);feedback(false);}}
  async function submit(value=payload,knownGate=gate){const v=value.trim();if(!v||processingRef.current)return;if(knownGate&&!knownGate.canScan){setMessage(knownGate.message);return;}const now=Date.now();if(lastScanRef.current?.raw===v&&now-lastScanRef.current.at<2500)return;lastScanRef.current={raw:v,at:now};processingRef.current=true;try{const p=await previewTicket(v);if(!p)return;if(!p.allowed){setMessage(p.message);feedback(false);return;}await doSubmit(v);}catch(e){setMessage((e as Error).message);feedback(false);}finally{processingRef.current=false;}}
  async function claimLoyaltyReward(){const code=rewardCode.trim();if(!code)return;setMessage("");setRewardClaim(null);try{const r=await api<LoyaltyConcessionClaim>("/staff/loyalty-rewards/claim",{method:"POST",body:JSON.stringify({code})});setRewardClaim(r);setRewardCode("");setMessage(r.message);feedback(true);}catch(e){setMessage((e as Error).message);feedback(false);}}
- async function startCamera(){if(gate&&!gate.canScan){setMessage(gate.message);return;}setMessage("");const BD=(window as any).BarcodeDetector;if(!BD){setMessage("Trình duyệt chưa hỗ trợ BarcodeDetector. Bạn có thể dùng camera mặc định của điện thoại quét QR URL hoặc dán URL vào ô bên cạnh.");return;}try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});streamRef.current=stream;if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play();}const detector=new BD({formats:["qr_code"]});setScanning(true);timerRef.current=window.setInterval(async()=>{try{if(!videoRef.current||videoRef.current.readyState<2)return;const codes=await detector.detect(videoRef.current);const raw=codes?.[0]?.rawValue;if(raw){stopCamera();setPayload(raw);await submit(raw);}}catch{}},450);}catch(e){setMessage("Không mở được camera trong website: "+(e as Error).message+". Bạn vẫn có thể dùng camera mặc định của điện thoại quét QR để mở trang check-in.");}}
- async function decodeImage(file:File){setMessage("");const BD=(window as any).BarcodeDetector;if(!BD){setMessage("Trình duyệt chưa hỗ trợ đọc QR từ ảnh.");return;}try{const detector=new BD({formats:["qr_code"]});const bitmap=await createImageBitmap(file);const codes=await detector.detect(bitmap);bitmap.close();const raw=codes?.[0]?.rawValue;if(!raw)throw new Error("Không tìm thấy mã QR trong ảnh");setPayload(raw);await submit(raw);}catch(e){setMessage((e as Error).message)}}
+ async function startCamera(){if(gate&&!gate.canScan){setMessage(gate.message);return;}setMessage("");const BD=(window as BrowserWindowExtensions).BarcodeDetector;if(!BD){setMessage("Trình duyệt chưa hỗ trợ BarcodeDetector. Bạn có thể dùng camera mặc định của điện thoại quét QR URL hoặc dán URL vào ô bên cạnh.");return;}try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});streamRef.current=stream;if(videoRef.current){videoRef.current.srcObject=stream;await videoRef.current.play();}const detector=new BD({formats:["qr_code"]});setScanning(true);timerRef.current=window.setInterval(async()=>{try{if(!videoRef.current||videoRef.current.readyState<2)return;const codes=await detector.detect(videoRef.current);const raw=codes?.[0]?.rawValue;if(raw){stopCamera();setPayload(raw);await submit(raw);}}catch{}},450);}catch(e){setMessage("Không mở được camera trong website: "+(e as Error).message+". Bạn vẫn có thể dùng camera mặc định của điện thoại quét QR để mở trang check-in.");}}
+ async function decodeImage(file:File){setMessage("");const BD=(window as BrowserWindowExtensions).BarcodeDetector;if(!BD){setMessage("Trình duyệt chưa hỗ trợ đọc QR từ ảnh.");return;}try{const detector=new BD({formats:["qr_code"]});const bitmap=await createImageBitmap(file);const codes=await detector.detect(bitmap);bitmap.close();const raw=codes?.[0]?.rawValue;if(!raw)throw new Error("Không tìm thấy mã QR trong ảnh");setPayload(raw);await submit(raw);}catch(e){setMessage((e as Error).message)}}
  function stopCamera(){if(timerRef.current){clearInterval(timerRef.current);timerRef.current=null;}streamRef.current?.getTracks().forEach(t=>t.stop());streamRef.current=null;setScanning(false);}
  const hasTicket=typeof window!=="undefined"&&new URLSearchParams(window.location.search).has("ticket");
  return <div className="mx-auto max-w-4xl space-y-6">

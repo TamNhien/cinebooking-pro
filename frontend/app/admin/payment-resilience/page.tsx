@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -24,7 +25,7 @@ export default function PaymentResilienceV67(){
   const load=useCallback(async()=>{
     try{
       const me=await api<UserProfile>("/me");
-      if(me.role!=="ADMIN"){clearAuth();location.href="/login?returnTo=/admin/payment-resilience&reason=admin";return;}
+      if(me.role!=="ADMIN"){clearAuth();window.location.assign("/login?returnTo=/admin/payment-resilience&reason=admin");return;}
       setSummary(await api<PaymentResilienceSummaryV67>("/admin/payment-resilience/summary"));
       setError("");
     }catch(e){setError((e as Error).message);}

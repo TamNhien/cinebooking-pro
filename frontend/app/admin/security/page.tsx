@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
@@ -31,7 +32,7 @@ export default function AdminSecurity(){
  const load=useCallback(async()=>{
   try{
    const me=await api<UserProfile>("/me");
-   if(me.role!=="ADMIN"){clearAuth();location.href="/login?returnTo=/admin/security&reason=admin";return;}
+   if(me.role!=="ADMIN"){clearAuth();window.location.assign("/login?returnTo=/admin/security&reason=admin");return;}
    const [s,a,i,st]=await Promise.all([
     api<AdminSecuritySummaryV46>("/admin/security/overview"),
     api<AdminSecurityAlertV46[]>("/admin/security/alerts"),
@@ -42,7 +43,7 @@ export default function AdminSecurity(){
   }catch(e){setMsg((e as Error).message);}
  },[]);
 
- useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/security&reason=required";return;}void load();},[load]);
+ useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/admin/security&reason=required");return;}void load();},[load]);
  useEffect(()=>{const tick=()=>setClock(Date.now());tick();const id=setInterval(tick,1000);return()=>clearInterval(id);},[]);
 
  const local=getStepUp();

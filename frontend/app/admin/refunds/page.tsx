@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import type { RefundItem } from "@/lib/types";
 export default function RefundAdminPage(){
  const [items,setItems]=useState<RefundItem[]>([]); const [msg,setMsg]=useState(""); const [refs,setRefs]=useState<Record<string,string>>({});
  async function load(){setItems(await api<RefundItem[]>("/admin/refunds"));}
- useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){location.href="/login?next=/admin/refunds";return;}load().catch(e=>setMsg(e.message));},[]);
+ useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){window.location.assign("/login?next=/admin/refunds");return;}load().catch(e=>setMsg(e.message));},[]);
  async function approve(x:RefundItem){
   const providerReference=refs[x.bookingId]?.trim()||undefined;
   if(!confirm("Xác nhận giao dịch hoàn tiền đã được xử lý? Ghế, loyalty, voucher và tồn kho sẽ được hoàn tự động."))return;

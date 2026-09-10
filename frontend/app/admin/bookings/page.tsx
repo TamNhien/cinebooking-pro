@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element, react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded; native img is required for QR/data/user-provided image sources. */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -29,12 +30,12 @@ export default function AdminBookingsPage(){
     setLoading(true);
     try{
       const me=await api<UserProfile>("/me");
-      if(me.role!=="ADMIN"){ clearAuth(); location.href="/login?returnTo=/admin/bookings&reason=admin"; return; }
+      if(me.role!=="ADMIN"){ clearAuth(); window.location.assign("/login?returnTo=/admin/bookings&reason=admin"); return; }
       const data=await api<AdminBookingView[]>("/admin/booking-ops"); setItems(data);
       const wanted=new URLSearchParams(location.search).get("booking"); if(wanted){ const found=data.find(x=>x.id===wanted); if(found) await openDetail(found.id); }
     }catch(e){setMsgKind("error");setMsg((e as Error).message)}finally{setLoading(false)}
   }
-  useEffect(()=>{if(!getAuth()){location.href="/login?returnTo=/admin/bookings&reason=required";return;}void load()},[]);
+  useEffect(()=>{if(!getAuth()){window.location.assign("/login?returnTo=/admin/bookings&reason=required");return;}void load()},[]);
 
   const cinemas=useMemo(()=>Array.from(new Set(items.map(x=>x.cinemaName))).sort(),[items]);
   const filtered=useMemo(()=>items.filter(x=>{

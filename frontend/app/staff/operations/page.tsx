@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps -- effects intentionally synchronize API/WebSocket state; connect/load lifecycle is deliberately keyed only by cinemaId. */
 "use client";
 
 import Link from "next/link";
@@ -26,14 +27,12 @@ export default function StaffOperationsPage(){
 
   useEffect(()=>{
     const a=getAuth();
-    if(!a||!["STAFF","MANAGER","ADMIN"].includes(a.role)){location.href="/login?returnTo=/staff/operations";return;}
+    if(!a||!["STAFF","MANAGER","ADMIN"].includes(a.role)){window.location.assign("/login?returnTo=/staff/operations");return;}
     setAuth(a);void bootstrap();
     return()=>{void wsRef.current?.deactivate();};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
   useEffect(()=>{if(!cinemaId)return;void load(cinemaId);connect(cinemaId);const timer=window.setInterval(()=>void load(cinemaId,true),15000);return()=>{window.clearInterval(timer);void wsRef.current?.deactivate();wsRef.current=null;};
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   },[cinemaId]);
 
   async function bootstrap(){

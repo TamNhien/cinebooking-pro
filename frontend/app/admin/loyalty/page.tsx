@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -9,7 +10,7 @@ export default function AdminLoyaltyPage(){
  const [members,setMembers]=useState<AdminLoyaltyMember[]>([]); const [q,setQ]=useState(""); const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
  const [delta,setDelta]=useState<Record<string,string>>({}); const [reason,setReason]=useState<Record<string,string>>({}); const [birthDate,setBirthDate]=useState<Record<string,string>>({}); const [birthReason,setBirthReason]=useState<Record<string,string>>({});
  async function load(){setMembers(await api<AdminLoyaltyMember[]>("/admin/loyalty/members"));}
- useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){location.href="/login?next=/admin/loyalty";return;}load().catch(e=>setMsg(e.message));},[]);
+ useEffect(()=>{const a=getAuth();if(!a||a.role!=="ADMIN"){window.location.assign("/login?next=/admin/loyalty");return;}load().catch(e=>setMsg(e.message));},[]);
  const rows=useMemo(()=>{const s=q.trim().toLowerCase();return !s?members:members.filter(m=>`${m.email} ${m.fullName} ${m.membershipTier}`.toLowerCase().includes(s));},[members,q]);
  async function adjust(m:AdminLoyaltyMember){const d=Number(delta[m.userId]||0);const why=(reason[m.userId]||"").trim();if(!Number.isInteger(d)||d===0){setMsg("Nhập số điểm nguyên khác 0.");return;}if(!why){setMsg("Cần nhập lý do điều chỉnh để lưu audit.");return;}if(!confirm(`${d>0?"Cộng":"Trừ"} ${Math.abs(d)} điểm cho ${m.email}?`))return;setBusy(true);setMsg("");try{const r=await api<LoyaltySummary>(`/admin/loyalty/users/${m.userId}/adjustments`,{method:"POST",body:JSON.stringify({deltaPoints:d,reason:why})});setDelta(v=>({...v,[m.userId]:""}));setReason(v=>({...v,[m.userId]:""}));setMsg(`Đã điều chỉnh. Số dư mới: ${r.balancePoints} điểm.`);await load();}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
  async function saveBirthDate(m:AdminLoyaltyMember){const value=birthDate[m.userId]??m.birthDate??"";const why=(birthReason[m.userId]||"").trim();if(!why){setMsg("Cần nhập lý do chỉnh ngày sinh để lưu audit.");return;}setBusy(true);setMsg("");try{await api<AdminLoyaltyMember>(`/admin/loyalty/users/${m.userId}/birth-date`,{method:"PUT",body:JSON.stringify({birthDate:value||null,reason:why})});setBirthReason(v=>({...v,[m.userId]:""}));setMsg(`Đã cập nhật ngày sinh cho ${m.email}.`);await load();}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
