@@ -21,5 +21,18 @@ export default defineConfig([
       "@next/next/no-location-assign-relative-destination": "off",
     },
   },
-  globalIgnores([".next/**", "node_modules/**"]),
+  globalIgnores([
+    ".next/**",
+    "node_modules/**",
+    // Generated Playwright evidence is third-party/minified output, not source.
+    // Keep it outside the zero-warning source gate even after local E2E runs.
+    "playwright-report/**",
+    "test-results/**",
+    "blob-report/**",
+    ".playwright/**",
+    // Coverage/output directories are generated evidence for the same reason.
+    "coverage/**",
+    "out/**",
+    "dist/**",
+  ]),
 ]);

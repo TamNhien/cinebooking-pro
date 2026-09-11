@@ -29,8 +29,8 @@ makefile = text("Makefile")
 
 playwright_version = str(pkg.get("devDependencies", {}).get("@playwright/test", ""))
 check(
-    "Playwright dependency is pinned to the validated 1.60 patch line",
-    re.fullmatch(r"1\.60\.\d+(?:-[0-9A-Za-z.-]+)?", playwright_version) is not None,
+    "Playwright dependency is pinned to the validated 1.63 patch line",
+    re.fullmatch(r"1\.63\.\d+(?:-[0-9A-Za-z.-]+)?", playwright_version) is not None,
 )
 check("frontend exposes E2E npm script", pkg.get("scripts", {}).get("e2e") == "playwright test")
 check("Playwright config exists", bool(config))

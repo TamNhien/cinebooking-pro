@@ -37,8 +37,8 @@ public class MomoGateway {
             body.put("requestType","captureWallet"); body.put("extraData",extraData); body.put("lang","vi"); body.put("signature",signature);
             HttpRequest req = HttpRequest.newBuilder(URI.create(createUrl)).timeout(Duration.ofSeconds(35)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString()); JsonNode json = mapper.readTree(res.body());
-            if (res.statusCode()/100 != 2 || json.path("resultCode").asInt(-1) != 0 || json.path("payUrl").asText().isBlank()) throw new ApiException(HttpStatus.BAD_GATEWAY,"MoMo không tạo được phiên thanh toán: " + json.path("message").asText("unknown"));
-            return new Session(json.path("payUrl").asText(),json.path("qrCodeUrl").asText(null),json.path("deeplink").asText(null),orderId,requestId);
+            if (res.statusCode()/100 != 2 || json.path("resultCode").asInt(-1) != 0 || json.path("payUrl").asString().isBlank()) throw new ApiException(HttpStatus.BAD_GATEWAY,"MoMo không tạo được phiên thanh toán: " + json.path("message").asString("unknown"));
+            return new Session(json.path("payUrl").asString(),json.path("qrCodeUrl").asString(null),json.path("deeplink").asString(null),orderId,requestId);
         } catch (ApiException e) { throw e; } catch (Exception e) { throw new ApiException(HttpStatus.BAD_GATEWAY,"Không kết nối được MoMo"); }
     }
 
@@ -58,7 +58,7 @@ public class MomoGateway {
             HttpRequest req=HttpRequest.newBuilder(URI.create(queryUrl)).timeout(Duration.ofSeconds(35)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body))).build();
             HttpResponse<String> res=http.send(req,HttpResponse.BodyHandlers.ofString());JsonNode j=mapper.readTree(res.body());
             if(res.statusCode()/100!=2)throw new ApiException(HttpStatus.BAD_GATEWAY,"MoMo query HTTP "+res.statusCode());
-            return new QueryResult(j.path("resultCode").asText("-1"),j.path("message").asText(""),j.path("transId").asText(""),j.path("amount").asLong(-1));
+            return new QueryResult(j.path("resultCode").asString("-1"),j.path("message").asString(""),j.path("transId").asString(""),j.path("amount").asLong(-1));
         }catch(ApiException e){throw e;}catch(Exception e){throw new ApiException(HttpStatus.BAD_GATEWAY,"Không truy vấn được trạng thái MoMo");}
     }
 

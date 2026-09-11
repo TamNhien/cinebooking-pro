@@ -9,4 +9,3 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
     List<AuditLog> findTop100ByEntityTypeOrderByCreatedAtDesc(String entityType);
     List<AuditLog> findTop30ByActorEmailIgnoreCaseAndActionInOrderByCreatedAtDesc(String actorEmail, Collection<String> actions);
 }
-

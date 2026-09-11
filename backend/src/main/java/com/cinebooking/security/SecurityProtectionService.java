@@ -79,7 +79,9 @@ public class SecurityProtectionService {
         String oldDeviceName=session.getDeviceName();
         String requestUa=clean(request.getHeader("User-Agent"),500);
         String ua=requestUa==null?session.getUserAgent():requestUa;
-        String deviceName=ClientDeviceDetector.deviceName(ua,request.getHeader(ClientDeviceDetector.BROWSER_HEADER));
+        String browserHint=request.getHeader(ClientDeviceDetector.BROWSER_HEADER);
+        String clientHints=request.getHeader(ClientDeviceDetector.CLIENT_HINT_HEADER);
+        String deviceName=ClientDeviceDetector.deviceName(ua,browserHint,clientHints);
         session.setUserAgent(ua);
         session.setDeviceName(deviceName);
         session.setIpAddress(currentIp(request,session.getIpAddress()));
@@ -104,7 +106,13 @@ public class SecurityProtectionService {
                 alerts.save(alert);
             }
         }
-        return new ClientContextView(deviceName,ClientDeviceDetector.browser(ua,request.getHeader(ClientDeviceDetector.BROWSER_HEADER)),ClientDeviceDetector.operatingSystem(ua),session.getIpAddress());
+
+        String detectedBrowser=ClientDeviceDetector.browser(ua,browserHint,clientHints);
+        // Run the evidence pass first so rows repaired in this sync cannot become
+        // evidence for a chained historical rewrite. braveEvidence is a pre-repair snapshot.
+        repairLegacyBraveAlertsFromHistoricalEvidence(userId,currentSessionId,session.getIpAddress(),detectedBrowser);
+        repairRecentLegacyBraveAlerts(userId,currentSessionId,ua,session.getIpAddress(),deviceName,detectedBrowser);
+        return new ClientContextView(deviceName,detectedBrowser,ClientDeviceDetector.operatingSystem(ua),session.getIpAddress());
     }
 
     @Transactional
@@ -138,6 +146,108 @@ public class SecurityProtectionService {
         SecurityAlert a=new SecurityAlert();a.setUserId(userId);a.setEventType(type);a.setSeverity(severity);a.setRiskScore(risk);a.setTitle(title);a.setDetails(details);a.setIpAddress(ip);a.setDeviceName(deviceName);a.setRelatedSessionId(sessionId);alerts.save(a);
         if(notify && ("HIGH".equals(severity)||"CRITICAL".equals(severity)))notifications.createOnce(userId,"SECURITY_ALERT",title,details,"/security","SECURITY_ALERT:"+a.getId());
         return a;
+    }
+
+    /**
+     * V77.0.2: repairs only a tightly-bounded legacy Brave mislabel lineage.
+     * A historical row is eligible only when the current request positively proves Brave,
+     * the prior session belongs to the same user, has the exact same User-Agent and IP,
+     * was created within the last 24 hours, and has a NEW_DEVICE alert linked by session id.
+     * This avoids rewriting unrelated or unlinked security audit history.
+     */
+    private void repairRecentLegacyBraveAlerts(UUID userId,UUID currentSessionId,String ua,String ip,String braveDeviceName,String detectedBrowser){
+        if(!"Brave".equals(detectedBrowser)||ua==null||ua.isBlank()||ip==null||ip.isBlank())return;
+        String legacyChromeName="Chrome · "+ClientDeviceDetector.operatingSystem(ua);
+        if(Objects.equals(legacyChromeName,braveDeviceName))return;
+        Instant cutoff=Instant.now().minus(24,ChronoUnit.HOURS);
+        for(AuthSession candidate:sessions.findTop50ByUserIdOrderByLastSeenAtDesc(userId)){
+            if(candidate==null||Objects.equals(candidate.getId(),currentSessionId))continue;
+            if(candidate.getCreatedAt()==null||candidate.getCreatedAt().isBefore(cutoff))continue;
+            if(!Objects.equals(candidate.getUserAgent(),ua)||!Objects.equals(candidate.getIpAddress(),ip))continue;
+            if(!Objects.equals(candidate.getDeviceName(),legacyChromeName))continue;
+            boolean linkedNewDeviceAlertRepaired=false;
+            for(SecurityAlert alert:alerts.findByRelatedSessionId(candidate.getId())){
+                if(!Objects.equals(alert.getUserId(),userId))continue;
+                if(!"NEW_DEVICE".equals(alert.getEventType()))continue;
+                if(!Objects.equals(alert.getDeviceName(),legacyChromeName))continue;
+                alert.setDeviceName(braveDeviceName);
+                alerts.save(alert);
+                linkedNewDeviceAlertRepaired=true;
+            }
+            if(linkedNewDeviceAlertRepaired){
+                candidate.setDeviceName(braveDeviceName);
+                sessions.save(candidate);
+            }
+        }
+    }
+
+    /**
+     * V77.0.3: repairs older Chrome-labelled NEW_DEVICE rows only when a later,
+     * positively identified Brave session corroborates the exact historical fingerprint.
+     * The evidence must belong to the same user, use the exact same User-Agent and IP,
+     * represent the same operating system, and occur no earlier than the candidate and
+     * no more than 24 hours after it. The current request must itself positively prove
+     * Brave before this historical-evidence pass is allowed to run.
+     *
+     * This deliberately repairs only linked display metadata; it does not alter risk,
+     * authentication, authorization, timestamps, or unrelated audit records.
+     */
+    private void repairLegacyBraveAlertsFromHistoricalEvidence(UUID userId,UUID currentSessionId,String currentIp,String detectedBrowser){
+        if(!"Brave".equals(detectedBrowser)||currentIp==null||currentIp.isBlank())return;
+        List<AuthSession> history=sessions.findTop50ByUserIdOrderByLastSeenAtDesc(userId);
+        if(history==null||history.isEmpty())return;
+
+        List<AuthSession> braveEvidence=history.stream()
+            .filter(Objects::nonNull)
+            .filter(s->Objects.equals(s.getUserId(),userId))
+            .filter(s->s.getCreatedAt()!=null&&s.getUserAgent()!=null&&!s.getUserAgent().isBlank())
+            .filter(s->Objects.equals(s.getIpAddress(),currentIp))
+            .filter(s->{
+                String expected="Brave · "+ClientDeviceDetector.operatingSystem(s.getUserAgent());
+                return Objects.equals(s.getDeviceName(),expected);
+            })
+            .toList();
+        if(braveEvidence.isEmpty())return;
+
+        for(AuthSession candidate:history){
+            if(candidate==null||Objects.equals(candidate.getId(),currentSessionId))continue;
+            if(!Objects.equals(candidate.getUserId(),userId))continue;
+            if(candidate.getCreatedAt()==null||candidate.getUserAgent()==null||candidate.getUserAgent().isBlank())continue;
+            if(!Objects.equals(candidate.getIpAddress(),currentIp))continue;
+
+            String os=ClientDeviceDetector.operatingSystem(candidate.getUserAgent());
+            String legacyChromeName="Chrome · "+os;
+            String braveName="Brave · "+os;
+            if(!Objects.equals(candidate.getDeviceName(),legacyChromeName))continue;
+
+            Instant candidateTime=candidate.getCreatedAt();
+            boolean corroborated=braveEvidence.stream().anyMatch(evidence->{
+                if(Objects.equals(evidence.getId(),candidate.getId()))return false;
+                if(!Objects.equals(evidence.getUserAgent(),candidate.getUserAgent()))return false;
+                if(!Objects.equals(evidence.getIpAddress(),candidate.getIpAddress()))return false;
+                if(!Objects.equals(evidence.getDeviceName(),braveName))return false;
+                Instant evidenceTime=evidence.getCreatedAt();
+                return evidenceTime!=null
+                    && !evidenceTime.isBefore(candidateTime)
+                    && !evidenceTime.isAfter(candidateTime.plus(24,ChronoUnit.HOURS));
+            });
+            if(!corroborated)continue;
+
+            boolean linkedNewDeviceAlertRepaired=false;
+            for(SecurityAlert alert:alerts.findByRelatedSessionId(candidate.getId())){
+                if(!Objects.equals(alert.getUserId(),userId))continue;
+                if(!"NEW_DEVICE".equals(alert.getEventType()))continue;
+                if(!Objects.equals(alert.getDeviceName(),legacyChromeName))continue;
+                if(!Objects.equals(alert.getIpAddress(),candidate.getIpAddress()))continue;
+                alert.setDeviceName(braveName);
+                alerts.save(alert);
+                linkedNewDeviceAlertRepaired=true;
+            }
+            if(linkedNewDeviceAlertRepaired){
+                candidate.setDeviceName(braveName);
+                sessions.save(candidate);
+            }
+        }
     }
 
     private TrustedDevice findTrustedWithLegacyFallback(UUID userId,AuthSession session,String newFingerprint){

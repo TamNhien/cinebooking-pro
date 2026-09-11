@@ -22,7 +22,7 @@ updates:
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
-      # V30.2: keep browser/runtime coupling on the validated Playwright 1.60 line.
+      # V30.2: keep browser/runtime coupling on the validated Playwright 1.63 line.
       # Patch releases are allowed; minor/major upgrades require an explicit review.
       - dependency-name: "@playwright/test"
         update-types:

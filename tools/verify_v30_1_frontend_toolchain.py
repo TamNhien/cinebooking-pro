@@ -19,10 +19,12 @@ eslint_config = (ROOT / "frontend/eslint.config.mjs").read_text(encoding="utf-8"
 eslint_range = str(dev.get("eslint", ""))
 ts_range = str(dev.get("typescript", ""))
 next_eslint = str(dev.get("eslint-config-next", ""))
+next_version = str(package.get("dependencies", {}).get("next", ""))
 
 check("frontend keeps ESLint on major 9", bool(re.match(r"^\^?9(?:\.|$)", eslint_range)))
 check("frontend keeps TypeScript on major 5", bool(re.match(r"^\^?5(?:\.|$)", ts_range)))
-check("eslint-config-next remains aligned to Next 16.3.0", next_eslint == "16.3.0")
+check("Next stays on reviewed 16.3 security patch line", bool(re.match(r"^16\.3\.\d+$", next_version)))
+check("eslint-config-next remains exactly aligned to Next", next_eslint == next_version)
 check("V28.7 lint baseline remains enabled", '"react-hooks/set-state-in-effect": "warn"' in eslint_config)
 
 npm_block_match = re.search(

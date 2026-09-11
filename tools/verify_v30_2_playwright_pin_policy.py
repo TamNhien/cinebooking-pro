@@ -26,11 +26,11 @@ npm_match = re.search(
 npm_block = npm_match.group("body") if npm_match else ""
 
 check(
-    "Playwright package is exact-pinned on validated 1.60 patch line",
-    re.fullmatch(r"1\.60\.\d+(?:-[0-9A-Za-z.-]+)?", playwright) is not None,
+    "Playwright package is exact-pinned on validated 1.63 patch line",
+    re.fullmatch(r"1\.63\.\d+(?:-[0-9A-Za-z.-]+)?", playwright) is not None,
 )
 check("Playwright package does not use caret or tilde range", not playwright.startswith(("^", "~", ">", "<", "*")))
-check("V29.2 verifier validates a 1.60 patch pin rather than one literal patch", 'r"1\\.60\\.\\d+' in v292 and '== "1.60.0"' not in v292)
+check("V29.2 verifier validates a 1.63 patch pin rather than one literal patch", 'r"1\\.63\\.\\d+' in v292 and '== "1.63.0"' not in v292)
 check("Dependabot still monitors frontend npm", bool(npm_match))
 check(
     "Dependabot blocks Playwright semver-minor updates",

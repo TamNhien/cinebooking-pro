@@ -22,6 +22,8 @@
     <testcontainers.version>2.0.5</testcontainers.version>
     <maven-failsafe.version>3.5.5</maven-failsafe.version>
     <skipITs>true</skipITs>
+    <!-- Mockito inline mocking on Java 21+ must be attached explicitly; this avoids dynamic-agent warnings. -->
+    <argLine></argLine>
   </properties>
 
   <dependencyManagement>
@@ -111,6 +113,12 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Explicit test dependency so maven-dependency-plugin can expose its JAR as the Java agent path. -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
     <!-- Spring Boot 4 keeps MockMvc auto-configuration in the focused Web MVC test starter. -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -152,8 +160,31 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <showWarnings>true</showWarnings>
+          <failOnWarning>true</failOnWarning>
+          <compilerArgs>
+            <arg>-Xlint:deprecation</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
           <excludes>
             <exclude>**/*IT.java</exclude>
           </excludes>
@@ -164,6 +195,7 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>${maven-failsafe.version}</version>
         <configuration>
+          <argLine>@{argLine} -Xshare:off -javaagent:${org.mockito:mockito-core:jar}</argLine>
           <skipITs>${skipITs}</skipITs>
           <includes>
             <include>**/*IT.java</include>

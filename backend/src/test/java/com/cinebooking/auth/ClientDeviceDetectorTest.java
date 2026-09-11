@@ -11,6 +11,17 @@ class ClientDeviceDetectorTest {
         assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, "Brave")).isEqualTo("Brave · Windows");
     }
 
+
+    @Test void braveSecChUaOverridesGenericChromeFallbackHint() {
+        String secChUa = "\"Chromium\";v=\"151\", \"Brave\";v=\"151\", \"Not_A Brand\";v=\"24\"";
+        assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, "Chrome", secChUa)).isEqualTo("Brave · Windows");
+    }
+
+    @Test void chromiumSecChUaWithoutBraveKeepsNormalUserAgentFallback() {
+        String secChUa = "\"Chromium\";v=\"151\", \"Google Chrome\";v=\"151\"";
+        assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, null, secChUa)).isEqualTo("Chrome · Windows");
+    }
+
     @Test void chromeStillFallsBackFromUserAgentWhenNoHintExists() {
         assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, null)).isEqualTo("Chrome · Windows");
     }

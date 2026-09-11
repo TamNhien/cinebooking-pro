@@ -72,12 +72,12 @@ public class JwtService {
             byte[] actual = Base64.getUrlDecoder().decode(parts[2]);
             if (!MessageDigest.isEqual(expected, actual)) throw new ApiException(HttpStatus.UNAUTHORIZED, "Token không hợp lệ");
             JsonNode payload = mapper.readTree(Base64.getUrlDecoder().decode(parts[1]));
-            if (!issuer.equals(payload.path("iss").asText())) throw new ApiException(HttpStatus.UNAUTHORIZED, "Token sai issuer");
+            if (!issuer.equals(payload.path("iss").asString())) throw new ApiException(HttpStatus.UNAUTHORIZED, "Token sai issuer");
             long exp = payload.path("exp").asLong(0);
             if (Instant.now().getEpochSecond() >= exp) throw new ApiException(HttpStatus.UNAUTHORIZED, "Token đã hết hạn");
-            String sid = payload.path("sid").asText();
+            String sid = payload.path("sid").asString();
             if (sid.isBlank()) throw new ApiException(HttpStatus.UNAUTHORIZED, "Token thiếu session id");
-            return new Claims(payload.path("sub").asText(), payload.path("role").asText(), UUID.fromString(sid), exp);
+            return new Claims(payload.path("sub").asString(), payload.path("role").asString(), UUID.fromString(sid), exp);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {

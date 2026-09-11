@@ -8,6 +8,7 @@ let refreshPromise: Promise<AuthResponse | null> | null = null;
 
 type BraveNavigator = Navigator & {
   brave?: { isBrave?: () => Promise<boolean> };
+  userAgentData?: { brands?: Array<{ brand: string; version?: string }> };
 };
 
 let browserHintPromise: Promise<string | null> | null = null;
@@ -19,7 +20,12 @@ async function detectBrowserHint(): Promise<string | null> {
     if (nav.brave?.isBrave && (await nav.brave.isBrave())) return "Brave";
   } catch {}
 
+  // Brave can hide navigator.brave for compatibility, while Chromium client
+  // hints still expose a Brave brand on normal sites. Use it before generic UA.
+  if (nav.userAgentData?.brands?.some(item => item.brand.toLowerCase() === "brave")) return "Brave";
+
   const ua = navigator.userAgent || "";
+  if (/\bBrave(?:\/\d+)?\b/i.test(ua)) return "Brave";
   if (/Edg\//i.test(ua)) return "Edge";
   if (/OPR\/|Opera/i.test(ua)) return "Opera";
   if (/Vivaldi\//i.test(ua)) return "Vivaldi";

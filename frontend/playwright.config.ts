@@ -45,6 +45,7 @@ function loadProjectAdminCredentials(){
 loadProjectAdminCredentials();
 
 const baseURL=process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:18080";
+const browserChannel=process.env.PLAYWRIGHT_BROWSER_CHANNEL?.trim();
 
 function isLoopbackHttps(url:string){
   try{
@@ -85,7 +86,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserChannel ? { channel: browserChannel } : {}),
+      },
     },
   ],
 });

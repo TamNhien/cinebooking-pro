@@ -36,7 +36,7 @@ public class SecurityConfig {
         CorsConfiguration c = new CorsConfiguration();
         c.setAllowedOrigins(List.of(frontendUrl, "http://localhost", "http://localhost:3000", "https://localhost", "https://localhost:3000"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "X-Trace-Id", "X-Step-Up-Token"));
+        c.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key", "X-CineBooking-Browser", "Sec-CH-UA", "X-Trace-Id", "X-Step-Up-Token"));
         c.setExposedHeaders(List.of("X-Trace-Id", "X-Step-Up-Required"));
         c.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

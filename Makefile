@@ -1037,8 +1037,47 @@ release-v76:
 verify-v77:
 	python tools/verify_v77_crm_automation_5.py
 
+verify-v77-browser-identity:
+	python tools/verify_v77_brave_browser_identity_fix.py
+
+verify-v77-brave-alert-reconciliation:
+	python tools/verify_v77_0_2_brave_alert_reconciliation.py
+
+verify-v77-brave-evidence-reconciliation:
+	python tools/verify_v77_0_3_historical_brave_evidence_reconciliation.py
+
+verify-v77-zero-warning:
+	python tools/verify_v77_0_4_zero_warning_artifact_hygiene.py
+
+verify-v77-warning-free-runtime:
+	python tools/verify_v77_0_5_warning_free_runtime_e2e.py
+
+verify-v77-dependency-security:
+	python tools/verify_v77_0_6_dependency_security_playwright_bootstrap.py
+
+verify-v77-security-e2e-locator:
+	python tools/verify_v77_0_7_security_e2e_strict_locator_reliability.py
+
 diagnose-v77:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v77.ps1
 
 release-v77:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.0
+
+release-v77-0-1:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.1
+
+release-v77-0-2:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.2
+
+release-v77-0-4:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.4
+
+release-v77-0-5:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.5
+
+release-v77-0-6:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.6
+
+release-v77-patch:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.7

@@ -116,6 +116,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Audit frontend dependencies (high/critical gate)
+        run: npm audit --audit-level=high
+
       - name: Lint frontend (legacy baseline)
         run: npm run lint
 
@@ -382,6 +385,27 @@ jobs:
 
       - name: Verify V77 CRM Automation 5.0
         run: python3 tools/verify_v77_crm_automation_5.py
+
+      - name: Verify V77 Brave browser identity reliability
+        run: python3 tools/verify_v77_brave_browser_identity_fix.py
+
+      - name: Verify V77.0.2 Brave alert reconciliation reliability
+        run: python3 tools/verify_v77_0_2_brave_alert_reconciliation.py
+
+      - name: Verify V77.0.3 historical Brave evidence reconciliation
+        run: python3 tools/verify_v77_0_3_historical_brave_evidence_reconciliation.py
+
+      - name: Verify V77.0.4 zero-warning generated artifact hygiene
+        run: python3 tools/verify_v77_0_4_zero_warning_artifact_hygiene.py
+
+      - name: Verify V77.0.5 warning-free Java 25 and E2E runtime hygiene
+        run: python3 tools/verify_v77_0_5_warning_free_runtime_e2e.py
+
+      - name: Verify V77.0.6 dependency security and resilient Playwright bootstrap
+        run: python3 tools/verify_v77_0_6_dependency_security_playwright_bootstrap.py
+
+      - name: Verify V77.0.7 security E2E strict locator reliability
+        run: python3 tools/verify_v77_0_7_security_e2e_strict_locator_reliability.py
 
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72

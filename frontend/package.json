@@ -9,11 +9,14 @@
     "lint": "eslint . --max-warnings=0",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "security:audit": "npm audit --audit-level=high",
+    "security:audit:prod": "npm audit --omit=dev --audit-level=high",
+    "e2e:install:chromium": "node scripts/install-playwright-chromium.mjs"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.2.1",
-    "next": "16.3.0",
+    "next": "16.3.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "qrcode.react": "^4.2.0"
@@ -24,10 +27,13 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.3.4",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.9.0",
-    "@playwright/test": "1.60.0"
+    "@playwright/test": "1.63.0"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true
   }
 }

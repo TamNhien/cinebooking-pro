@@ -2,17 +2,21 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77 - CRM Automation 5.0
+> **Current release:** V77.0.7 - CRM Automation 5.0 + Security E2E Strict-Locator Reliability
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.0` (stable-only release flow).
+> **V77 stable target:** `v77.0.7` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
 V77 adds contact-safety controls before any campaign execute: promotion opt-out, enabled-channel requirement, a maximum of 2 promotion notifications per 7 days, 72-hour promotion cooldown, mandatory Preview, explicit `maxRecipients` blast-radius guard, owner-scoped one-use vouchers and idempotent delivery. Outcome metrics use only `PROMOTION_V77` history and label booking/revenue lift as **correlation, not causal attribution**. V77 is deliberately **no-schema**: database authority remains **Flyway V72 / 67 public tables**, and no synthetic customer/booking/payment data is added.
 
+V77 also carries a **Brave browser identity reliability fix** for security-session display metadata. Detection now uses the official `navigator.brave.isBrave()` signal when available, Chromium brand hints from `navigator.userAgentData`, backend `Sec-CH-UA`, and finally normal User-Agent fallback. A Brave-specific client-hint brand takes precedence over a generic Chrome fallback, nginx forwards both identity headers explicitly, and `/me/security/client-context` can repair the current session/trusted-device/related alert label without rewriting unrelated historical audit records. These browser signals remain display-only metadata and are never used as authentication or authorization evidence.
+
+V77.0.3 extends that repair path for **historical UA-version drift** without blind rewrites. When the current request positively proves Brave, CineBooking may use a later, already Brave-labelled session as corroborating evidence for an older `Chrome · <OS>` session only when the user, exact historical User-Agent, exact IP and OS all match, the Brave evidence occurs after the candidate within 24 hours, and a same-user `NEW_DEVICE` alert is linked to that session. This is an idempotent display-metadata correction only; risk scores, timestamps, auth state and unrelated audit rows are untouched.
+
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
-> **Frontend:** Next.js 16.3 / Node.js 24 / Playwright Chromium
+> **Frontend:** Next.js 16.3.4 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
 V66 adds **Booking Consistency & Seat Locking 4.0** on top of V65 observability: PostgreSQL is now the durable authority for short-lived seat holds, seat-row pessimistic locks serialize contenders across backend replicas, Redis is only a best-effort TTL mirror, checkout converts a durable hold in the same transaction, and existing `uq_showtime_seat_active` remains the final booking invariant. V66 adds Flyway `V66__durable_seat_holds.sql`; the database now has **58 public tables**: 57 seeded/core tables plus the transient operational `seat_hold` table. No synthetic movie/customer/booking/payment activity is seeded for V66.
@@ -121,6 +125,13 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V75.0.1** | **Cost Coverage Drill-down: chỉ đúng rạp/sản phẩm/đơn vị đã bán đang thiếu cost basis, affected revenue, cập nhật trực tiếp** | **Patch no-schema; giữ Flyway V72 / 67 tables** |
 | **V76** | **Recommendation 5.0: evidence-aware For You, real-data recommendation quality dashboard, coverage, feedback/source metrics, assisted booking correlation** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V77** | **CRM Automation 5.0: lifecycle playbooks, contactability/suppression, frequency cap, cooldown, preview-before-execute, blast-radius guard, idempotent owner-scoped vouchers, CRM outcome correlation** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.1** | **Brave Browser Identity Reliability: navigator.brave + UA brand hints + Sec-CH-UA fallback, nginx forwarding, current-session metadata repair** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.2** | **Brave legacy alert reconciliation: repair có giới hạn cho NEW_DEVICE bị gắn Chrome trong 24h khi cùng user + exact UA + IP + related session; harden Security E2E login selector** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.3** | **Historical Brave evidence reconciliation: dùng Brave session đã nhận dạng dương tính làm evidence cho legacy Chrome session có cùng user + exact UA + IP + OS, evidence phải xuất hiện sau candidate trong tối đa 24h, chỉ sửa linked NEW_DEVICE display metadata** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.4** | **Zero-warning generated artifact hygiene: ESLint loại generated Playwright/coverage/build artifacts nhưng giữ `eslint . --max-warnings=0` nghiêm ngặt cho source thật** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.5** | **Warning-free Java 25 + E2E runtime hygiene: Jackson 3 deprecation cleanup, explicit Mockito javaagent, Redis teardown ordering, immutable Flyway warning suppression, Playwright 1.63, service-worker-isolated Security E2E** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.6** | **Dependency security + resilient Playwright bootstrap: Next.js 16.3.4 security patch, explicit version-pinned `allowScripts` for reviewed `unrs-resolver`, high/critical npm-audit gate, 120s Playwright CDN timeout, optional system-browser channel fallback** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.7** | **Security E2E strict-locator reliability: removes the ambiguous `Security Operations` heading query that matched both H1 and H2 under Playwright strict mode; waits on the existing V68 page test-id and an exact level-1 accessible heading** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -5567,6 +5578,107 @@ V77 giữ nguyên privacy contract của `MarketingAudienceV64`: trang `/admin/m
 
 Nhờ vậy `next build` không cần tự sửa `tsconfig.json` chỉ để thêm dev generated types.
 
+### V77.0.1 - Brave browser identity reliability fix
+
+The V77 final source hardens browser identification for security-session display metadata after a real Brave login was observed as `Chrome - Windows`. Desktop/Android Brave intentionally uses a Chrome-compatible User-Agent, so User-Agent alone is not sufficient.
+
+Detection order is now:
+
+```text
+1. navigator.brave.isBrave()
+2. navigator.userAgentData.brands contains Brave
+3. Sec-CH-UA contains the quoted Brave brand
+4. explicit whitelisted X-CineBooking-Browser hint
+5. User-Agent fallback for Edge/Opera/Vivaldi/Samsung/Firefox/Chrome/Safari
+```
+
+The backend deliberately lets a Brave-specific signal override a generic `Chrome` fallback hint. Both nginx configurations explicitly forward `X-CineBooking-Browser` and `Sec-CH-UA`; CORS also recognizes the client-hint header for direct frontend/backend development flows. PWA device labels use the same Brave-aware browser surfaces before generic Chromium detection.
+
+Opening `/security` calls `PATCH /api/me/security/client-context`. If the current active session was previously stored as `Chrome - Windows` but the current request now proves Brave through the display-only signals above, CineBooking updates that current session plus its matching trusted-device and related security-alert label. Unrelated historical alerts are intentionally not bulk-rewritten, preserving audit integrity. No Flyway migration or seed data is added.
+
+Verify the patch:
+
+```powershell
+python -X utf8 .\tools\verify_v77_brave_browser_identity_fix.py
+```
+
+
+### V77.0.2 - bounded legacy Brave alert reconciliation
+
+Sau khi V77.0.1 nhận dạng đúng thiết bị hiện tại là `Brave · Windows`, một cảnh báo `NEW_DEVICE` cũ vẫn có thể còn nhãn `Chrome · Windows` vì cảnh báo đó thuộc một session trước khi client hint Brave được thu thập. V77.0.2 sửa đúng trường hợp này nhưng không bulk-rewrite lịch sử audit.
+
+Khi request hiện tại **chứng minh Brave** bằng các tín hiệu V77.0.1, `/api/me/security/client-context` chỉ reconcile một session/cảnh báo legacy khi đồng thời thỏa toàn bộ điều kiện:
+
+```text
+current browser = Brave
+prior session belongs to same user
+prior User-Agent = exact current User-Agent
+prior IP = exact current IP
+prior session created within 24 hours
+prior device label = Chrome · <same OS>
+security_alert.related_session_id = prior session id
+event_type = NEW_DEVICE
+```
+
+Khi đủ điều kiện, session và `NEW_DEVICE` alert được đổi display metadata sang `Brave · <OS>`. Alert không có `related_session_id`, alert khác user, khác UA/IP, quá 24 giờ hoặc event khác `NEW_DEVICE` **không bị sửa**. Đây vẫn chỉ là display metadata reconciliation, không ảnh hưởng authentication/authorization hay risk score.
+
+Security E2E cũng dùng `data-testid="login-submit"`, chờ URL `/login` rõ ràng và `load` state thay vì phụ thuộc solely vào accessible-name selector sau logout, giúp journey V46 ổn định hơn khi chạy qua nginx/Next.js standalone.
+
+Verify patch:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_2_brave_alert_reconciliation.py
+```
+
+### V77.0.3 - historical Brave evidence reconciliation
+
+V77.0.3 xử lý đúng trường hợp thực tế khi Brave đã nâng Chromium/User-Agent từ một version cũ sang version mới. V77.0.2 chỉ so candidate legacy với **current User-Agent**, nên một alert `Chrome · Windows` của UA cũ có thể không được sửa dù database đã có một session UA cũ được nhận dạng dương tính là `Brave · Windows`.
+
+V77.0.3 thêm một pass evidence-aware chạy **trước pass repair V77.0.2 trong cùng request** để lấy snapshot Brave evidence trước khi bất kỳ legacy row nào được đổi nhãn. Nhờ vậy row vừa repair không thể trở thành evidence để chain-rewrite ngược sâu hơn. Pass này chỉ chạy khi request hiện tại vẫn **positively detects Brave** và chỉ dùng session history của chính user hiện tại. Một candidate chỉ được reconcile khi thỏa toàn bộ policy:
+
+```text
+POSITIVE_BRAVE_FINGERPRINT_EVIDENCE
+SAME_USER_REQUIRED
+EXACT_USER_AGENT_MATCH
+EXACT_IP_MATCH
+SAME_OS_REQUIRED
+EVIDENCE_MUST_BE_LATER_THAN_CANDIDATE
+EVIDENCE_WINDOW_24H
+LINKED_NEW_DEVICE_ONLY
+ALERT_IP_MUST_MATCH_SESSION
+NO_BLIND_AUDIT_REWRITE
+NO_EVIDENCE_CHAINING
+IDEMPOTENT_RECONCILIATION
+```
+
+Luồng:
+
+```text
+current request positively proves Brave
+        ↓
+load bounded latest 50 sessions of same user
+        ↓
+find a later Brave-labelled evidence session
+        ↓
+exact historical UA + exact IP + same OS
+        ↓
+evidence time >= candidate time and <= candidate + 24h
+        ↓
+linked same-user NEW_DEVICE alert with exact IP
+        ↓
+Chrome · <OS> → Brave · <OS>
+```
+
+Evidence nằm **trước** candidate không được dùng để đổi một Chrome session phát sinh sau đó, giúp tránh trường hợp user thật sự chuyển từ Brave sang Chrome. Candidate khác IP, khác UA, khác user, không có linked `NEW_DEVICE`, hoặc evidence cách quá 24 giờ cũng không bị sửa.
+
+Patch vẫn **no-schema**, không thêm seed và không thay đổi risk score, trạng thái acknowledge, timestamp, authentication hay authorization.
+
+Verify patch:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_3_historical_brave_evidence_reconciliation.py
+```
+
 ### Verification V77
 
 Chạy từ thư mục chuẩn:
@@ -5577,6 +5689,9 @@ cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 python -X utf8 .\tools\verify_v64_crm_marketing_automation.py
 python -X utf8 .\tools\verify_v76_recommendation_5.py
 python -X utf8 .\tools\verify_v77_crm_automation_5.py
+python -X utf8 .\tools\verify_v77_brave_browser_identity_fix.py
+python -X utf8 .\tools\verify_v77_0_2_brave_alert_reconciliation.py
+python -X utf8 .\tools\verify_v77_0_3_historical_brave_evidence_reconciliation.py
 
 powershell -ExecutionPolicy Bypass `
   -File .\tools\diagnose-v77.ps1
@@ -5659,14 +5774,200 @@ E2E kiểm tra tile V77, version order, strategy, real-data policy, opt-out/chan
 ### Release V77 - chỉ Stable
 
 ```text
-Stable only: v77.0.0
+Stable only: v77.0.5
 ```
 
 Sau khi source gates, Docker runtime, lint/build và Browser E2E PASS:
 
 ```powershell
 cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
-.\scripts\release.ps1 v77.0.0
+.\scripts\release.ps1 v77.0.5
 ```
 
 Không tạo RC/Pre-release cho V77.
+
+
+### V77.0.4 - zero-warning generated artifact hygiene
+
+V77.0.4 fixes a local lint false-positive flood that appears after Playwright has generated its HTML/trace report. The reported `3005 problems (159 errors, 2846 warnings)` came from minified third-party assets under `frontend/playwright-report/trace/**`, not from CineBooking application source. Production `next build` still completed successfully in the same run.
+
+The ESLint flat config now explicitly excludes generated evidence/output directories while preserving the project-wide source gate `eslint . --max-warnings=0`:
+
+```text
+.next/**
+node_modules/**
+playwright-report/**
+test-results/**
+blob-report/**
+.playwright/**
+coverage/**
+out/**
+dist/**
+```
+
+This is intentionally **not** a blanket rule suppression: `react-hooks/rules-of-hooks`, `@typescript-eslint/no-this-alias`, `@typescript-eslint/no-unused-expressions`, `@typescript-eslint/no-unused-vars`, `prefer-const` and the existing React/compiler rules remain enabled for actual source. `.gitignore` mirrors the generated artifact directories so local E2E/coverage output cannot accidentally enter release commits.
+
+V77.0.4 remains a **no-schema patch**: no Flyway migration, no seed-data change, no API/booking/payment/recommendation/CRM behavior change.
+
+Verify the patch:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_4_zero_warning_artifact_hygiene.py
+
+cd .\frontend
+npm run lint
+$LASTEXITCODE
+```
+
+Expected:
+
+```text
+V77.0.4 zero-warning artifact hygiene verification: PASS
+0 errors
+0 warnings
+exit code 0
+```
+
+Running Playwright before lint must not change that result because generated report/trace files are outside the source lint surface.
+
+### V77.0.5 - warning-free Java 25 and Playwright E2E runtime hygiene
+
+V77.0.5 closes the remaining warning sources observed after V77.0.4. The backend now uses Jackson 3 `JsonNode.asString(...)` instead of deprecated `asText(...)`, and Maven enables deprecation lint with `failOnWarning=true` so future Java compiler warnings fail the build instead of silently accumulating.
+
+Mockito inline instrumentation is now attached explicitly for both Surefire and Failsafe using `-javaagent:${org.mockito:mockito-core:jar}` resolved by `maven-dependency-plugin`. Test JVMs also run with `-Xshare:off`, which avoids the class-data-sharing warning that accompanies instrumentation. This removes the Java 25 self-attach / dynamic-agent warning path without weakening Mockito behavior.
+
+The Testcontainers integration suite now stops the Spring `LettuceConnectionFactory` in `@AfterAll` before static Redis Testcontainers are torn down, preventing `ConnectionWatchdog` from reconnecting to a container that is already stopping. The old V15 migration remains immutable; only the integration-test logger for Flyway's SQL-script executor is reduced to ERROR because PostgreSQL's `relation ... already exists, skipping` message comes from an intentional historical `CREATE INDEX IF NOT EXISTS` branch. No migration checksum is changed.
+
+Frontend E2E is upgraded from Playwright 1.60 to **Playwright 1.63**. This removes Node's `DEP0205 module.register()` deprecation path used by Playwright 1.60. The V46 Security E2E blocks service workers only for that server-backed authentication journey so a transient navigation failure cannot be replaced by the PWA offline fallback while the visible URL remains `/login`. The test also requires a real HTTP 200 login document before using `data-testid=login-submit`. The dedicated V52 PWA journey still runs with normal service-worker behavior.
+
+V77.0.5 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables, with no seed-data change and no booking/payment/recommendation/CRM business behavior change.
+
+Verify source gates:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_5_warning_free_runtime_e2e.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+After replacing source, refresh the exact Playwright pin and browser binary:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm install
+npx playwright install chromium
+npm run lint
+$LASTEXITCODE
+```
+
+Expected lint result:
+
+```text
+0 errors
+0 warnings
+exit code 0
+```
+
+Backend Java 25 gates:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\backend
+
+docker run --rm `
+  -v "${PWD}:/app" `
+  -w /app `
+  maven:3.9-eclipse-temurin-25 `
+  mvn -B -ntp clean test
+
+docker run --rm `
+  -v "${PWD}:/app" `
+  -v /var/run/docker.sock:/var/run/docker.sock `
+  -e DOCKER_HOST=unix:///var/run/docker.sock `
+  -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal `
+  -w /app `
+  maven:3.9-eclipse-temurin-25 `
+  mvn -B -ntp clean verify -Pci-integration
+```
+
+Expected: 49 unit tests PASS, 11 integration tests PASS, no Jackson deprecation notice, no Mockito self-attach/dynamic-agent warnings, no CDS warning, no Flyway V15 WARN line and no Lettuce teardown reconnect WARN line. Informational Testcontainers startup messages are not warnings.
+
+Security E2E:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+npx playwright test "e2e/security-account-protection.spec.ts" --project=chromium
+```
+
+Expected: no `DEP0205` warning and `1 passed`.
+
+
+### V77.0.7 - Security E2E strict-locator reliability
+
+V77.0.7 fixes the Playwright **strict-mode locator collision** observed on `/admin/security`: the partial accessible-name query `Security Operations` matched both the page H1 (`Security Operations · Security & Identity`) and the retained V46 H2 (`🛡 Security Operations V46 vẫn được giữ`). The E2E journey now waits on the existing `security-identity-v68` page root and then asserts an exact level-1 heading name. Login and customer-security heading checks are also exact to prevent future substring collisions.
+
+This patch changes test reliability only. It does not relax Playwright strict mode, does not use `.first()` to hide ambiguous semantics, and does not change authentication, authorization, security alert behavior, database state, or production UI copy. V77.0.7 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables.
+
+Verify from the Windows project root:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_7_security_e2e_strict_locator_reliability.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+### V77.0.6 - dependency security and resilient Playwright bootstrap
+
+V77.0.6 closes the dependency/install warnings and the browser-bootstrap failure observed after V77.0.5. `next` and `eslint-config-next` are aligned at **Next.js 16.3.4**, the reviewed 16.3 patch line that includes the August 2026 Next.js security fixes. The frontend now exposes `npm run security:audit` and CI/stable-release preflight fail on high/critical npm advisories rather than accepting a noisy install result.
+
+npm install-script execution is no longer left implicit. The only reviewed transitive install hook currently required by this tree is version-pinned as `unrs-resolver@1.12.2` in package.json `allowScripts`; there is no wildcard approval. When that package version changes, the approval must be reviewed and repinned instead of automatically trusting future install scripts.
+
+Playwright browser installation now has a project script that defaults `PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT` to `120000` ms. Stable and RC GitHub workflows use the same 120-second timeout. Local E2E can also set `PLAYWRIGHT_BROWSER_CHANNEL=msedge` (or another Playwright-supported installed channel) when the Microsoft CDN is temporarily unreachable, so a Windows workstation with managed Edge does not have to block validation on a browser archive download.
+
+V77.0.6 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables and existing migration checksums are unchanged.
+
+Verify source gates:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_6_dependency_security_playwright_bootstrap.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+Refresh frontend dependencies and run the security gate:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm install
+npm run security:audit
+npm run lint
+$LASTEXITCODE
+```
+
+Install Playwright Chromium with the extended timeout:
+
+```powershell
+npm run e2e:install:chromium
+```
+
+Equivalent direct command:
+
+```powershell
+$env:PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT="120000"
+npx playwright install chromium
+```
+
+If the CDN is unavailable but Microsoft Edge is already installed, run the local E2E against that managed system browser without downloading Playwright Chromium:
+
+```powershell
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test "e2e/security-account-protection.spec.ts" --project=chromium
+npx playwright test "e2e/crm-automation-5-v77.spec.ts" --project=chromium
+```
+
+Clear the optional channel override before returning to the bundled Playwright browser:
+
+```powershell
+Remove-Item Env:PLAYWRIGHT_BROWSER_CHANNEL -ErrorAction SilentlyContinue
+```

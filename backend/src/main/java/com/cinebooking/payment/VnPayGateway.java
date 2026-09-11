@@ -82,7 +82,7 @@ public class VnPayGateway {
             HttpResponse<String> res=http.send(req,HttpResponse.BodyHandlers.ofString());
             JsonNode j=mapper.readTree(res.body());
             if(res.statusCode()/100!=2)throw new ApiException(HttpStatus.BAD_GATEWAY,"VNPAY query HTTP "+res.statusCode());
-            String responseHash=j.path("vnp_SecureHash").asText("");
+            String responseHash=j.path("vnp_SecureHash").asString("");
             String responseData=String.join("|",
                     text(j,"vnp_ResponseId"),text(j,"vnp_Command"),text(j,"vnp_ResponseCode"),text(j,"vnp_Message"),text(j,"vnp_TmnCode"),text(j,"vnp_TxnRef"),
                     text(j,"vnp_Amount"),text(j,"vnp_BankCode"),text(j,"vnp_PayDate"),text(j,"vnp_TransactionNo"),text(j,"vnp_TransactionType"),text(j,"vnp_TransactionStatus"),text(j,"vnp_OrderInfo"),
@@ -105,7 +105,7 @@ public class VnPayGateway {
     public boolean configured(){return tmnCode!=null&&!tmnCode.isBlank()&&hashSecret!=null&&!hashSecret.isBlank();}
     public String mode(){String u=paymentUrl==null?"":paymentUrl.toLowerCase(Locale.ROOT);return u.contains("sandbox")?"sandbox":"production";}
     private String normalizeIp(String ip){return ip==null||ip.isBlank()?"127.0.0.1":ip;}
-    private String text(JsonNode j,String key){return j.path(key).asText("");}
+    private String text(JsonNode j,String key){return j.path(key).asString("");}
     private long longValue(JsonNode j,String key){try{return Long.parseLong(text(j,key));}catch(Exception e){return -1;}}
     private void requireConfig() { if (!configured()) throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Chưa cấu hình VNPAY"); }
 }

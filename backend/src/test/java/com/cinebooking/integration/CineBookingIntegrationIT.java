@@ -1,10 +1,13 @@
 package com.cinebooking.integration;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
@@ -58,9 +61,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.mail.enabled=false",
         "app.upload.dir=target/it-uploads",
         "app.notifications.staff-shift-scan-ms=3600000",
-        "app.finance.auto-reconcile-enabled=false"
+        "app.finance.auto-reconcile-enabled=false",
+        // V15 is an immutable historical migration and intentionally contains CREATE INDEX IF NOT EXISTS
+        // for an index already created by V1. PostgreSQL reports that idempotent branch as SQLSTATE 42P07.
+        // Keep historical checksums immutable and suppress only this Flyway executor noise in integration logs.
+        "logging.level.org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor=ERROR"
 })
 @AutoConfigureMockMvc
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CineBookingIntegrationIT {
 
     @Container
@@ -79,6 +87,7 @@ class CineBookingIntegrationIT {
 
     @Autowired JdbcTemplate jdbc;
     @Autowired StringRedisTemplate redisTemplate;
+    @Autowired LettuceConnectionFactory redisConnectionFactory;
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired ShowtimePlanningService showtimePlanning;
@@ -94,6 +103,15 @@ class CineBookingIntegrationIT {
     @Autowired LoyaltyService loyalty;
     @Autowired NotificationService notifications;
     @Autowired FinancialLedgerService finance;
+
+    @AfterAll
+    void stopRedisClientBeforeTestcontainersTeardown() {
+        // JUnit stops static Testcontainers after @AfterAll. Stop Lettuce first so its
+        // ConnectionWatchdog never attempts to reconnect to a Redis container being torn down.
+        if (redisConnectionFactory.isRunning()) {
+            redisConnectionFactory.stop();
+        }
+    }
 
     @Test
     void flywayMigratesRealPostgresToV52PwaMobileExperienceSchemaAndCatalog() {
@@ -612,7 +630,7 @@ class CineBookingIntegrationIT {
                                 """.formatted(email, password)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        String token = objectMapper.readTree(loginBody).path("accessToken").asText();
+        String token = objectMapper.readTree(loginBody).path("accessToken").asString();
         String deviceKey = "cb-v52-integration-device-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
 
         mockMvc.perform(get("/api/pwa/config").header("Authorization", "Bearer " + token))
@@ -670,7 +688,7 @@ class CineBookingIntegrationIT {
                 .andReturn().getResponse().getContentAsString();
 
         JsonNode json = objectMapper.readTree(loginBody);
-        String token = json.path("accessToken").asText();
+        String token = json.path("accessToken").asString();
         assertThat(token.split("\\.")).hasSize(3);
 
         mockMvc.perform(get("/api/me").header("Authorization", "Bearer " + token))

@@ -152,11 +152,11 @@ check('Diagnose V77 keeps real-data gates','verify_realistic_data_57.py' in diag
 # Schema/data/README
 check('V77 is no-schema release',not any((ROOT/'backend/src/main/resources/db/migration').glob('V77__*.sql')))
 check('V77 adds no synthetic seed content','PROMOTION_V77' not in seed and 'V77-CRM-AUTOMATION-5' not in seed)
-check('README title V77',re.search(r'^# CineBooking Pro V77$',readme,re.M) is not None)
-check('README current release V77','Current release:** V77 - CRM Automation 5.0' in readme)
+check('README title V77',re.search(r'^# CineBooking Pro V77(?:\.0\.[0-9]+)?$',readme,re.M) is not None)
+check('README current release V77',re.search(r'Current release:\*\* V77(?:\.0\.[0-9]+)? - CRM Automation 5\.0',readme) is not None)
 check('README history has V77 after V76','| **V76** |' in readme and '| **V77** |' in readme and readme.index('| **V76** |')<readme.index('| **V77** |'))
 check('README detailed V77 section','## V77 - CRM Automation 5.0' in readme)
-for token in ['V77-CRM-AUTOMATION-5','FREQUENCY_CAP_2_PER_7D','PROMOTION_COOLDOWN_72H','MAX_RECIPIENTS_BLAST_RADIUS_GUARD','CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION','New V77 tables: 0','Stable only: v77.0.0']:
+for token in ['V77-CRM-AUTOMATION-5','FREQUENCY_CAP_2_PER_7D','PROMOTION_COOLDOWN_72H','MAX_RECIPIENTS_BLAST_RADIUS_GUARD','CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION','New V77 tables: 0','Stable only: v77.0.']:
     check('README documents '+token,token in readme)
 check('README keeps Flyway V72 / 67 tables','Flyway latest: V72' in readme and 'Public tables: 67' in readme)
 check('README real-data policy extends through V77','V52/V65/V66/V67/V68/V69/V70/V71/V72/V73/V74/V75/V76/V77' in readme and '**không tạo phim/khách/booking/payment giả**' in readme)

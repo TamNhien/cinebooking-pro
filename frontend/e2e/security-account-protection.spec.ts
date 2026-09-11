@@ -3,6 +3,12 @@ import { BrowserContext, expect, Page, test } from "@playwright/test";
 const PASSWORD="V46Security!Customer123";
 const AUTH_STORAGE_KEY="cinebooking_auth_v3";
 
+// This auth/security journey validates server-backed session state, not PWA offline fallback.
+// Blocking service workers prevents a transient navigation failure from being replaced by
+// the offline shell while the URL still remains /login. The dedicated V52 PWA journey
+// continues to exercise service-worker behavior with the default Playwright settings.
+test.use({ serviceWorkers: "block" });
+
 type AuthResponseApi = {
   accessToken: string;
   role: string;
@@ -53,15 +59,19 @@ async function logoutToLogin(page:Page,context:BrowserContext){
   },AUTH_STORAGE_KEY);
   expect(status).toBe(204);
   await context.clearCookies();
-  await page.goto("/login",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("button",{name:"Đăng nhập"})).toBeVisible();
+  const loginDocument=await page.goto("/login",{waitUntil:"domcontentloaded"});
+  expect(loginDocument,"login navigation must return an HTTP document instead of an offline/service-worker fallback").not.toBeNull();
+  expect(loginDocument?.status(),"login navigation must be HTTP 200").toBe(200);
+  await expect(page).toHaveURL(/\/login(?:\?|$)/,{timeout:15000});
+  await expect(page.getByRole("heading",{name:"Đăng nhập",exact:true})).toBeVisible({timeout:15000});
+  await expect(page.getByTestId("login-submit")).toBeVisible({timeout:15000});
 }
 
 async function login(page:Page,context:BrowserContext,email:string,password:string,expectedRole:"USER"|"ADMIN"):Promise<AuthResponseApi>{
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Mật khẩu").fill(password);
   const loginResponse=page.waitForResponse(response=>response.url().includes("/api/auth/login")&&response.request().method()==="POST");
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
+  await page.getByTestId("login-submit").click();
   const response=await loginResponse;
   expect(response.status()).toBe(200);
   if(expectedRole==="ADMIN") await page.waitForURL(url=>url.pathname.startsWith("/admin"),{timeout:15000,waitUntil:"domcontentloaded"});
@@ -101,7 +111,7 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   const customerAuth=await login(page,context,email,PASSWORD,"USER");
 
   await page.goto("/security",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Trung tâm bảo mật tài khoản"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Trung tâm bảo mật tài khoản",exact:true})).toBeVisible();
   const alert=page.getByTestId("security-alert").filter({hasText:"Đăng nhập từ thiết bị chưa tin cậy"}).first();
   await expect(alert).toBeVisible();
   await expect(alert).toContainText("Brave");
@@ -122,7 +132,8 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   const adminAuth=await login(page,context,adminEmail,adminPassword,"ADMIN");
 
   await page.goto("/admin/security",{waitUntil:"domcontentloaded"});
-  await expect(page.getByRole("heading",{name:"Security Operations"})).toBeVisible();
+  await expect(page.getByTestId("security-identity-v68")).toBeVisible();
+  await expect(page.getByRole("heading",{level:1,name:"Security Operations · Security & Identity",exact:true})).toBeVisible();
   const adminAlertsResponse=await context.request.get(apiUrl(page,"/api/admin/security/alerts"),{
     headers:{Authorization:`Bearer ${adminAuth.accessToken}`}
   });

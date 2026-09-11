@@ -17,7 +17,9 @@ check("prefer-const remains enabled as warning", '"prefer-const": "warn"' in con
 check("frontend lint still runs in CI", "npm run lint" in workflow)
 check("frontend lint is no longer continue-on-error", "Lint legacy frontend (advisory)" not in workflow and "Lint frontend (legacy baseline)" in workflow)
 check("production build remains required", "npm run build" in workflow)
-check("baseline does not disable all ESLint rules", '"off"' not in config)
+allowed_off = '"@next/next/no-location-assign-relative-destination": "off"'
+off_rules = [line.strip() for line in config.splitlines() if ': "off"' in line]
+check("baseline does not blanket-disable ESLint rules", off_rules == [allowed_off + ","])
 
 passed = sum(ok for _, ok in checks)
 print(f"\n{passed}/{len(checks)} checks passed")

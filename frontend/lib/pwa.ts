@@ -31,8 +31,11 @@ export function platformName(){
 
 export function deviceLabel(){
   const platform=platformName();
-  const ua=typeof navigator!=="undefined"?navigator.userAgent:"";
-  const browser=/Edg\//i.test(ua)?"Edge":/Firefox\//i.test(ua)?"Firefox":/Chrome\//i.test(ua)?"Chrome":/Safari\//i.test(ua)?"Safari":"Browser";
+  if(typeof navigator==="undefined")return `Browser · ${platform}`;
+  const nav=navigator as Navigator & {brave?:{isBrave?:()=>Promise<boolean>};userAgentData?:{brands?:Array<{brand:string}>}};
+  const ua=navigator.userAgent||"";
+  const braveBrand=nav.userAgentData?.brands?.some(item=>item.brand.toLowerCase()==="brave");
+  const browser=(braveBrand||Boolean(nav.brave?.isBrave)||/\bBrave(?:\/\d+)?\b/i.test(ua))?"Brave":/Edg\//i.test(ua)?"Edge":/Firefox\//i.test(ua)?"Firefox":/Chrome\//i.test(ua)?"Chrome":/Safari\//i.test(ua)?"Safari":"Browser";
   return `${browser} · ${platform}`;
 }
 

@@ -53,7 +53,7 @@ export default function Login() {
         <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required />
         <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Mật khẩu" autoComplete="current-password" required />
         {error && <p className="text-sm text-red-300">{error}</p>}
-        <button disabled={loading} className="btn btn-primary w-full">{loading ? "Đang đăng nhập..." : "Đăng nhập"}</button>
+        <button type="submit" data-testid="login-submit" disabled={loading} className="btn btn-primary w-full">{loading ? "Đang đăng nhập..." : "Đăng nhập"}</button>
       </form>
       <div className="mt-5 flex flex-wrap justify-between gap-3 text-sm">
         <Link className="text-rose-400" href="/register">Tạo tài khoản</Link>
