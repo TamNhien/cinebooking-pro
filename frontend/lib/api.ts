@@ -23,6 +23,10 @@ async function detectBrowserHint(): Promise<string | null> {
   // Brave can hide navigator.brave for compatibility, while Chromium client
   // hints still expose a Brave brand on normal sites. Use it before generic UA.
   if (nav.userAgentData?.brands?.some(item => item.brand.toLowerCase() === "brave")) return "Brave";
+  if (nav.userAgentData?.brands?.some(item => {
+    const brand = item.brand.toLowerCase();
+    return brand === "microsoft edge" || brand === "edge";
+  })) return "Edge";
 
   const ua = navigator.userAgent || "";
   if (/\bBrave(?:\/\d+)?\b/i.test(ua)) return "Brave";

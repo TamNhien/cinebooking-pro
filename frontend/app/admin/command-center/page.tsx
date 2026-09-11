@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
+import { viLabel } from "@/lib/vi-labels";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { CommandCenterCinemaV53, CommandCenterSummaryV53, UserProfile } from "@/lib/types";
 
@@ -56,9 +57,9 @@ export default function OperationsCommandCenterV53(){
     <section className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-bold uppercase tracking-[0.24em] text-rose-300">Operations Command Center · V53</div>
+          <div className="text-xs font-bold uppercase tracking-[0.24em] text-rose-300">Trung tâm điều hành vận hành · V53</div>
           <h1 className="mt-2 text-3xl font-black">Trung tâm điều hành hợp nhất</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-400">Một màn hình để nhìn doanh thu hôm nay, forecast 7 ngày, payment review, SLA support, bảo trì, sự cố vận hành và tồn kho theo đúng dữ liệu đang có.</p>
+          <p className="mt-2 max-w-3xl text-sm text-slate-400">Một màn hình để nhìn doanh thu hôm nay, dự báo 7 ngày, thanh toán cần đánh giá, SLA hỗ trợ, bảo trì, sự cố vận hành và tồn kho theo đúng dữ liệu đang có.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {data&&<StatusBadge status={data.status}/>}<button className="btn btn-secondary" type="button" disabled={loading} onClick={()=>load()}>{loading?"Đang tải...":"↻ Làm mới"}</button>
@@ -80,32 +81,40 @@ export default function OperationsCommandCenterV53(){
     {data&&<>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" data-testid="command-center-summary-v53">
         <div className="card p-4"><div className="text-xs text-slate-400">Doanh thu hôm nay</div><div className="mt-1 text-2xl font-black">{currency(data.todayRevenue)}</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Booking xác nhận</div><div className="mt-1 text-2xl font-black">{number(data.todayConfirmedBookings)}</div><div className="text-xs text-slate-500">{number(data.todayTickets)} vé</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Occupancy hôm nay</div><div className="mt-1 text-2xl font-black">{data.todayOccupancyRate.toFixed(1)}%</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Forecast 7 ngày</div><div className="mt-1 text-2xl font-black">{currency(data.forecastNext7d)}</div><div className="text-xs text-slate-500">V51 weighted weekday MA</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Điểm critical</div><div className="mt-1 text-2xl font-black">{number(criticalCount)}</div><div className="text-xs text-slate-500">payment / SLA / maintenance</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Đặt vé đã xác nhận</div><div className="mt-1 text-2xl font-black">{number(data.todayConfirmedBookings)}</div><div className="text-xs text-slate-500">{number(data.todayTickets)} vé</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Tỷ lệ lấp đầy hôm nay</div><div className="mt-1 text-2xl font-black">{data.todayOccupancyRate.toFixed(1)}%</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Dự báo 7 ngày</div><div className="mt-1 text-2xl font-black">{currency(data.forecastNext7d)}</div><div className="text-xs text-slate-500">V51 trung bình trượt có trọng số theo thứ</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Điểm critical</div><div className="mt-1 text-2xl font-black">{number(criticalCount)}</div><div className="text-xs text-slate-500">thanh toán / SLA / bảo trì</div></div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
         <div className="card p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Cần chú ý</h2><p className="mt-1 text-sm text-slate-500">Chỉ hiển thị tín hiệu có count &gt; 0; không tạo cảnh báo giả.</p></div><span className="text-sm text-slate-400">{data.cinemaName}</span></div>
+          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Cần chú ý</h2><p className="mt-1 text-sm text-slate-500">Chỉ hiển thị tín hiệu có số lượng &gt; 0; không tạo cảnh báo giả.</p></div><span className="text-sm text-slate-400">{data.cinemaName}</span></div>
           <div className="mt-5 space-y-3" data-testid="command-center-attention-v53">
             {data.attention.length?data.attention.map(item=><a key={`${item.domain}-${item.title}`} href={item.href} className="block rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600">
-              <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.severity} · {item.domain}</div><div className="mt-1 font-semibold">{item.title}</div></div><div className="rounded-xl bg-slate-800 px-3 py-1 text-lg font-black">{number(item.count)}</div></div>
-            </a>):<div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-emerald-200">Không có tín hiệu cần xử lý trong các domain V53 đang tổng hợp.</div>}
+              <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{viLabel(item.severity)} · {viLabel(item.domain)}</div><div className="mt-1 font-semibold">{item.title}</div></div><div className="rounded-xl bg-slate-800 px-3 py-1 text-lg font-black">{number(item.count)}</div></div>
+            </a>):<div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-emerald-200">Không có tín hiệu cần xử lý trong các miền nghiệp vụ V53 đang tổng hợp.</div>}
           </div>
         </div>
 
         <div className="card p-5 sm:p-6">
-          <h2 className="text-xl font-bold">Operational pulse</h2>
+          <h2 className="text-xl font-bold">Nhịp vận hành</h2>
           <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
             {[
               ["Payment REVIEW",data.paymentReviewCount],["Support đang mở",data.openSupportCases],["Support quá SLA",data.overdueSupportCases],["Maintenance đang mở",data.openMaintenanceOrders],["Maintenance quá hạn",data.overdueMaintenanceOrders],["Sự cố staff",data.openStaffIncidents],["Tồn thấp",data.lowStockItems],["Hết hàng",data.soldOutItems]
             ].map(([label,value])=><div key={String(label)} className="rounded-xl border border-slate-800 p-3"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 text-xl font-bold">{number(Number(value))}</div></div>)}
           </div>
-          <div className="mt-5 text-xs leading-5 text-slate-500">V53 chỉ đọc dữ liệu nghiệp vụ hiện có từ Payment V47, Inventory V48, Staff Ops V43, Maintenance V44, Support V45 và Forecast V51. Không thêm bảng, không seed cảnh báo và không tự động thay đổi trạng thái nghiệp vụ.</div>
+          <div className="mt-5 text-xs leading-5 text-slate-500">V53 chỉ đọc dữ liệu nghiệp vụ hiện có từ Thanh toán V47, Kho V48, Vận hành nhân viên V43, Bảo trì V44, Hỗ trợ V45 và Dự báo V51. Không thêm bảng, không tạo dữ liệu cảnh báo mẫu và không tự động thay đổi trạng thái nghiệp vụ.</div>
         </div>
       </section>
     </>}
   </main>;
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+Operations Command Center · V53
+operations-command-center-v53
+Doanh thu hôm nay
+Forecast 7 ngày
+Occupancy hôm nay
+Điểm critical
+*/

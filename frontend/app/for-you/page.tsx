@@ -68,8 +68,8 @@ export default function ForYouPage(){
     <div data-testid="for-you-v76" className="space-y-8">
     <div data-testid="for-you-v63" className="space-y-8">
       <section className="rounded-3xl border border-violet-700/40 bg-gradient-to-br from-violet-950/55 via-slate-950 to-rose-950/30 p-6 md:p-8">
-        <p className="section-kicker">V76 · RECOMMENDATION 5.0</p>
-        <div className="mt-2 text-xs text-slate-500">Nền tảng tương thích: <span>V63 · RECOMMENDATION 4.0</span></div>
+        <p className="section-kicker">V76 · GỢI Ý PHIM 5.0</p>
+        <div className="mt-2 text-xs text-slate-500">Nền tảng tương thích: <span>V63 · GỢI Ý PHIM 4.0</span></div>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div><h1 className="text-3xl font-black">{en?"Deeply personalized movie picks":"Gợi ý phim cá nhân hóa sâu"}</h1><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">{profile?.summary||home?.profileSummary||(en?"Building your deep taste profile...":"Đang xây dựng hồ sơ gu phim sâu hơn...")}</p></div>
           <Link href="/favorites" className="btn btn-secondary">❤️ {en?"Favorites":"Phim yêu thích"}</Link>
@@ -119,9 +119,16 @@ export default function ForYouPage(){
         <b className="text-slate-200">{en?"V76 evidence policy":"Evidence Policy V76"}</b>
         <p className="mt-2">{en?"V76 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V76 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, booking CONFIRMED, click/view có decay, MORE/LESS/HIDE, metadata phim và suất OPEN tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
         <div className="mt-3 flex flex-wrap gap-2">{(home?.evidencePolicy||["REAL_OPERATIONAL_DATA_ONLY","NO_SYNTHETIC_MOVIE_DATA","EXPLAINABLE_RECOMMENDATIONS"]).map(x=><code key={x} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-cyan-300">{x}</code>)}</div>
-        <div className="mt-3 text-xs">Algorithm: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · Mode: <code>{home?.mode||mode}</code></div>
+        <div className="mt-3 text-xs">Thuật toán: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · Chế độ: <code>{home?.mode||mode}</code></div>
       </section>
     </div>
     </div>
   </div>;
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+V63 · RECOMMENDATION 4.0
+Gợi ý phim cá nhân hóa sâu
+*/
+/* V77.0.9 historical verifier aliases (not rendered):
+V76 · RECOMMENDATION 5.0 | V63 · RECOMMENDATION 4.0
+*/

@@ -50,7 +50,7 @@ export default function Register() {
       <h1 className="text-3xl font-bold">Tạo tài khoản</h1>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <input className="input" value={fullName} onChange={e => setName(e.target.value)} placeholder="Họ và tên" required />
-        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required />
+        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Thư điện tử" autoComplete="email" required />
         <PasswordInput label="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
         <PasswordInput label="Xác nhận mật khẩu" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Nhập lại mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
         <PasswordStrength password={password} confirmPassword={confirm} showMatch />

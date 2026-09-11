@@ -1058,6 +1058,24 @@ verify-v77-dependency-security:
 verify-v77-security-e2e-locator:
 	python tools/verify_v77_0_7_security_e2e_strict_locator_reliability.py
 
+verify-v77-ci-deprecation-browser-identity:
+	python tools/verify_v77_0_8_ci_deprecation_chromium_brand_identity.py
+
+verify-v77-vietnamese-ui-maintenance:
+	python tools/verify_v77_0_9_vietnamese_ui_maintenance_completion.py
+
+verify-v77-vietnamese-localizer-ledger:
+	python tools/verify_v77_0_10_vietnamese_localizer_immutable_ledger.py
+
+verify-v77-docker-windows-hygiene:
+	python tools/verify_v77_0_11_docker_windows_node_modules_hygiene.py
+
+verify-v77-typescript-localization-hygiene:
+	python tools/verify_v77_0_12_typescript_localization_contract_hygiene.py
+
+verify-v77-zero-warning-vietnamese-ui-lint:
+	python tools/verify_v77_0_13_zero_warning_vietnamese_ui_lint.py
+
 diagnose-v77:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v77.ps1
 
@@ -1079,5 +1097,23 @@ release-v77-0-5:
 release-v77-0-6:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.6
 
-release-v77-patch:
+release-v77-0-7:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.7
+
+release-v77-0-8:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.8
+
+release-v77-0-9:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.9
+
+release-v77-0-10:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.10
+
+release-v77-0-11:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.11
+
+release-v77-0-12:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.12
+
+release-v77-patch:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.13

@@ -32,7 +32,9 @@ ok("Customer security heading locator is exact", 'getByRole("heading",{name:"Tru
 ok("Security E2E still blocks service workers for server-backed auth journey", 'serviceWorkers:"block"' in e2e.replace(" ", ""))
 ok("Security E2E still validates stable login submit selector", 'getByTestId("login-submit")' in e2e)
 ok("V77.0.6 verifier is forward-compatible with later V77 patch", 'V77.0.6 or later' in v776 and '>= 6' in v776)
-ok("README current release is V77.0.7", "Current release:** V77.0.7" in readme)
+m = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
+current_patch = int(m.group(1)) if m else -1
+ok("README current release is V77.0.7 or later", current_patch >= 7)
 ok("README documents Playwright strict-mode locator collision fix", "strict-mode locator collision" in readme.lower())
 ok("V77.0.7 remains no-schema", "V77.0.7" in readme and "no-schema" in readme.lower())
 ok("CI runs V77.0.7 verifier", "verify_v77_0_7_security_e2e_strict_locator_reliability.py" in ci)
@@ -40,7 +42,8 @@ ok("Release preflight runs V77.0.7 verifier", "verify_v77_0_7_security_e2e_stric
 ok("Diagnose V77 chains V77.0.7 verifier", "verify_v77_0_7_security_e2e_strict_locator_reliability.py" in diagnose)
 ok("Makefile exposes V77.0.7 verifier", "verify-v77-security-e2e-locator:" in makefile)
 ok("Makefile preserves immutable V77.0.6 release target", "release-v77-0-6:" in makefile and "v77.0.6" in makefile)
-ok("Makefile latest patch target is v77.0.7", "release-v77-patch:" in makefile and "v77.0.7" in makefile)
+patch_target = re.search(r"release-v77-patch:\s*\n\s*powershell .* v77\.0\.(\d+)", makefile)
+ok("Makefile latest patch target is v77.0.7 or later", bool(patch_target and int(patch_target.group(1)) >= 7))
 
 failed = [name for name, passed in checks if not passed]
 print(f"\nV77.0.7 security E2E strict-locator reliability verification: {len(checks)-len(failed)}/{len(checks)} checks passed")

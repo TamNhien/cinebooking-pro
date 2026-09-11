@@ -2,9 +2,9 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.7 - CRM Automation 5.0 + Security E2E Strict-Locator Reliability
+> **Current release:** V77.0.13 - CRM Automation 5.0 + Zero-Warning Vietnamese UI Lint Hygiene
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.7` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.13` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -14,6 +14,18 @@ V77 also carries a **Brave browser identity reliability fix** for security-sessi
 
 V77.0.3 extends that repair path for **historical UA-version drift** without blind rewrites. When the current request positively proves Brave, CineBooking may use a later, already Brave-labelled session as corroborating evidence for an older `Chrome · <OS>` session only when the user, exact historical User-Agent, exact IP and OS all match, the Brave evidence occurs after the candidate within 24 hours, and a same-user `NEW_DEVICE` alert is linked to that session. This is an idempotent display-metadata correction only; risk scores, timestamps, auth state and unrelated audit rows are untouched.
 
+V77.0.8 keeps that anti-false-positive Brave chronology intact and instead closes two newly observed release/runtime gaps. Java 25 compilation is warning-free again by replacing deprecated Spring Data Redis TTL and Spring Framework HTTP 413 APIs. Browser identity now recognizes the `Microsoft Edge` brand from Chromium client hints / `navigator.userAgentData` before a generic Chrome fallback, preventing managed Edge/Playwright Edge sessions with a Chrome-like frozen User-Agent from being persisted as `Chrome · Windows`. This remains display-only metadata and does not weaken authentication or Brave reconciliation guards.
+
+
+V77.0.9 makes the web experience **Vietnamese-first** while deliberately preserving machine contracts such as Java/TypeScript identifiers, API routes, enum/status codes, data-testid values and protocol/vendor names. Admin Dashboard restores the V57 booking/seat-intelligence entry and V58 operations-control entry in ascending version order. Maintenance completion no longer relies on a native browser prompt: a CineBooking modal validates the repair result locally, accepts a meaningful two-character result such as `ok`, updates the work order, reloads the card, and shows the stored result/history in Vietnamese. A bounded local data-normalization script converts known human-readable reference/history strings to Vietnamese without rewriting enum/status/action columns. V77.0.9 is a **no-schema patch**; Flyway remains V72 / 67 public tables.
+
+V77.0.10 fixes the V77.0.9 local data-localization runner after the first real database execution exposed the intentionally immutable V42 financial ledger trigger. The localizer now updates only mutable display text, never bypasses or disables the append-only ledger guard, writes new financial descriptions in Vietnamese, and localizes legacy immutable ledger descriptions only when they are presented by the API/UI. The PowerShell runner is ASCII-safe so Windows PowerShell 5.1 no longer prints mojibake when invoked from PowerShell 7. V77.0.10 remains a **no-schema patch**; Flyway stays V72 / 67 public tables.
+
+V77.0.11 fixes Docker frontend builds on Windows hosts after a real Compose build exposed `/app/node_modules/.bin/next: node.exe: not found`. The frontend Docker context now excludes host `node_modules` and generated build/test artifacts so Windows npm shims cannot overwrite Linux dependencies copied from the Docker dependency stage. The dependency stage remains inside Linux and consumes any available npm manifests without requiring a lockfile that is not part of the packaged baseline. This is a build/release hygiene patch only: no application schema or business data changes; Flyway remains V72 / 67 public tables.
+
+V77.0.12 fixes the TypeScript contract regressions exposed only after the V77.0.11 Docker isolation fix allowed the Linux production build to reach type checking. Vietnamese display localization had accidentally changed machine property identifiers (`membershipTier`, `liveThreads`, `planningScore`) and omitted two `viLabel` imports, while the shared Vietnamese label map contained a duplicate `RECEIVED` key. V77.0.12 restores the original ASCII API/type contracts, keeps the visible Vietnamese labels, and adds a guard that rejects non-ASCII property identifiers in frontend TypeScript. This is a no-schema patch; Flyway remains V72 / 67 public tables.
+
+V77.0.13 closes the final zero-warning ESLint regression exposed after V77.0.12 reached a clean Docker production build. The restored V57 dashboard shortcut now uses Next.js `Link` instead of a raw internal `<a href="/">`, and the showtime planner removes an unused `viLabel` import. Visible labels remain Vietnamese, V57/V58 remain restored, and machine contracts are unchanged. This is a no-schema patch; Flyway remains V72 / 67 public tables.
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3.4 / Node.js 24 / Playwright Chromium
@@ -132,6 +144,12 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.5** | **Warning-free Java 25 + E2E runtime hygiene: Jackson 3 deprecation cleanup, explicit Mockito javaagent, Redis teardown ordering, immutable Flyway warning suppression, Playwright 1.63, service-worker-isolated Security E2E** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V77.0.6** | **Dependency security + resilient Playwright bootstrap: Next.js 16.3.4 security patch, explicit version-pinned `allowScripts` for reviewed `unrs-resolver`, high/critical npm-audit gate, 120s Playwright CDN timeout, optional system-browser channel fallback** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V77.0.7** | **Security E2E strict-locator reliability: removes the ambiguous `Security Operations` heading query that matched both H1 and H2 under Playwright strict mode; waits on the existing V68 page test-id and an exact level-1 accessible heading** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.8** | **CI deprecation + Chromium brand identity hygiene: Java 25 warning-free Spring API replacements; Microsoft Edge client-hint/userAgentData detection overrides generic Chrome fallback while Brave chronology guards remain unchanged** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.9** | **Việt hóa giao diện + độ tin cậy hoàn tất bảo trì + khôi phục V57/V58 trên Dashboard + chuẩn hóa dữ liệu hiển thị DB** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.10** | **Sửa localizer tiếng Việt: tôn trọng sổ cái V42 bất biến, loại lỗi rollback, sửa mojibake PowerShell 5.1, Việt hóa hiển thị tài chính** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.11** | **Sửa Docker build trên Windows: loại host `node_modules` khỏi build context, tránh shim `node.exe`, giữ dependency Linux tách khỏi `node_modules` Windows** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.12** | **Sửa hồi quy TypeScript sau Việt hóa: khôi phục property contract ASCII, bổ sung import `viLabel`, loại key nhãn trùng và thêm guard chống dịch nhầm tên biến/property** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.13** | **Khép zero-warning lint sau Việt hóa: dùng Next `Link` cho shortcut V57 và loại import `viLabel` không dùng ở bộ lập lịch suất chiếu** | **Không đổi schema (Flyway V72 / 67 tables)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -5774,14 +5792,14 @@ E2E kiểm tra tile V77, version order, strategy, real-data policy, opt-out/chan
 ### Release V77 - chỉ Stable
 
 ```text
-Stable only: v77.0.5
+Stable only: v77.0.9
 ```
 
 Sau khi source gates, Docker runtime, lint/build và Browser E2E PASS:
 
 ```powershell
 cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
-.\scripts\release.ps1 v77.0.5
+.\scripts\release.ps1 v77.0.9
 ```
 
 Không tạo RC/Pre-release cho V77.
@@ -5902,20 +5920,6 @@ npx playwright test "e2e/security-account-protection.spec.ts" --project=chromium
 
 Expected: no `DEP0205` warning and `1 passed`.
 
-
-### V77.0.7 - Security E2E strict-locator reliability
-
-V77.0.7 fixes the Playwright **strict-mode locator collision** observed on `/admin/security`: the partial accessible-name query `Security Operations` matched both the page H1 (`Security Operations · Security & Identity`) and the retained V46 H2 (`🛡 Security Operations V46 vẫn được giữ`). The E2E journey now waits on the existing `security-identity-v68` page root and then asserts an exact level-1 heading name. Login and customer-security heading checks are also exact to prevent future substring collisions.
-
-This patch changes test reliability only. It does not relax Playwright strict mode, does not use `.first()` to hide ambiguous semantics, and does not change authentication, authorization, security alert behavior, database state, or production UI copy. V77.0.7 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables.
-
-Verify from the Windows project root:
-
-```powershell
-python -X utf8 .\tools\verify_v77_0_7_security_e2e_strict_locator_reliability.py
-powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
-```
-
 ### V77.0.6 - dependency security and resilient Playwright bootstrap
 
 V77.0.6 closes the dependency/install warnings and the browser-bootstrap failure observed after V77.0.5. `next` and `eslint-config-next` are aligned at **Next.js 16.3.4**, the reviewed 16.3 patch line that includes the August 2026 Next.js security fixes. The frontend now exposes `npm run security:audit` and CI/stable-release preflight fail on high/critical npm advisories rather than accepting a noisy install result.
@@ -5971,3 +5975,195 @@ Clear the optional channel override before returning to the bundled Playwright b
 ```powershell
 Remove-Item Env:PLAYWRIGHT_BROWSER_CHANNEL -ErrorAction SilentlyContinue
 ```
+
+### V77.0.7 - Security E2E strict-locator reliability
+
+V77.0.7 fixes the Playwright **strict-mode locator collision** observed on `/admin/security`: the partial accessible-name query `Security Operations` matched both the page H1 (`Security Operations · Security & Identity`) and the retained V46 H2 (`🛡 Security Operations V46 vẫn được giữ`). The E2E journey now waits on the existing `security-identity-v68` page root and then asserts an exact level-1 heading name. Login and customer-security heading checks are also exact to prevent future substring collisions.
+
+This patch changes test reliability only. It does not relax Playwright strict mode, does not use `.first()` to hide ambiguous semantics, and does not change authentication, authorization, security alert behavior, database state, or production UI copy. V77.0.7 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables.
+
+Verify from the Windows project root:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_7_security_e2e_strict_locator_reliability.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+### V77.0.8 - CI deprecation cleanup and Chromium brand identity hygiene
+
+V77.0.8 addresses the exact GitHub Actions failure observed after V77.0.7 was pushed but before a stable tag was created. The Java 25 compiler warning gate remains strict (`-Xlint:deprecation` + `failOnWarning=true`); instead of suppressing warnings, the deprecated APIs are replaced:
+
+- `ValueOperations.set(key, value, timeout, TimeUnit)` becomes the `Duration` overload.
+- `HttpStatus.PAYLOAD_TOO_LARGE` becomes Spring Framework 7 `HttpStatus.CONTENT_TOO_LARGE` while retaining HTTP status 413.
+
+The patch also hardens Chromium-family display identity. `ClientDeviceDetector` recognizes `Microsoft Edge` / `Edge` brands from `Sec-CH-UA` before a generic Chrome fallback, and frontend `navigator.userAgentData.brands` applies the same precedence for API and PWA metadata. This matters when a managed Edge/Playwright Edge channel exposes a Chrome-like User-Agent string.
+
+Brave historical reconciliation is intentionally **not** widened. In particular, a Chrome/Edge session created after a Brave session is not retroactively changed to Brave merely because user, IP and Chrome-like User-Agent happen to match. The V77.0.3 evidence chronology remains in place to prevent false Brave attribution when the same account uses multiple Chromium-family browsers.
+
+V77.0.8 remains a **no-schema patch**: Flyway stays at V72 / 67 public tables, no seed data is added, and no authentication/authorization decision uses browser display metadata.
+
+Verify source:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_8_ci_deprecation_chromium_brand_identity.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+Backend Java 25 warning gate:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\backend
+
+docker run --rm `
+  -v "${PWD}:/app" `
+  -w /app `
+  maven:3.9-eclipse-temurin-25 `
+  mvn -B -ntp clean test
+```
+
+Expected current unit total: **50 tests**, 0 failures, 0 errors, and no compilation warning block.
+
+Local Edge fallback E2E remains available when the Playwright CDN is unavailable:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test "e2e/security-account-protection.spec.ts" --project=chromium
+npx playwright test "e2e/crm-automation-5-v77.spec.ts" --project=chromium
+```
+
+After the local gates pass, release only the new immutable patch tag:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.8
+```
+
+### V77.0.9 - Giao diện tiếng Việt và độ tin cậy hoàn tất bảo trì
+
+V77.0.9 chuẩn hóa **nội dung hiển thị trên web sang tiếng Việt** nhưng giữ nguyên các contract kỹ thuật: tên biến Java/TypeScript, URL/API route, enum/status code, `data-testid`, UUID, tên protocol và vendor. Các giá trị máy như `IN_PROGRESS`, `RESOLVED`, `OPERATIONAL` vẫn được lưu/trao đổi ổn định; giao diện ánh xạ chúng thành `Đang xử lý`, `Đã hoàn tất`, `Hoạt động bình thường` qua `frontend/lib/vi-labels.ts`.
+
+Admin Dashboard khôi phục hai mốc bị thiếu trong chuỗi version: **V57 Đặt vé & gợi ý ghế** và **V58 Trung tâm vận hành**, đặt đúng giữa V56 và V59. Header/menu quản trị cũng giữ hai đường dẫn này. Giao diện ngôn ngữ được cố định `vi`; tùy chọn EN cũ không còn được hiển thị.
+
+Luồng bảo trì sửa lỗi hoàn tất phiếu: `Hoàn tất` mở modal CineBooking thay cho `window.prompt`, yêu cầu kết quả xử lý tối thiểu 2 ký tự, chấp nhận chuỗi thực tế ngắn như `ok`, hiển thị lỗi ngay trong modal, gọi API, tải lại dữ liệu và hiển thị `Kết quả: ...` cùng lịch sử trạng thái tiếng Việt. Unit test và Playwright regression đều bao phủ trường hợp nhập chính xác `ok`.
+
+Dữ liệu hiện hữu có thể được chuẩn hóa bằng script an toàn:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+powershell -ExecutionPolicy Bypass -File .\tools\localize-vietnamese-display-data-v77-0-9.ps1
+```
+
+Script chỉ sửa các chuỗi mô tả hệ thống/tham chiếu đã biết trong notification/audit/ledger/support/incident/maintenance history. Nó không đổi ID, khóa ngoại, enum/status/action code, timestamp, Flyway metadata hay dữ liệu xác thực.
+
+V77.0.9 vẫn là **no-schema patch**: Flyway V72 / 67 public tables, không có migration V77.0.9 mới.
+
+Verify source:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_9_vietnamese_ui_maintenance_completion.py
+powershell -ExecutionPolicy Bypass -File .\tools\diagnose-v77.ps1
+```
+
+Backend Java 25 mong đợi **51 unit tests**, 0 failure/error; integration vẫn **11/11**. Sau khi lint/build, Docker 8/8 và Browser E2E PASS, phát hành stable:
+
+```powershell
+.\scripts\release.ps1 v77.0.9
+```
+
+### V77.0.10 - Localizer tiếng Việt an toàn với sổ cái bất biến
+
+V77.0.10 sửa lỗi runtime của script Việt hóa V77.0.9 khi `financial_ledger_entry` từ V42 chặn UPDATE theo thiết kế append-only. Script mới không tắt trigger và không dùng `session_replication_role` để vượt guard. Các bảng mutable vẫn được chuẩn hóa trong một transaction; nếu có lỗi thì toàn bộ rollback. Dữ liệu sổ cái mới được ghi bằng tiếng Việt, còn mô tả lịch sử bất biến được Việt hóa ở lớp API/UI mà không sửa row gốc.
+
+Chạy localizer tương thích mới:
+
+```powershell
+.\tools\localize-vietnamese-display-data-v77-0-10.ps1
+```
+
+Hoặc lệnh V77.0.9 cũ vẫn hoạt động sau hotfix:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\localize-vietnamese-display-data-v77-0-9.ps1
+```
+
+Kiểm tra source:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_10_vietnamese_localizer_immutable_ledger.py
+```
+
+Stable only: `v77.0.10`. Flyway vẫn V72 / 67 public tables.
+### V77.0.11 - Docker build an toàn khi chạy từ Windows
+
+V77.0.11 sửa lỗi build frontend trong Docker khi thư mục `frontend/node_modules` đã được cài trên Windows. Trước bản vá, `COPY . .` có thể chép các shim Windows trong `node_modules/.bin` đè lên dependency Linux đã cài ở stage `deps`, khiến `next build` gọi `node.exe` bên trong container Alpine và thất bại.
+
+Bản vá thêm `frontend/.dockerignore` để loại `node_modules`, `.next`, báo cáo Playwright, coverage và các artifact sinh tự động khỏi Docker build context; stage dependency tiếp tục cài package bên trong Linux. Không cần xóa `node_modules` trên máy Windows trước mỗi lần build, và bản Full Source vẫn hoạt động kể cả khi `package-lock.json` không có trong baseline đóng gói.
+
+Kiểm tra source:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_11_docker_windows_node_modules_hygiene.py
+```
+
+Build lại Docker đầy đủ:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  build --no-cache frontend
+
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d
+```
+
+Stable only: `v77.0.11`. Flyway vẫn V72 / 67 public tables.
+### V77.0.12 - Sửa hồi quy TypeScript sau Việt hóa
+
+V77.0.12 xử lý các lỗi type-check được Docker V77.0.11 phơi lộ sau khi host `node_modules` không còn che dependency Linux. Các tên property thuộc contract máy được khôi phục về `membershipTier`, `liveThreads` và `planningScore`; hai trang sử dụng `viLabel` được bổ sung import chuẩn; key `RECEIVED` trùng trong bảng nhãn tiếng Việt được loại bỏ. Nội dung người dùng nhìn thấy vẫn là tiếng Việt, còn tên biến/property/API tiếp tục giữ ASCII để bảo toàn contract TypeScript/backend.
+
+Kiểm tra source:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_12_typescript_localization_contract_hygiene.py
+```
+
+Build frontend trong Docker:
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  build --no-cache frontend
+```
+
+Mong đợi: `next build` đi qua TypeScript mà không còn `TS2304`, `TS2339`, `TS1117` nêu trong log V77.0.11. Stable only: `v77.0.12`. Flyway vẫn V72 / 67 public tables.
+
+### V77.0.13 - Khép zero-warning lint cho giao diện tiếng Việt
+
+V77.0.13 xử lý hai lỗi ESLint còn lại sau khi Docker production build V77.0.12 đã compile và type-check thành công: shortcut V57 trên Bảng điều khiển quản trị không còn dùng thẻ `<a>` nội bộ để đi tới `/`, mà chuyển sang `Link` của Next.js; đồng thời import `viLabel` không còn được giữ ở trang lập lịch suất chiếu khi không sử dụng. Nhãn hiển thị V57/V58 và toàn bộ contract TypeScript/API vẫn giữ nguyên.
+
+Kiểm tra source:
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_13_zero_warning_vietnamese_ui_lint.py
+```
+
+Kiểm tra lint:
+
+```powershell
+cd .\frontend
+npm run lint
+$LASTEXITCODE
+```
+
+Mong đợi: `0` lỗi, `0` cảnh báo và exit code `0`. Stable only: `v77.0.13`. Flyway vẫn V72 / 67 public tables.

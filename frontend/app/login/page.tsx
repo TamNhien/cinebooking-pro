@@ -50,7 +50,7 @@ export default function Login() {
       <p className="mt-2 text-sm text-slate-400">Đăng nhập để đặt vé, quản lý vé và thông tin cá nhân.</p>
       {notice && <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">{notice}</div>}
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required />
+        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Thư điện tử" autoComplete="email" required />
         <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Mật khẩu" autoComplete="current-password" required />
         {error && <p className="text-sm text-red-300">{error}</p>}
         <button type="submit" data-testid="login-submit" disabled={loading} className="btn btn-primary w-full">{loading ? "Đang đăng nhập..." : "Đăng nhập"}</button>

@@ -49,7 +49,7 @@ ok("Zero-warning lint gate remains strict", '"lint": "eslint . --max-warnings=0"
 ok("No blanket disable for no-unused-expressions", '"@typescript-eslint/no-unused-expressions": "off"' not in eslint)
 ok("No blanket disable for no-this-alias", '"@typescript-eslint/no-this-alias": "off"' not in eslint)
 ok("No blanket disable for React hooks rules", '"react-hooks/rules-of-hooks": "off"' not in eslint)
-ok("README current release is V77.0.4 or later", re.search(r"Current release:\*\* V77\.0\.[4-9]", readme) is not None)
+ok("README current release is V77.0.4 or later", re.search(r"Current release:\*\* V77\.0\.(?:[4-9]|[1-9][0-9]+)", readme) is not None)
 ok("README documents 3005 generated-report findings", "3005 problems (159 errors, 2846 warnings)" in readme)
 ok("Patch remains no-schema", not any((ROOT / "backend/src/main/resources/db/migration").glob("V77*0*4*.sql")))
 ok("CI runs V77.0.4 verifier", "verify_v77_0_4_zero_warning_artifact_hygiene.py" in ci)

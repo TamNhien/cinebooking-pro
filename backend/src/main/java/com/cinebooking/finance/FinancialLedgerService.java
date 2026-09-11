@@ -44,7 +44,7 @@ public class FinancialLedgerService {
         BigDecimal amount=money(payment.getAmount());
         Instant occurred=payment.getPaidAt()==null?Instant.now():payment.getPaidAt();
         post("PAYMENT_CAPTURE:"+payment.getId(),"PAYMENT_CAPTURED",booking.getId(),payment.getId(),payment.getPayerUserId(),occurred,
-                "Captured "+amount.toPlainString()+" VND via "+payment.getProvider(),amount,
+                "Đã ghi nhận thanh toán "+amount.toPlainString()+" VND qua "+payment.getProvider(),amount,
                 "PAYMENT_CLEARING:"+providerAccount(payment.getProvider()),"CUSTOMER_FUNDS_CAPTURED");
     }
 
@@ -54,7 +54,7 @@ public class FinancialLedgerService {
         BigDecimal amount=money(payment.getRefundedAmount()==null?booking.getRefundAmount():payment.getRefundedAmount());
         Instant occurred=payment.getRefundedAt()==null?Instant.now():payment.getRefundedAt();
         post("REFUND:"+payment.getId(),"REFUND_SETTLED",booking.getId(),payment.getId(),payment.getPayerUserId(),occurred,
-                "Refunded "+amount.toPlainString()+" VND via "+payment.getProvider(),amount,
+                "Đã hoàn tiền "+amount.toPlainString()+" VND qua "+payment.getProvider(),amount,
                 "CUSTOMER_FUNDS_REFUNDED","PAYMENT_CLEARING:"+providerAccount(payment.getProvider()));
     }
 
@@ -113,18 +113,18 @@ public class FinancialLedgerService {
 
         for(Payment p:paid){
             String key="PAYMENT_CAPTURE:"+p.getId(); FinancialLedgerEntry e=byKey.get(key); BigDecimal expected=money(p.getAmount());
-            if(e==null){found.add(issue(run,"PAYMENT_LEDGER_MISSING","CRITICAL","PAYMENT",p.getId().toString(),expected,BigDecimal.ZERO,"Payment SUCCESS/REFUNDED has no immutable capture ledger event"));continue;}
+            if(e==null){found.add(issue(run,"PAYMENT_LEDGER_MISSING","CRITICAL","PAYMENT",p.getId().toString(),expected,BigDecimal.ZERO,"Thanh toán thành công/đã hoàn tiền nhưng thiếu bút toán ghi nhận bất biến"));continue;}
             BigDecimal actual=entryDebit(lineMap.getOrDefault(e.getId(),List.of()));
-            if(actual.compareTo(expected)!=0)found.add(issue(run,"PAYMENT_LEDGER_AMOUNT_MISMATCH","CRITICAL","PAYMENT",p.getId().toString(),expected,actual,"Capture ledger amount differs from payment amount"));
+            if(actual.compareTo(expected)!=0)found.add(issue(run,"PAYMENT_LEDGER_AMOUNT_MISMATCH","CRITICAL","PAYMENT",p.getId().toString(),expected,actual,"Số tiền bút toán ghi nhận khác số tiền thanh toán"));
         }
         for(Payment p:refunded){
             String key="REFUND:"+p.getId(); FinancialLedgerEntry e=byKey.get(key); BigDecimal expected=money(p.getRefundedAmount());
-            if(e==null){found.add(issue(run,"REFUND_LEDGER_MISSING","CRITICAL","PAYMENT",p.getId().toString(),expected,BigDecimal.ZERO,"Refunded payment has no immutable refund ledger event"));continue;}
+            if(e==null){found.add(issue(run,"REFUND_LEDGER_MISSING","CRITICAL","PAYMENT",p.getId().toString(),expected,BigDecimal.ZERO,"Thanh toán đã hoàn tiền nhưng thiếu bút toán hoàn tiền bất biến"));continue;}
             BigDecimal actual=entryDebit(lineMap.getOrDefault(e.getId(),List.of()));
-            if(actual.compareTo(expected)!=0)found.add(issue(run,"REFUND_LEDGER_AMOUNT_MISMATCH","CRITICAL","PAYMENT",p.getId().toString(),expected,actual,"Refund ledger amount differs from refunded amount"));
+            if(actual.compareTo(expected)!=0)found.add(issue(run,"REFUND_LEDGER_AMOUNT_MISMATCH","CRITICAL","PAYMENT",p.getId().toString(),expected,actual,"Số tiền bút toán hoàn tiền khác số tiền đã hoàn"));
         }
-        if(captureLedger.compareTo(paymentAmount)!=0)found.add(issue(run,"CAPTURE_TOTAL_MISMATCH","CRITICAL","DATE",day.toString(),paymentAmount,captureLedger,"Daily captured payment total differs from PAYMENT_CAPTURED ledger total"));
-        if(refundLedger.compareTo(refundAmount)!=0)found.add(issue(run,"REFUND_TOTAL_MISMATCH","CRITICAL","DATE",day.toString(),refundAmount,refundLedger,"Daily refund total differs from REFUND_SETTLED ledger total"));
+        if(captureLedger.compareTo(paymentAmount)!=0)found.add(issue(run,"CAPTURE_TOTAL_MISMATCH","CRITICAL","DATE",day.toString(),paymentAmount,captureLedger,"Tổng thanh toán trong ngày khác tổng bút toán PAYMENT_CAPTURED"));
+        if(refundLedger.compareTo(refundAmount)!=0)found.add(issue(run,"REFUND_TOTAL_MISMATCH","CRITICAL","DATE",day.toString(),refundAmount,refundLedger,"Tổng hoàn tiền trong ngày khác tổng bút toán REFUND_SETTLED"));
 
         int loyaltyChecked=0,loyaltyMismatch=0;
         for(AppUser u:users.findAllByOrderByCreatedAtDesc()){
@@ -132,7 +132,7 @@ public class FinancialLedgerService {
             int actual=u.getLoyaltyPoints()==null?0:u.getLoyaltyPoints();
             long lotBalance=Optional.ofNullable(pointLots.sumRemainingPoints(u.getId())).orElse(0L);
             loyaltyChecked++;
-            if(actual!=lotBalance){loyaltyMismatch++;found.add(issue(run,"LOYALTY_BALANCE_MISMATCH","WARNING","USER",u.getId().toString(),BigDecimal.valueOf(actual),BigDecimal.valueOf(lotBalance),"app_user.loyalty_points differs from remaining loyalty point lots"));}
+            if(actual!=lotBalance){loyaltyMismatch++;found.add(issue(run,"LOYALTY_BALANCE_MISMATCH","WARNING","USER",u.getId().toString(),BigDecimal.valueOf(actual),BigDecimal.valueOf(lotBalance),"Điểm thành viên trên tài khoản khác tổng điểm còn lại trong các lô điểm"));}
         }
 
         issues.saveAll(found);
@@ -185,7 +185,14 @@ public class FinancialLedgerService {
     private FinancialReconciliationIssue issue(FinancialReconciliationRun run,String type,String severity,String entityType,String entityId,BigDecimal expected,BigDecimal actual,String message){
         FinancialReconciliationIssue i=new FinancialReconciliationIssue();i.setRunId(run.getId());i.setIssueType(type);i.setSeverity(severity);i.setEntityType(entityType);i.setEntityId(entityId);i.setExpectedValue(money(expected));i.setActualValue(money(actual));i.setMessage(message);return i;
     }
-    private LedgerEntryView entryView(FinancialLedgerEntry e,List<FinancialLedgerLine> ls){return new LedgerEntryView(e.getId(),e.getEventKey(),e.getEventType(),e.getBookingId(),e.getPaymentId(),e.getUserId(),e.getDescription(),e.getOccurredAt(),ls.stream().map(l->new LedgerLineView(l.getAccountCode(),l.getDirection(),l.getAmount(),l.getCurrency())).toList());}
+    private String localizeLedgerDescription(String description){
+        if(description==null||description.isBlank())return description;
+        if(description.startsWith("Captured ")&&description.contains(" VND via "))return description.replaceFirst("^Captured ","Đã ghi nhận thanh toán ").replace(" VND via "," VND qua ");
+        if(description.startsWith("Refunded ")&&description.contains(" VND via "))return description.replaceFirst("^Refunded ","Đã hoàn tiền ").replace(" VND via "," VND qua ");
+        if(description.matches("^Ghi nhận thanh toán booking [0-9]+$"))return description.replace("Ghi nhận thanh toán booking ","Ghi nhận thanh toán lượt đặt vé ");
+        return description;
+    }
+    private LedgerEntryView entryView(FinancialLedgerEntry e,List<FinancialLedgerLine> ls){return new LedgerEntryView(e.getId(),e.getEventKey(),e.getEventType(),e.getBookingId(),e.getPaymentId(),e.getUserId(),localizeLedgerDescription(e.getDescription()),e.getOccurredAt(),ls.stream().map(l->new LedgerLineView(l.getAccountCode(),l.getDirection(),l.getAmount(),l.getCurrency())).toList());}
     private ReconciliationIssueView issueView(FinancialReconciliationIssue i){return new ReconciliationIssueView(i.getId(),i.getRunId(),i.getIssueType(),i.getSeverity(),i.getEntityType(),i.getEntityId(),i.getExpectedValue(),i.getActualValue(),i.getMessage(),i.getStatus(),i.getCreatedAt(),i.getResolvedAt(),i.getResolvedBy());}
     private ReconciliationRunView runView(FinancialReconciliationRun r){return new ReconciliationRunView(r.getId(),r.getRunKey(),r.getBusinessDate(),r.getStatus(),r.getPaymentCount(),r.getPaymentAmount(),r.getLedgerCaptureAmount(),r.getRefundCount(),r.getRefundAmount(),r.getLedgerRefundAmount(),r.getLoyaltyUsersChecked(),r.getLoyaltyMismatchCount(),r.getIssueCount(),r.getStartedBy(),r.getStartedAt(),r.getFinishedAt());}
 }

@@ -48,8 +48,9 @@ public final class ClientDeviceDetector {
 
     public static String browser(String userAgent, String browserHint, String clientHints) {
         String hint = normalizeHint(browserHint);
-        // A Brave-specific signal must beat a generic Chrome fallback hint.
+        // Browser-specific Chromium signals must beat a generic Chrome fallback hint.
         if ("Brave".equals(hint) || hasClientHintBrand(clientHints, "Brave")) return "Brave";
+        if ("Edge".equals(hint) || hasClientHintBrand(clientHints, "Microsoft Edge") || hasClientHintBrand(clientHints, "Edge")) return "Edge";
         if (hint != null) return hint;
         String u = normalize(userAgent);
         if (u.contains("brave/") || u.endsWith(" brave")) return "Brave";

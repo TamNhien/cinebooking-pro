@@ -95,13 +95,13 @@ export default function PwaManager() {
   return (
     <div className="pwa-manager" role="status" aria-live="polite">
       {!online ? <>
-        <div className="pwa-manager-copy"><b>📴 Đang offline</b><span>V52 vẫn mở được vé đã lưu và không cache API/tài khoản.</span></div>
-        <Link className="pwa-manager-action" href="/offline-tickets">Mở vé offline</Link>
+        <div className="pwa-manager-copy"><b>📴 Đang ngoại tuyến</b><span>V52 vẫn mở được vé đã lưu và không lưu đệm API/tài khoản.</span></div>
+        <Link className="pwa-manager-action" href="/offline-tickets">Mở vé ngoại tuyến</Link>
       </> : updateReady ? <>
         <div className="pwa-manager-copy"><b>✨ Có bản CineBooking mới</b><span>Service Worker V52 sẵn sàng cập nhật.</span></div>
         <button className="pwa-manager-action" type="button" onClick={update}>Cập nhật</button>
       </> : installPrompt ? <>
-        <div className="pwa-manager-copy"><b>📲 Cài CineBooking</b><span>Mở nhanh như ứng dụng, vé offline và Web Push khi được bật.</span></div>
+        <div className="pwa-manager-copy"><b>📲 Cài CineBooking</b><span>Mở nhanh như ứng dụng, vé ngoại tuyến và Web Push khi được bật.</span></div>
         <button className="pwa-manager-action" type="button" onClick={install}>Cài ứng dụng</button>
         <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label="Đóng">×</button>
       </> : showIosHint ? <>

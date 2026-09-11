@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state. */
 "use client";
+import { viLabel } from "@/lib/vi-labels";
 
 import { useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
@@ -57,13 +58,13 @@ export default function NotificationsPage(){
 
   async function toggleBrowser(enabled:boolean){
     if(enabled){
-      if(typeof Notification==="undefined"){setError("Trình duyệt này không hỗ trợ Browser Notification.");return;}
+      if(typeof Notification==="undefined"){setError("Trình duyệt này không hỗ trợ thông báo hệ thống.");return;}
       const permission=await Notification.requestPermission();setBrowserPermission(permission);
       if(permission!=="granted"){setError("Bạn chưa cấp quyền thông báo cho trình duyệt.");await save({...prefs,browserEnabled:false});return;}
       await save({...prefs,browserEnabled:true});
       try{
         const result=await registerCurrentPwaDevice({subscribe:true});
-        setMsg(result.config?.enabled?"Đã bật Background Web Push V52 cho thiết bị này.":"Server chưa cấu hình VAPID; thông báo trình duyệt sẽ dùng foreground fallback khi CineBooking đang mở.");
+        setMsg(result.config?.enabled?"Đã bật thông báo đẩy nền V52 cho thiết bị này.":"Máy chủ chưa cấu hình VAPID; CineBooking sẽ thông báo khi website đang mở.");
       }catch(e){setError((e as Error).message);}
       return;
     }
@@ -77,32 +78,32 @@ export default function NotificationsPage(){
   </label>;
 
   const icon=(n:NotificationItem)=>n.category==="BOOKING"?"🎟":n.category==="REMINDER"?"⏰":n.category==="REFUND"?"↩️":n.category==="STAFF_SHIFT"?"🕒":n.category==="PROMOTION"?"🎁":n.category==="LOYALTY"?"🏆":n.category==="WAITLIST"?"💺":"🔔";
-  const emailBadge=(n:NotificationItem)=>n.emailStatus==="SENT"?"Email ✓":n.emailStatus==="FAILED"?"Email lỗi":n.emailStatus==="DISABLED"?"SMTP tắt":null;
+  const emailBadge=(n:NotificationItem)=>n.emailStatus==="SENT"?"Thư điện tử ✓":n.emailStatus==="FAILED"?"Lỗi thư điện tử":n.emailStatus==="DISABLED"?"SMTP tắt":null;
 
   return <div className="mx-auto max-w-5xl space-y-6">
-    <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="section-kicker">CINEBOOKING · V41</p><h1 className="text-3xl font-bold">Trung tâm thông báo</h1><p className="mt-1 text-slate-400">Inbox có lưu trữ, ưu tiên và nhắc việc tự động cho booking, waitlist, loyalty, refund và ca làm.</p></div><div className="flex flex-wrap gap-2"><button disabled={busy} className="btn btn-secondary" onClick={testNotification}>Gửi thử</button>{view==="ACTIVE"&&<button className="btn btn-secondary" onClick={all}>Đánh dấu tất cả đã đọc</button>}</div></div>
+    <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="section-kicker">CINEBOOKING · V41</p><h1 className="text-3xl font-bold">Trung tâm thông báo</h1><p className="mt-1 text-slate-400">Hộp thư có lưu trữ, ưu tiên và nhắc việc tự động cho đặt vé, danh sách chờ, điểm thân thiết, hoàn tiền và ca làm.</p></div><div className="flex flex-wrap gap-2"><button disabled={busy} className="btn btn-secondary" onClick={testNotification}>Gửi thử</button>{view==="ACTIVE"&&<button className="btn btn-secondary" onClick={all}>Đánh dấu tất cả đã đọc</button>}</div></div>
 
     {(error||msg)&&<div className={`rounded-xl p-4 text-sm ${error?"bg-red-950/50 text-red-300":"bg-emerald-950/40 text-emerald-300"}`}>{error||msg}</div>}
 
     <section className="card p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Kênh nhận thông báo</h2><p className="mt-1 text-sm text-slate-400">Email dùng SMTP hiện tại. V52 ưu tiên Background Web Push bằng VAPID; nếu server chưa cấu hình thì tự fallback về thông báo khi CineBooking đang mở.</p></div><span className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Browser permission: {browserPermission}</span></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Kênh nhận thông báo</h2><p className="mt-1 text-sm text-slate-400">Thư điện tử dùng SMTP hiện tại. V52 ưu tiên thông báo đẩy nền bằng VAPID; nếu máy chủ chưa cấu hình thì tự chuyển sang thông báo khi CineBooking đang mở.</p></div><span className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400">Quyền trình duyệt: {browserPermission}</span></div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {toggle("inAppEnabled","🔔 Trong ứng dụng","Hiển thị tại biểu tượng chuông và trang thông báo.")}
-        {toggle("emailEnabled","✉️ Email","Gửi email theo SMTP đã cấu hình sau khi giao dịch commit thành công.")}
-        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><span><b className="block">📲 Trình duyệt / PWA</b><span className="mt-1 block text-xs leading-5 text-slate-500">Background Web Push V52 khi VAPID sẵn sàng; foreground fallback khi chưa cấu hình.</span></span><input type="checkbox" className="mt-1 h-5 w-5 accent-rose-500" disabled={busy} checked={prefs.browserEnabled} onChange={e=>toggleBrowser(e.target.checked)}/></label>
+        {toggle("emailEnabled","✉️ Thư điện tử","Gửi thư điện tử theo SMTP đã cấu hình sau khi giao dịch được ghi nhận thành công.")}
+        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><span><b className="block">📲 Trình duyệt / PWA</b><span className="mt-1 block text-xs leading-5 text-slate-500">Thông báo đẩy nền V52 khi VAPID sẵn sàng; thông báo khi đang mở là phương án dự phòng khi chưa cấu hình.</span></span><input type="checkbox" className="mt-1 h-5 w-5 accent-rose-500" disabled={busy} checked={prefs.browserEnabled} onChange={e=>toggleBrowser(e.target.checked)}/></label>
       </div>
     </section>
 
     <section className="card p-5">
       <h2 className="text-xl font-bold">Loại thông báo</h2><p className="mt-1 text-sm text-slate-400">Tắt một loại sẽ ngừng tạo thông báo mới của loại đó trên mọi kênh.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {toggle("bookingEnabled","🎟 Booking & thanh toán","Thanh toán thành công, booking bị huỷ hoặc hết hạn.")}
+        {toggle("bookingEnabled","🎟 Đặt vé & thanh toán","Thanh toán thành công, lượt đặt vé bị hủy hoặc hết hạn.")}
         {toggle("reminderEnabled","⏰ Nhắc giờ chiếu","Nhắc trước 3 giờ và nhắc cuối trước 30 phút, có dedupe giữa các backend.")}
-        {toggle("waitlistEnabled","💺 Waitlist","Ghế vừa trống hoặc quyền ưu tiên mua lại suất đã hết chỗ.")}
-        {toggle("loyaltyEnabled","🏆 Loyalty & thành viên","Điểm sắp hết hạn, quà sinh nhật và trạng thái phần thưởng.")}
+        {toggle("waitlistEnabled","💺 Danh sách chờ","Ghế vừa trống hoặc quyền ưu tiên mua lại suất đã hết chỗ.")}
+        {toggle("loyaltyEnabled","🏆 Điểm & thành viên","Điểm sắp hết hạn, quà sinh nhật và trạng thái phần thưởng.")}
         {toggle("refundEnabled","↩️ Hoàn vé","Tiếp nhận, duyệt hoặc từ chối yêu cầu hoàn vé.")}
         {toggle("staffShiftEnabled","🕒 Ca làm nhân viên","Thông báo khi được xếp/sửa/huỷ ca và nhắc trước ca.")}
-        {toggle("promotionEnabled","🎁 Ưu đãi","Voucher và chiến dịch khuyến mãi.")}
+        {toggle("promotionEnabled","🎁 Ưu đãi","Mã ưu đãi và chiến dịch khuyến mãi.")}
       </div>
     </section>
 
@@ -111,9 +112,9 @@ export default function NotificationsPage(){
         <div className="flex gap-2"><button data-testid="notifications-active-tab" onClick={()=>switchView("ACTIVE")} className={`rounded-full border px-4 py-2 text-sm font-semibold ${view==="ACTIVE"?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>Hộp thư</button><button data-testid="notifications-archived-tab" onClick={()=>switchView("ARCHIVED")} className={`rounded-full border px-4 py-2 text-sm font-semibold ${view==="ARCHIVED"?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>Đã lưu trữ</button></div>
         <span className="text-xs text-slate-500">{visible.length} thông báo</span>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">{([['ALL','Tất cả'],['UNREAD','Chưa đọc'],['BOOKING','Booking'],['REMINDER','Nhắc phim'],['WAITLIST','Waitlist'],['LOYALTY','Loyalty'],['REFUND','Hoàn vé'],['STAFF_SHIFT','Ca làm'],['PROMOTION','Ưu đãi']] as [Filter,string][]).map(([k,l])=><button key={k} onClick={()=>setFilter(k)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${filter===k?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>{l}</button>)}</div>
+      <div className="mt-3 flex flex-wrap gap-2">{([['ALL','Tất cả'],['UNREAD','Chưa đọc'],['BOOKING','Đặt vé'],['REMINDER','Nhắc phim'],['WAITLIST','Danh sách chờ'],['LOYALTY','Thành viên'],['REFUND','Hoàn vé'],['STAFF_SHIFT','Ca làm'],['PROMOTION','Ưu đãi']] as [Filter,string][]).map(([k,l])=><button key={k} onClick={()=>setFilter(k)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${filter===k?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>{l}</button>)}</div>
       <div className="mt-4 space-y-3">{visible.map(n=><article key={n.id} data-testid="notification-card" className={`card p-5 transition ${!n.read&&!n.archived?"border-rose-500/40 bg-slate-900/90":"opacity-85"}`}>
-        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b>{n.title}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p className="mt-1 text-sm leading-6 text-slate-400">{n.message}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{n.category}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
+        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b>{n.title}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p className="mt-1 text-sm leading-6 text-slate-400">{n.message}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{viLabel(n.category)}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
         <div className="mt-3 flex justify-end"><button data-testid="notification-archive-toggle" type="button" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white" onClick={()=>archive(n)}>{n.archived?"Khôi phục":"Lưu trữ"}</button></div>
       </article>)}{!visible.length&&!error&&<div className="card p-8 text-center text-slate-400">Không có thông báo phù hợp bộ lọc.</div>}</div>
     </section>

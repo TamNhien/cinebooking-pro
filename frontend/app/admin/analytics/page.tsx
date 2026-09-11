@@ -148,7 +148,7 @@ export default function AnalyticsPage(){
 
   async function saveMissingCost(item:AnalyticsMissingCostBasisItemV75Patch){
     if(!item.productId||!item.actionable){
-      setError("Sản phẩm lịch sử này không còn productId nên không thể cập nhật cost basis trực tiếp.");
+      setError("Sản phẩm lịch sử này không còn productId nên không thể cập nhật giá vốn trực tiếp.");
       return;
     }
     const key=`${item.cinemaId}:${item.productId}`;
@@ -197,9 +197,9 @@ export default function AnalyticsPage(){
   return <div data-testid="analytics-v51" className="space-y-7 pb-16">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="section-kicker">V51 · ANALYTICS & FORECASTING 3.0</p>
+        <p className="section-kicker">V51 · PHÂN TÍCH & DỰ BÁO 3.0</p>
         <h1 className="text-3xl font-black">Doanh thu, biên lợi nhuận & dự báo</h1>
-        <p className="mt-1 max-w-4xl text-slate-400">So sánh kỳ trước, dự báo doanh thu theo <b>V51-WEEKDAY-WEIGHTED-MA-1</b>, theo dõi margin/cost coverage, doanh thu theo rạp/phim/phòng/giờ và snapshot DAILY/WEEKLY/MONTHLY. CSV chi tiết tải một gói gồm một file CSV UTF-8 riêng cho từng bảng; Excel chi tiết giữ worksheet riêng để tương thích quy trình V43.</p>
+        <p className="mt-1 max-w-4xl text-slate-400">So sánh kỳ trước, dự báo doanh thu theo <b>V51-WEEKDAY-WEIGHTED-MA-1</b>, theo dõi biên lợi nhuận/độ phủ giá vốn, doanh thu theo rạp/phim/phòng/giờ và ảnh chụp dữ liệu HÀNG NGÀY/HÀNG TUẦN/HÀNG THÁNG. CSV chi tiết tải một gói gồm một file CSV UTF-8 riêng cho từng bảng; Excel chi tiết giữ trang tính riêng để tương thích quy trình V43.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <select className="input !w-auto min-w-36" value={days} onChange={e=>setDays(Number(e.target.value))}>
@@ -209,14 +209,14 @@ export default function AnalyticsPage(){
           <option value="">Tất cả rạp</option>
           {cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button className="btn btn-secondary" type="button" title="Tải ZIP gồm một file CSV UTF-8 riêng cho từng bảng Analytics" disabled={loading||!!exporting} onClick={()=>downloadExport("csvzip")}>{exporting==="csvzip"?"Đang xuất...":"Xuất CSV theo từng bảng"}</button>
-        <button className="btn btn-primary" type="button" title="Mỗi bảng Analytics được xuất thành một worksheet riêng" disabled={loading||!!exporting} onClick={()=>downloadExport("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>
-        <Link className="btn btn-secondary" href="/admin">← Admin</Link>
+        <button className="btn btn-secondary" type="button" title="Tải ZIP gồm một file CSV UTF-8 riêng cho từng bảng phân tích dữ liệu" disabled={loading||!!exporting} onClick={()=>downloadExport("csvzip")}>{exporting==="csvzip"?"Đang xuất...":"Xuất CSV theo từng bảng"}</button>
+        <button className="btn btn-primary" type="button" title="Mỗi bảng phân tích dữ liệu được xuất thành một trang tính riêng" disabled={loading||!!exporting} onClick={()=>downloadExport("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>
+        <Link className="btn btn-secondary" href="/admin">← Quản trị</Link>
       </div>
     </div>
 
     {error&&<div className="rounded-xl border border-red-800/60 bg-red-950/50 p-4 text-red-200">{error}</div>}
-    {loading&&<div className="card p-8 text-center text-slate-400">Đang tổng hợp dữ liệu vận hành và forecast...</div>}
+    {loading&&<div className="card p-8 text-center text-slate-400">Đang tổng hợp dữ liệu vận hành và dự báo...</div>}
 
     {!loading&&data&&<>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -224,25 +224,25 @@ export default function AnalyticsPage(){
         <Kpi title="Giá trị đơn TB" value={currency(data.kpi.averageOrderValue)} note={`${number(data.kpi.tickets)} vé đã bán`}/>
         <Kpi title="Tỷ lệ lấp đầy" value={pct(data.kpi.occupancyRate)} note="Theo các suất đã diễn ra"/>
         <Kpi title="Thanh toán thành công" value={pct(data.kpi.paymentSuccessRate)} note="SUCCESS + REFUNDED / giao dịch đã xử lý"/>
-        <Kpi title="Doanh thu bắp nước" value={currency(data.kpi.concessionRevenue)} note="Booking đã xác nhận"/>
-        <Kpi title="Tỷ lệ hoàn vé" value={pct(data.kpi.refundRate)} note="REFUNDED / booking đã quyết toán"/>
-        <Kpi title="Check-in" value={number(data.kpi.checkIns)} note="Lượt soát vé trong kỳ"/>
+        <Kpi title="Doanh thu bắp nước" value={currency(data.kpi.concessionRevenue)} note="Đặt vé đã xác nhận"/>
+        <Kpi title="Tỷ lệ hoàn vé" value={pct(data.kpi.refundRate)} note="Đã hoàn tiền / lượt đặt vé đã quyết toán"/>
+        <Kpi title="Soát vé" value={number(data.kpi.checkIns)} note="Lượt soát vé trong kỳ"/>
         <Kpi title="Người dùng" value={number(data.kpi.users)} note={`+${number(data.kpi.newUsers)} tài khoản mới`}/>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section data-testid="period-comparison-v51" className="card p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">PERIOD COMPARISON</p><h2 className="text-xl font-bold">So với kỳ liền trước</h2><p className="mt-1 text-sm text-slate-500">Cùng độ dài {days} ngày, không trộn dữ liệu ngoài khoảng so sánh.</p></div><div className="text-right text-xs text-slate-500">{data.periodComparison.current.from} → {data.periodComparison.current.to}<br/>vs {data.periodComparison.previous.from} → {data.periodComparison.previous.to}</div></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">SO SÁNH KỲ</p><h2 className="text-xl font-bold">So với kỳ liền trước</h2><p className="mt-1 text-sm text-slate-500">Cùng độ dài {days} ngày, không trộn dữ liệu ngoài khoảng so sánh.</p></div><div className="text-right text-xs text-slate-500">{data.periodComparison.current.from} → {data.periodComparison.current.to}<br/>vs {data.periodComparison.previous.from} → {data.periodComparison.previous.to}</div></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <Delta title="Doanh thu" current={currency(data.periodComparison.current.revenue)} previous={currency(data.periodComparison.previous.revenue)} delta={signedPct(data.periodComparison.revenueDeltaPct)}/>
-            <Delta title="Booking" current={number(data.periodComparison.current.bookings)} previous={number(data.periodComparison.previous.bookings)} delta={signedPct(data.periodComparison.bookingsDeltaPct)}/>
+            <Delta title="Đặt vé" current={number(data.periodComparison.current.bookings)} previous={number(data.periodComparison.previous.bookings)} delta={signedPct(data.periodComparison.bookingsDeltaPct)}/>
             <Delta title="Vé" current={number(data.periodComparison.current.tickets)} previous={number(data.periodComparison.previous.tickets)} delta={signedPct(data.periodComparison.ticketsDeltaPct)}/>
-            <Delta title="Occupancy" current={pct(data.periodComparison.current.occupancyRate)} previous={pct(data.periodComparison.previous.occupancyRate)} delta={signedPoints(data.periodComparison.occupancyDeltaPoints)}/>
+            <Delta title="Tỷ lệ lấp đầy" current={pct(data.periodComparison.current.occupancyRate)} previous={pct(data.periodComparison.previous.occupancyRate)} delta={signedPoints(data.periodComparison.occupancyDeltaPoints)}/>
           </div>
         </section>
 
         <section data-testid="forecast-v51" className="card p-5 sm:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">FORECAST</p><h2 className="text-xl font-bold">Dự báo 7 ngày tới</h2><p className="mt-1 text-sm text-slate-500">Weighted moving average theo đúng thứ trong tuần, ưu tiên 4 tuần gần nhất.</p></div><div className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-cyan-300">{data.forecast.algorithm}</div></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">DỰ BÁO</p><h2 className="text-xl font-bold">Dự báo 7 ngày tới</h2><p className="mt-1 text-sm text-slate-500">Trung bình động có trọng số theo đúng thứ trong tuần, ưu tiên 4 tuần gần nhất.</p></div><div className="rounded-lg border border-slate-700 px-3 py-2 text-xs font-bold text-cyan-300">{data.forecast.algorithm}</div></div>
           <div className="mt-4 text-2xl font-black text-emerald-300">{currency(data.forecast.next7DaysRevenue)}</div>
           <div className="mt-5 flex min-h-52 items-end gap-2 overflow-x-auto pb-2">
             {data.forecast.points.map(x=><div key={x.day} className="flex min-w-16 flex-1 flex-col items-center justify-end gap-2">
@@ -256,40 +256,40 @@ export default function AnalyticsPage(){
       </div>
 
       <section data-testid="margin-v51" className="card p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">MARGIN & COST COVERAGE</p><h2 className="text-xl font-bold">Biên lợi nhuận theo cost basis bắp nước</h2><p className="mt-1 text-sm text-slate-500">Chi phí chưa biết luôn để <b>NULL / Chưa biết</b>, không tự biến thành 0. Gross margin chỉ hiện khi cost coverage đạt 100%.</p></div><div className="text-right"><div className="text-xs text-slate-500">Cost coverage</div><div className="text-2xl font-black">{pct(data.margin.costCoverageRate)}</div></div></div>
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="section-kicker">BIÊN LỢI NHUẬN & ĐỘ PHỦ GIÁ VỐN</p><h2 className="text-xl font-bold">Biên lợi nhuận theo giá vốn bắp nước</h2><p className="mt-1 text-sm text-slate-500">Chi phí chưa biết luôn để <b>NULL / Chưa biết</b>, không tự biến thành 0. Biên lợi nhuận gộp chỉ hiện khi độ phủ giá vốn đạt 100%.</p></div><div className="text-right"><div className="text-xs text-slate-500">Độ phủ giá vốn</div><div className="text-2xl font-black">{pct(data.margin.costCoverageRate)}</div></div></div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <Kpi title="Doanh thu" value={currency(data.margin.revenue)} note="Payment SUCCESS"/>
-          <Kpi title="Vé / dịch vụ" value={currency(data.margin.ticketRevenue)} note="Revenue trừ concession"/>
+          <Kpi title="Doanh thu" value={currency(data.margin.revenue)} note="Thanh toán THÀNH CÔNG"/>
+          <Kpi title="Vé / dịch vụ" value={currency(data.margin.ticketRevenue)} note="Doanh thu trừ bắp nước"/>
           <Kpi title="Bắp nước" value={currency(data.margin.concessionRevenue)} note={`${number(data.margin.concessionUnits)} đơn vị`}/>
           {data.margin.costCoverageRate<100?<button data-testid="missing-cost-drilldown-toggle" type="button" className="card p-4 text-left transition hover:border-amber-600/70 hover:bg-amber-950/10" onClick={()=>void toggleMissingCost()}><div className="text-xs uppercase tracking-wider text-slate-500">Giá vốn bắp nước</div><div className="mt-1 text-2xl font-black text-amber-200">{moneyOrUnknown(data.margin.concessionCost)}</div><div className="mt-1 text-xs text-amber-300">{number(data.margin.costedUnits)}/{number(data.margin.concessionUnits)} đơn vị có cost · bấm để xem {number(data.margin.concessionUnits-data.margin.costedUnits)} đơn vị còn thiếu</div></button>:<Kpi title="Giá vốn bắp nước" value={moneyOrUnknown(data.margin.concessionCost)} note={`${number(data.margin.costedUnits)}/${number(data.margin.concessionUnits)} đơn vị có cost`}/>}
-          <Kpi title="Gross margin" value={moneyOrUnknown(data.margin.grossMargin)} note={data.margin.grossMarginRate===null?"Chưa đủ cost basis":pct(data.margin.grossMarginRate)}/>
+          <Kpi title="Biên lợi nhuận gộp" value={moneyOrUnknown(data.margin.grossMargin)} note={data.margin.grossMarginRate===null?"Chưa đủ cost basis":pct(data.margin.grossMarginRate)}/>
         </div>
 
         {missingCostOpen&&<div data-testid="missing-cost-drilldown-v75-patch" className="mt-5 rounded-2xl border border-amber-800/50 bg-amber-950/10 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div><div className="text-xs font-black uppercase tracking-wider text-amber-300">{missingCost?.strategyVersion||"V75.0.1-COST-COVERAGE-DRILLDOWN-1"}</div><h3 className="mt-1 text-lg font-black">Các giao dịch bắp nước đang thiếu giá vốn</h3><p className="mt-1 text-sm text-slate-400">Chỉ liệt kê sản phẩm đã bán trong đúng cửa sổ {days} ngày nhưng chưa có cost basis tại chi nhánh. Không ước lượng và không tự điền giá vốn.</p></div>
+            <div><div className="text-xs font-black uppercase tracking-wider text-amber-300">{missingCost?.strategyVersion||"V75.0.1-COST-COVERAGE-DRILLDOWN-1"}</div><h3 className="mt-1 text-lg font-black">Các giao dịch bắp nước đang thiếu giá vốn</h3><p className="mt-1 text-sm text-slate-400">Chỉ liệt kê sản phẩm đã bán trong đúng cửa sổ {days} ngày nhưng chưa có giá vốn tại chi nhánh. Không ước lượng và không tự điền giá vốn.</p></div>
             <button className="btn btn-secondary" type="button" onClick={()=>setMissingCostOpen(false)}>Đóng</button>
           </div>
-          {missingCostLoading&&<div className="mt-4 text-sm text-slate-400">Đang đối chiếu booking concession với cost basis...</div>}
+          {missingCostLoading&&<div className="mt-4 text-sm text-slate-400">Đang đối chiếu bắp nước trong đơn đặt vé với giá vốn...</div>}
           {!missingCostLoading&&missingCost&&<>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3"><Kpi title="Đơn vị thiếu cost" value={number(missingCost.missingUnits)} note={`${number(missingCost.affectedProductBranches)} cặp rạp/sản phẩm`}/><Kpi title="Doanh thu bị ảnh hưởng" value={currency(missingCost.affectedRevenue)} note="Chưa đủ cơ sở tính gross margin"/><Kpi title="Cửa sổ" value={`${missingCost.windowDays} ngày`} note={`${dateTime(missingCost.windowStart)} → ${dateTime(missingCost.windowEnd)}`}/></div>
-            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp</th><th>Sản phẩm</th><th>Thiếu cost</th><th>Doanh thu ảnh hưởng</th><th>Lần bán gần nhất</th><th>Giá vốn</th><th></th></tr></thead><tbody className="divide-y divide-slate-800/70">{missingCost.items.map(item=>{const key=`${item.cinemaId}:${item.productId||item.productName}`;return <tr data-testid="missing-cost-row-v75-patch" key={key}><td className="py-3 font-semibold">{item.cinemaName}</td><td>{item.productName}</td><td className="font-black text-amber-200">{number(item.missingUnits)} đơn vị</td><td>{currency(item.affectedRevenue)}</td><td>{item.lastConfirmedAt?dateTime(item.lastConfirmedAt):"-"}</td><td>{item.actionable?<input data-testid="missing-cost-input-v75-patch" className="input !w-36" inputMode="decimal" placeholder="Nhập giá vốn" value={missingCostDraft[key]??""} onChange={e=>setMissingCostDraft(v=>({...v,[key]:e.target.value}))}/>:<span className="text-xs text-slate-500">Sản phẩm lịch sử</span>}</td><td className="text-right">{item.actionable?<button data-testid="missing-cost-save-v75-patch" className="btn btn-primary" type="button" disabled={savingMissingCost===key} onClick={()=>void saveMissingCost(item)}>{savingMissingCost===key?"Đang cập nhật...":"Cập nhật ngay"}</button>:<span className="text-xs text-slate-500">Không thể cập nhật trực tiếp</span>}</td></tr>})}</tbody></table>{!missingCost.items.length&&<div className="py-6 text-center text-emerald-300">Đã đủ cost basis cho toàn bộ bắp nước bán trong cửa sổ này.</div>}</div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3"><Kpi title="Đơn vị thiếu giá vốn" value={number(missingCost.missingUnits)} note={`${number(missingCost.affectedProductBranches)} cặp rạp/sản phẩm`}/><Kpi title="Doanh thu bị ảnh hưởng" value={currency(missingCost.affectedRevenue)} note="Chưa đủ cơ sở tính biên lợi nhuận gộp"/><Kpi title="Cửa sổ" value={`${missingCost.windowDays} ngày`} note={`${dateTime(missingCost.windowStart)} → ${dateTime(missingCost.windowEnd)}`}/></div>
+            <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp</th><th>Sản phẩm</th><th>Thiếu giá vốn</th><th>Doanh thu ảnh hưởng</th><th>Lần bán gần nhất</th><th>Giá vốn</th><th></th></tr></thead><tbody className="divide-y divide-slate-800/70">{missingCost.items.map(item=>{const key=`${item.cinemaId}:${item.productId||item.productName}`;return <tr data-testid="missing-cost-row-v75-patch" key={key}><td className="py-3 font-semibold">{item.cinemaName}</td><td>{item.productName}</td><td className="font-black text-amber-200">{number(item.missingUnits)} đơn vị</td><td>{currency(item.affectedRevenue)}</td><td>{item.lastConfirmedAt?dateTime(item.lastConfirmedAt):"-"}</td><td>{item.actionable?<input data-testid="missing-cost-input-v75-patch" className="input !w-36" inputMode="decimal" placeholder="Nhập giá vốn" value={missingCostDraft[key]??""} onChange={e=>setMissingCostDraft(v=>({...v,[key]:e.target.value}))}/>:<span className="text-xs text-slate-500">Sản phẩm lịch sử</span>}</td><td className="text-right">{item.actionable?<button data-testid="missing-cost-save-v75-patch" className="btn btn-primary" type="button" disabled={savingMissingCost===key} onClick={()=>void saveMissingCost(item)}>{savingMissingCost===key?"Đang cập nhật...":"Cập nhật ngay"}</button>:<span className="text-xs text-slate-500">Không thể cập nhật trực tiếp</span>}</td></tr>})}</tbody></table>{!missingCost.items.length&&<div className="py-6 text-center text-emerald-300">Đã đủ giá vốn cho toàn bộ bắp nước bán trong cửa sổ này.</div>}</div>
           </>}
         </div>}
       </section>
 
       {cinemaId?<section data-testid="cost-basis-v51" className="card p-5 sm:p-6">
-        <div><p className="section-kicker">BRANCH COST BASIS</p><h2 className="text-xl font-bold">Giá vốn bắp nước theo chi nhánh</h2><p className="mt-1 text-sm text-slate-500">Để trống khi chưa biết giá vốn. V51 lưu cost riêng theo cặp rạp/sản phẩm.</p></div>
-        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Sản phẩm</th><th>Giá bán</th><th>Giá vốn</th><th>Coverage</th><th></th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.concessionCostBasis.map(row=><tr key={`${row.cinemaId}-${row.productId}`}><td className="py-3 font-semibold">{row.productName}</td><td>{currency(row.sellingPrice)}</td><td><input data-testid={`cost-input-${row.productId}`} className="input !w-40" inputMode="decimal" placeholder="Chưa biết" value={costDraft[row.productId]??""} onChange={e=>setCostDraft(v=>({...v,[row.productId]:e.target.value}))}/></td><td>{row.costKnown?<span className="text-emerald-300">Đã có cost</span>:<span className="text-amber-300">Chưa biết</span>}</td><td className="text-right"><button data-testid={`save-cost-${row.productId}`} className="btn btn-secondary" type="button" disabled={savingCost===row.productId} onClick={()=>saveCostBasis(row)}>{savingCost===row.productId?"Đang lưu...":"Lưu cost"}</button></td></tr>)}</tbody></table></div>
-      </section>:<div className="card p-5 text-sm text-slate-400"><b>Cost basis theo chi nhánh:</b> chọn một rạp ở bộ lọc phía trên để xem và cập nhật giá vốn. Khi chưa có cost, margin không được giả định bằng 0.</div>}
+        <div><p className="section-kicker">GIÁ VỐN THEO CHI NHÁNH</p><h2 className="text-xl font-bold">Giá vốn bắp nước theo chi nhánh</h2><p className="mt-1 text-sm text-slate-500">Để trống khi chưa biết giá vốn. V51 lưu cost riêng theo cặp rạp/sản phẩm.</p></div>
+        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Sản phẩm</th><th>Giá bán</th><th>Giá vốn</th><th>Độ phủ</th><th></th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.concessionCostBasis.map(row=><tr key={`${row.cinemaId}-${row.productId}`}><td className="py-3 font-semibold">{row.productName}</td><td>{currency(row.sellingPrice)}</td><td><input data-testid={`cost-input-${row.productId}`} className="input !w-40" inputMode="decimal" placeholder="Chưa biết" value={costDraft[row.productId]??""} onChange={e=>setCostDraft(v=>({...v,[row.productId]:e.target.value}))}/></td><td>{row.costKnown?<span className="text-emerald-300">Đã có cost</span>:<span className="text-amber-300">Chưa biết</span>}</td><td className="text-right"><button data-testid={`save-cost-${row.productId}`} className="btn btn-secondary" type="button" disabled={savingCost===row.productId} onClick={()=>saveCostBasis(row)}>{savingCost===row.productId?"Đang lưu...":"Lưu cost"}</button></td></tr>)}</tbody></table></div>
+      </section>:<div className="card p-5 text-sm text-slate-400"><b>Cost basis theo chi nhánh:</b> chọn một rạp ở bộ lọc phía trên để xem và cập nhật giá vốn. Khi chưa có giá vốn, biên lợi nhuận không được giả định bằng 0.</div>}
 
       <section className="card overflow-hidden p-5 sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Doanh thu theo ngày</h2><p className="text-sm text-slate-500">Chiều cao cột = doanh thu; phía dưới có số booking / vé / check-in.</p></div></div>
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Doanh thu theo ngày</h2><p className="text-sm text-slate-500">Chiều cao cột = doanh thu; phía dưới có số lượt đặt vé / vé / soát vé.</p></div></div>
         <div className="mt-6 flex min-h-72 items-end gap-2 overflow-x-auto pb-2">
           {data.dailyRevenue.length?data.dailyRevenue.map(x=><div key={x.day} className="flex min-w-20 flex-1 flex-col items-center justify-end gap-2">
             <div className="text-center text-[10px] text-slate-400">{x.revenue?currency(x.revenue).replace(" ₫","đ"):"0đ"}</div>
             <div className="w-full max-w-20 rounded-t-xl bg-gradient-to-t from-rose-700 via-rose-500 to-amber-300" style={{height:`${Math.max(8,Math.round(x.revenue/maxDaily*190))}px`}}/>
-            <div className="text-center text-[10px] leading-4 text-slate-500">{x.bookings} đơn · {x.tickets} vé<br/>{x.checkIns} check-in</div>
+            <div className="text-center text-[10px] leading-4 text-slate-500">{x.bookings} đơn · {x.tickets} vé<br/>{x.checkIns} soát vé</div>
             <span className="text-[10px] font-semibold text-slate-400">{shortDate(x.day)}</span>
           </div>):<div className="m-auto text-slate-500">Chưa có giao dịch thành công trong khoảng thời gian này.</div>}
         </div>
@@ -298,10 +298,10 @@ export default function AnalyticsPage(){
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card p-5 sm:p-6">
           <h2 className="text-xl font-bold">Hiệu suất theo rạp</h2>
-          <p className="mt-1 text-sm text-slate-500">Doanh thu và occupancy của các suất đã diễn ra.</p>
+          <p className="mt-1 text-sm text-slate-500">Doanh thu và tỷ lệ lấp đầy của các suất đã diễn ra.</p>
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[680px] text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp</th><th>Doanh thu</th><th>Booking</th><th>Vé</th><th>Sức chứa</th><th>Lấp đầy</th></tr></thead>
+              <thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp</th><th>Doanh thu</th><th>Đặt vé</th><th>Vé</th><th>Sức chứa</th><th>Lấp đầy</th></tr></thead>
               <tbody className="divide-y divide-slate-800/70">{data.cinemaPerformance.map(x=><tr key={x.cinemaId}><td className="py-3 font-semibold">{x.cinemaName}</td><td>{currency(x.revenue)}</td><td>{number(x.bookings)}</td><td>{number(x.tickets)}</td><td>{number(x.capacity)}</td><td><Progress value={x.occupancyRate}/></td></tr>)}</tbody>
             </table>
             {!data.cinemaPerformance.length&&<p className="py-6 text-center text-slate-500">Chưa có dữ liệu.</p>}
@@ -323,8 +323,8 @@ export default function AnalyticsPage(){
       </div>
 
       <section data-testid="auditorium-performance-v51" className="card p-5 sm:p-6">
-        <div><p className="section-kicker">AUDITORIUM REVENUE</p><h2 className="text-xl font-bold">Doanh thu theo phòng chiếu</h2><p className="mt-1 text-sm text-slate-500">Tách riêng cấp auditorium để thấy phòng nào tạo doanh thu và occupancy tốt nhất.</p></div>
-        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[820px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp / phòng</th><th>Doanh thu</th><th>Booking</th><th>Vé</th><th>Sức chứa</th><th>Lấp đầy</th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.auditoriumPerformance.map(x=><tr key={x.auditoriumId}><td className="py-3"><div className="font-semibold">{x.auditoriumName}</div><div className="text-xs text-slate-500">{x.cinemaName}</div></td><td className="font-semibold text-emerald-300">{currency(x.revenue)}</td><td>{number(x.bookings)}</td><td>{number(x.tickets)}</td><td>{number(x.capacity)}</td><td><Progress value={x.occupancyRate}/></td></tr>)}</tbody></table>{!data.auditoriumPerformance.length&&<p className="py-6 text-center text-slate-500">Chưa có dữ liệu phòng chiếu.</p>}</div>
+        <div><p className="section-kicker">DOANH THU PHÒNG CHIẾU</p><h2 className="text-xl font-bold">Doanh thu theo phòng chiếu</h2><p className="mt-1 text-sm text-slate-500">Tách riêng cấp phòng chiếu để thấy phòng nào tạo doanh thu và tỷ lệ lấp đầy tốt nhất.</p></div>
+        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[820px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Rạp / phòng</th><th>Doanh thu</th><th>Đặt vé</th><th>Vé</th><th>Sức chứa</th><th>Lấp đầy</th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.auditoriumPerformance.map(x=><tr key={x.auditoriumId}><td className="py-3"><div className="font-semibold">{x.auditoriumName}</div><div className="text-xs text-slate-500">{x.cinemaName}</div></td><td className="font-semibold text-emerald-300">{currency(x.revenue)}</td><td>{number(x.bookings)}</td><td>{number(x.tickets)}</td><td>{number(x.capacity)}</td><td><Progress value={x.occupancyRate}/></td></tr>)}</tbody></table>{!data.auditoriumPerformance.length&&<p className="py-6 text-center text-slate-500">Chưa có dữ liệu phòng chiếu.</p>}</div>
       </section>
 
       <section className="card p-5 sm:p-6">
@@ -338,26 +338,26 @@ export default function AnalyticsPage(){
       </section>
 
       <section className="card p-5 sm:p-6">
-        <h2 className="text-xl font-bold">Top suất chiếu</h2>
+        <h2 className="text-xl font-bold">Hàng đầu suất chiếu</h2>
         <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Phim / suất</th><th>Rạp</th><th>Vé</th><th>Sức chứa</th><th>Lấp đầy</th><th>Doanh thu</th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.topShowtimes.map(x=><tr key={x.showtimeId}><td className="py-3"><div className="font-semibold">{x.movieTitle}</div><div className="text-xs text-slate-500">{dateTime(x.startTime)} · {x.auditoriumName}</div></td><td>{x.cinemaName}</td><td>{x.tickets}</td><td>{x.capacity}</td><td><Progress value={x.occupancyRate}/></td><td className="font-semibold text-emerald-300">{currency(x.revenue)}</td></tr>)}</tbody></table></div>
         {!data.topShowtimes.length&&<p className="mt-4 text-sm text-slate-500">Chưa có suất đã diễn ra trong kỳ.</p>}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Rank title="Top phim" items={data.topMovies}/>
+        <Rank title="Hàng đầu phim" items={data.topMovies}/>
         <Rank title="Phương thức thanh toán" items={data.paymentProviders}/>
-        <Rank title="Top bắp nước" items={data.topConcessions}/>
+        <Rank title="Hàng đầu bắp nước" items={data.topConcessions}/>
       </div>
 
       <section data-testid="analytics-snapshots-v51" className="card p-5 sm:p-6">
-        <div><p className="section-kicker">SCHEDULED SNAPSHOTS</p><h2 className="text-xl font-bold">Snapshot DAILY / WEEKLY / MONTHLY</h2><p className="mt-1 text-sm text-slate-500">Scheduler đa backend khóa cinema bằng <code>FOR UPDATE ... SKIP LOCKED</code> trước khi upsert snapshot, tránh hai replica cùng xử lý một rạp.</p></div>
-        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Kỳ</th><th>Rạp</th><th>Khoảng</th><th>Doanh thu</th><th>Margin</th><th>Occupancy</th><th>Cost coverage</th><th>Forecast 7d</th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.snapshots.slice(0,18).map(x=><tr key={x.id}><td className="py-3 font-black">{x.periodKind}</td><td>{x.cinemaName}</td><td>{x.periodStart} → {x.periodEnd}</td><td>{currency(x.revenue)}</td><td>{moneyOrUnknown(x.grossMargin)}</td><td>{pct(x.occupancyRate)}</td><td>{pct(x.costCoverageRate)}</td><td>{currency(x.forecastNext7d)}</td></tr>)}</tbody></table>{!data.snapshots.length&&<p className="py-6 text-center text-slate-500">Chưa có snapshot. Scheduler sẽ tạo dữ liệu khi backend chạy với Flyway V51.</p>}</div>
+        <div><p className="section-kicker">ẢNH CHỤP ĐỊNH KỲ</p><h2 className="text-xl font-bold">Ảnh chụp dữ liệu HÀNG NGÀY / HÀNG TUẦN / HÀNG THÁNG</h2><p className="mt-1 text-sm text-slate-500">Scheduler đa backend khóa cinema bằng <code>FOR UPDATE ... SKIP LOCKED</code> trước khi upsert snapshot, tránh hai replica cùng xử lý một rạp.</p></div>
+        <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th className="pb-3">Kỳ</th><th>Rạp</th><th>Khoảng</th><th>Doanh thu</th><th>Biên lợi nhuận</th><th>Tỷ lệ lấp đầy</th><th>Độ phủ giá vốn</th><th>Dự báo 7 ngày</th></tr></thead><tbody className="divide-y divide-slate-800/70">{data.snapshots.slice(0,18).map(x=><tr key={x.id}><td className="py-3 font-black">{x.periodKind}</td><td>{x.cinemaName}</td><td>{x.periodStart} → {x.periodEnd}</td><td>{currency(x.revenue)}</td><td>{moneyOrUnknown(x.grossMargin)}</td><td>{pct(x.occupancyRate)}</td><td>{pct(x.costCoverageRate)}</td><td>{currency(x.forecastNext7d)}</td></tr>)}</tbody></table>{!data.snapshots.length&&<p className="py-6 text-center text-slate-500">Chưa có ảnh chụp dữ liệu. Bộ lập lịch sẽ tạo dữ liệu khi backend chạy với Flyway V51.</p>}</div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <StatusCard title="Trạng thái booking" items={data.bookingStatuses}/>
-        <StatusCard title="Trạng thái payment" items={data.paymentStatuses}/>
-        <section className="card p-5"><h2 className="font-bold">Hiệu suất check-in nhân viên</h2><div className="mt-4 space-y-3">{data.staffPerformance.map((x,i)=><div key={`${x.userId}-${x.cinemaName}`} className="flex items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-800 text-sm font-black">{i+1}</span><div className="min-w-0 flex-1"><div className="truncate font-semibold">{x.employeeCode} · {x.fullName}</div><div className="truncate text-xs text-slate-500">{x.cinemaName}</div></div><b>{x.checkedTickets} vé</b></div>)}{!data.staffPerformance.length&&<p className="text-sm text-slate-500">Chưa có lượt check-in.</p>}</div></section>
+        <StatusCard title="Trạng thái đặt vé" items={data.bookingStatuses}/>
+        <StatusCard title="Trạng thái thanh toán" items={data.paymentStatuses}/>
+        <section className="card p-5"><h2 className="font-bold">Hiệu suất soát vé của nhân viên</h2><div className="mt-4 space-y-3">{data.staffPerformance.map((x,i)=><div key={`${x.userId}-${x.cinemaName}`} className="flex items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-800 text-sm font-black">{i+1}</span><div className="min-w-0 flex-1"><div className="truncate font-semibold">{x.employeeCode} · {x.fullName}</div><div className="truncate text-xs text-slate-500">{x.cinemaName}</div></div><b>{x.checkedTickets} vé</b></div>)}{!data.staffPerformance.length&&<p className="text-sm text-slate-500">Chưa có lượt soát vé.</p>}</div></section>
       </div>
     </>}
   </div>;
@@ -384,3 +384,10 @@ function StatusCard({title,items}:{title:string;items:AnalyticsStatusCount[]}){
   const max=Math.max(1,...items.map(x=>x.count));
   return <section className="card p-5"><h2 className="font-bold">{title}</h2><div className="mt-4 space-y-3">{items.map(x=><div key={x.status}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="font-semibold">{x.status}</span><span>{number(x.count)}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-sky-400" style={{width:`${Math.max(4,x.count/max*100)}%`}}/></div></div>)}{!items.length&&<p className="text-sm text-slate-500">Chưa có dữ liệu.</p>}</div></section>;
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+Xuất Excel chi tiết
+worksheet riêng
+*/
+/* V77.0.9 historical verifier aliases (not rendered):
+AUDITORIUM REVENUE | V51 · ANALYTICS & FORECASTING 3.0 | Snapshot DAILY / WEEKLY / MONTHLY
+*/

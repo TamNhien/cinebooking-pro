@@ -114,7 +114,7 @@ check('V77 execute is step-up protected','path.equals("/api/admin/crm-automation
 # Frontend types/UI
 for token in ['CrmPlaybookCodeV77','CrmPlaybookV77','CrmSuppressionMetricV77','CrmOutcomeV77','CrmAutomationSummaryV77','CrmAutomationRequestV77','CrmAudienceMemberV77','CrmAutomationPreviewV77','CrmAutomationExecutionV77']:
     check('V77 frontend type '+token,('type '+token) in types)
-check('V77 Admin page root and branding','crm-automation-v77' in page and 'V77 · CRM AUTOMATION 5.0' in page)
+check('V77 Admin page root and branding','crm-automation-v77' in page and ('V77 · CRM AUTOMATION 5.0' in page or 'V77 · TỰ ĐỘNG HÓA CRM 5.0' in page))
 check('V77 Admin page requires ADMIN','me.role!=="ADMIN"' in page)
 check('V77 Admin page reads summary endpoint','/admin/crm-automation/summary?days=' in page)
 check('V77 Admin page supports 7 30 90 180 windows','[7,30,90,180]' in page)
@@ -122,7 +122,7 @@ for token in ['crm-summary-v77','crm-policy-v77','crm-outcomes-v77','crm-suppres
     check('V77 UI panel '+token,token in page)
 check('V77 UI exposes preview before execute','crm-preview-v77' in page and 'crm-execute-v77' in page and 'Hãy chạy Preview trước khi Execute' in page)
 check('V77 UI exposes maxRecipients guard','crm-max-recipients-v77' in page and 'maxRecipients' in page and 'blast-radius' in page)
-check('V77 UI explains correlation not causation','CORRELATION ONLY' in page and 'không phải causal attribution' in page)
+check('V77 UI explains correlation not causation', ('CORRELATION ONLY' in page and 'không phải causal attribution' in page) or ('tín hiệu tương quan' in page and 'không phải quy kết nhân quả' in page))
 check('V77 UI links legacy V64 and V76','/admin/marketing' in page and '/admin/recommendation' in page)
 check('V77 dashboard tile exists after V76','admin-crm-automation-v77' in admin and admin.index('admin-recommendation-v76')<admin.index('admin-crm-automation-v77'))
 labels=['Recommendation V63','CRM & Marketing V64','Observability V65','Seat Operations V66','Payment Resilience V67','Security & Identity V68','Backup & DR V69','Privacy Governance V70','Key Governance V71','Supply Chain V72','Actions Runtime V73','Reliability V74','Analytics & BI V75','Recommendation V76','CRM Automation V77']

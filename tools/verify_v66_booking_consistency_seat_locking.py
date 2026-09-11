@@ -122,7 +122,7 @@ check("TTL is bounded 30-1800 seconds", "ttlSeconds<30 || ttlSeconds>1800" in ho
 # Redis is not authority
 check("Redis writes happen through mirror function", "private boolean mirrorOne" in holds)
 check("Redis mirror happens after commit on acquire", "afterCommit(()->{" in holds and "mirror(showtimeId,saved)" in holds)
-check("Redis mirror stores bounded TTL", "TimeUnit.MILLISECONDS" in holds)
+check("Redis mirror stores bounded TTL", "TimeUnit.MILLISECONDS" in holds or "Duration.ofMillis(ms)" in holds)
 check("Redis value contains user and hold token", 'return row.getUserId()+"|"+row.getHoldToken()' in holds)
 check("Redis write failure is swallowed and measured", "catch(Exception ex){redisFailureCounter.increment();return false;}" in holds)
 check("Redis delete failure is swallowed and measured", "catch(Exception ex){redisFailureCounter.increment();}" in holds)
@@ -281,8 +281,8 @@ check("Admin summary converts raw Instant JDBC args", "value instanceof Instant 
 check("Admin summary imports SQL Timestamp", "import java.sql.Timestamp;" in ops_service)
 check("Admin summary count normalizes every JDBC arg", "Arrays.stream(args).map(this::jdbcArg).toArray()" in ops_service)
 check("Admin UI exposes stable summary error test id", 'data-testid="seat-operations-error-v66"' in ops_ui)
-check("Admin Redis status is UNKNOWN before summary loads", 'summary===null?"◌ UNKNOWN"' in ops_ui)
-check("Admin UI does not falsely label missing summary as Redis degraded", 'Chưa tải được summary nên chưa thể kết luận trạng thái Redis.' in ops_ui)
+check("Admin Redis status is UNKNOWN before summary loads", 'summary===null?"◌ UNKNOWN"' in ops_ui or 'summary===null?"◌ Chưa xác định"' in ops_ui)
+check("Admin UI does not falsely label missing summary as Redis degraded", 'Chưa tải được summary nên chưa thể kết luận trạng thái Redis.' in ops_ui or 'Chưa tải được tổng quan nên chưa thể kết luận trạng thái Redis.' in ops_ui)
 check("V66 E2E requires Admin summary to load without error", 'getByTestId("seat-operations-error-v66")).toHaveCount(0)' in e2e)
 check("V66 E2E rejects placeholder summary metrics", 'getByTestId("seat-consistency-summary-v66")).not.toContainText("—")' in e2e)
 

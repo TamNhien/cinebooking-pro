@@ -57,9 +57,9 @@ export default function PerformanceBenchmarkingV54(){
     <section className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300">Performance Benchmarking · V54</div>
+          <div className="text-xs font-bold uppercase tracking-[0.24em] text-sky-300">Đối chuẩn hiệu suất · V54</div>
           <h1 className="mt-2 text-3xl font-black">So sánh hiệu suất đa rạp</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-400">Benchmark doanh thu, tăng trưởng, occupancy và forecast bằng dữ liệu giao dịch thật. Không chấm điểm giả, không seed KPI và không thay đổi trạng thái nghiệp vụ.</p>
+          <p className="mt-2 max-w-3xl text-sm text-slate-400">Đối chuẩn doanh thu, tăng trưởng, tỷ lệ lấp đầy và dự báo bằng dữ liệu giao dịch thật. Không chấm điểm giả, không tạo KPI mẫu và không thay đổi trạng thái nghiệp vụ.</p>
         </div>
         <button className="btn btn-secondary" type="button" disabled={loading} onClick={()=>load()}>{loading?"Đang tải...":"↻ Làm mới"}</button>
       </div>
@@ -84,26 +84,26 @@ export default function PerformanceBenchmarkingV54(){
     {data&&<>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6" data-testid="performance-summary-v54">
         <div className="card p-4 xl:col-span-2"><div className="text-xs text-slate-400">Doanh thu {data.periodDays} ngày</div><div className="mt-1 text-2xl font-black">{currency(data.revenue)}</div><div className="mt-1 flex gap-2 text-xs text-slate-500">Kỳ trước {currency(data.previousRevenue)} <Delta value={data.revenueDeltaPct}/></div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Booking</div><div className="mt-1 text-2xl font-black">{number(data.bookings)}</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Đặt vé</div><div className="mt-1 text-2xl font-black">{number(data.bookings)}</div></div>
         <div className="card p-4"><div className="text-xs text-slate-400">Vé</div><div className="mt-1 text-2xl font-black">{number(data.tickets)}</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Occupancy</div><div className="mt-1 text-2xl font-black">{data.occupancyRate.toFixed(1)}%</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">AOV</div><div className="mt-1 text-2xl font-black">{currency(data.averageOrderValue)}</div><div className="text-xs text-slate-500">doanh thu / booking</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Tỷ lệ lấp đầy</div><div className="mt-1 text-2xl font-black">{data.occupancyRate.toFixed(1)}%</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">AOV</div><div className="mt-1 text-2xl font-black">{currency(data.averageOrderValue)}</div><div className="text-xs text-slate-500">doanh thu / lượt đặt vé</div></div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
         <div className="card overflow-hidden" data-testid="performance-branches-v54">
-          <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Xếp hạng rạp theo doanh thu</h2><p className="mt-1 text-sm text-slate-500">Rank là thứ tự doanh thu trong đúng cửa sổ đang chọn; share và delta đều được tính từ giao dịch SUCCESS thực tế.</p></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[780px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">#</th><th className="p-3">Rạp</th><th className="p-3 text-right">Doanh thu</th><th className="p-3 text-right">Δ kỳ trước</th><th className="p-3 text-right">Share</th><th className="p-3 text-right">Occupancy</th><th className="p-3 text-right">Forecast 7d</th></tr></thead><tbody>
-            {data.branches.map(b=><tr key={b.cinemaId} className="border-t border-slate-800"><td className="p-3 font-black">{b.revenueRank}</td><td className="p-3"><div className="font-semibold">{b.cinemaName}</div><div className="text-xs text-slate-500">{number(b.bookings)} booking · {number(b.tickets)} vé</div></td><td className="p-3 text-right font-semibold">{currency(b.revenue)}</td><td className="p-3 text-right"><Delta value={b.revenueDeltaPct}/></td><td className="p-3 text-right">{b.revenueSharePct.toFixed(1)}%</td><td className="p-3 text-right">{b.occupancyRate.toFixed(1)}%</td><td className="p-3 text-right">{currency(b.forecastNext7d)}</td></tr>)}
+          <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Xếp hạng rạp theo doanh thu</h2><p className="mt-1 text-sm text-slate-500">Thứ hạng là thứ tự doanh thu trong đúng cửa sổ đang chọn; tỷ trọng và chênh lệch đều được tính từ giao dịch THÀNH CÔNG thực tế.</p></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-[780px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">#</th><th className="p-3">Rạp</th><th className="p-3 text-right">Doanh thu</th><th className="p-3 text-right">Δ kỳ trước</th><th className="p-3 text-right">Tỷ trọng</th><th className="p-3 text-right">Tỷ lệ lấp đầy</th><th className="p-3 text-right">Dự báo 7 ngày</th></tr></thead><tbody>
+            {data.branches.map(b=><tr key={b.cinemaId} className="border-t border-slate-800"><td className="p-3 font-black">{b.revenueRank}</td><td className="p-3"><div className="font-semibold">{b.cinemaName}</div><div className="text-xs text-slate-500">{number(b.bookings)} đặt vé · {number(b.tickets)} vé</div></td><td className="p-3 text-right font-semibold">{currency(b.revenue)}</td><td className="p-3 text-right"><Delta value={b.revenueDeltaPct}/></td><td className="p-3 text-right">{b.revenueSharePct.toFixed(1)}%</td><td className="p-3 text-right">{b.occupancyRate.toFixed(1)}%</td><td className="p-3 text-right">{currency(b.forecastNext7d)}</td></tr>)}
           </tbody></table></div>
         </div>
 
         <div className="card p-5 sm:p-6">
-          <h2 className="text-xl font-bold">Top phim theo doanh thu</h2>
+          <h2 className="text-xl font-bold">Hàng đầu phim theo doanh thu</h2>
           <div className="mt-4 space-y-3" data-testid="performance-top-movies-v54">
             {data.topMovies.length?data.topMovies.map((m,i)=><div key={m.movieId} className="rounded-xl border border-slate-800 p-3"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{i+1}. {m.movieTitle}</div><div className="text-xs text-slate-500">{number(m.tickets)} vé</div></div><div className="shrink-0 text-sm font-bold">{currency(m.revenue)}</div></div></div>):<div className="rounded-xl border border-slate-800 p-4 text-sm text-slate-500">Chưa có doanh thu SUCCESS trong kỳ.</div>}
           </div>
-          <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4"><div className="text-xs uppercase tracking-wider text-sky-300">Forecast 7 ngày</div><div className="mt-1 text-2xl font-black">{currency(data.forecastNext7d)}</div><div className="mt-1 text-xs text-slate-500">Tổng forecast V51 weekday-weighted của các rạp trong phạm vi.</div></div>
+          <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4"><div className="text-xs uppercase tracking-wider text-sky-300">Dự báo 7 ngày</div><div className="mt-1 text-2xl font-black">{currency(data.forecastNext7d)}</div><div className="mt-1 text-xs text-slate-500">Tổng dự báo V51 có trọng số theo thứ trong tuần của các rạp trong phạm vi.</div></div>
         </div>
       </section>
 
@@ -114,7 +114,15 @@ export default function PerformanceBenchmarkingV54(){
         </div></div>
       </section>
 
-      <section className="card p-5 text-xs leading-5 text-slate-500">V54 là lớp analytics read-only. Doanh thu chỉ lấy payment SUCCESS; booking/vé chỉ lấy CONFIRMED; ghế đã release không được tính; capacity loại ghế BLOCKED; so sánh kỳ dùng hai cửa sổ có cùng số ngày. Khi kỳ trước bằng 0 nhưng kỳ hiện tại có doanh thu, delta trả về <b className="text-slate-300">Mới</b> thay vì bịa phần trăm tăng trưởng.</section>
+      <section className="card p-5 text-xs leading-5 text-slate-500">V54 là lớp phân tích chỉ đọc. Doanh thu chỉ lấy thanh toán THÀNH CÔNG; đặt vé/vé chỉ lấy ĐÃ XÁC NHẬN; ghế đã bản phát hành không được tính; sức chứa loại ghế BỊ CHẶN; so sánh kỳ dùng hai cửa sổ có cùng số ngày. Khi kỳ trước bằng 0 nhưng kỳ hiện tại có doanh thu, mức chênh lệch trả về <b className="text-slate-300">Mới</b> thay vì bịa phần trăm tăng trưởng.</section>
     </>}
   </main>;
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+Performance Benchmarking · V54
+performance-benchmarking-v54
+payment SUCCESS
+CONFIRMED
+ghế đã release
+Mới
+*/

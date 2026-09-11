@@ -132,7 +132,7 @@ check('V64 counts skipped notifications', 'if (delivered) notified++; else skipp
 
 # Frontend
 check('V64 admin marketing page exists', bool(ui))
-check('V64 page branding is explicit', 'V64 · CRM & MARKETING AUTOMATION 4.0' in ui)
+check('V64 page branding is explicit', 'V64 · CRM & MARKETING AUTOMATION 4.0' in ui or 'V64 · CRM & TỰ ĐỘNG HÓA TIẾP THỊ 4.0' in ui)
 check('V64 page exposes segment to campaign to voucher flow', 'Segment → Campaign → Voucher' in ui)
 check('V64 admin dashboard tile exists', 'admin-marketing-v64' in admin and 'CRM & Marketing V64' in admin)
 check('V64 admin dashboard tile links /admin/marketing', 'href="/admin/marketing"' in admin)

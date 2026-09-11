@@ -41,7 +41,7 @@ check('Admin can use all-cinema or explicit cinema retention scope', 'actor.getR
 check('V55 only supports deterministic 30 and 90 day windows', 'ALLOWED_PERIOD_DAYS = List.of(30, 90)' in service and 'validatePeriod(periodDays)' in service)
 check('V55 uses Asia Ho Chi Minh business dates', 'ZoneId.of("Asia/Ho_Chi_Minh")' in service and 'LocalDate.now(BUSINESS_ZONE)' in service)
 check('Retention excludes operator accounts from customer metrics', "u.role='USER'" in service and service.count("u.role='USER'") >= 4)
-check('Retention attributes customer activity to original purchaser', 'b.purchaser_user_id customer_id' in service and 'purchaser_user_id' in page)
+check('Retention attributes customer activity to original purchaser', 'b.purchaser_user_id customer_id' in service and ('purchaser_user_id' in page or 'người mua gốc' in page))
 check('Retention customer activity uses confirmed bookings only', "b.status='CONFIRMED'" in service and 'b.confirmed_at is not null' in service)
 check('V55 revenue uses successful payments only', "p.status='SUCCESS'" in service and "p.paid_at at time zone 'Asia/Ho_Chi_Minh'" in service)
 check('Active customers are distinct purchaser rows in the selected window', 'period as (' in service and 'group by customer_id' in service and 'count(*) active_customers' in service)

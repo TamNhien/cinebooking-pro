@@ -67,7 +67,7 @@ check('Booking service resolves showtime cinema before concession build', 'audit
 check('Booking service reserves inventory at same cinema', 'inventory.reserveForBooking(b.getId(),cinemaId,concessionRows)' in booking)
 check('V48 DTOs expose target stock transfers prices and branch movement', all(x in dtos for x in ['targetStock','InventoryTransferRequest','BranchPriceRequest','referenceKey','cinemaName']))
 check('Commerce DTO adds branch identity and base price metadata', all(x in commerce_dtos for x in ['cinemaId','cinemaName','basePrice','priceOverride']))
-check('Booking UI requests concession catalog for showtime cinema', '/commerce/products?cinemaId=' in booking_ui and 's.cinemaId' in booking_ui and 'CINE FOOD · V48' in booking_ui)
+check('Booking UI requests concession catalog for showtime cinema', '/commerce/products?cinemaId=' in booking_ui and 's.cinemaId' in booking_ui and ('CINE FOOD · V48' in booking_ui or 'BẮP NƯỚC · V48' in booking_ui))
 check('Admin UI identifies V48 branch inventory operations', 'INVENTORY · V48' in admin_ui and 'Kho bắp nước theo rạp' in admin_ui)
 check('Admin UI exposes branch selector stock warning and filters', 'inventory-cinema-select' in admin_ui and 'Sắp hết' in admin_ui and 'Hết hàng' in admin_ui)
 check('Admin UI exposes restock set waste', all(x in admin_ui for x in ['+ Nhập','Kiểm kê','Hao hụt','Ghi sổ kho']))

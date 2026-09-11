@@ -19,7 +19,7 @@ export default function OfflineTicketsPage(){
   const auth=getAuth();
 
   async function load(){
-    if(!auth?.userId){setItems([]);setError("Hãy đăng nhập lại đúng tài khoản để mở vé offline đã lưu trên thiết bị này.");return;}
+    if(!auth?.userId){setItems([]);setError("Hãy đăng nhập lại đúng tài khoản để mở vé ngoại tuyến đã lưu trên thiết bị này.");return;}
     try{setItems(await listOfflineTickets(auth.userId));}
     catch(e){setError((e as Error).message);}
   }
@@ -42,14 +42,14 @@ export default function OfflineTicketsPage(){
   }
 
   async function remove(id:string){
-    if(!confirm("Xóa bản vé offline khỏi thiết bị này?"))return;
+    if(!confirm("Xóa bản vé ngoại tuyến khỏi thiết bị này?"))return;
     await deleteOfflineTicket(id); if(selected===id)setSelected(null); await load();
   }
 
   return <div className="mx-auto max-w-4xl">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="section-kicker">PWA · V52</p><h1 className="text-3xl font-black">Vé offline đã kiểm soát</h1><p className="mt-2 text-slate-400">QR được lưu cục bộ, có trạng thái đồng bộ và tự đánh dấu stale khi vé bị chuyển, hoàn hoặc không còn hợp lệ.</p></div>
-      <div className="flex flex-wrap gap-2"><Link href="/mobile" className="btn btn-secondary">📱 Mobile Center</Link><Link href="/bookings" className="btn btn-secondary">← Vé của tôi</Link></div>
+      <div><p className="section-kicker">PWA · V52</p><h1 className="text-3xl font-black">Vé ngoại tuyến đã kiểm soát</h1><p className="mt-2 text-slate-400">QR được lưu cục bộ, có trạng thái đồng bộ và tự đánh dấu stale khi vé bị chuyển, hoàn hoặc không còn hợp lệ.</p></div>
+      <div className="flex flex-wrap gap-2"><Link href="/mobile" className="btn btn-secondary">📱 Trung tâm di động</Link><Link href="/bookings" className="btn btn-secondary">← Vé của tôi</Link></div>
     </div>
 
     <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -58,7 +58,7 @@ export default function OfflineTicketsPage(){
       <div className="card p-4"><div className="text-xs text-slate-500">Không còn hợp lệ</div><div className="mt-1 text-2xl font-black text-red-300">{staleCount}</div></div>
     </div>
 
-    <div className="mt-4 rounded-xl border border-amber-700/40 bg-amber-950/25 p-4 text-sm text-amber-200">🔐 Vé offline chứa QR check-in. Chỉ lưu trên thiết bị cá nhân. Khi có mạng, V52 đối chiếu lại server; QR stale sẽ bị ẩn để tránh dùng nhầm.</div>
+    <div className="mt-4 rounded-xl border border-amber-700/40 bg-amber-950/25 p-4 text-sm text-amber-200">🔐 Vé ngoại tuyến chứa QR soát vé. Chỉ lưu trên thiết bị cá nhân. Khi có mạng, V52 đối chiếu lại máy chủ; QR lỗi thời sẽ bị ẩn để tránh dùng nhầm.</div>
     <div className="mt-4 flex flex-wrap items-center gap-3"><button className="btn btn-primary" disabled={syncing||!auth?.userId} onClick={()=>runSync(false)}>{syncing?"Đang đồng bộ...":"↻ Đồng bộ tất cả vé"}</button><span className="text-xs text-slate-500">{typeof navigator!=="undefined"&&navigator.onLine?"Đang online":"Đang offline"}{syncResult?` · lần gần nhất kiểm tra ${syncResult.checked} vé`:""}</span></div>
     {(error||message)&&<div className={`mt-4 rounded-xl p-4 text-sm ${error?"bg-red-950/40 text-red-200":"bg-emerald-950/30 text-emerald-200"}`}>{error||message}</div>}
 
@@ -74,7 +74,7 @@ export default function OfflineTicketsPage(){
           </button>
           {open&&<div className="border-t border-slate-800 p-5 text-center">
             {stale?<div className="rounded-xl border border-red-800/60 bg-red-950/30 p-4 text-sm text-red-200">QR đã được ẩn. {t.invalidReason||"Vé không còn hợp lệ trên máy chủ."}</div>:<img src={t.qrDataUrl} alt={`QR vé ${t.movieTitle}`} className={`mx-auto w-72 max-w-full rounded-2xl bg-white p-3 ${t.checkedInAt?"opacity-40":""}`}/>}
-            <div className="mt-4 break-all text-xs text-slate-500">Booking #{t.bookingId}</div>
+            <div className="mt-4 break-all text-xs text-slate-500">Mã đặt vé #{t.bookingId}</div>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               {!stale&&typeof navigator!=="undefined"&&navigator.onLine&&<Link href={`/ticket/${t.bookingId}`} className="btn btn-primary">Mở vé online</Link>}
               <button type="button" className="btn btn-secondary" onClick={()=>remove(t.bookingId)}>Xóa khỏi thiết bị</button>
@@ -82,7 +82,7 @@ export default function OfflineTicketsPage(){
           </div>}
         </article>;
       })}
-      {!items.length&&!error&&<div className="card p-7 text-center text-slate-400"><div className="text-4xl">🎟️</div><p className="mt-3 font-semibold text-slate-200">Chưa có vé offline</p><p className="mt-1 text-sm">Mở một vé CONFIRMED rồi chọn “Lưu vé offline”.</p><Link href="/bookings" className="btn btn-primary mt-5">Mở vé của tôi</Link></div>}
+      {!items.length&&!error&&<div className="card p-7 text-center text-slate-400"><div className="text-4xl">🎟️</div><p className="mt-3 font-semibold text-slate-200">Chưa có vé ngoại tuyến</p><p className="mt-1 text-sm">Mở một vé ĐÃ XÁC NHẬN rồi chọn “Lưu vé ngoại tuyến”.</p><Link href="/bookings" className="btn btn-primary mt-5">Mở vé của tôi</Link></div>}
     </div>
   </div>;
 }

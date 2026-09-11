@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { viLabel } from "@/lib/vi-labels";
 import type { PaymentCheckout } from "@/lib/types";
 
 const BASE=process.env.NEXT_PUBLIC_API_URL||"/api";
@@ -30,12 +31,12 @@ function ResultInner(){
        if(!active)return;
        if(p.status==="SUCCESS"){setState("Thanh toán thành công. Vé đã được xác nhận.");return;}
        if(p.status==="REVIEW"){setState("Cổng thanh toán báo thành công nhưng booking cần đối soát thủ công. Vui lòng không thanh toán lại.");return;}
-       if(["FAILED","EXPIRED","CANCELLED","REFUNDED"].includes(p.status)){setState(`Thanh toán hiện ở trạng thái ${p.status}.`);return;}
+       if(["FAILED","EXPIRED","CANCELLED","REFUNDED"].includes(p.status)){setState(`Thanh toán hiện ở trạng thái ${viLabel(p.status)}.`);return;}
      }catch{}
      await new Promise(r=>setTimeout(r,1500));
    }
    if(active)setState("Kết quả redirect đã được xác minh, nhưng server chưa nhận IPN. Bạn có thể xem Lịch sử thanh toán hoặc chờ đối soát.");
  }catch(e){if(active)setState((e as Error).message)}})();return()=>{active=false}},[q]);
- return <div className="mx-auto max-w-xl card p-8 text-center"><div className="text-5xl">💳</div><h1 className="mt-4 text-3xl font-bold">Kết quả thanh toán</h1><p className="mt-3 text-slate-300">{state}</p><p className="mt-2 text-sm text-slate-500">Redirect chỉ dùng để hiển thị kết quả. Trạng thái cuối cùng được cập nhật bởi IPN server-to-server hoặc đối soát gateway.</p>{paymentId&&<div className="mt-3 break-all text-xs text-slate-500">Payment: {paymentId}</div>}<div className="mt-6 flex flex-wrap justify-center gap-3"><Link href="/bookings" className="btn btn-primary">Xem vé của tôi</Link><Link href="/payments" className="btn btn-secondary">Lịch sử thanh toán</Link></div></div>
+ return <div className="mx-auto max-w-xl card p-8 text-center"><div className="text-5xl">💳</div><h1 className="mt-4 text-3xl font-bold">Kết quả thanh toán</h1><p className="mt-3 text-slate-300">{state}</p><p className="mt-2 text-sm text-slate-500">Chuyển hướng chỉ dùng để hiển thị kết quả. Trạng thái cuối cùng được cập nhật bởi IPN máy chủ-đến-máy chủ hoặc đối soát cổng thanh toán.</p>{paymentId&&<div className="mt-3 break-all text-xs text-slate-500">Thanh toán: {paymentId}</div>}<div className="mt-6 flex flex-wrap justify-center gap-3"><Link href="/bookings" className="btn btn-primary">Xem vé của tôi</Link><Link href="/payments" className="btn btn-secondary">Lịch sử thanh toán</Link></div></div>
 }
 export default function Result(){return <Suspense fallback={<div>Đang tải...</div>}><ResultInner/></Suspense>}

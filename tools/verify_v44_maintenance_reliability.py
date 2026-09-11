@@ -53,7 +53,7 @@ check("Maintenance controller exposes option and KPI endpoints", all(x in ctl fo
 check("Maintenance controller exposes asset CRUD surface", all(x in ctl for x in ["/assets","createAsset","updateAsset"]))
 check("Maintenance controller exposes work-order lifecycle and history", all(x in ctl for x in ["/work-orders","/plan","/transition","/events"]))
 check("Security allows Manager/Admin for V44 maintenance APIs", '.requestMatchers("/api/admin/maintenance/**").hasAnyRole("MANAGER","ADMIN")' in security)
-check("V44 frontend is a maintenance reliability control center", all(x in ui for x in ["V44 · CINEMA MAINTENANCE & ASSET RELIABILITY 2.0","Trung tâm bảo trì & độ tin cậy thiết bị","Danh mục thiết bị","Tạo work order"]))
+check("V44 frontend is a maintenance reliability control center", all(x in ui for x in ["V44 · CINEMA MAINTENANCE & ASSET RELIABILITY 2.0","Trung tâm bảo trì & độ tin cậy thiết bị","Danh mục thiết bị"]) and ("Tạo work order" in ui or "Tạo phiếu bảo trì" in ui))
 check("V44 frontend exposes asset status and next-service planning", all(x in ui for x in ["OUT_OF_SERVICE","MAINTENANCE","Bảo trì kế tiếp","nextServiceDue"]))
 check("V44 frontend exposes work-order transitions", all(x in ui for x in ["Bắt đầu","Tiếp tục","Hoàn tất","BLOCKED","CANCELLED"]))
 check("V44 frontend keeps V34 blackout compatibility for Admin", all(x in ui for x in ["V34 COMPATIBILITY","/admin/auditorium-blackouts","Bảo trì & khóa phòng chiếu",'aria-label="Mở lại phòng"']))

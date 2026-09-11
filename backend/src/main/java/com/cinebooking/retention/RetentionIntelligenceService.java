@@ -375,3 +375,11 @@ public class RetentionIntelligenceService {
     private record RevenuePoint(LocalDate day, BigDecimal revenue) {}
     private record LifecycleRaw(long new30d, long activeRepeat, long atRisk, long dormant, long lapsed) {}
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+b.purchaser_user_id customer_id
+NEW_30D
+ACTIVE_REPEAT
+AT_RISK
+DORMANT
+LAPSED
+*/

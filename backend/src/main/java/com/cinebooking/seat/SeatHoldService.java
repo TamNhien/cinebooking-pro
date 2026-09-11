@@ -16,7 +16,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class SeatHoldService {
@@ -277,7 +276,7 @@ public class SeatHoldService {
     private boolean mirrorOne(UUID showtimeId,SeatHoldRecord row){
         long ms=Math.max(1,Duration.between(Instant.now(),row.getExpiresAt()).toMillis());
         if(ms<=1)return false;
-        try{redis.opsForValue().set(key(showtimeId,row.getSeatId()),value(row),ms,TimeUnit.MILLISECONDS);return true;}
+        try{redis.opsForValue().set(key(showtimeId,row.getSeatId()),value(row),Duration.ofMillis(ms));return true;}
         catch(Exception ex){redisFailureCounter.increment();return false;}
     }
     private void clearMirror(UUID showtimeId,List<UUID> seatIds){

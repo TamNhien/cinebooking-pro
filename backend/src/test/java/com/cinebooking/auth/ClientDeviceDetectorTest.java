@@ -22,6 +22,11 @@ class ClientDeviceDetectorTest {
         assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, null, secChUa)).isEqualTo("Chrome · Windows");
     }
 
+    @Test void edgeSecChUaOverridesGenericChromeFallbackHint() {
+        String secChUa = "\"Chromium\";v=\"153\", \"Microsoft Edge\";v=\"153\"";
+        assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, "Chrome", secChUa)).isEqualTo("Edge · Windows");
+    }
+
     @Test void chromeStillFallsBackFromUserAgentWhenNoHintExists() {
         assertThat(ClientDeviceDetector.deviceName(CHROMIUM_WINDOWS, null)).isEqualTo("Chrome · Windows");
     }

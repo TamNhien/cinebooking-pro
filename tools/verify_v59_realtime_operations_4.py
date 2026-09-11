@@ -115,7 +115,7 @@ check('V59 frontend keeps fallback refresh switch', 'operations-control-auto-ref
 check('V59 frontend exposes acknowledge action', 'action:"acknowledge"|"resolve"' in page and 'alertAction(item.fingerprint,"acknowledge")' in page and 'Tiếp nhận' in page)
 check('V59 frontend exposes resolve action', 'alertAction(item.fingerprint,"resolve")' in page and 'Đánh dấu đã xử lý' in page)
 check('V59 frontend renders alert action history', 'operations-control-history-v59' in page and '/alerts/history' in page)
-check('V59 frontend displays escalation badge', 'ESCALATED' in page and 'item.escalated' in page)
+check('V59 frontend displays escalation badge', ('ESCALATED' in page or 'ĐÃ NÂNG MỨC' in page) and 'item.escalated' in page)
 check('V59 frontend displays Redis/audit lifecycle copy', 'ACK giữ trạng thái 60 phút' in page and 'Resolve suppress 15 phút' in page)
 check('V59 TS contracts exist', all(x in types for x in ['OperationsControlAlertStateV59','OperationsControlAlertV59','OperationsControlHistoryV59','OperationsControlSnapshotV59']))
 check('Admin dashboard links Realtime Operations V59', '/admin/operations-control' in admin and 'Realtime Operations V59' in admin)

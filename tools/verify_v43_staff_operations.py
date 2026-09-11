@@ -52,7 +52,7 @@ check("V43 frontend polls as WebSocket fallback", '15000' in ui and 'setInterval
 check("V43 frontend supports handover create/accept", all(x in ui for x in ['Tạo bàn giao','Nhận bàn giao','/staff/operations/handovers']))
 check("V43 frontend supports incident create/resolve", all(x in ui for x in ['Ghi nhận sự cố','Đóng sự cố','/staff/operations/incidents']))
 check("Frontend types include V43 contracts", all(x in types for x in ['StaffOperationsLive','StaffHandover','StaffIncident']))
-check("Header links to realtime operations", '/staff/operations' in header and 'Vận hành realtime' in header)
+check("Header links to realtime operations", '/staff/operations' in header and ('Vận hành realtime' in header or 'Vận hành thời gian thực' in header))
 check("Gate scanner adds local duplicate debounce", all(x in gateui for x in ['processingRef','lastScanRef','2500']))
 check("Gate scanner still uses rear mobile camera", 'facingMode:{ideal:"environment"}' in gateui and 'width:{ideal:1280}' in gateui)
 check("V43 Playwright covers incident create and resolve", all(x in e2e for x in ['V43 admin sees realtime staff operations','Ghi nhận sự cố','Đóng sự cố','RESOLVED']))

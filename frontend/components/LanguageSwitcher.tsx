@@ -1,29 +1,17 @@
 "use client";
 
-import { useLanguage } from "@/components/LanguageProvider";
-
 export default function LanguageSwitcher() {
-  const { language, setLanguage } = useLanguage();
   return (
-    <div className="language-switcher-wrap" aria-label="Language selector">
-      <div className="language-switcher" role="group" aria-label="Language">
+    <div className="language-switcher-wrap" aria-label="Ngôn ngữ giao diện">
+      <div className="language-switcher" role="group" aria-label="Ngôn ngữ">
         <button
           type="button"
-          className={`language-option ${language === "vi" ? "active" : ""}`}
-          onClick={() => setLanguage("vi")}
-          aria-pressed={language === "vi"}
+          className="language-option active"
+          aria-pressed="true"
           title="Tiếng Việt"
+          disabled
         >
           VN
-        </button>
-        <button
-          type="button"
-          className={`language-option ${language === "en" ? "active" : ""}`}
-          onClick={() => setLanguage("en")}
-          aria-pressed={language === "en"}
-          title="English"
-        >
-          EN
         </button>
       </div>
       <div className="language-dots" aria-hidden="true">

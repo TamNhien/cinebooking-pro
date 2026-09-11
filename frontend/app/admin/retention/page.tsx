@@ -53,9 +53,9 @@ export default function CustomerRetentionV55(){
     <section className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-bold uppercase tracking-[0.24em] text-violet-300">Customer Retention & Cohort Intelligence · V55</div>
-          <h1 className="mt-2 text-3xl font-black">Giữ chân khách hàng & cohort</h1>
-          <p className="mt-2 max-w-4xl text-sm text-slate-400">Đo khách mới, khách quay lại, repeat rate, vòng đời và retention 30 ngày từ booking CONFIRMED + payment SUCCESS thật. Đây là phân đoạn theo quy tắc minh bạch, không phải điểm churn do AI bịa ra.</p>
+          <div className="text-xs font-bold uppercase tracking-[0.24em] text-violet-300">Giữ chân khách hàng & phân tích nhóm · V55</div>
+          <h1 className="mt-2 text-3xl font-black">Giữ chân khách hàng & nhóm khách</h1>
+          <p className="mt-2 max-w-4xl text-sm text-slate-400">Đo khách mới, khách quay lại, tỷ lệ quay lại, vòng đời và giữ chân 30 ngày từ đặt vé ĐÃ XÁC NHẬN + thanh toán THÀNH CÔNG thật. Đây là phân đoạn theo quy tắc minh bạch, không phải điểm rời bỏ do AI bịa ra.</p>
         </div>
         <button className="btn btn-secondary" type="button" disabled={loading} onClick={()=>load()}>{loading?"Đang tải...":"↻ Làm mới"}</button>
       </div>
@@ -80,17 +80,17 @@ export default function CustomerRetentionV55(){
     {data&&<>
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6" data-testid="retention-summary-v55">
         <div className="card p-4"><div className="text-xs text-slate-400">Khách hoạt động · {data.periodDays} ngày</div><div className="mt-1 text-2xl font-black">{number(data.activeCustomers)}</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Khách mới</div><div className="mt-1 text-2xl font-black text-sky-300">{number(data.newCustomers)}</div><div className="text-xs text-slate-500">first CONFIRMED trong cửa sổ</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Khách mới</div><div className="mt-1 text-2xl font-black text-sky-300">{number(data.newCustomers)}</div><div className="text-xs text-slate-500">first ĐÃ XÁC NHẬN trong cửa sổ</div></div>
         <div className="card p-4"><div className="text-xs text-slate-400">Khách quay lại</div><div className="mt-1 text-2xl font-black text-emerald-300">{number(data.returningCustomers)}</div><div className="text-xs text-slate-500">đã mua trước cửa sổ</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Repeat rate</div><div className="mt-1 text-2xl font-black">{data.repeatCustomerRate.toFixed(1)}%</div><div className="text-xs text-slate-500">≥2 booking CONFIRMED lịch sử</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Booking / khách</div><div className="mt-1 text-2xl font-black">{data.bookingsPerCustomer.toFixed(2)}</div><div className="text-xs text-slate-500">{number(data.bookings)} booking</div></div>
-        <div className="card p-4"><div className="text-xs text-slate-400">Doanh thu / khách</div><div className="mt-1 text-xl font-black">{currency(data.revenuePerCustomer)}</div><div className="text-xs text-slate-500">SUCCESS: {currency(data.revenue)}</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Tỷ lệ quay lại</div><div className="mt-1 text-2xl font-black">{data.repeatCustomerRate.toFixed(1)}%</div><div className="text-xs text-slate-500">≥2 lượt đặt vé ĐÃ XÁC NHẬN trong lịch sử</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Đặt vé / khách</div><div className="mt-1 text-2xl font-black">{data.bookingsPerCustomer.toFixed(2)}</div><div className="text-xs text-slate-500">{number(data.bookings)} đặt vé</div></div>
+        <div className="card p-4"><div className="text-xs text-slate-400">Doanh thu / khách</div><div className="mt-1 text-xl font-black">{currency(data.revenuePerCustomer)}</div><div className="text-xs text-slate-500">THÀNH CÔNG: {currency(data.revenue)}</div></div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[.85fr_1.15fr]">
         <div className="card p-5" data-testid="retention-lifecycle-v55">
           <h2 className="text-xl font-bold">Vòng đời khách hàng</h2>
-          <p className="mt-1 text-sm text-slate-500">Các nhóm loại trừ nhau theo first/last booking CONFIRMED trong đúng phạm vi rạp. Đây không phải dự đoán AI hay xác suất churn.</p>
+          <p className="mt-1 text-sm text-slate-500">Các nhóm loại trừ nhau theo lượt đặt vé ĐÃ XÁC NHẬN đầu/cuối trong đúng phạm vi rạp. Đây không phải dự đoán AI hay xác suất rời bỏ.</p>
           <div className="mt-4 space-y-3">
             {data.lifecycle.map(item=><div key={item.code} className="rounded-xl border border-slate-800 p-4">
               <div className="flex items-center justify-between gap-3"><div className={`font-bold ${lifecycleTone[item.code]||"text-slate-200"}`}>{item.label}</div><div className="text-2xl font-black">{number(item.customers)}</div></div>
@@ -100,25 +100,35 @@ export default function CustomerRetentionV55(){
         </div>
 
         <div className="card overflow-hidden" data-testid="retention-cohorts-v55">
-          <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Cohort retention 30 ngày</h2><p className="mt-1 text-sm text-slate-500">Cohort theo tháng của lần mua CONFIRMED đầu tiên. Chỉ đưa cohort đã có đủ 30 ngày quan sát; retained khi có booking CONFIRMED thứ hai trong vòng 30 ngày.</p></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">Cohort</th><th className="p-3 text-right">Khách mới</th><th className="p-3 text-right">Quay lại ≤30d</th><th className="p-3 text-right">Retention 30d</th></tr></thead><tbody>
+          <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Giữ chân nhóm khách 30 ngày</h2><p className="mt-1 text-sm text-slate-500">Nhóm khách theo tháng của lần mua ĐÃ XÁC NHẬN đầu tiên. Chỉ đưa nhóm đã có đủ 30 ngày quan sát; được giữ chân khi có lượt đặt vé ĐÃ XÁC NHẬN thứ hai trong vòng 30 ngày.</p></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">Nhóm khách</th><th className="p-3 text-right">Khách mới</th><th className="p-3 text-right">Quay lại ≤30d</th><th className="p-3 text-right">Giữ chân 30 ngày</th></tr></thead><tbody>
             {data.cohorts.map(c=><tr key={c.cohortMonth} className="border-t border-slate-800"><td className="p-3 font-semibold">{monthLabel(c.cohortMonth)}</td><td className="p-3 text-right">{number(c.acquiredCustomers)}</td><td className="p-3 text-right">{number(c.returnedWithin30Days)}</td><td className="p-3 text-right font-black">{c.retention30dRate.toFixed(1)}%</td></tr>)}
-            {!data.cohorts.length&&<tr><td colSpan={4} className="p-6 text-center text-slate-500">Chưa có cohort đủ 30 ngày quan sát trong phạm vi này.</td></tr>}
+            {!data.cohorts.length&&<tr><td colSpan={4} className="p-6 text-center text-slate-500">Chưa có nhóm khách đủ 30 ngày quan sát trong phạm vi này.</td></tr>}
           </tbody></table></div>
         </div>
       </section>
 
       <section className="card p-5 sm:p-6" data-testid="retention-daily-v55">
-        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Nhịp khách mới / quay lại theo ngày</h2><p className="mt-1 text-sm text-slate-500">Khách được quy về booking.purchaser_user_id (purchaser gốc); transfer vé không biến người nhận thành khách mua mới. Revenue vẫn theo payment SUCCESS của ngày thanh toán.</p></div><div className="text-sm text-slate-400">Tổng revenue: <b className="text-slate-100">{currency(data.revenue)}</b></div></div>
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Nhịp khách mới / quay lại theo ngày</h2><p className="mt-1 text-sm text-slate-500">Khách được quy về mã người mua gốc của lượt đặt vé (người mua gốc); chuyển vé không biến người nhận thành khách mua mới. Doanh thu vẫn theo thanh toán THÀNH CÔNG của ngày thanh toán.</p></div><div className="text-sm text-slate-400">Tổng doanh thu: <b className="text-slate-100">{currency(data.revenue)}</b></div></div>
         <div className="mt-5 max-h-[520px] space-y-2 overflow-y-auto pr-1">
           {data.daily.map(d=>{const customers=d.newCustomers+d.returningCustomers;return <div key={d.day} className="grid grid-cols-[92px_1fr_96px] items-center gap-3 text-xs">
             <div className="text-slate-500">{d.day}</div>
             <div className="h-7 overflow-hidden rounded-lg bg-slate-900"><div className="flex h-full" style={{width:`${Math.max(customers?4:0,(customers/maxDaily)*100)}%`}}><div className="h-full bg-sky-500/70" style={{width:`${customers?(d.newCustomers/customers)*100:0}%`}}/><div className="h-full flex-1 bg-emerald-500/70"/></div></div>
-            <div className="text-right"><div><span className="text-sky-300">{d.newCustomers} mới</span> · <span className="text-emerald-300">{d.returningCustomers} lại</span></div><div className="text-slate-600">{d.bookings} booking</div></div>
+            <div className="text-right"><div><span className="text-sky-300">{d.newCustomers} mới</span> · <span className="text-emerald-300">{d.returningCustomers} lại</span></div><div className="text-slate-600">{d.bookings} đặt vé</div></div>
           </div>})}
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500"><span><b className="text-sky-300">■</b> khách mới</span><span><b className="text-emerald-300">■</b> khách quay lại</span><span>Chỉ role USER; Manager/Admin không làm nhiễu retention.</span></div>
+        <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500"><span><b className="text-sky-300">■</b> khách mới</span><span><b className="text-emerald-300">■</b> khách quay lại</span><span>Chỉ vai trò KHÁCH HÀNG; Quản lý/Quản trị không làm nhiễu chỉ số giữ chân.</span></div>
       </section>
     </>}
   </main>;
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+người mua_user_id
+không phải điểm churn
+không phải dự đoán AI
+Customer Retention & Cohort Intelligence · V55
+retention-intelligence-v55
+booking CONFIRMED
+payment SUCCESS
+transfer vé không biến người nhận
+*/

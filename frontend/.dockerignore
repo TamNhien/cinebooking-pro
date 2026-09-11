@@ -1,0 +1,16 @@
+# V77.0.11: never copy host-installed dependencies/build artifacts into Linux images.
+# This is especially important on Windows, where node_modules/.bin shims can target node.exe.
+node_modules/
+.next/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+coverage/
+out/
+dist/
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example

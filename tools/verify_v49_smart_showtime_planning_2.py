@@ -55,7 +55,7 @@ check('Smart commit records authenticated admin email', 'Authentication auth' in
 check('Frontend identifies V49 Smart Showtime Planning 2.0', 'V49 · SMART SHOWTIME PLANNING 2.0' in ui and 'Smart Planner' in ui)
 check('Frontend loads cinemas and durable smart planning history', '/admin/cinemas' in ui and '/admin/showtime-planner/smart/runs' in ui and 'Lịch sử Smart Planner' in ui)
 check('Frontend supports smart preview and commit', '/admin/showtime-planner/smart/preview' in ui and '/admin/showtime-planner/smart/commit' in ui and 'smart-preview-button' in ui and 'smart-commit-button' in ui)
-check('Frontend renders score historical occupancy and reasons', 'Score {slot.score}' in ui and 'historicalOccupancy' in ui and 'slot.reasons.join' in ui)
+check('Frontend renders score historical occupancy and reasons', ('Score {slot.score}' in ui or 'Điểm {slot.score}' in ui) and 'historicalOccupancy' in ui and 'slot.reasons.join' in ui)
 check('Frontend preserves V34 manual batch workflow', '/admin/showtime-planner/preview' in ui and '/admin/showtime-planner/commit' in ui and 'Phim lập lịch' in ui and 'Phòng lập lịch' in ui)
 check('Frontend types include V49 smart planner and showtime provenance', all(x in types for x in ['SmartShowtimePlanPreview','ShowtimePlanningRun','planningSource','planningScore']))
 check('Dedicated V49 Playwright covers preview commit and run provenance', all(x in e2e for x in ['V49 Smart Planner suggests demand-balanced conflict-free showtimes and commits provenance','smart-preview-button','smart-commit-button','smart-planning-run','SMART']))

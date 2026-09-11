@@ -109,7 +109,7 @@ check('Admin payment page displays production overall state', 'payment-productio
 check('Admin payment page states secrets are not displayed', 'Không hiển thị secret' in page)
 check('Admin payment page explains webhook replay policy', 'event-key/payload replay consistency' in page and 'payload khác cùng event key bị từ chối' in page)
 check('Admin dashboard links Payment Production V60', '/admin/payments' in admin and 'Payment Production V60' in admin)
-check('Header exposes Payment Production V60', header.count('/admin/payments')>=2 and header.count('Payment Production V60')>=2)
+check('Header exposes Payment Production V60', header.count('/admin/payments')>=2 and (header.count('Payment Production V60')>=2 or header.count('Thanh toán vận hành V60')>=2))
 
 check('V60 Playwright journey exists', 'V60 admin sees production gateway readiness without exposing secrets' in e2e)
 check('V60 Playwright authenticates admin', 'E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)

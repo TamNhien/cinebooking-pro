@@ -36,7 +36,7 @@ public class PosterStorageService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Vui lòng chọn ảnh poster.");
         }
         if (file.getSize() > MAX_POSTER_BYTES) {
-            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "Poster tối đa 5 MB.");
+            throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "Poster tối đa 5 MB.");
         }
 
         String extension;

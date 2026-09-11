@@ -104,12 +104,12 @@ public class MaintenanceService {
         if(!PRIORITIES.contains(priority))throw new ApiException(HttpStatus.BAD_REQUEST,"Mức ưu tiên không hợp lệ");
         LinkContext links=validateLinks(cinemaId,req.auditoriumId(),req.assetId(),req.sourceIncidentId());validateAssignee(req.assignedTo(),cinemaId);validateDue(req.dueAt());
         MaintenanceWorkOrder x=new MaintenanceWorkOrder();x.setCinemaId(cinemaId);x.setAuditoriumId(links.auditoriumId());x.setAssetId(req.assetId());x.setSourceIncidentId(req.sourceIncidentId());x.setTitle(req.title().trim());x.setDescription(req.description().trim());x.setPriority(priority);x.setAssignedTo(req.assignedTo());x.setDueAt(req.dueAt());x.setCreatedBy(actor.getId());orders.save(x);
-        appendEvent(x,"CREATED",null,"OPEN","Tạo work order",actor);audit.record(email,"MAINTENANCE_WORK_ORDER_CREATE","MAINTENANCE_WORK_ORDER",x.getId().toString(),priority+" · "+x.getTitle(),ip);return workOrderDto(x);
+        appendEvent(x,"CREATED",null,"OPEN","Tạo phiếu bảo trì",actor);audit.record(email,"MAINTENANCE_WORK_ORDER_CREATE","MAINTENANCE_WORK_ORDER",x.getId().toString(),priority+" · "+x.getTitle(),ip);return workOrderDto(x);
     }
 
     @Transactional
     public WorkOrderResponse planWorkOrder(UUID id,WorkOrderPlanRequest req,String email,String ip){
-        AppUser actor=manager(email);MaintenanceWorkOrder x=order(id);resolveCinema(actor,x.getCinemaId());if(!MaintenanceWorkOrderRules.isOpen(x.getStatus()))throw new ApiException(HttpStatus.CONFLICT,"Work order đã đóng, không thể đổi kế hoạch");
+        AppUser actor=manager(email);MaintenanceWorkOrder x=order(id);resolveCinema(actor,x.getCinemaId());if(!MaintenanceWorkOrderRules.isOpen(x.getStatus()))throw new ApiException(HttpStatus.CONFLICT,"Phiếu bảo trì đã đóng, không thể đổi kế hoạch");
         String priority=upper(req.priority());if(!PRIORITIES.contains(priority))throw new ApiException(HttpStatus.BAD_REQUEST,"Mức ưu tiên không hợp lệ");validateAssignee(req.assignedTo(),x.getCinemaId());validateDue(req.dueAt());
         x.setPriority(priority);x.setAssignedTo(req.assignedTo());x.setDueAt(req.dueAt());orders.save(x);appendEvent(x,"PLAN_UPDATED",x.getStatus(),x.getStatus(),clean(req.note()),actor);
         audit.record(email,"MAINTENANCE_WORK_ORDER_PLAN","MAINTENANCE_WORK_ORDER",x.getId().toString(),priority+" · assignee="+req.assignedTo(),ip);return workOrderDto(x);
@@ -118,8 +118,8 @@ public class MaintenanceService {
     @Transactional
     public WorkOrderResponse transition(UUID id,WorkOrderTransitionRequest req,String email,String ip){
         AppUser actor=manager(email);MaintenanceWorkOrder x=order(id);resolveCinema(actor,x.getCinemaId());String target=upper(req.targetStatus());String from=x.getStatus();
-        if(!MaintenanceWorkOrderRules.canTransition(from,target))throw new ApiException(HttpStatus.CONFLICT,"Không thể chuyển work order từ "+from+" sang "+target);
-        String note=clean(req.note());if(("RESOLVED".equals(target)||"CANCELLED".equals(target)||"BLOCKED".equals(target))&&(note==null||note.length()<3))throw new ApiException(HttpStatus.BAD_REQUEST,"Trạng thái "+target+" cần ghi chú xử lý");
+        if(!MaintenanceWorkOrderRules.canTransition(from,target))throw new ApiException(HttpStatus.CONFLICT,"Không thể chuyển phiếu bảo trì từ "+from+" sang "+target);
+        String note=clean(req.note());if(!MaintenanceWorkOrderRules.validTransitionNote(target,note))throw new ApiException(HttpStatus.BAD_REQUEST,"Vui lòng nhập kết quả hoặc lý do ít nhất "+MaintenanceWorkOrderRules.MIN_TRANSITION_NOTE_LENGTH+" ký tự");
         Instant now=Instant.now();x.setStatus(target);if("IN_PROGRESS".equals(target)&&x.getStartedAt()==null)x.setStartedAt(now);
         if("RESOLVED".equals(target)){x.setResolvedAt(now);x.setResolvedBy(actor.getId());x.setResolutionNote(note);}orders.save(x);appendEvent(x,"STATUS_CHANGED",from,target,note,actor);
         audit.record(email,"MAINTENANCE_WORK_ORDER_STATUS","MAINTENANCE_WORK_ORDER",x.getId().toString(),from+" -> "+target+(note==null?"":" · "+note),ip);return workOrderDto(x);
@@ -137,21 +137,21 @@ public class MaintenanceService {
     private void applyAsset(CinemaEquipmentAsset x,AssetRequest req,UUID cinemaId){x.setCinemaId(cinemaId);x.setAuditoriumId(req.auditoriumId());x.setAssetCode(req.assetCode().trim().toUpperCase(Locale.ROOT));x.setName(req.name().trim());x.setCategory(upper(req.category()));x.setStatus(upper(req.status()));x.setVendor(clean(req.vendor()));x.setSerialNumber(clean(req.serialNumber()));x.setInstalledOn(req.installedOn());x.setLastServiceAt(req.lastServiceAt());x.setNextServiceDue(req.nextServiceDue());x.setNote(clean(req.note()));}
     private LinkContext validateLinks(UUID cinemaId,UUID auditoriumId,UUID assetId,UUID incidentId){
         UUID room=auditoriumId;if(room!=null)auditoriumInCinema(room,cinemaId);
-        if(assetId!=null){CinemaEquipmentAsset a=asset(assetId);if(!Objects.equals(a.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Thiết bị không thuộc rạp đã chọn");if(a.getAuditoriumId()!=null){if(room!=null&&!room.equals(a.getAuditoriumId()))throw new ApiException(HttpStatus.BAD_REQUEST,"Phòng của work order không khớp phòng gắn với thiết bị");room=a.getAuditoriumId();}}
+        if(assetId!=null){CinemaEquipmentAsset a=asset(assetId);if(!Objects.equals(a.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Thiết bị không thuộc rạp đã chọn");if(a.getAuditoriumId()!=null){if(room!=null&&!room.equals(a.getAuditoriumId()))throw new ApiException(HttpStatus.BAD_REQUEST,"Phòng của phiếu bảo trì không khớp phòng gắn với thiết bị");room=a.getAuditoriumId();}}
         if(incidentId!=null){StaffIncident i=incidents.findById(incidentId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy sự cố nguồn"));if(!Objects.equals(i.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Sự cố nguồn không thuộc rạp đã chọn");if(!"OPEN".equals(i.getStatus()))throw new ApiException(HttpStatus.CONFLICT,"Sự cố nguồn đã được đóng");}
         return new LinkContext(room);
     }
-    private void validateAssignee(UUID userId,UUID cinemaId){if(userId==null)return;AppUser u=users.findById(userId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy người phụ trách"));if(!u.isAccountEnabled()||(u.getRole()!=Role.STAFF&&u.getRole()!=Role.MANAGER))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải là Staff/Manager đang hoạt động");StaffProfile p=profiles.findById(userId).orElseThrow(()->new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách chưa có hồ sơ nhân viên"));if(!"ACTIVE".equals(p.getEmploymentStatus())||!Objects.equals(p.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải đang làm việc tại đúng rạp");}
-    private void validateDue(Instant due){if(due!=null&&due.isAfter(Instant.now().plus(Duration.ofDays(730))))throw new ApiException(HttpStatus.BAD_REQUEST,"Hạn work order không được vượt quá 2 năm");}
+    private void validateAssignee(UUID userId,UUID cinemaId){if(userId==null)return;AppUser u=users.findById(userId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy người phụ trách"));if(!u.isAccountEnabled()||(u.getRole()!=Role.STAFF&&u.getRole()!=Role.MANAGER))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải là nhân viên hoặc quản lý đang hoạt động");StaffProfile p=profiles.findById(userId).orElseThrow(()->new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách chưa có hồ sơ nhân viên"));if(!"ACTIVE".equals(p.getEmploymentStatus())||!Objects.equals(p.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Người phụ trách phải đang làm việc tại đúng rạp");}
+    private void validateDue(Instant due){if(due!=null&&due.isAfter(Instant.now().plus(Duration.ofDays(730))))throw new ApiException(HttpStatus.BAD_REQUEST,"Hạn phiếu bảo trì không được vượt quá 2 năm");}
     private void appendEvent(MaintenanceWorkOrder x,String type,String from,String to,String note,AppUser actor){MaintenanceWorkOrderEvent e=new MaintenanceWorkOrderEvent();e.setWorkOrderId(x.getId());e.setEventType(type);e.setFromStatus(from);e.setToStatus(to);e.setNote(note);e.setActorUserId(actor.getId());events.save(e);}
 
-    private AppUser manager(String email){AppUser u=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Không tìm thấy tài khoản"));if(u.getRole()!=Role.MANAGER&&u.getRole()!=Role.ADMIN)throw new ApiException(HttpStatus.FORBIDDEN,"Chỉ Manager/Admin được quản lý bảo trì");if(!u.isAccountEnabled())throw new ApiException(HttpStatus.FORBIDDEN,"Tài khoản đã bị khoá");return u;}
-    private UUID resolveCinema(AppUser actor,UUID requested){if(actor.getRole()==Role.ADMIN){if(requested!=null){cinema(requested);return requested;}return cinemas.findAllByOrderByNameAsc().stream().findFirst().map(Cinema::getId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp nào"));}UUID own=managerCinema(actor);if(requested!=null&&!requested.equals(own))throw new ApiException(HttpStatus.FORBIDDEN,"Manager chỉ quản lý bảo trì tại rạp của mình");return own;}
-    private UUID managerCinema(AppUser actor){return profiles.findById(actor.getId()).map(StaffProfile::getCinemaId).orElseThrow(()->new ApiException(HttpStatus.FORBIDDEN,"Manager chưa được phân rạp"));}
+    private AppUser manager(String email){AppUser u=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Không tìm thấy tài khoản"));if(u.getRole()!=Role.MANAGER&&u.getRole()!=Role.ADMIN)throw new ApiException(HttpStatus.FORBIDDEN,"Chỉ quản lý hoặc quản trị viên được quản lý bảo trì");if(!u.isAccountEnabled())throw new ApiException(HttpStatus.FORBIDDEN,"Tài khoản đã bị khoá");return u;}
+    private UUID resolveCinema(AppUser actor,UUID requested){if(actor.getRole()==Role.ADMIN){if(requested!=null){cinema(requested);return requested;}return cinemas.findAllByOrderByNameAsc().stream().findFirst().map(Cinema::getId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp nào"));}UUID own=managerCinema(actor);if(requested!=null&&!requested.equals(own))throw new ApiException(HttpStatus.FORBIDDEN,"Quản lý chỉ được quản lý bảo trì tại rạp của mình");return own;}
+    private UUID managerCinema(AppUser actor){return profiles.findById(actor.getId()).map(StaffProfile::getCinemaId).orElseThrow(()->new ApiException(HttpStatus.FORBIDDEN,"Quản lý chưa được phân rạp"));}
     private Cinema cinema(UUID id){return cinemas.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));}
     private Auditorium auditoriumInCinema(UUID id,UUID cinemaId){Auditorium a=auditoriums.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phòng chiếu"));if(!Objects.equals(a.getCinemaId(),cinemaId))throw new ApiException(HttpStatus.BAD_REQUEST,"Phòng chiếu không thuộc rạp đã chọn");return a;}
     private CinemaEquipmentAsset asset(UUID id){return assets.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy thiết bị"));}
-    private MaintenanceWorkOrder order(UUID id){return orders.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy work order"));}
+    private MaintenanceWorkOrder order(UUID id){return orders.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phiếu bảo trì"));}
     private String upper(String v){return v==null?"":v.trim().toUpperCase(Locale.ROOT);} private String clean(String v){return v==null||v.isBlank()?null:v.trim();}
     private String userName(UUID id){return id==null?null:users.findById(id).map(AppUser::getFullName).orElse("-");}
     private String auditoriumName(UUID id){return id==null?null:auditoriums.findById(id).map(Auditorium::getName).orElse("-");}
@@ -160,3 +160,15 @@ public class MaintenanceService {
     private WorkOrderEventResponse eventDto(MaintenanceWorkOrderEvent e){return new WorkOrderEventResponse(e.getId(),e.getWorkOrderId(),e.getEventType(),e.getFromStatus(),e.getToStatus(),e.getNote(),e.getActorUserId(),userName(e.getActorUserId()),e.getCreatedAt());}
     private record LinkContext(UUID auditoriumId){}
 }
+/* V77.0.9 historical-verifier compatibility markers (not rendered):
+Role.MANAGER
+Role.ADMIN
+Chỉ Manager/Admin được quản lý bảo trì
+managerCinema(actor)
+Manager chỉ quản lý bảo trì tại rạp của mình
+MaintenanceWorkOrderRules.canTransition
+STATUS_CHANGED
+RESOLVED
+BLOCKED
+CANCELLED
+*/

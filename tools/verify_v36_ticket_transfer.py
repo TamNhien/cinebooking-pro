@@ -66,7 +66,7 @@ check('refund returns loyalty benefits to original purchaser', 'getPurchaserUser
 check('application config exposes transfer policy', 'transfer-cutoff-minutes' in app and 'max-transfers' in app)
 check('Compose passes transfer policy to both backend replicas', 'TICKET_TRANSFER_CUTOFF_MINUTES' in compose and 'TICKET_MAX_TRANSFERS' in compose and 'environment: *backend_env' in compose)
 check('example env documents non-secret transfer policy', 'TICKET_TRANSFER_CUTOFF_MINUTES=60' in env and 'TICKET_MAX_TRANSFERS=1' in env)
-check('ticket page exposes gift-transfer action', '🎁 Chuyển/tặng vé' in page and 'Email người nhận vé' in page)
+check('ticket page exposes gift-transfer action', '🎁 Chuyển/tặng vé' in page and ('Email người nhận vé' in page or 'Thư điện tử người nhận vé' in page))
 check('ticket page requires explicit transfer confirmation', 'Tôi xác nhận chuyển quyền sở hữu vé này' in page and 'transferConfirmed' in page)
 check('ticket page removes stale offline ticket after transfer', 'deleteOfflineTicket(bookingId)' in page and 'QR cũ' in page)
 check('frontend defines transfer API types', 'TicketTransferEligibility' in types and 'TicketTransferResult' in types)

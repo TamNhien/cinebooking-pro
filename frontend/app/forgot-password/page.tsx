@@ -29,16 +29,16 @@ export default function ForgotPassword() {
   return (
     <div className="mx-auto max-w-md card p-7">
       <h1 className="text-3xl font-bold">Quên mật khẩu</h1>
-      <p className="mt-2 text-sm text-slate-400">Nhập email đã đăng ký. CineBooking sẽ gửi một liên kết đặt lại mật khẩu có thời hạn.</p>
+      <p className="mt-2 text-sm text-slate-400">Nhập thư điện tử đã đăng ký. CineBooking sẽ gửi một liên kết đặt lại mật khẩu có thời hạn.</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required />
+        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Thư điện tử" autoComplete="email" required />
         <button disabled={busy} className="btn btn-primary w-full">{busy ? "Đang gửi email..." : "Gửi liên kết đặt lại mật khẩu"}</button>
       </form>
       {err && <p className="mt-4 text-sm text-red-300">{err}</p>}
       {resp && (
         <div className="mt-4 rounded-xl bg-emerald-950/40 p-4 text-sm text-emerald-200">
           <p>{resp.message}</p>
-          <p className="mt-2 text-emerald-100/80">Nếu email đúng và tồn tại, hãy kiểm tra Hộp thư đến và cả thư mục Spam.</p>
+          <p className="mt-2 text-emerald-100/80">Nếu thư điện tử đúng và tồn tại, hãy kiểm tra Hộp thư đến và cả thư mục Thư rác.</p>
           {resp.devResetUrl && <p className="mt-3">Chế độ phát triển: <a className="underline" href={resp.devResetUrl}>mở liên kết đặt lại mật khẩu</a>.</p>}
         </div>
       )}

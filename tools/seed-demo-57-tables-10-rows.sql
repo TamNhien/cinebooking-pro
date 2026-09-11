@@ -669,8 +669,8 @@ INSERT INTO loyalty_reward(
 SELECT
     md5('seed45:reward:' || n)::uuid,
     format('CBRWD%s', to_char(n,'FM000')),
-    (ARRAY['Voucher thành viên 10.000đ','Voucher cuối tuần 10.000đ','Voucher sinh nhật 10.000đ','Voucher đặt vé trực tuyến 10.000đ','Voucher bắp nước 10.000đ','Voucher suất tối 10.000đ','Voucher khách hàng thân thiết 10.000đ','Voucher gia đình 10.000đ','Voucher học sinh sinh viên 10.000đ','Voucher tri ân 10.000đ'])[n],
-    'Voucher đổi bằng điểm thành viên',
+    (ARRAY['Mã ưu đãi thành viên 10.000đ','Mã ưu đãi cuối tuần 10.000đ','Mã ưu đãi sinh nhật 10.000đ','Mã ưu đãi đặt vé trực tuyến 10.000đ','Mã ưu đãi bắp nước 10.000đ','Mã ưu đãi suất tối 10.000đ','Mã ưu đãi khách hàng thân thiết 10.000đ','Mã ưu đãi gia đình 10.000đ','Mã ưu đãi học sinh sinh viên 10.000đ','Mã ưu đãi tri ân 10.000đ'])[n],
+    'Mã ưu đãi đổi bằng điểm thành viên',
     'VOUCHER',100 + n * 10,'FIXED',10000,
     100000,NULL,30,NULL,NULL,TRUE,n,
     CURRENT_TIMESTAMP - (n || ' days')::interval
@@ -849,8 +849,8 @@ SELECT
     md5('seed45:notification:' || n)::uuid,
     md5('seed45:customer:' || n)::uuid,
     'BOOKING_UPDATE',
-    (ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[n],
-    (ARRAY['Booking của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[n],
+    (ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Mã ưu đãi sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để soát vé','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[n],
+    (ARRAY['Lượt đặt vé của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có mã ưu đãi sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[n],
     '/bookings',
     (n % 2 = 0),
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
@@ -950,7 +950,7 @@ SELECT
     'BOOKING_CONFIRMED',
     'BOOKING',
     md5('seed45:booking:' || n)::uuid::text,
-    format('Booking %s đã được xác nhận và ghi nhận thanh toán.', to_char(n,'FM00')),
+    format('Lượt đặt vé %s đã được xác nhận và ghi nhận thanh toán.', to_char(n,'FM00')),
     format('172.45.0.%s', n),
     CURRENT_TIMESTAMP - (n || ' hours')::interval
 FROM generate_series(1,10) AS g(n)
@@ -972,7 +972,7 @@ SELECT
     CASE WHEN n % 3 = 0 THEN 'EQUIPMENT' WHEN n % 3 = 1 THEN 'CUSTOMER' ELSE 'SAFETY' END,
     CASE WHEN n % 4 = 0 THEN 'HIGH' ELSE 'MEDIUM' END,
     (ARRAY['Máy POS mất kết nối','Khách để quên tài sản','Cửa thoát hiểm khó đóng','Máy chiếu giảm độ sáng','Quầy bắp nước mất điện tạm thời','Khách cần hỗ trợ đổi vị trí ghế','Nhiệt độ phòng chiếu cao','Âm thanh kênh trái bị nhỏ','Máy quét QR phản hồi chậm','Lối đi có vật cản'])[n],
-    (ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi check-in.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[n],
+    (ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi soát vé.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[n],
     'RESOLVED',
     md5('seed45:user:1')::uuid,
     CURRENT_TIMESTAMP - (n || ' hours')::interval,
@@ -1101,7 +1101,7 @@ SELECT
     md5('seed45:payment:' || n)::uuid,
     md5('seed45:customer:' || n)::uuid,
     'PAYMENT_SERVICE',
-    format('Ghi nhận thanh toán booking %s', to_char(n,'FM00')),
+    format('Ghi nhận thanh toán lượt đặt vé %s', to_char(n,'FM00')),
     CURRENT_TIMESTAMP - (n || ' days')::interval,
     CURRENT_TIMESTAMP - (n || ' days')::interval
 FROM generate_series(1,10) AS g(n)
@@ -1183,8 +1183,8 @@ SELECT
     (ARRAY['BOOKING','PAYMENT','REFUND','TICKET','CINEMA_EXPERIENCE','STAFF','OTHER'])[((n - 1) % 7) + 1],
     (ARRAY['LOW','MEDIUM','HIGH','CRITICAL'])[((n - 1) % 4) + 1],
     (ARRAY['OPEN','IN_PROGRESS','WAITING_CUSTOMER','RESOLVED','CLOSED'])[((n - 1) % 5) + 1],
-    (ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[n],
-    (ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[n],
+    (ARRAY['Không nhận được thư điện tử xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[n],
+    (ARRAY['Khách chưa nhận được thư điện tử xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của lượt đặt vé đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[n],
     md5('seed45:user:' || n)::uuid,
     CURRENT_TIMESTAMP + ((12 + n * 6) || ' hours')::interval,
     CASE WHEN ((n - 1) % 5) + 1 IN (4,5) THEN format('Yêu cầu hỗ trợ %s đã được xử lý', to_char(n,'FM00')) ELSE NULL END,
@@ -1405,8 +1405,8 @@ FROM generate_series(1,10) g(n) WHERE t.id = md5('seed45:loyalty-tx:' || g.n)::u
 
 UPDATE loyalty_reward r SET
     code=format('CBRWD%s', to_char(g.n,'FM000')),
-    name=(ARRAY['Voucher thành viên 10.000đ','Voucher cuối tuần 10.000đ','Voucher sinh nhật 10.000đ','Voucher đặt vé trực tuyến 10.000đ','Voucher bắp nước 10.000đ','Voucher suất tối 10.000đ','Voucher khách hàng thân thiết 10.000đ','Voucher gia đình 10.000đ','Voucher học sinh sinh viên 10.000đ','Voucher tri ân 10.000đ'])[g.n],
-    description='Voucher đổi bằng điểm thành viên'
+    name=(ARRAY['Mã ưu đãi thành viên 10.000đ','Mã ưu đãi cuối tuần 10.000đ','Mã ưu đãi sinh nhật 10.000đ','Mã ưu đãi đặt vé trực tuyến 10.000đ','Mã ưu đãi bắp nước 10.000đ','Mã ưu đãi suất tối 10.000đ','Mã ưu đãi khách hàng thân thiết 10.000đ','Mã ưu đãi gia đình 10.000đ','Mã ưu đãi học sinh sinh viên 10.000đ','Mã ưu đãi tri ân 10.000đ'])[g.n],
+    description='Mã ưu đãi đổi bằng điểm thành viên'
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:reward:' || g.n)::uuid;
 UPDATE loyalty_reward_redemption r SET redemption_code=format('CB-REWARD-%s', to_char(g.n,'FM000'))
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:reward-redemption:' || g.n)::uuid;
@@ -1433,8 +1433,8 @@ FROM generate_series(1,10) g(n) WHERE c.id=md5('seed45:support-case:' || g.n)::u
 
 UPDATE user_notification n SET
     notification_type='BOOKING_UPDATE',
-    title=(ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Voucher sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để check-in','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[g.n],
-    message=(ARRAY['Booking của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[g.n],
+    title=(ARRAY['Đặt vé thành công','Sắp đến giờ chiếu','Điểm thành viên vừa được cộng','Mã ưu đãi sắp hết hạn','Cập nhật lịch chiếu','Ưu đãi bắp nước hôm nay','Vé đã sẵn sàng để soát vé','Thông tin phòng chiếu','Nhắc lịch xem phim','Cập nhật tài khoản'])[g.n],
+    message=(ARRAY['Lượt đặt vé của bạn đã được xác nhận.','Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.','Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.','Bạn có mã ưu đãi sắp hết hạn, hãy sử dụng trước thời hạn.','Lịch chiếu của phim bạn quan tâm vừa được cập nhật.','Một số combo bắp nước đang có ưu đãi tại rạp.','Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.','Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.','CineBooking nhắc bạn về lịch xem phim đã đặt.','Thông tin tài khoản của bạn vừa được cập nhật.'])[g.n],
     dedupe_key=format('booking-notification-%s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE n.id = md5('seed45:notification:' || g.n)::uuid;
 
@@ -1446,12 +1446,12 @@ UPDATE staff_leave_request r SET
     review_note='Đã duyệt theo lịch nhân sự của rạp'
 FROM generate_series(1,10) g(n) WHERE r.id = md5('seed45:leave:' || g.n)::uuid;
 
-UPDATE audit_log a SET actor_email=p.email, action='BOOKING_CONFIRMED', details=format('Booking %s đã được xác nhận và ghi nhận thanh toán.', to_char(p.n,'FM00'))
+UPDATE audit_log a SET actor_email=p.email, action='BOOKING_CONFIRMED', details=format('Lượt đặt vé %s đã được xác nhận và ghi nhận thanh toán.', to_char(p.n,'FM00'))
 FROM seed_real_people p WHERE a.id = md5('seed45:audit:' || p.n)::uuid;
 
 UPDATE staff_incident i SET
     title=(ARRAY['Máy POS mất kết nối','Khách để quên tài sản','Cửa thoát hiểm khó đóng','Máy chiếu giảm độ sáng','Quầy bắp nước mất điện tạm thời','Khách cần hỗ trợ đổi vị trí ghế','Nhiệt độ phòng chiếu cao','Âm thanh kênh trái bị nhỏ','Máy quét QR phản hồi chậm','Lối đi có vật cản'])[g.n],
-    description=(ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi check-in.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[g.n],
+    description=(ARRAY['Máy POS tại quầy vé không kết nối được mạng nội bộ.','Khách báo để quên ví tại khu vực ghế chờ.','Nhân viên phát hiện cửa thoát hiểm cần kiểm tra bản lề.','Độ sáng máy chiếu thấp hơn mức vận hành thông thường.','Nguồn điện tại quầy bắp nước gián đoạn trong vài phút.','Khách cần hỗ trợ kiểm tra lại vị trí ghế trên vé.','Nhiệt độ phòng chiếu tăng cao trong suất tối.','Kênh loa bên trái có âm lượng thấp hơn các kênh còn lại.','Máy quét QR tại cổng phản hồi chậm khi soát vé.','Nhân viên phát hiện vật cản tại lối đi và xử lý ngay.'])[g.n],
     resolution_note='Sự cố đã được xử lý và ghi nhận trong ca trực'
 FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:incident:' || g.n)::uuid;
 
@@ -1482,8 +1482,8 @@ FROM generate_series(1,10) g(n) WHERE i.id = md5('seed45:recon-issue:' || g.n)::
 UPDATE customer_support_case c SET
     assigned_to=md5('seed45:user:' || g.n)::uuid,
     case_number=format('CB-SUP-202608-%s', to_char(g.n,'FM0000')),
-    subject=(ARRAY['Không nhận được email xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[g.n],
-    description=(ARRAY['Khách chưa nhận được email xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của booking đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[g.n],
+    subject=(ARRAY['Không nhận được thư điện tử xác nhận vé','Thanh toán thành công nhưng vé chưa cập nhật','Cần kiểm tra trạng thái hoàn tiền','Mã QR vé không hiển thị','Âm thanh phòng chiếu quá nhỏ','Cần hỗ trợ từ nhân viên tại rạp','Thay đổi thông tin liên hệ','Ghế đã chọn không đúng vị trí','Giao dịch thanh toán bị treo','Muốn xác nhận chính sách hoàn vé'])[g.n],
+    description=(ARRAY['Khách chưa nhận được thư điện tử xác nhận sau khi hoàn tất đặt vé.','Khách thấy giao dịch thành công nhưng trạng thái vé chưa cập nhật.','Khách muốn biết thời điểm khoản hoàn tiền được ghi nhận.','Ứng dụng không hiển thị mã QR của lượt đặt vé đã xác nhận.','Khách phản ánh âm lượng tại phòng chiếu thấp hơn bình thường.','Khách cần nhân viên rạp hỗ trợ tại khu vực sảnh.','Khách muốn cập nhật số điện thoại liên hệ của tài khoản.','Khách cần kiểm tra vị trí ghế đã chọn trên sơ đồ.','Trang thanh toán đang hiển thị giao dịch ở trạng thái chờ.','Khách cần được giải thích điều kiện và thời hạn hoàn vé.'])[g.n],
     resolution_note=CASE WHEN c.status IN ('RESOLVED','CLOSED') THEN format('Yêu cầu hỗ trợ %s đã được xử lý', to_char(g.n,'FM00')) ELSE NULL END
 FROM generate_series(1,10) g(n) WHERE c.id = md5('seed45:support-case:' || g.n)::uuid;
 
@@ -1508,7 +1508,7 @@ FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:work-event:' || g.n)::u
 UPDATE financial_ledger_entry e SET
     event_key=format('PAYMENT_CAPTURE:20260822:%s', to_char(g.n,'FM00')),
     source='PAYMENT_SERVICE',
-    description=format('Ghi nhận thanh toán booking %s', to_char(g.n,'FM00'))
+    description=format('Ghi nhận thanh toán lượt đặt vé %s', to_char(g.n,'FM00'))
 FROM generate_series(1,10) g(n) WHERE e.id = md5('seed45:ledger-entry:' || g.n)::uuid;
 UPDATE financial_ledger_line l SET account_code='PAYMENT_CLEARING:MOCK'
 WHERE l.id IN (SELECT md5('seed45:ledger-line:debit:' || n)::uuid FROM generate_series(1,10) g(n));

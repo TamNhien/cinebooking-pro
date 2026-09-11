@@ -176,7 +176,7 @@ check('V73 admin runtime surface Node24 posture','NODE24 READY' in v73ui and 'ac
 check('V73 admin runtime surface exposes no secret values','GITHUB_TOKEN' not in v73ui and 'gho_' not in v73ui and 'password' not in v73ui.lower())
 check('V74 UI root test id','reliability-v74' in ui)
 check('V74 UI summary test id','reliability-summary-v74' in ui)
-check('V74 UI burn-rate panel','burn-rate-v74' in ui and 'Fast burn' in ui and 'Slow burn' in ui)
+check('V74 UI burn-rate panel','burn-rate-v74' in ui and ('Fast burn' in ui or 'Tiêu hao nhanh' in ui) and ('Slow burn' in ui or 'Tiêu hao chậm' in ui))
 check('V74 UI policy panel','reliability-policy-v74' in ui)
 check('V74 UI incident timeline','incident-timeline-v74' in ui)
 check('V74 UI failover panel','failover-drill-v74' in ui)

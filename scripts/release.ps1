@@ -45,6 +45,12 @@ if (-not $SkipVerify) {
     'tools/verify_v77_0_5_warning_free_runtime_e2e.py',
     'tools/verify_v77_0_6_dependency_security_playwright_bootstrap.py',
     'tools/verify_v77_0_7_security_e2e_strict_locator_reliability.py',
+    'tools/verify_v77_0_8_ci_deprecation_chromium_brand_identity.py',
+    'tools/verify_v77_0_9_vietnamese_ui_maintenance_completion.py',
+    'tools/verify_v77_0_10_vietnamese_localizer_immutable_ledger.py',
+    'tools/verify_v77_0_11_docker_windows_node_modules_hygiene.py',
+    'tools/verify_v77_0_12_typescript_localization_contract_hygiene.py',
+    'tools/verify_v77_0_13_zero_warning_vietnamese_ui_lint.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'
   )
