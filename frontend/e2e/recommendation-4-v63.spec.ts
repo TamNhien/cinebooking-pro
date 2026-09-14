@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ensureSurface, gotoSurface } from "./runtime-guards";
 
 const PASSWORD="V63E2e!DeepTaste123";
 
@@ -14,9 +15,9 @@ test("V63 Recommendation 4.0 deep profile, explainability and discovery mode",as
   await page.getByRole("button",{name:"Đăng ký"}).click();
   await expect(page).toHaveURL(/\/$/);
 
-  await page.goto("/for-you");
-  await expect(page.getByTestId("for-you-v63")).toBeVisible();
-  await expect(page.getByText("V63 · RECOMMENDATION 4.0")).toBeVisible();
+  await gotoSurface(page,"/for-you","for-you-v63");
+  await expect(page.getByTestId("for-you-v63")).toHaveAttribute("data-recommendation-ready","true",{timeout:30_000});
+  await expect(page.getByText("V76 · GỢI Ý PHIM 5.0")).toBeVisible();
   await expect(page.getByTestId("recommendation-mode-v63")).toBeVisible();
   await expect(page.getByTestId("taste-profile")).toContainText("Độ mạnh hồ sơ");
 
@@ -36,7 +37,8 @@ test("V63 Recommendation 4.0 deep profile, explainability and discovery mode",as
   await expect(page.getByTestId("score-breakdown-v63").first()).toBeVisible();
   await expect.poll(async()=>page.getByTestId("new-to-you-v63").count()).toBeGreaterThan(0);
 
-  await page.reload();
-  await expect(page.getByTestId("for-you-v63")).toBeVisible();
-  await expect(page.getByText(/Vì bạn muốn xem thêm phim giống|Hợp gu|Khám phá mới/).first()).toBeVisible();
+  await page.reload({waitUntil:"domcontentloaded"});
+  await ensureSurface(page,"for-you-v63","/for-you");
+  await expect(page.getByTestId("for-you-v63")).toHaveAttribute("data-recommendation-ready","true",{timeout:30_000});
+  await expect(page.getByText(/Vì bạn muốn xem thêm phim giống|Hợp gu|Khám phá mới/).first()).toBeVisible({timeout:30_000});
 });

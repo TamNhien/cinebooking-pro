@@ -6,6 +6,8 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import { isStrongPassword } from "@/lib/password";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import PasswordInput from "@/components/PasswordInput";
 import PasswordStrength from "@/components/PasswordStrength";
 import type { Cinema, StaffAccount, UserProfile } from "@/lib/types";
@@ -44,7 +46,7 @@ const emptyForm: StaffForm = {
   phone:"",
   role:"STAFF",
   cinemaId:"",
-  jobTitle:"Nhân viên rạp",
+  jobTitle:"",
   employmentStatus:"ACTIVE",
   hireDate:new Date().toISOString().slice(0,10),
   accountEnabled:true,
@@ -52,9 +54,10 @@ const emptyForm: StaffForm = {
   confirmPassword:"",
 };
 
-const statusLabel:Record<StaffAccount["employmentStatus"],string>={ACTIVE:"Đang làm việc",ON_LEAVE:"Đang nghỉ phép",INACTIVE:"Ngừng làm việc"};
+const employmentLabel=(status:StaffAccount["employmentStatus"],language:Language)=>language==="vi"?({ACTIVE:"Đang làm việc",ON_LEAVE:"Đang nghỉ phép",INACTIVE:"Ngừng làm việc"} as const)[status]:({ACTIVE:"Active",ON_LEAVE:"On leave",INACTIVE:"Inactive"} as const)[status];
 
 export default function AdminStaffPage(){
+  const { language, locale, t } = usePresentationLanguage();
   const [items,setItems]=useState<StaffAccount[]>([]);
   const [cinemas,setCinemas]=useState<Cinema[]>([]);
   const [form,setForm]=useState<StaffForm>({...emptyForm});
@@ -120,13 +123,13 @@ export default function AdminStaffPage(){
   function reset(){setEditingId(null);setEmailStatus(null);setForm({...emptyForm,hireDate:new Date().toISOString().slice(0,10)});}
 
   async function deleteStaff(s:StaffAccount){
-    const warning=`Xóa nhân viên ${s.employeeCode} - ${s.fullName}?\n\nTài khoản sẽ bị khóa, ca chưa thực hiện sẽ bị hủy. Lịch sử chấm công, quét vé và audit vẫn được giữ.`;
+    const warning=t(`Xóa nhân viên ${s.employeeCode} - ${s.fullName}?\n\nTài khoản sẽ bị khóa, ca chưa thực hiện sẽ bị hủy. Lịch sử chấm công, quét vé và kiểm toán vẫn được giữ.`,`Delete staff member ${s.employeeCode} - ${s.fullName}?\n\nThe account will be disabled and unperformed shifts will be cancelled. Attendance, ticket-scan, and audit history will be preserved.`);
     if(!confirm(warning))return;
     setMsg("");
     try{
       const r=await api<{message:string;cancelledShifts:number;endedActiveShift:boolean}>(`/admin/staff/${s.userId}`,{method:"DELETE"});
       if(editingId===s.userId)reset();
-      setMsg(`${r.message} Đã hủy ${r.cancelledShifts} ca${r.endedActiveShift?" và kết thúc ca đang làm":""}.`);
+      setMsg(language==="en"?`${r.message} Cancelled ${r.cancelledShifts} shifts${r.endedActiveShift?" and ended the active shift":""}.`:`${r.message} Đã hủy ${r.cancelledShifts} ca${r.endedActiveShift?" và kết thúc ca đang làm":""}.`);
       await load();
     }catch(e){setMsg((e as Error).message)}
   }
@@ -137,26 +140,26 @@ export default function AdminStaffPage(){
     try{
       const common={employeeCode:form.employeeCode,email:form.email,fullName:form.fullName,phone:form.phone||null,role:form.role,cinemaId:form.cinemaId||null,jobTitle:form.jobTitle||null,employmentStatus:form.employmentStatus,hireDate:form.hireDate||null,accountEnabled:form.accountEnabled};
       if(editingId){
-        if(form.password && !isStrongPassword(form.password))throw new Error("Mật khẩu mới chưa đạt yêu cầu bảo mật.");
-        if(form.password!==form.confirmPassword)throw new Error("Mật khẩu xác nhận chưa trùng khớp.");
+        if(form.password && !isStrongPassword(form.password))throw new Error(t("Mật khẩu mới chưa đạt yêu cầu bảo mật.","The new password does not meet security requirements."));
+        if(form.password!==form.confirmPassword)throw new Error(t("Mật khẩu xác nhận chưa trùng khớp.","The confirmation password does not match."));
         await api(`/admin/staff/${editingId}`,{method:"PUT",body:JSON.stringify({...common,newPassword:form.password||null})});
-        setMsg("Đã cập nhật tài khoản nhân viên.");
+        setMsg(t("Đã cập nhật tài khoản nhân viên.","Staff account updated."));
       }else{
         const status=await api<EmailStatus>(`/admin/staff/email-status?email=${encodeURIComponent(form.email.trim())}`);
         setEmailStatus(status);
-        if(status.activeStaff)throw new Error("Email này đã thuộc một nhân viên đang hoạt động. Hãy chỉnh sửa nhân viên hiện có thay vì tạo mới.");
+        if(status.activeStaff)throw new Error(t("Thư điện tử này đã thuộc một nhân viên đang hoạt động. Hãy chỉnh sửa nhân viên hiện có thay vì tạo mới.","This email already belongs to an active staff member. Edit the existing staff account instead of creating a new one."));
         if(status.exists&&status.canPromote){
-          const action=status.deletedStaff?"khôi phục nhân viên đã xóa":"chuyển tài khoản hiện có thành nhân viên";
-          if(!confirm(`${status.message}\n\nBạn có chắc muốn ${action}?\nMật khẩu hiện tại của tài khoản sẽ được GIỮ NGUYÊN.`))return;
+          const action=status.deletedStaff?t("khôi phục nhân viên đã xóa","restore the deleted staff member"):t("chuyển tài khoản hiện có thành nhân viên","convert the existing account to staff");
+          if(!confirm(t(`${status.message}\n\nBạn có chắc muốn ${action}?\nMật khẩu hiện tại của tài khoản sẽ được GIỮ NGUYÊN.`,`${status.message}\n\nAre you sure you want to ${action}?\nThe account current password will be PRESERVED.`)))return;
           await api("/admin/staff/promote",{method:"POST",body:JSON.stringify(common)});
-          setMsg(status.deletedStaff?"Đã khôi phục tài khoản nhân viên.":"Đã chuyển tài khoản hiện có thành nhân viên. Mật khẩu cũ được giữ nguyên.");
+          setMsg(status.deletedStaff?t("Đã khôi phục tài khoản nhân viên.","Staff account restored."):t("Đã chuyển tài khoản hiện có thành nhân viên. Mật khẩu cũ được giữ nguyên.","Existing account converted to staff. The previous password was preserved."));
         }else if(status.exists){
           throw new Error(status.message);
         }else{
-          if(!isStrongPassword(form.password))throw new Error("Mật khẩu nhân viên chưa đạt yêu cầu bảo mật.");
-          if(form.password!==form.confirmPassword)throw new Error("Mật khẩu xác nhận chưa trùng khớp.");
+          if(!isStrongPassword(form.password))throw new Error(t("Mật khẩu nhân viên chưa đạt yêu cầu bảo mật.","The staff password does not meet security requirements."));
+          if(form.password!==form.confirmPassword)throw new Error(t("Mật khẩu xác nhận chưa trùng khớp.","The confirmation password does not match."));
           await api("/admin/staff",{method:"POST",body:JSON.stringify({...common,password:form.password})});
-          setMsg("Đã tạo tài khoản nhân viên mới.");
+          setMsg(t("Đã tạo tài khoản nhân viên mới.","New staff account created."));
         }
       }
       reset();await load();
@@ -167,7 +170,7 @@ export default function AdminStaffPage(){
 
   return <div className="space-y-7">
     <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><div className="mb-2 text-sm text-slate-400"><Link href="/admin" className="hover:text-white">Quản trị viên</Link> / Nhân viên</div><h1 className="text-3xl font-bold">Quản lý tài khoản nhân viên</h1><p className="mt-1 text-slate-400">Tạo, chuyển tài khoản có sẵn, chỉnh sửa hoặc xóa NHÂN VIÊN/QUẢN LÝ. Email trong hệ thống là duy nhất.</p></div>
+      <div><div className="mb-2 text-sm text-slate-400"><Link href="/admin" className="hover:text-white">Quản trị viên</Link> / Nhân viên</div><h1 className="text-3xl font-bold">Quản lý tài khoản nhân viên</h1><p className="mt-1 text-slate-400">Tạo, chuyển tài khoản có sẵn, chỉnh sửa hoặc xóa NHÂN VIÊN/QUẢN LÝ. Thư điện tử trong hệ thống là duy nhất.</p></div>
       <Link href="/admin" className="btn btn-secondary">← Bảng điều khiển</Link>
     </div>
 
@@ -178,7 +181,7 @@ export default function AdminStaffPage(){
         <div className="flex items-center justify-between"><h2 className="text-xl font-bold">{editingId?"Chỉnh sửa nhân viên":promotable?(emailStatus?.deletedStaff?"Khôi phục nhân viên":"Chuyển thành nhân viên"):"Tạo nhân viên mới"}</h2>{editingId&&<button type="button" className="text-sm text-slate-400 hover:text-white" onClick={reset}>Huỷ sửa</button>}</div>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="mb-1.5 block text-sm text-slate-300">Mã nhân viên</label><input className="input" placeholder="NV0001" value={form.employeeCode} onChange={e=>setForm({...form,employeeCode:e.target.value.toUpperCase()})} required/></div>
-          <div><label className="mb-1.5 block text-sm text-slate-300">Cấp tài khoản</label><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value as StaffForm["role"],jobTitle:e.target.value==="MANAGER"?"Quản lý rạp":form.jobTitle})}><option value="STAFF">NHÂN VIÊN</option><option value="MANAGER">QUẢN LÝ</option></select></div>
+          <div><label className="mb-1.5 block text-sm text-slate-300">Cấp tài khoản</label><select className="input" value={form.role} onChange={e=>setForm({...form,role:e.target.value as StaffForm["role"],jobTitle:e.target.value==="MANAGER"?t("Quản lý rạp","Cinema manager"):form.jobTitle})}><option value="STAFF">{t("NHÂN VIÊN","STAFF")}</option><option value="MANAGER">{t("QUẢN LÝ","MANAGER")}</option></select></div>
         </div>
         <div><label className="mb-1.5 block text-sm text-slate-300">Họ và tên</label><input className="input" value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} required/></div>
         <div>
@@ -189,9 +192,9 @@ export default function AdminStaffPage(){
           </div>}
         </div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Số điện thoại</label><input className="input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></div><div><label className="mb-1.5 block text-sm text-slate-300">Ngày vào làm</label><input className="input" type="date" value={form.hireDate} onChange={e=>setForm({...form,hireDate:e.target.value})}/></div></div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">Rạp được phân công</label><select className="input" value={form.cinemaId} onChange={e=>setForm({...form,cinemaId:e.target.value})}><option value="">Chưa phân rạp</option>{cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">Chức danh</label><input className="input" placeholder="Nhân viên soát vé" value={form.jobTitle} onChange={e=>setForm({...form,jobTitle:e.target.value})}/></div>
-        <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Trạng thái nhân sự</label><select className="input" value={form.employmentStatus} onChange={e=>{const employmentStatus=e.target.value as StaffForm["employmentStatus"];setForm({...form,employmentStatus,accountEnabled:employmentStatus==="INACTIVE"?false:form.accountEnabled})}}><option value="ACTIVE">Đang làm việc</option><option value="ON_LEAVE">Nghỉ phép</option><option value="INACTIVE">Ngừng làm việc</option></select></div><label className="mt-7 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.accountEnabled} onChange={e=>setForm({...form,accountEnabled:e.target.checked})}/> Cho phép đăng nhập</label></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">Rạp được phân công</label><select className="input" value={form.cinemaId} onChange={e=>setForm({...form,cinemaId:e.target.value})}><option value="">Chưa phân rạp</option>{cinemas.map(c=><option key={c.id} value={c.id} data-i18n-skip="true">{c.name}</option>)}</select></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">Chức danh</label><input className="input" placeholder={t("Nhân viên soát vé","Ticket-checking staff")} value={form.jobTitle} onChange={e=>setForm({...form,jobTitle:e.target.value})}/></div>
+        <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Trạng thái nhân sự</label><select className="input" value={form.employmentStatus} onChange={e=>{const employmentStatus=e.target.value as StaffForm["employmentStatus"];setForm({...form,employmentStatus,accountEnabled:employmentStatus==="INACTIVE"?false:form.accountEnabled})}}><option value="ACTIVE">{t("Đang làm việc","Active")}</option><option value="ON_LEAVE">{t("Nghỉ phép","On leave")}</option><option value="INACTIVE">{t("Ngừng làm việc","Inactive")}</option></select></div><label className="mt-7 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.accountEnabled} onChange={e=>setForm({...form,accountEnabled:e.target.checked})}/> Cho phép đăng nhập</label></div>
 
         {promotable?<div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100"><b>{emailStatus?.deletedStaff?"Khôi phục tài khoản":"Dùng tài khoản hiện có"}</b><div className="mt-1 text-amber-200/80">Không cần tạo mật khẩu mới. Hệ thống giữ nguyên hàm băm mật khẩu hiện tại, lượt đặt vé và lịch sử của tài khoản. Sau khi chuyển, quản trị viên vẫn có thể vào “Chỉnh sửa” để đặt mật khẩu mới nếu cần.</div></div>:<>
           <PasswordInput label={editingId?"Mật khẩu mới (không bắt buộc)":"Mật khẩu đăng nhập"} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required={!editingId} autoComplete="new-password"/>
@@ -202,8 +205,8 @@ export default function AdminStaffPage(){
       </form>
 
       <div className="space-y-4">
-        <div className="card grid gap-3 p-4 md:grid-cols-[1fr_220px]"><input className="input" placeholder="Tìm mã NV, tên, thư điện tử, rạp..." value={query} onChange={e=>setQuery(e.target.value)}/><select className="input" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">Tất cả trạng thái</option><option value="ACTIVE">Đang làm việc</option><option value="ON_LEAVE">Nghỉ phép</option><option value="INACTIVE">Ngừng làm việc</option></select></div>
-        <div className="grid gap-3">{filtered.map(s=><div key={s.userId} className="card p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-300">{s.employeeCode}</span><b className="text-lg">{s.fullName}</b><span className="rounded-lg border border-slate-700 px-2 py-1 text-xs">{s.role}</span></div><div className="mt-2 text-sm text-slate-400">{s.email} · {s.phone||"Chưa có SĐT"}</div><div className="mt-1 text-sm text-slate-400">🏢 {s.cinemaName||"Chưa phân rạp"} · {s.jobTitle||"Chưa đặt chức danh"}</div><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className={`rounded-full px-2 py-1 ${s.employmentStatus==="ACTIVE"?"bg-emerald-500/15 text-emerald-300":s.employmentStatus==="ON_LEAVE"?"bg-amber-500/15 text-amber-300":"bg-slate-700 text-slate-300"}`}>{statusLabel[s.employmentStatus]}</span><span className={`rounded-full px-2 py-1 ${s.accountEnabled?"bg-cyan-500/15 text-cyan-300":"bg-red-500/15 text-red-300"}`}>{s.accountEnabled?"Có thể đăng nhập":"Đã khoá đăng nhập"}</span>{s.hireDate&&<span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">Vào làm {new Date(s.hireDate+"T00:00:00").toLocaleDateString("vi-VN")}</span>}</div></div><div className="flex flex-wrap gap-2"><button className="btn btn-secondary" onClick={()=>edit(s)}>✏️ Chỉnh sửa</button><button className="btn btn-secondary !border-red-800/70 !text-red-300 hover:!bg-red-950/50" onClick={()=>deleteStaff(s)}>🗑 Xóa</button></div></div></div>)}{filtered.length===0&&<div className="card p-8 text-center text-slate-400">Không tìm thấy nhân viên phù hợp.</div>}</div>
+        <div className="card grid gap-3 p-4 md:grid-cols-[1fr_220px]"><input className="input" placeholder="Tìm mã NV, tên, thư điện tử, rạp..." value={query} onChange={e=>setQuery(e.target.value)}/><select className="input" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">Tất cả trạng thái</option><option value="ACTIVE">{t("Đang làm việc","Active")}</option><option value="ON_LEAVE">{t("Nghỉ phép","On leave")}</option><option value="INACTIVE">{t("Ngừng làm việc","Inactive")}</option></select></div>
+        <div className="grid gap-3">{filtered.map(s=><div key={s.userId} className="card p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-rose-500/15 px-2 py-1 text-xs font-bold text-rose-300">{s.employeeCode}</span><b className="text-lg">{s.fullName}</b><span className="rounded-lg border border-slate-700 px-2 py-1 text-xs">{localizedLabel(s.role,language)}</span></div><div className="mt-2 text-sm text-slate-400">{s.email} · {s.phone||"Chưa có SĐT"}</div><div className="mt-1 text-sm text-slate-400">🏢 {s.cinemaName||"Chưa phân rạp"} · {s.jobTitle||"Chưa đặt chức danh"}</div><div className="mt-2 flex flex-wrap gap-2 text-xs"><span className={`rounded-full px-2 py-1 ${s.employmentStatus==="ACTIVE"?"bg-emerald-500/15 text-emerald-300":s.employmentStatus==="ON_LEAVE"?"bg-amber-500/15 text-amber-300":"bg-slate-700 text-slate-300"}`}>{employmentLabel(s.employmentStatus,language)}</span><span className={`rounded-full px-2 py-1 ${s.accountEnabled?"bg-cyan-500/15 text-cyan-300":"bg-red-500/15 text-red-300"}`}>{s.accountEnabled?"Có thể đăng nhập":"Đã khoá đăng nhập"}</span>{s.hireDate&&<span className="rounded-full bg-slate-800 px-2 py-1 text-slate-300">{t("Vào làm","Hired")} {new Date(s.hireDate+"T00:00:00").toLocaleDateString(locale)}</span>}</div></div><div className="flex flex-wrap gap-2"><button className="btn btn-secondary" onClick={()=>edit(s)}>✏️ Chỉnh sửa</button><button className="btn btn-secondary !border-red-800/70 !text-red-300 hover:!bg-red-950/50" onClick={()=>deleteStaff(s)}>🗑 Xóa</button></div></div></div>)}{filtered.length===0&&<div className="card p-8 text-center text-slate-400">Không tìm thấy nhân viên phù hợp.</div>}</div>
       </div>
     </div>
   </div>;

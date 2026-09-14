@@ -229,7 +229,7 @@ check("Booking page accepts authority", "authority?:string" in booking_ui or "au
 check("Booking page has authority test id", 'data-testid="seat-hold-authority-v66"' in booking_ui)
 check("Booking page explains PostgreSQL durable expiry", "PostgreSQL" in booking_ui)
 check("Booking page explains Redis mirror", "Redis" in booking_ui and "mirror" in booking_ui.lower())
-check("Booking page labels multi-replica protection", "chống double-booking đa replica" in booking_ui)
+check("Booking page labels multi-replica protection", ("chống double-booking đa replica" in booking_ui or "chống đặt trùng ghế trên nhiều bản sao dịch vụ" in booking_ui))
 
 # E2E race proof
 check("V66 E2E creates two independent users", "newUser(browser" in e2e and "second=await newUser" in e2e)
@@ -243,14 +243,13 @@ check("V66 E2E verifies Admin tile", 'getByTestId("admin-seat-operations-v66")' 
 check("V66 E2E verifies Admin operations page", r"admin\/seat-operations" in e2e or "/admin/seat-operations" in e2e)
 playwright_config = text("frontend/playwright.config.ts")
 check("Playwright config reads local project env", 'parseEnvFile' in playwright_config and '../.env' in playwright_config and '.env' in playwright_config)
-check("Playwright config maps ADMIN_EMAIL to E2E admin", 'process.env.E2E_ADMIN_EMAIL ||=' in playwright_config and 'localEnv.ADMIN_EMAIL' in playwright_config)
-check("Playwright config maps ADMIN_PASSWORD to E2E admin", 'process.env.E2E_ADMIN_PASSWORD ||=' in playwright_config and 'localEnv.ADMIN_PASSWORD' in playwright_config)
-check("Explicit E2E admin credentials keep priority", 'process.env.E2E_ADMIN_EMAIL ||=' in playwright_config and 'process.env.E2E_ADMIN_PASSWORD ||=' in playwright_config)
-check("Playwright config has safe compose fallback", '"admin@cine.local"' in playwright_config and '"Admin@123"' in playwright_config)
-check("V66 E2E consumes resolved E2E admin email", 'process.env.E2E_ADMIN_EMAIL||"admin@cine.local"' in e2e)
-check("V66 E2E consumes resolved E2E admin password", 'process.env.E2E_ADMIN_PASSWORD||"Admin@123"' in e2e)
-check("V66 E2E no longer uses stale V29 admin fallback", "admin-v29@cine.local" not in e2e and "V29SmokeOnly-ChangeMe" not in e2e)
-check("V66 E2E reports explicit admin login failure context", "Admin login did not reach /admin" in e2e)
+check("Playwright config maps ADMIN_EMAIL to E2E admin", 'localEnv.ADMIN_EMAIL' in playwright_config and 'process.env.E2E_ADMIN_EMAIL=resolvedEmail' in playwright_config)
+check("Playwright config maps ADMIN_PASSWORD to E2E admin", 'localEnv.ADMIN_PASSWORD' in playwright_config and 'process.env.E2E_ADMIN_PASSWORD=resolvedPassword' in playwright_config)
+check("Explicit E2E admin credentials keep priority", 'process.env.E2E_ADMIN_EMAIL || process.env.ADMIN_EMAIL || localEnv.ADMIN_EMAIL' in playwright_config and 'process.env.E2E_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || localEnv.ADMIN_PASSWORD' in playwright_config)
+check("Playwright config fails closed instead of switching to a different admin account", 'Playwright requires the existing admin credentials from root .env' in playwright_config and '"Admin@123"' not in playwright_config)
+check("V66 E2E reuses the resolved existing Admin", 'loginExistingAdmin' in e2e and 'runtime-guards' in e2e)
+check("V66 E2E contains no hardcoded Admin fallback", all(x not in e2e for x in ['admin-v29@cine.local','V29SmokeOnly-ChangeMe','admin@cine.local','Admin@123']))
+check("Shared Admin login fails closed with root .env credentials", 'Existing root .env admin credentials are required' in text('frontend/e2e/runtime-guards.ts'))
 check("V66 E2E verifies active hold visibility", 'getByTestId("active-seat-holds-v66")' in e2e)
 check("V66 E2E releases winning hold", 'method:"DELETE"' in e2e and "holds`" in e2e)
 
@@ -284,7 +283,7 @@ check("Admin UI exposes stable summary error test id", 'data-testid="seat-operat
 check("Admin Redis status is UNKNOWN before summary loads", 'summary===null?"◌ UNKNOWN"' in ops_ui or 'summary===null?"◌ Chưa xác định"' in ops_ui)
 check("Admin UI does not falsely label missing summary as Redis degraded", 'Chưa tải được summary nên chưa thể kết luận trạng thái Redis.' in ops_ui or 'Chưa tải được tổng quan nên chưa thể kết luận trạng thái Redis.' in ops_ui)
 check("V66 E2E requires Admin summary to load without error", 'getByTestId("seat-operations-error-v66")).toHaveCount(0)' in e2e)
-check("V66 E2E rejects placeholder summary metrics", 'getByTestId("seat-consistency-summary-v66")).not.toContainText("—")' in e2e)
+check("V66 E2E rejects placeholder summary metrics", ('getByTestId("seat-consistency-summary-v66")).not.toContainText("—")' in e2e) or ('data-seat-summary-ready' in ops_ui and 'data-summary-ready' in ops_ui and 'toHaveAttribute("data-seat-summary-ready","true"' in e2e))
 
 # Release / CI wiring
 check("CI runs V66 verifier", "verify_v66_booking_consistency_seat_locking.py" in ci)

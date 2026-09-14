@@ -62,7 +62,7 @@ check('V55 retention service is read-only', 'jdbc.update(' not in service and 'j
 check('V55 uses unambiguous two-argument RowMapper callbacks', service.count('(rs, rowNum) ->') >= 5 and '(RowCallbackHandler)' not in service)
 check('Frontend V55 page exposes retention source marker', 'Customer Retention & Cohort Intelligence · V55' in page and 'retention-intelligence-v55' in page)
 check('Frontend supports Admin cinema filter and Manager fixed branch scope', 'retention-cinema-filter-v55' in page and 'profile.role==="MANAGER"' in page and 'me?.role==="ADMIN"' in page)
-check('Frontend supports 30 and 90 day retention windows', 'retention-period-v55' in page and '<option value={30}>30 ngày</option>' in page and '<option value={90}>90 ngày</option>' in page)
+check('Frontend supports 30 and 90 day retention windows', 'retention-period-v55' in page and (('<option value={30}>30 ngày</option>' in page and '<option value={90}>90 ngày</option>' in page) or ('<option value={30}>{t("30 ngày","30 days")}</option>' in page and '<option value={90}>{t("90 ngày","90 days")}</option>' in page)))
 check('Frontend renders summary lifecycle cohorts and daily series', all(x in page for x in ['retention-summary-v55','retention-lifecycle-v55','retention-cohorts-v55','retention-daily-v55']))
 check('Frontend documents honest retention semantics', all(x in page for x in ['booking CONFIRMED','payment SUCCESS','không phải điểm churn','transfer vé không biến người nhận']))
 check('Frontend types include V55 retention contracts', all(x in types for x in ['RetentionCinemaV55','RetentionLifecycleV55','RetentionCohortV55','RetentionDailyV55','RetentionScorecardV55']))

@@ -12,17 +12,19 @@ async function loginAdmin(page:Page){
 test("V61 admin reviews explainable fraud risk without automatic blocking",async({page})=>{
   await loginAdmin(page);
   await page.goto("/admin/risk");
-  await expect(page.getByRole("heading",{name:"Fraud & Risk Intelligence"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Phân tích gian lận & rủi ro"})).toBeVisible();
   await expect(page.getByTestId("fraud-risk-summary-v61")).toBeVisible();
   const engine=page.getByTestId("fraud-risk-engine-v61");
-  await expect(engine).toContainText("Transparent scoring rules");
+  await expect(engine).toContainText("Quy tắc chấm điểm minh bạch");
   await expect(engine).toContainText("V61_RULESET_1");
-  await expect(engine).toContainText("no automatic blocking");
+  await expect(engine).toContainText("không tự động chặn");
   const queue=page.getByTestId("fraud-risk-customers-v61");
   await expect(queue).toBeVisible();
   await expect(queue.locator("tbody tr").first()).toBeVisible();
   const body=await page.locator("body").innerText();
-  expect(body).toContain("risk score is decision support");
+  expect(body).toContain("điểm rủi ro chỉ hỗ trợ quyết định");
   expect(body).toContain("BLOCK_RECOMMENDED");
+  expect(body).toContain("Đề nghị chặn");
+  expect(body).toContain("Tần suất đặt vé cao");
   expect(body).not.toContain("AI detected fraud");
 });

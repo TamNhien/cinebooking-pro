@@ -49,13 +49,13 @@ export default function Register() {
     <div className="mx-auto max-w-md card p-7">
       <h1 className="text-3xl font-bold">Tạo tài khoản</h1>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" value={fullName} onChange={e => setName(e.target.value)} placeholder="Họ và tên" required />
-        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Thư điện tử" autoComplete="email" required />
-        <PasswordInput label="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
-        <PasswordInput label="Xác nhận mật khẩu" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Nhập lại mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
+        <input data-testid="register-name" className="input" value={fullName} onChange={e => setName(e.target.value)} placeholder="Họ và tên" required />
+        <input data-testid="register-email" className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="email" required />
+        <PasswordInput data-testid="register-password" label="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nhập mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
+        <PasswordInput data-testid="register-confirm" label="Xác nhận mật khẩu" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Nhập lại mật khẩu" autoComplete="new-password" minLength={8} maxLength={100} required />
         <PasswordStrength password={password} confirmPassword={confirm} showMatch />
         {error && <p className="text-sm text-red-300">{error}</p>}
-        <button disabled={loading || !validPassword || !passwordsMatch} className="btn btn-primary w-full">{loading ? "Đang tạo..." : "Đăng ký"}</button>
+        <button data-testid="register-submit" disabled={loading || !validPassword || !passwordsMatch} className="btn btn-primary w-full">{loading ? "Đang tạo..." : "Đăng ký"}</button>
       </form>
       <p className="mt-5 text-sm text-slate-400">Đã có tài khoản? <Link className="text-rose-400" href="/login">Đăng nhập</Link></p>
     </div>

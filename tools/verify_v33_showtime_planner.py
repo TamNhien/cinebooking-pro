@@ -54,7 +54,7 @@ check('Testcontainers integration preview detects seeded V33 collision','showtim
 check('frontend planner response types exist','ShowtimePlanPreview' in types and 'ShowtimePlanCommit' in types)
 check('dedicated admin showtime planner page exists','Lập lịch chiếu & chống trùng phòng' in page)
 check('planner UI supports movie room date range and daily times',all(x in page for x in ['Phim lập lịch','Phòng lập lịch','Từ ngày lập lịch','Đến ngày lập lịch','Khung giờ mỗi ngày']))
-check('planner UI performs dry-run preview','/admin/showtime-planner/preview' in page and 'Preview lịch' in page)
+check('planner UI performs dry-run preview','/admin/showtime-planner/preview' in page and ('Preview lịch' in page or 'Xem trước lịch' in page))
 check('planner UI can commit valid slots','/admin/showtime-planner/commit' in page and 'Tạo ${preview.creatable} suất hợp lệ' in page)
 check('admin dashboard links to planner','href="/admin/showtimes"' in admin and 'Lập lịch chiếu' in admin)
 check('Playwright V33 planner journey exists','admin previews showtime conflicts before scheduling' in e2e)

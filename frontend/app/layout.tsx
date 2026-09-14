@@ -5,6 +5,8 @@ import SiteFooter from "@/components/SiteFooter";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import BackgroundTheme from "@/components/BackgroundTheme";
+import RuntimeReadyMarker from "@/components/RuntimeReadyMarker";
+import LegacyUiLocalizationBridge from "@/components/LegacyUiLocalizationBridge";
 
 export const metadata: Metadata = {
   title: "CineBooking Pro",
@@ -27,9 +29,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-cinebooking-language-ready="vi" data-cinebooking-runtime-ready="pending" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var v=localStorage.getItem("cinebooking_language");var r=(v==="vi"||v==="en")?v:"vi";document.documentElement.lang=r;document.documentElement.dataset.cinebookingLanguageReady=r;}catch(e){document.documentElement.dataset.cinebookingLanguageReady=document.documentElement.lang||"vi";}})();`,
+          }}
+        />
+      </head>
       <body>
         <LanguageProvider>
+          <RuntimeReadyMarker />
+          <LegacyUiLocalizationBridge />
           <BackgroundTheme />
           <ServiceWorkerRegistration />
           <Header />

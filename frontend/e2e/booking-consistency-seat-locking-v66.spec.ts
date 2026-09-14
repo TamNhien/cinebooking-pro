@@ -1,4 +1,5 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { ensureSurface, loginExistingAdmin } from "./runtime-guards";
 
 const PASSWORD="V66SeatLock!Customer123";
 
@@ -10,21 +11,6 @@ async function register(page:Page,email:string,name:string){
   await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
   await page.getByRole("button",{name:"Đăng ký"}).click();
   await expect(page).toHaveURL(/\/$/);
-}
-
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"Admin@123";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
-  try {
-    await page.waitForURL(/\/admin$/,{timeout:15000});
-  } catch {
-    const error = await page.locator("p.text-red-300").textContent().catch(()=>null);
-    throw new Error(`Admin login did not reach /admin. email=${email}; url=${page.url()}; error=${error||"none"}`);
-  }
 }
 
 async function chooseShowtime(page:Page){
@@ -91,13 +77,15 @@ test("V66 durable hold serializes same-seat races and is visible to Admin",async
     const adminContext:BrowserContext=await browser.newContext({locale:"vi-VN",timezoneId:"Asia/Ho_Chi_Minh"});
     const adminPage=await adminContext.newPage();
     try{
-      await loginAdmin(adminPage);
+      await loginExistingAdmin(adminPage);
       await expect(adminPage.getByTestId("admin-seat-operations-v66")).toBeVisible();
       await adminPage.getByTestId("admin-seat-operations-v66").click();
       await expect(adminPage).toHaveURL(/\/admin\/seat-operations$/);
-      await expect(adminPage.getByTestId("seat-operations-v66")).toContainText("V66 · BOOKING CONSISTENCY & SEAT LOCKING 4.0");
+      const operations=await ensureSurface(adminPage,"seat-operations-v66","/admin/seat-operations");
+      await expect(operations).toContainText("V66 · NHẤT QUÁN ĐẶT VÉ & KHÓA GHẾ 4.0");
       await expect(adminPage.getByTestId("seat-operations-error-v66")).toHaveCount(0);
-      await expect(adminPage.getByTestId("seat-consistency-summary-v66")).not.toContainText("—");
+      await expect(operations).toHaveAttribute("data-seat-summary-ready","true",{timeout:30_000});
+      await expect(adminPage.getByTestId("seat-consistency-summary-v66")).toHaveAttribute("data-summary-ready","true");
       await expect(adminPage.getByTestId("seat-hold-authority-v66")).toContainText("POSTGRESQL_WITH_REDIS_MIRROR");
       await expect(adminPage.getByTestId("active-seat-holds-v66")).toContainText(pair.seatCodes[0]);
     }finally{await adminContext.close();}

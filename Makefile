@@ -1076,6 +1076,9 @@ verify-v77-typescript-localization-hygiene:
 verify-v77-zero-warning-vietnamese-ui-lint:
 	python tools/verify_v77_0_13_zero_warning_vietnamese_ui_lint.py
 
+verify-v77-navigation-language-dropdown-localization:
+	python tools/verify_v77_0_14_navigation_language_dropdown_localization.py
+
 diagnose-v77:
 	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v77.ps1
 
@@ -1115,5 +1118,216 @@ release-v77-0-11:
 release-v77-0-12:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.12
 
-release-v77-patch:
+release-v77-0-13:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.13
+
+release-v77-patch:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.14
+
+release-v77-0-14:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.14
+verify-v77-0-15:
+	python tools/verify_v77_0_15_v64_v59_runtime_e2e.py
+
+release-v77-0-15:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.15
+
+verify-v77-0-16:
+	python tools/verify_v77_0_16_v59_language_surface_hotfix.py
+
+release-v77-0-16:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.16
+
+verify-v77-0-17:
+	python tools/verify_v77_0_17_full_navigation_language_store_fix.py
+
+release-v77-0-17:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.17
+
+verify-v77-0-18:
+	python tools/verify_v77_0_18_presentation_language_type_contract_fix.py
+
+release-v77-0-18:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.18
+verify-v77-0-19:
+	python tools/verify_v77_0_19_zero_warning_marketing_effect_dependencies.py
+
+release-v77-0-19:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.19
+verify-v77-0-20:
+	python tools/verify_v77_0_20_full_e2e_runtime_stabilization.py
+
+release-v77-0-20:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.20
+verify-v77-0-21:
+	python tools/verify_v77_0_21_hydration_language_v64_reentry.py
+
+release-v77-0-21:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.21
+
+verify-v77-0-22:
+	python tools/verify_v77_0_22_pre_hydration_language_readiness.py
+
+release-v77-0-22:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.22
+
+verify-v77-0-23:
+	python tools/verify_v77_0_23_single_provider_hydration_state.py
+
+release-v77-0-23:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.23
+
+verify-v77-0-24:
+	python tools/verify_v77_0_24_hydration_bundle_v64_startup_reliability.py
+
+release-v77-0-24:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.24
+verify-v77-0-25:
+	python tools/verify_v77_0_25_zero_warning_language_provider_cleanup.py
+
+release-v77-0-25:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.25
+verify-v77-0-26:
+	python tools/verify_v77_0_26_v64_publish_feedback_persistence.py
+
+release-v77-0-26:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.26
+verify-v77-0-27:
+	python tools/verify_v77_0_27_layout_effect_language_reconciliation.py
+
+release-v77-0-27:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.27
+verify-v77-0-28:
+	python tools/verify_v77_0_28_compose_readiness_hydration_gate.py
+
+release-v77-0-28:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.28
+
+verify-v77-0-29:
+	python tools/verify_v77_0_29_frontend_healthcheck_contract.py
+
+release-v77-0-29:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.29
+
+
+verify-v77-0-30:
+	python tools/verify_v77_0_30_full_suite_runtime_contract_alignment.py
+
+release-v77-0-30:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.30
+
+
+verify-v77-0-31:
+	python tools/verify_v77_0_31_remaining_full_suite_contract_alignment.py
+
+release-v77-0-31:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.31
+
+verify-v77-0-32:
+	python tools/verify_v77_0_32_final_four_runtime_contract_alignment.py
+
+release-v77-0-32:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.32
+verify-v77-0-33:
+	python tools/verify_v77_0_33_final_two_runtime_contract_alignment.py
+
+release-v77-0-33:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.33
+
+verify-v77-0-34:
+	python tools/verify_v77_0_34_ticket_control_runtime_contract_alignment.py
+
+release-v77-0-34:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.34
+
+
+verify-v77-0-35:
+	python tools/verify_v77_0_35_admin_payments_runtime_contract_alignment.py
+
+release-v77-0-35:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.35
+
+verify-v77-0-36:
+	python tools/verify_v77_0_36_final_three_full_suite_runtime_recovery.py
+
+release-v77-0-36:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.36
+
+verify-v77-0-37:
+	python tools/verify_v77_0_37_full_suite_policy_alert_runtime_recovery.py
+
+release-v77-0-37:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.37
+
+
+verify-v77-0-38:
+	python tools/verify_v77_0_38_release_gate_readiness_recovery.py
+
+release-v77-0-38:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.38
+
+verify-v77-0-39:
+	python tools/verify_v77_0_39_zero_warning_full_ui_language_contract.py
+
+release-v77-0-39:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.39
+
+verify-v77-0-40:
+	python tools/verify_v77_0_40_runtime_language_boundary_fix.py
+
+release-v77-0-40:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.40
+verify-v77-0-41:
+	python tools/verify_v77_0_41_movies_language_surface_fix.py
+
+release-v77-0-41:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.41
+
+verify-v77-0-42:
+	python tools/verify_v77_0_42_full_ui_language_completion.py
+
+release-v77-0-42:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.42
+verify-v77-0-43:
+	python tools/verify_v77_0_43_language_literal_audit_fix.py
+
+release-v77-0-43:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.43
+
+
+verify-v77-0-44:
+	python tools/verify_v77_0_44_crm_payload_v66_authority_fix.py
+
+release-v77-0-44:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.44
+
+verify-v77-0-45:
+	python tools/verify_v77_0_45_full_suite_repeatability_accessibility_fix.py
+
+release-v77-0-45:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.45
+
+verify-v77-0-46:
+	python tools/verify_v77_0_46_pwa_readiness_language_sweep_stabilization.py
+
+release-v77-0-46:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.46
+
+verify-v77-0-47:
+	python tools/verify_v77_0_47_historical_release_gate_forward_compatibility.py
+
+release-v77-0-47:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.47
+
+
+verify-v77-0-48:
+	python tools/verify_v77_0_48_maintenance_success_feedback_timer_ownership.py
+
+release-v77-0-48:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.48
+
+verify-v77-0-49:
+	python tools/verify_v77_0_49_release_staging_whitespace_preflight.py
+
+release-v77-0-49:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.49

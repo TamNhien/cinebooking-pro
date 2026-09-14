@@ -24,6 +24,7 @@ export default function InventoryAdmin(){
   const [filter,setFilter]=useState<"ALL"|"LOW"|"SOLD_OUT">("ALL");
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
+  const [allBranchesHistory,setAllBranchesHistory]=useState(false);
 
   async function loadBranches(){
     const rows=await api<InventoryBranchOverview[]>("/admin/inventory/branches");
@@ -41,7 +42,7 @@ export default function InventoryAdmin(){
       api<InventorySummary>(`/admin/inventory?cinemaId=${encodeURIComponent(cid)}`),
       api<InventoryMovement[]>(`/admin/inventory/movements?${query}`)
     ]);
-    setSummary(s);setMovements(m);
+    setSummary(s);if(!allBranchesHistory)setMovements(m);
     const chosen=productId||selectedId||s.products[0]?.productId||"";
     setSelectedId(chosen);
     const p=s.products.find(x=>x.productId===chosen)||s.products[0];
@@ -63,7 +64,7 @@ export default function InventoryAdmin(){
   const selected=summary?.products.find(p=>p.productId===selectedId);
   const branch=branches.find(b=>b.cinemaId===cinemaId);
 
-  async function changeCinema(id:string){setCinemaId(id);setSelectedId("");setTransferTo(branches.find(x=>x.cinemaId!==id)?.cinemaId||"");await load(id);}
+  async function changeCinema(id:string){setCinemaId(id);setSelectedId("");setTransferTo(branches.find(x=>x.cinemaId!==id)?.cinemaId||"");setAllBranchesHistory(false);await load(id);}
   async function selectProduct(id:string){setSelectedId(id);const p=summary?.products.find(x=>x.productId===id);if(p){setThreshold(p.lowStockThreshold);setTarget(p.targetStock);setPrice(p.price);}await load(cinemaId,id);}
 
   async function submit(e:FormEvent){
@@ -76,7 +77,17 @@ export default function InventoryAdmin(){
 
   async function savePrice(){if(!selectedId||!cinemaId)return;setBusy(true);setMsg("");try{await api("/admin/inventory/prices",{method:"PUT",body:JSON.stringify({cinemaId,productId:selectedId,price:Number(price),active:true})});await load(cinemaId,selectedId);setMsg("Đã cập nhật giá bán tại rạp.");}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
   async function transfer(){if(!selectedId||!cinemaId||!transferTo)return;setBusy(true);setMsg("");try{const r=await api<InventoryTransfer>("/admin/inventory/transfers",{method:"POST",body:JSON.stringify({productId:selectedId,fromCinemaId:cinemaId,toCinemaId:transferTo,quantity:Number(transferQty),note:note.trim()||null})});await Promise.all([load(cinemaId,selectedId),loadBranches()]);setMsg(`Đã điều chuyển ${r.quantity} ${r.productName} đến ${r.toCinemaName}. Mã ${r.referenceKey}`);}catch(e){setMsg((e as Error).message)}finally{setBusy(false)}}
-  async function allHistory(){try{setMovements(await api<InventoryMovement[]>(`/admin/inventory/movements?cinemaId=${encodeURIComponent(cinemaId)}`));}catch(e){setMsg((e as Error).message)}}
+  async function toggleHistoryScope(){
+    try{
+      if(allBranchesHistory){
+        setMovements(await api<InventoryMovement[]>(`/admin/inventory/movements?cinemaId=${encodeURIComponent(cinemaId)}`));
+        setAllBranchesHistory(false);
+      }else{
+        setMovements(await api<InventoryMovement[]>("/admin/inventory/movements"));
+        setAllBranchesHistory(true);
+      }
+    }catch(e){setMsg((e as Error).message)}
+  }
 
   return <div className="space-y-7" data-testid="inventory-v48">
     <div className="flex flex-wrap items-end justify-between gap-4">
@@ -94,8 +105,8 @@ export default function InventoryAdmin(){
       <Kpi label="Sản phẩm theo dõi" value={summary.trackedProducts}/><Kpi label="Tồn thực tế" value={summary.totalOnHand}/><Kpi label="Đang giữ" value={summary.totalReserved}/><Kpi label="Khả dụng" value={summary.totalAvailable}/><Kpi label="Sắp hết" value={summary.lowStockProducts} warn={summary.lowStockProducts>0}/><Kpi label="Hết hàng" value={summary.soldOutProducts} danger={summary.soldOutProducts>0}/>
     </div>}
 
-    <section className="grid gap-6 xl:grid-cols-[390px_1fr]">
-      <div className="space-y-5 xl:sticky xl:top-24 xl:h-fit">
+    <section className="grid gap-6 2xl:grid-cols-[390px_minmax(0,1fr)]">
+      <div className="space-y-5 2xl:sticky 2xl:top-24 2xl:h-fit">
         <form onSubmit={submit} className="card space-y-4 p-5">
           <div><h2 className="text-xl font-bold">Nhập / kiểm kê / hao hụt</h2><p className="mt-1 text-xs leading-5 text-slate-500">Mọi thay đổi đều sinh biến động kho có rạp và người thao tác.</p></div>
           <label className="block text-sm"><span className="mb-1 block text-slate-400">Sản phẩm</span><select data-testid="inventory-product-select" className="input" value={selectedId} onChange={e=>void selectProduct(e.target.value)}>{summary?.products.map(p=><option key={p.productId} value={p.productId}>{p.name} · còn {p.stockAvailable}</option>)}</select></label>
@@ -119,7 +130,11 @@ export default function InventoryAdmin(){
       </div>
     </section>
 
-    <section className="card overflow-hidden"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-5"><div><h2 className="text-xl font-bold">Sổ nhập / xuất kho theo rạp</h2><p className="mt-1 text-xs text-slate-500">Nhập kho · Giữ hàng · Giải phóng · Bán hàng · Hoàn hàng · Hao hụt · Chuyển vào/ra · Thưởng thành viên.</p></div><button className="btn btn-secondary" onClick={()=>void allHistory()}>Xem toàn chi nhánh</button></div><div className="overflow-x-auto"><table className="w-full min-w-[1080px] text-sm"><thead className="bg-slate-950/45 text-left text-slate-400"><tr><th className="p-3">Thời gian</th><th className="p-3">Rạp</th><th className="p-3">Sản phẩm</th><th className="p-3">Loại</th><th className="p-3">Δ tồn</th><th className="p-3">Δ giữ</th><th className="p-3">Sau giao dịch</th><th className="p-3">Tham chiếu</th><th className="p-3">Ghi chú</th></tr></thead><tbody>{movements.map(m=><tr key={m.id} className="border-t border-slate-800/80"><td className="p-3 whitespace-nowrap">{dateTime(m.createdAt)}</td><td className="p-3 text-xs">{m.cinemaName}</td><td className="p-3 font-semibold">{m.productName}</td><td className="p-3"><span className={`rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></td><td className={`p-3 font-bold ${m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-500"}`}>{signed(m.quantityDelta)}</td><td className={`p-3 font-bold ${m.reservedDelta>0?"text-amber-300":m.reservedDelta<0?"text-cyan-300":"text-slate-500"}`}>{signed(m.reservedDelta)}</td><td className="p-3">Tồn {m.stockAfter} · Giữ {m.reservedAfter}</td><td className="p-3"><div className="max-w-[260px] break-all text-xs text-slate-400">{m.referenceKey||m.bookingId||m.actorEmail||"Hệ thống"}</div></td><td className="p-3 text-xs text-slate-400">{m.note||"-"}</td></tr>)}</tbody></table>{!movements.length&&<div className="p-8 text-center text-slate-500">Chưa có biến động kho tại chi nhánh này.</div>}</div></section>
+    <section className="card overflow-hidden" data-testid="inventory-movement-history-v48"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-5"><div><h2 className="text-xl font-bold">Sổ nhập / xuất kho {allBranchesHistory?"toàn hệ thống":"theo rạp"}</h2><p className="mt-1 text-xs text-slate-500">Nhập kho · Giữ hàng · Giải phóng · Bán hàng · Hoàn hàng · Hao hụt · Chuyển vào/ra · Thưởng thành viên.</p></div><button data-testid="inventory-history-scope-toggle" className="btn btn-secondary" onClick={()=>void toggleHistoryScope()}>{allBranchesHistory?"Chỉ rạp hiện tại":"Xem toàn chi nhánh"}</button></div>
+      <div className="hidden xl:block"><table className="w-full table-fixed text-sm"><thead className="bg-slate-950/45 text-left text-slate-400"><tr><th className="w-[12%] p-3">Thời gian</th><th className="w-[13%] p-3">Rạp</th><th className="w-[14%] p-3">Sản phẩm</th><th className="w-[11%] p-3">Loại</th><th className="w-[7%] p-3">Δ tồn</th><th className="w-[7%] p-3">Δ giữ</th><th className="w-[12%] p-3">Sau giao dịch</th><th className="w-[13%] p-3">Tham chiếu</th><th className="w-[11%] p-3">Ghi chú</th></tr></thead><tbody>{movements.map(m=><tr key={m.id} className="border-t border-slate-800/80 align-top"><td className="p-3">{dateTime(m.createdAt)}</td><td className="break-words p-3 text-xs">{m.cinemaName}</td><td className="break-words p-3 font-semibold">{m.productName}</td><td className="p-3"><span className={`inline-block rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></td><td className={`p-3 font-bold ${m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-500"}`}>{signed(m.quantityDelta)}</td><td className={`p-3 font-bold ${m.reservedDelta>0?"text-amber-300":m.reservedDelta<0?"text-cyan-300":"text-slate-500"}`}>{signed(m.reservedDelta)}</td><td className="p-3">Tồn {m.stockAfter} · Giữ {m.reservedAfter}</td><td className="break-all p-3 text-xs text-slate-400">{m.referenceKey||m.bookingId||m.actorEmail||"Hệ thống"}</td><td className="break-words p-3 text-xs text-slate-400">{m.note||"-"}</td></tr>)}</tbody></table></div>
+      <div className="grid gap-3 p-4 xl:hidden">{movements.map(m=><article key={m.id} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs text-slate-500">{dateTime(m.createdAt)} · {m.cinemaName}</div><h3 className="mt-1 font-bold">{m.productName}</h3></div><span className={`rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><div>Δ tồn <b className={m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-400"}>{signed(m.quantityDelta)}</b></div><div>Δ giữ <b>{signed(m.reservedDelta)}</b></div><div>Tồn sau <b>{m.stockAfter}</b></div><div>Giữ sau <b>{m.reservedAfter}</b></div></div><div className="mt-3 break-all text-xs text-slate-500">{m.referenceKey||m.bookingId||m.actorEmail||"Hệ thống"}</div>{m.note&&<p className="mt-2 break-words text-xs text-slate-400">{m.note}</p>}</article>)}</div>
+      {!movements.length&&<div className="p-8 text-center text-slate-500">Chưa có biến động kho trong phạm vi đang xem.</div>}
+    </section>
   </div>;
 }
 

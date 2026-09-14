@@ -172,7 +172,7 @@ check('Header links V73 actions runtime page','/admin/actions-runtime' in header
 check('Header links V74 reliability page','/admin/reliability' in header and 'Reliability V74' in header)
 check('V73 admin runtime surface root','actions-runtime-v73' in v73ui)
 check('V73 admin runtime surface strategy','V73-GITHUB-ACTIONS-NODE24-5' in v73ui)
-check('V73 admin runtime surface Node24 posture','NODE24 READY' in v73ui and 'actions/upload-artifact@v7' in v73ui and 'actions/setup-java@v6' in v73ui)
+check('V73 admin runtime surface Node24 posture',('NODE24 READY' in v73ui or 'NODE24 SẴN SÀNG' in v73ui) and 'actions/upload-artifact@v7' in v73ui and 'actions/setup-java@v6' in v73ui)
 check('V73 admin runtime surface exposes no secret values','GITHUB_TOKEN' not in v73ui and 'gho_' not in v73ui and 'password' not in v73ui.lower())
 check('V74 UI root test id','reliability-v74' in ui)
 check('V74 UI summary test id','reliability-summary-v74' in ui)
@@ -190,8 +190,9 @@ check('V74 UI documents plan-only failover','PLAN ONLY' in ui and '-Execute' in 
 check('V74 UI says no down-volume action','down -v' in ui.lower())
 
 # E2E
-check('V74 E2E logs in as real admin','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
-check('V74 E2E verifies missing V73 tile regression','admin-actions-runtime-v73' in e2e and 'Actions Runtime V73' in e2e and 'toContain(73)' in e2e)
+runtime=text('frontend/e2e/runtime-guards.ts')
+check('V74 E2E logs in as real admin',('E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or ('loginExistingAdmin' in e2e and 'existingAdminCredentials' in runtime and 'E2E_ADMIN_EMAIL' in runtime and 'E2E_ADMIN_PASSWORD' in runtime))
+check('V74 E2E verifies missing V73 tile regression','admin-actions-runtime-v73' in e2e and ('Actions Runtime V73' in e2e or 'Môi trường chạy Actions V73' in e2e) and 'toContain(73)' in e2e)
 check('V74 E2E verifies V73 runtime surface','actions-runtime-v73' in e2e and 'V73-GITHUB-ACTIONS-NODE24-5' in e2e)
 check('V74 E2E verifies tile','admin-reliability-v74' in e2e)
 check('V74 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(74)' in e2e)

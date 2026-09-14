@@ -1,21 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
-
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"Admin@123";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
-  await page.waitForURL(/\/admin$/,{timeout:15000});
-}
+import { expect, test } from "@playwright/test";
+import { ensureSurface, loginExistingAdmin } from "./runtime-guards";
 
 test("V75 Analytics & BI exposes real-data funnel, cohort, LTV and efficiency",async({page})=>{
-  await loginAdmin(page);
+  await loginExistingAdmin(page);
 
   const tile=page.getByTestId("admin-analytics-bi-v75");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Analytics & BI V75");
+  await expect(tile).toContainText("Phân tích dữ liệu & BI V75");
   await expect(tile).toHaveAttribute("href","/admin/analytics-bi");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
@@ -27,15 +18,18 @@ test("V75 Analytics & BI exposes real-data funnel, cohort, LTV and efficiency",a
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/analytics-bi$/);
-  await expect(page.getByTestId("analytics-bi-v75")).toContainText("V75 · ANALYTICS & BI 5.0");
+  const root=await ensureSurface(page,"analytics-bi-v75","/admin/analytics-bi");
+  await expect(root).toHaveAttribute("data-analytics-bi-ready","true",{timeout:30_000});
+  await expect(root).toContainText("V75 · PHÂN TÍCH DỮ LIỆU & BI 5.0");
   await expect(page.getByTestId("analytics-bi-summary-v75")).toContainText("V75-ANALYTICS-BI-5");
-  await expect(page.getByTestId("analytics-bi-policy-v75")).toContainText("REAL_OPERATIONAL_DATA_ONLY");
-  await expect(page.getByTestId("analytics-bi-policy-v75")).toContainText("NO_SYNTHETIC_FUNNEL_EVENTS");
+  const policy=page.getByTestId("analytics-bi-policy-v75");
+  await expect(policy).toHaveAttribute("data-policy-real-operational","true");
+  await expect(policy).toHaveAttribute("data-policy-no-synthetic-funnel","true");
   await expect(page.getByTestId("booking-funnel-v75")).toContainText("BOOKING_ATTEMPT");
   await expect(page.getByTestId("booking-funnel-v75")).toContainText("PAID");
-  await expect(page.getByTestId("cohort-retention-v75")).toContainText("30-day repeat");
-  await expect(page.getByTestId("ltv-v75")).toContainText("Realized customer LTV");
-  await expect(page.getByTestId("payment-conversion-v75")).toContainText("Payment conversion");
+  await expect(page.getByTestId("cohort-retention-v75")).toContainText("Quay lại 30 ngày");
+  await expect(page.getByTestId("ltv-v75")).toContainText("Giá trị vòng đời khách hàng thực nhận");
+  await expect(page.getByTestId("payment-conversion-v75")).toContainText("Tỷ lệ chuyển đổi thanh toán");
   await expect(page.getByTestId("movie-efficiency-v75")).toContainText("Hiệu suất phim");
   await expect(page.getByTestId("cinema-efficiency-v75")).toContainText("Hiệu suất rạp");
   await expect(page.getByTestId("analytics-bi-error-v75")).toHaveCount(0);

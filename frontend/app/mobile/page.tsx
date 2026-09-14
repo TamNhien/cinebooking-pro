@@ -27,11 +27,16 @@ export default function MobileCenterPage(){
 
   async function load(){
     if(!auth)return;
-    // Register/upsert the current browser first so the device list cannot race
-    // the global PwaManager background sync on a freshly authenticated session.
+    // Delivery mode is server configuration and must not be blocked by
+    // Service Worker activation. Publish it first so the UI never stays in
+    // LOADING just because navigator.serviceWorker.ready is delayed.
+    const cfg=await pushConfig();
+    setConfig(cfg);
+    // Register/upsert the current browser before reading the device list. The
+    // registration helper has a bounded Service Worker readiness fallback.
     await registerCurrentPwaDevice();
-    const [cfg,ds,tickets,estimate]=await Promise.all([pushConfig(),listPwaDevices(),listOfflineTickets(auth.userId),storageEstimate()]);
-    setConfig(cfg);setDevices(ds);setOfflineCount(tickets.length);setStaleCount(tickets.filter(t=>t.syncState==="STALE").length);
+    const [ds,tickets,estimate]=await Promise.all([listPwaDevices(),listOfflineTickets(auth.userId),storageEstimate()]);
+    setDevices(ds);setOfflineCount(tickets.length);setStaleCount(tickets.filter(t=>t.syncState==="STALE").length);
     setUsage(estimate?.usage);setQuota(estimate?.quota);
     if(navigator.storage?.persisted)setPersistent(await navigator.storage.persisted().catch(()=>false));
     if(typeof Notification!=="undefined")setPermission(Notification.permission);
@@ -85,7 +90,7 @@ export default function MobileCenterPage(){
       <div className="card p-5"><div className="text-xs text-slate-500">Lưu trữ</div><div className="mt-2 font-black">{persistent?"Bền vững":"Theo khả năng trình duyệt"}</div><div className="text-xs text-slate-500">{storageText}</div></div>
     </section>
 
-    <section className="card p-5" data-testid="pwa-push-v52">
+    <section className="card p-5" data-testid="pwa-push-v52" data-delivery-mode={config?.deliveryMode||"LOADING"}>
       <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-black">🔔 Thông báo đẩy nền</h2><p className="mt-1 text-sm text-slate-400">V52 dùng VAPID khi máy chủ đã cấu hình; nếu chưa có khóa, cơ chế thăm dò V41 vẫn hoạt động khi website đang mở.</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${config?.enabled?"bg-emerald-950 text-emerald-300":"bg-slate-800 text-slate-300"}`}>{config?.enabled?"VAPID sẵn sàng":"Chế độ dự phòng"}</span></div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-slate-800 p-4"><span className="text-xs text-slate-500">Quyền</span><b className="mt-1 block">{permission}</b></div><div className="rounded-xl border border-slate-800 p-4"><span className="text-xs text-slate-500">Thiết bị hiện tại</span><b className="mt-1 block">{current?.pushEnabled?"Push ON":"Push OFF"}</b></div><div className="rounded-xl border border-slate-800 p-4"><span className="text-xs text-slate-500">Phân phối</span><b className="mt-1 block">{config?.deliveryMode||"..."}</b></div></div>
       <div className="mt-4 flex flex-wrap gap-2"><button className="btn btn-primary" disabled={busy||current?.pushEnabled} onClick={enablePush}>Bật push thiết bị này</button><button className="btn btn-secondary" disabled={busy||!current?.pushEnabled} onClick={disablePush}>Tắt push thiết bị này</button></div>

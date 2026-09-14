@@ -6,6 +6,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { UserProfile, Voucher, VoucherQuote } from "@/lib/types";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 type VoucherForm = {
   code:string;
@@ -41,6 +42,7 @@ function currentStatus(v:Voucher){
 }
 
 export default function AdminVouchersPage(){
+  const { t } = usePresentationLanguage();
   const [items,setItems]=useState<Voucher[]>([]);
   const [form,setForm]=useState<VoucherForm>({...emptyForm});
   const [editingId,setEditingId]=useState<string|null>(null);
@@ -95,11 +97,11 @@ export default function AdminVouchersPage(){
     e.preventDefault();setBusy(true);setMsg("");setTestQuote(null);
     try{
       const code=form.code.trim().toUpperCase();
-      if(duplicateVoucher)throw new Error(`Mã ${code} đã tồn tại. Hãy bấm Sửa mã hiện có hoặc nhập một mã mới.`);
+      if(duplicateVoucher)throw new Error(t(`Mã ${code} đã tồn tại. Hãy bấm Sửa mã hiện có hoặc nhập một mã mới.`,`Code ${code} already exists. Edit the existing code or enter a new one.`));
       if(!/^[A-Z0-9_-]{3,30}$/.test(code))throw new Error("Mã ưu đãi chỉ gồm A-Z, 0-9, - hoặc _ và dài 3-30 ký tự.");
-      if(form.discountType==="PERCENT"&&(form.discountValue<=0||form.discountValue>100))throw new Error("Mức giảm phần trăm phải từ 1 đến 100%.");
-      if(form.discountValue<=0)throw new Error("Mức giảm phải lớn hơn 0.");
-      if(form.startsAt&&form.endsAt&&new Date(form.endsAt)<=new Date(form.startsAt))throw new Error("Thời gian kết thúc phải sau thời gian bắt đầu.");
+      if(form.discountType==="PERCENT"&&(form.discountValue<=0||form.discountValue>100))throw new Error(t("Mức giảm phần trăm phải từ 1 đến 100%.","Percentage discount must be between 1 and 100%."));
+      if(form.discountValue<=0)throw new Error(t("Mức giảm phải lớn hơn 0.","Discount must be greater than 0."));
+      if(form.startsAt&&form.endsAt&&new Date(form.endsAt)<=new Date(form.startsAt))throw new Error(t("Thời gian kết thúc phải sau thời gian bắt đầu.","End time must be after start time."));
       const body={
         code,name:form.name.trim(),discountType:form.discountType,discountValue:Number(form.discountValue),
         minOrderAmount:Number(form.minOrderAmount)||0,maxDiscount:form.maxDiscount===""?null:Number(form.maxDiscount),
@@ -117,7 +119,7 @@ export default function AdminVouchersPage(){
       const body={code:v.code,name:v.name,discountType:v.discountType,discountValue:v.discountValue,minOrderAmount:v.minOrderAmount,
         maxDiscount:v.maxDiscount??null,startsAt:v.startsAt??null,endsAt:v.endsAt??null,usageLimit:v.usageLimit??null,active:!v.active};
       await api(`/admin/commerce/vouchers/${v.id}`,{method:"PUT",body:JSON.stringify(body)});
-      setMsg(`${v.code}: ${v.active?"đã tạm dừng":"đã kích hoạt"}.`);await load();
+      setMsg(`${v.code}: ${v.active?t("đã tạm dừng","paused"):t("đã kích hoạt","activated")}.`);await load();
     }catch(e){setMsg((e as Error).message)}
   }
 
@@ -125,7 +127,7 @@ export default function AdminVouchersPage(){
     setMsg("");setTestQuote(null);
     try{
       const q=await api<VoucherQuote>("/commerce/vouchers/quote",{method:"POST",body:JSON.stringify({code:v.code,orderAmount:Number(testAmount)||0})});
-      setTestQuote(q);setMsg(`Test ${v.code} thành công: giảm ${currency(q.discountAmount)}.`);
+      setTestQuote(q);setMsg(t(`Test ${v.code} thành công: giảm ${currency(q.discountAmount)}.`,`Test ${v.code} succeeded: discount ${currency(q.discountAmount)}.`));
     }catch(e){setMsg(`Test ${v.code}: ${(e as Error).message}`)}
   }
 
@@ -147,7 +149,7 @@ export default function AdminVouchersPage(){
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Bắt đầu</label><input className="input" type="datetime-local" value={form.startsAt} onChange={e=>setForm({...form,startsAt:e.target.value})}/></div><div><label className="mb-1.5 block text-sm text-slate-300">Kết thúc</label><input className="input" type="datetime-local" value={form.endsAt} onChange={e=>setForm({...form,endsAt:e.target.value})}/></div></div>
         <div><label className="mb-1.5 block text-sm text-slate-300">Giới hạn tổng lượt sử dụng</label><input className="input" type="number" min={1} value={form.usageLimit} onChange={e=>setForm({...form,usageLimit:e.target.value})} placeholder="Trống = không giới hạn"/></div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> Cho phép sử dụng mã này</label>
-        <button className="btn btn-primary w-full" disabled={busy||!!duplicateVoucher} title={duplicateVoucher?`Mã ${duplicateVoucher.code} đã tồn tại`:undefined}>{busy?"Đang lưu...":editingId?"Lưu thay đổi":"Tạo mã ưu đãi"}</button>
+        <button className="btn btn-primary w-full" disabled={busy||!!duplicateVoucher} title={duplicateVoucher?t(`Mã ${duplicateVoucher.code} đã tồn tại`,`Code ${duplicateVoucher.code} already exists`):undefined}>{busy?"Đang lưu...":editingId?"Lưu thay đổi":"Tạo mã ưu đãi"}</button>
       </form>
 
       <div className="space-y-4">

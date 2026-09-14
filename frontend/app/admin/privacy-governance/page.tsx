@@ -73,7 +73,7 @@ export default function PrivacyGovernancePage(){
     setBusy(row.id);setError("");setMessage("");
     try{
       const updated=await api<PrivacyRequestV70>(`/admin/privacy-governance/requests/${row.id}/review`,{method:"POST",body:JSON.stringify({decision,reviewNote})});
-      setMessage(`${updated.requestKey} → ${updated.status}`);await load();
+      setMessage(`${updated.requestKey} → ${viLabel(updated.status)}`);await load();
     }catch(e){setError((e as Error).message);}finally{setBusy("");}
   }
 
@@ -86,7 +86,7 @@ export default function PrivacyGovernancePage(){
     {error&&<div className="card border border-rose-500/40 p-4 text-sm text-rose-300" data-testid="privacy-governance-error-v70">{error}</div>}
     {message&&<div className="card border border-emerald-500/30 p-4 text-sm text-emerald-300">{message}</div>}
 
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-testid="privacy-governance-summary-v70">
+    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" data-testid="privacy-governance-summary-v70" data-retention-mode={summary?summary.dryRunOnly?"DRY_RUN":"EXECUTION_ENABLED":"LOADING"}>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chiến lược</div><div className="mt-2 text-lg font-black">{summary?.strategyVersion||STRATEGY}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Trạng thái tổng thể</div><div className="mt-2 text-xl font-black">{readiness}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Yêu cầu đang mở</div><div className="mt-2 text-2xl font-black">{summary?.openRequestCount??0}</div></div>

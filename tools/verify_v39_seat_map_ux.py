@@ -86,7 +86,7 @@ check('Booking page enforces backend-provided max seat count in UI', 'map?.maxSe
 check('Booking page restores active hold from server TTL', 'm.holdRemainingSeconds>0' in page and 'setSeconds(m.holdRemainingSeconds)' in page)
 check('Booking page re-syncs active hold every 15 seconds', 'setInterval(()=>load().catch(()=>{}),15000)' in page)
 check('Booking page warns when less than one minute remains', 'seconds<=60' in page and 'thời gian giữ ghế còn dưới 1 phút' in page)
-check('Booking page surfaces realtime STOMP seat updates', 'Sơ đồ ghế vừa được cập nhật realtime.' in page and '/topic/showtimes/${showtimeId}/seats' in page)
+check('Booking page surfaces realtime STOMP seat updates', ('Sơ đồ ghế vừa được cập nhật realtime.' in page or 'Sơ đồ ghế vừa được cập nhật theo thời gian thực.' in page) and '/topic/showtimes/${showtimeId}/seats' in page)
 check('Realtime refresh prunes seats that are no longer available', 'current.filter(id=>{const seat=m.seats.find' in page and 'seat?.status==="AVAILABLE"' in page)
 
 check('V39 recommendation unit test exists', bool(unit) and 'SeatRecommendationEngineTest' in unit)
@@ -99,7 +99,7 @@ check('V39 Playwright creates two independent customers', 'duc.anh+${stamp}@exam
 check('V39 Playwright exercises smart two-seat suggestion', 'Số người cần xếp ghế' in e2e and 'Gợi ý ghế' in e2e and 'toHaveLength(2)' in e2e)
 check('V39 Playwright races the exact same seat pair concurrently', 'Promise.all([' in e2e and 'candidate.seatIds' in e2e)
 check('V39 Playwright requires exactly one hold winner and one conflict', 'toEqual([200,409])' in e2e)
-check('V39 Playwright verifies loser sees HELD seats', 'toHaveAttribute("title", /HELD/)' in e2e)
+check('V39 Playwright verifies loser sees HELD seats', ('toHaveAttribute("title", /HELD/)' in e2e or 'data-seat-status' in e2e and '"HELD"' in e2e))
 check('V39 Playwright releases winner hold for cleanup', 'method: "DELETE"' in e2e and 'release.status' in e2e)
 
 check('Main CI runs V39 verifier in V39-or-newer regression', 'python3 tools/verify_v39_seat_map_ux.py' in ci and re.search(r'V26-V(?:39|[4-9]\d)(?:\.\d+)? source regression',ci) is not None)

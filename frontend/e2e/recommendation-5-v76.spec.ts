@@ -1,21 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
-
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"Admin@123";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
-  await page.waitForURL(/\/admin$/,{timeout:15000});
-}
+import { expect, test } from "@playwright/test";
+import { ensureSurface, gotoSurface, loginExistingAdmin } from "./runtime-guards";
 
 test("V76 Recommendation 5.0 exposes real-data quality and evidence",async({page})=>{
-  await loginAdmin(page);
+  await loginExistingAdmin(page);
 
   const tile=page.getByTestId("admin-recommendation-v76");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Recommendation V76");
+  await expect(tile).toContainText("Gợi ý phim V76");
   await expect(tile).toHaveAttribute("href","/admin/recommendation");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
@@ -26,21 +17,26 @@ test("V76 Recommendation 5.0 exposes real-data quality and evidence",async({page
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/recommendation$/);
-  await expect(page.getByTestId("recommendation-admin-v76")).toContainText("V76 · RECOMMENDATION 5.0");
+  const adminRoot=await ensureSurface(page,"recommendation-admin-v76","/admin/recommendation");
+  await expect(adminRoot).toHaveAttribute("data-recommendation-admin-ready","true",{timeout:30_000});
+  await expect(adminRoot).toContainText("V76 · GỢI Ý PHIM 5.0");
   await expect(page.getByTestId("recommendation-summary-v76")).toContainText("V76-RECOMMENDATION-5");
-  await expect(page.getByTestId("recommendation-policy-v76")).toContainText("REAL_OPERATIONAL_DATA_ONLY");
-  await expect(page.getByTestId("recommendation-policy-v76")).toContainText("NO_SYNTHETIC_MOVIE_DATA");
-  await expect(page.getByTestId("recommendation-policy-v76")).toContainText("ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION");
-  await expect(page.getByTestId("recommendation-coverage-v76")).toContainText("Actionable movies");
-  await expect(page.getByTestId("recommendation-feedback-v76")).toContainText("MORE");
-  await expect(page.getByTestId("recommendation-assisted-v76")).toContainText("correlation");
-  await expect(page.getByTestId("recommendation-top-movies-v76")).toContainText("Top movie interaction");
-  await expect(page.getByTestId("recommendation-sources-v76")).toContainText("Recommendation event sources");
+  const policy=page.getByTestId("recommendation-policy-v76");
+  await expect(policy).toHaveAttribute("data-policy-real-operational","true");
+  await expect(policy).toHaveAttribute("data-policy-no-synthetic-movie","true");
+  await expect(policy).toHaveAttribute("data-policy-assisted-correlation","true");
+  await expect(page.getByTestId("recommendation-coverage-v76")).toContainText("Phim có thể gợi ý");
+  await expect(page.getByTestId("recommendation-feedback-v76")).toContainText("Thêm");
+  await expect(page.getByTestId("recommendation-assisted-v76")).toContainText("tương quan");
+  await expect(page.getByTestId("recommendation-top-movies-v76")).toContainText("Tương tác phim hàng đầu");
+  await expect(page.getByTestId("recommendation-sources-v76")).toContainText("Nguồn sự kiện gợi ý phim");
   await expect(page.getByTestId("recommendation-admin-error-v76")).toHaveCount(0);
 
-  await page.goto("/for-you");
+  const forYou=await gotoSurface(page,"/for-you","for-you-v63");
+  await expect(forYou).toHaveAttribute("data-recommendation-ready","true",{timeout:30_000});
   await expect(page.getByTestId("for-you-v76")).toBeVisible();
-  await expect(page.getByText("V76 · RECOMMENDATION 5.0")).toBeVisible();
-  await expect(page.getByTestId("recommendation-evidence-v76")).toContainText("REAL_OPERATIONAL_DATA_ONLY");
-  await expect(page.getByTestId("recommendation-evidence-v76")).toContainText("NO_SYNTHETIC_MOVIE_DATA");
+  await expect(page.getByText("V76 · GỢI Ý PHIM 5.0")).toBeVisible();
+  const evidence=page.getByTestId("recommendation-evidence-v76");
+  await expect(evidence).toHaveAttribute("data-policy-real-operational","true");
+  await expect(evidence).toHaveAttribute("data-policy-no-synthetic-movie","true");
 });

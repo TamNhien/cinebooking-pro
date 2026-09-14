@@ -16,7 +16,7 @@ test("V55 admin reviews honest customer retention cohorts by cinema and period",
   await loginAdmin(page);
   await page.goto("/admin/retention");
 
-  await expect(page.getByTestId("retention-intelligence-v55")).toContainText("Customer Retention & Cohort Intelligence · V55");
+  await expect(page.getByTestId("retention-intelligence-v55")).toContainText("GIỮ CHÂN KHÁCH HÀNG & PHÂN TÍCH NHÓM · V55");
   await expect(page.getByTestId("retention-summary-v55")).toBeVisible();
   await expect(page.getByTestId("retention-lifecycle-v55")).toBeVisible();
   await expect(page.getByTestId("retention-cohorts-v55")).toBeVisible();

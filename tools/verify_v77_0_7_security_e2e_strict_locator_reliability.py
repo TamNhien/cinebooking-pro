@@ -25,7 +25,7 @@ v776 = text("tools/verify_v77_0_6_dependency_security_playwright_bootstrap.py")
 
 ok("Admin security page exposes stable V68 root test id", 'data-testid="security-identity-v68"' in admin_page)
 ok("Security E2E waits for stable admin security root", 'page.getByTestId("security-identity-v68")' in e2e)
-ok("Security E2E uses exact level-1 admin security heading", 'getByRole("heading",{level:1,name:"Security Operations · Security & Identity",exact:true})' in e2e)
+ok("Security E2E uses exact level-1 admin security heading", ('getByRole("heading",{level:1,name:"Security Operations · Security & Identity",exact:true})' in e2e or 'getByRole("heading",{level:1,name:"Vận hành bảo mật · Bảo mật & định danh",exact:true})' in e2e))
 ok("Ambiguous Security Operations heading locator is removed", 'getByRole("heading",{name:"Security Operations"})' not in e2e)
 ok("Login heading locator is exact", 'getByRole("heading",{name:"Đăng nhập",exact:true})' in e2e)
 ok("Customer security heading locator is exact", 'getByRole("heading",{name:"Trung tâm bảo mật tài khoản",exact:true})' in e2e)

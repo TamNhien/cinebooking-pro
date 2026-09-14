@@ -1,29 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { existingAdminCredentials, gotoHydrated, gotoSurface, loginWithRole } from "./runtime-guards";
 
 const PASSWORD = "V40Loyalty!Customer123";
 
 async function login(page: Page, email: string, password: string, expectedRole: "USER" | "ADMIN") {
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-
-  // Login writes the access token to localStorage and then performs a hard navigation.
-  // Do not let the next test action race that asynchronous hand-off.
-  await Promise.all([
-    page.waitForURL(expectedRole === "ADMIN" ? /\/admin$/ : /\/$/, { timeout: 15000 }),
-    page.getByRole("button", { name: "Đăng nhập" }).click(),
-  ]);
-
-  await expect.poll(async () => page.evaluate(() => {
-    const raw = localStorage.getItem("cinebooking_auth_v3");
-    if (!raw) return null;
-    try {
-      const auth = JSON.parse(raw) as { accessToken?: string; role?: string };
-      return auth.accessToken ? auth.role || null : null;
-    } catch {
-      return null;
-    }
-  })).toBe(expectedRole);
+  await loginWithRole(page, email, password, expectedRole);
 }
 
 async function authedJson<T>(page: Page, url: string, init?: { method?: string; body?: unknown }) {
@@ -56,13 +37,12 @@ async function logout(page: Page) {
 test("V40 admin credit -> private voucher + concession reward -> staff claim", async ({ page, context }) => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `thanh.truc+${stamp}@example.com`;
-  const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
+  const { email: adminEmail, password: adminPassword } = existingAdminCredentials();
 
   await test.step("register loyalty customer", async () => {
-    await page.goto("/register");
+    await gotoSurface(page, "/register", "register-name");
     await page.getByPlaceholder("Họ và tên").fill("Trương Thanh Trúc");
-    await page.getByPlaceholder("Email").fill(email);
+    await page.getByTestId("register-email").fill(email);
     await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
     await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
     await page.getByRole("button", { name: "Đăng ký" }).click();
@@ -102,23 +82,29 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     expect(beforeSpend.body?.lifetimePoints).toBe(0);
     expect(beforeSpend.body?.membershipTier).toBe("BRONZE");
 
-    await page.goto("/profile");
+    await gotoHydrated(page, "/profile");
     await expect(page.getByRole("heading", { name: "🎁 Đổi điểm lấy phần thưởng" })).toBeVisible();
     await expect(page.getByTestId("loyalty-balance-points")).toHaveText("500");
     await expect(page.getByTestId("loyalty-lifetime-points")).toHaveText("0");
     await expect(page.getByTestId("loyalty-membership-tier")).toHaveText("BRONZE");
 
     page.once("dialog", d => d.accept());
-    const voucherCard = page.locator("article").filter({ hasText:"Voucher giảm 20.000đ" }).first();
-    await voucherCard.getByRole("button", { name:"Đổi" }).click();
+    const voucherCard = page.getByTestId("loyalty-reward-rwd20k");
+    await expect(voucherCard).toBeVisible({ timeout: 30_000 });
+    const voucherRedeem = page.getByTestId("loyalty-redeem-rwd20k");
+    await expect(voucherRedeem).toBeEnabled({ timeout: 30_000 });
+    await voucherRedeem.click();
     await expect(page.getByText(/Voucher: RWD-RWD20K-/)).toBeVisible();
     await expect(page.getByText(/^RWD-RWD20K-/).first()).toBeVisible();
     await expect(page.getByTestId("loyalty-balance-points")).toHaveText("300");
     await expect(page.getByTestId("loyalty-membership-tier")).toHaveText("BRONZE");
 
     page.once("dialog", d => d.accept());
-    const cornCard = page.locator("article").filter({ hasText:"Bắp Caramel miễn phí" }).first();
-    await cornCard.getByRole("button", { name:"Đổi" }).click();
+    const cornCard = page.getByTestId("loyalty-reward-rwdcorn");
+    await expect(cornCard).toBeVisible({ timeout: 30_000 });
+    const cornRedeem = page.getByTestId("loyalty-redeem-rwdcorn");
+    await expect(cornRedeem).toBeEnabled({ timeout: 30_000 });
+    await cornRedeem.click();
     const gift = page.getByText(/^GIFT-RWDCORN-/).first();
     await expect(gift).toBeVisible();
     giftCode = (await gift.textContent())!.trim();
@@ -144,7 +130,7 @@ test("V40 admin credit -> private voucher + concession reward -> staff claim", a
     expect(adminMe.status).toBe(200);
     expect(adminMe.body?.role).toBe("ADMIN");
 
-    await page.goto("/staff/check-in");
+    await gotoHydrated(page, "/staff/check-in");
     await expect(page).toHaveURL(/\/staff\/check-in$/);
     const rewardInput = page.getByPlaceholder("GIFT-RWDCORN-XXXXXXXX");
     await expect(rewardInput).toBeVisible();

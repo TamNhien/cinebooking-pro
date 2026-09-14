@@ -2,7 +2,7 @@
 "use client";
 import Link from "next/link";
 import { FormEvent, use, useEffect, useMemo, useState } from "react";
-import { api, currency, dateTime } from "@/lib/api";
+import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import StarRating from "@/components/StarRating";
 import MovieCard from "@/components/MovieCard";
@@ -15,13 +15,42 @@ const timeLabel=(v:string)=>new Intl.DateTimeFormat("vi-VN",{hour:"2-digit",minu
 export default function MoviePage({params}:{params:Promise<{id:string}>}){
   const {id}=use(params); const [movie,setMovie]=useState<Movie|null>(null); const [showtimes,setShowtimes]=useState<Showtime[]>([]); const [reviews,setReviews]=useState<MovieReview[]>([]); const [similar,setSimilar]=useState<RecommendationItem[]>([]); const [favorite,setFavorite]=useState(false); const [error,setError]=useState("");
   const [stars,setStars]=useState(5); const [comment,setComment]=useState(""); const [saving,setSaving]=useState(false); const [selectedDate,setSelectedDate]=useState(""); const auth=getAuth();
+  async function loadCoreMovie(){
+    const deadline=Date.now()+12_000;
+    let attempt=0;
+    for(;;){
+      try{return await api<Movie>(`/movies/${id}`);}
+      catch(e){
+        const status=e instanceof ApiError?e.status:0;
+        const retryable=status===0||status===408||status===425||status===429||status>=500;
+        if(!retryable||Date.now()>=deadline)throw e;
+        const delay=Math.min(250*(2**attempt),1500);
+        attempt+=1;
+        await new Promise(resolve=>setTimeout(resolve,delay));
+      }
+    }
+  }
   async function load(){
+    setError("");
     try{
-      const [m,s,r,sim]=await Promise.all([api<Movie>(`/movies/${id}`),api<Showtime[]>(`/showtimes?movieId=${id}`),api<MovieReview[]>(`/movies/${id}/reviews`),api<RecommendationItem[]>(`/recommendations/similar/${id}?limit=4`)]);
-      setMovie(m);setShowtimes(s);setReviews(r);setSimilar(sim);
-      const mine=r.find(x=>x.mine); if(mine){setStars(mine.rating);setComment(mine.comment||"");}
+      const m=await loadCoreMovie();
+      setMovie(m);
+
+      const [showtimesResult,reviewsResult,similarResult]=await Promise.allSettled([
+        api<Showtime[]>(`/showtimes?movieId=${id}`),
+        api<MovieReview[]>(`/movies/${id}/reviews`),
+        api<RecommendationItem[]>(`/recommendations/similar/${id}?limit=4`),
+      ]);
+
+      if(showtimesResult.status==="fulfilled")setShowtimes(showtimesResult.value);else setShowtimes([]);
+      if(reviewsResult.status==="fulfilled"){
+        const r=reviewsResult.value;setReviews(r);
+        const mine=r.find(x=>x.mine);if(mine){setStars(mine.rating);setComment(mine.comment||"");}
+      }else setReviews([]);
+      if(similarResult.status==="fulfilled")setSimilar(similarResult.value);else setSimilar([]);
+
       if(getAuth()){try{const f=await api<{favorite:boolean}>(`/me/favorites/${id}`);setFavorite(f.favorite);}catch{}}
-    }catch(e){setError((e as Error).message)}
+    }catch(e){setMovie(null);setError((e as Error).message)}
   }
   useEffect(()=>{void load();},[id]);
   const showtimeDates=useMemo(()=>[...new Set(showtimes.map(s=>localDateKey(s.startTime)))].sort(),[showtimes]);
@@ -31,10 +60,10 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
   async function toggleFavorite(){ if(!getAuth()){window.location.assign(`/login?returnTo=/movies/${id}`);return;} try{const r=await api<{favorite:boolean}>(`/me/favorites/${id}`,{method:"PUT",body:JSON.stringify({favorite:!favorite})});setFavorite(r.favorite);}catch(e){setError((e as Error).message)} }
   async function saveReview(e:FormEvent){e.preventDefault();if(!getAuth()){window.location.assign(`/login?returnTo=/movies/${id}`);return;}setSaving(true);try{await api(`/movies/${id}/reviews/me`,{method:"PUT",body:JSON.stringify({rating:stars,comment})});await load();}catch(e){setError((e as Error).message)}finally{setSaving(false)}}
   async function removeReview(){if(!confirm("Xoá đánh giá của bạn?"))return;try{await api(`/movies/${id}/reviews/me`,{method:"DELETE"});setStars(5);setComment("");await load();}catch(e){setError((e as Error).message)}}
-  if(error&&!movie) return <div className="card p-6 text-red-300">{error}</div>;
-  if(!movie) return <div className="text-slate-400">Đang tải...</div>;
+  if(error&&!movie) return <div className="card p-6 text-red-300" data-testid="movie-detail-error-v33">{error}</div>;
+  if(!movie) return <div className="text-slate-400" data-testid="movie-detail-loading-v33">Đang tải...</div>;
   const myReview=reviews.find(r=>r.mine);
-  return <div className="space-y-8">
+  return <div className="space-y-8" data-testid="movie-detail-v31" data-movie-id={movie.id} data-movie-title={movie.title}>
     {error&&<div className="card p-4 text-red-300">{error}</div>}
     <section className="movie-detail-hero">
       <img src={movie.posterUrl || "/icon.svg"} alt={movie.title} className="movie-detail-poster"/>
@@ -43,7 +72,7 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
         <h1 className="mt-4 text-3xl font-bold md:text-5xl">{movie.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-400"><span>⏱ {movie.durationMinutes} phút</span>{movie.releaseDate&&<span>📅 Khởi chiếu {new Intl.DateTimeFormat("vi-VN").format(new Date(`${movie.releaseDate}T00:00:00`))}</span>}<span className="flex items-center gap-2"><span className="text-amber-400">★</span><b className="text-white">{movie.averageRating.toFixed(1)}</b> / 5 · {movie.reviewCount} đánh giá</span></div>
         <p className="mt-6 max-w-3xl leading-7 text-slate-300">{movie.description||"Thông tin phim đang được cập nhật."}</p>
-        <div className="mt-6 flex flex-wrap gap-3">{movie.trailerUrl&&<a href={movie.trailerUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">▶ Xem trailer</a>}<button onClick={toggleFavorite} className={favorite?"btn btn-primary":"btn btn-secondary"}>{favorite?"♥ Đã yêu thích":"♡ Thêm vào yêu thích"}</button></div>
+        <div className="mt-6 flex flex-wrap gap-3">{movie.trailerUrl&&<a href={movie.trailerUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">▶ Xem đoạn giới thiệu</a>}<button onClick={toggleFavorite} className={favorite?"btn btn-primary":"btn btn-secondary"}>{favorite?"♥ Đã yêu thích":"♡ Thêm vào yêu thích"}</button></div>
       </div>
     </section>
 

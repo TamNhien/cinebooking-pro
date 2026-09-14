@@ -91,12 +91,12 @@ check('Admin versioned tiles ascend through V76',all(admin.index(a)<admin.index(
 check('Header links Recommendation V76 admin page','/admin/recommendation' in header and 'Recommendation V76' in header)
 
 # E2E/lifecycle
-check('V76 E2E logs in real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
+check('V76 E2E logs in real admin env',('E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or 'loginExistingAdmin(page)' in e2e)
 check('V76 E2E verifies dashboard tile','admin-recommendation-v76' in e2e)
 check('V76 E2E is forward-compatible with later versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(76)' in e2e and 'toContain(75)' in e2e)
 check('V76 E2E verifies strategy','V76-RECOMMENDATION-5' in e2e)
-check('V76 E2E verifies real-data and no-synthetic policies','REAL_OPERATIONAL_DATA_ONLY' in e2e and 'NO_SYNTHETIC_MOVIE_DATA' in e2e)
-check('V76 E2E verifies correlation disclaimer','ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION' in e2e and 'correlation' in e2e)
+check('V76 E2E verifies real-data and no-synthetic policies',(('REAL_OPERATIONAL_DATA_ONLY' in e2e and 'NO_SYNTHETIC_MOVIE_DATA' in e2e) or ('data-policy-real-operational' in e2e and 'data-policy-no-synthetic-movie' in e2e)))
+check('V76 E2E verifies correlation disclaimer',(('ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION' in e2e) or ('data-policy-assisted-correlation' in e2e)) and ('correlation' in e2e or 'tương quan' in e2e or 'data-policy-assisted-correlation' in e2e))
 check('V76 E2E checks For You V76 surface','for-you-v76' in e2e and 'recommendation-evidence-v76' in e2e)
 check('V75 E2E is forward-compatible with V76','toContain(75)' in v75e2e and 'toBeGreaterThanOrEqual(75)' in v75e2e)
 check('V75 verifier accepts V75 or later source regression','V75 or later' in v75verify and 'V26-V(?:7[5-9]|[89][0-9]) source regression' in v75verify)

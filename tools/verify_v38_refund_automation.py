@@ -111,7 +111,7 @@ check('V38 Playwright scopes 100 percent assertion to the rate row', 'policy.get
 check('V38 Playwright avoids ambiguous broad 100 percent text lookup', 'policy.getByText(/100%/)' not in e2e)
 check('V38 Playwright verifies automatic REFUNDED booking state', 'Trạng thái booking: REFUNDED' in e2e)
 check('V38 Playwright verifies refunded payment state', 'paymentCard.getByText("REFUNDED", { exact: true })' in e2e)
-check('V38 Playwright verifies released seat becomes available', 'released seat becomes available again' in e2e and 'title*="AVAILABLE"' in e2e)
+check('V38 Playwright verifies released seat becomes available', 'released seat becomes available again' in e2e and ('title*="AVAILABLE"' in e2e or 'data-seat-status="AVAILABLE"' in e2e))
 
 check('RefundPolicy unit test covers all four policy bands', all(x in unit for x in ['AUTO_FULL','AUTO_PARTIAL','MANUAL_PARTIAL','NON_REFUNDABLE']))
 latest=re.search(r'assertThat\(latest\)\.isEqualTo\("(\d+)"\)',it)

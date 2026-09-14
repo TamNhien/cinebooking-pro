@@ -14,7 +14,7 @@ test("V71 Secrets & Key Governance exposes metadata-only posture and keeps versi
   await loginAdmin(page);
   const tile=page.getByTestId("admin-key-governance-v71");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Key Governance V71");
+  await expect(tile).toContainText("Quản trị khóa V71");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
@@ -23,9 +23,9 @@ test("V71 Secrets & Key Governance exposes metadata-only posture and keeps versi
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/key-governance$/);
-  await expect(page.getByTestId("key-governance-v71")).toContainText("V71 · SECRETS & KEY GOVERNANCE 5.0");
+  await expect(page.getByTestId("key-governance-v71")).toContainText("V71 · QUẢN TRỊ BÍ MẬT & KHÓA 5.0");
   await expect(page.getByTestId("key-governance-summary-v71")).toContainText("V71-SECRETS-KEY-GOVERNANCE-5");
-  await expect(page.getByTestId("key-governance-policies-v71")).toContainText("NO_SECRET_VALUES_IN_DATABASE");
-  await expect(page.getByTestId("key-governance-policy-v71")).toContainText("Auto-rotation execution mặc định OFF");
+  await expect(page.getByTestId("key-governance-policies-v71")).toContainText(/KHÔNG_LƯU_GIÁ_TRỊ_BÍ_MẬT_TRONG_CSDL|NO_SECRET_VALUES_IN_DATABASE/);
+  await expect(page.getByTestId("key-governance-policy-v71")).toContainText(/Tự động xoay vòng mặc định TẮT|Auto-rotation execution mặc định OFF/);
   await expect(page.getByTestId("key-governance-error-v71")).toHaveCount(0);
 });

@@ -80,7 +80,7 @@ check('Booking page synchronizes client clock against server epoch', 'setServerC
 check('Booking page drives realtime countdown from absolute server expiry', 'holdExpiresAt-(Date.now()+serverClockOffset)' in page and 'setInterval(tick,250)' in page)
 check('Booking page resynchronizes active holds with Redis-backed map', 'setInterval(()=>load().catch(()=>{}),15000)' in page)
 check('Booking page still subscribes to realtime seat-map WebSocket events', '/topic/showtimes/${showtimeId}/seats' in page and 'Seat map updated live' in page)
-check('Booking page exposes V57 countdown test hook', 'seat-hold-countdown-v57' in page and 'Đếm ngược giữ ghế realtime đồng bộ máy chủ' in page)
+check('Booking page exposes V57 countdown test hook', 'seat-hold-countdown-v57' in page and ('Đếm ngược giữ ghế realtime đồng bộ máy chủ' in page or 'Đếm ngược giữ ghế theo thời gian thực, đồng bộ với máy chủ' in page))
 check('Booking page consumes server hold expiry from hold response', 'holdExpiresAtEpochMs:number' in page and 'setHoldExpiresAt(r.holdExpiresAtEpochMs' in page)
 check('Booking page clears expiry when release/cancel/checkout ends hold', page.count('setHoldExpiresAt(0)') >= 4)
 
@@ -88,7 +88,7 @@ check('V57 Playwright journey exists with roadmap title', 'V57 Booking & Seat In
 check('V57 Playwright validates recommendation score breakdown', all(x in e2e for x in ['centerScore','rowScore','orphanSafetyScore','qualityLabel','dynamicAdjustment']))
 check('V57 Playwright validates realtime absolute hold expiry', 'holdExpiresAtEpochMs' in e2e and 'serverEpochMs' in e2e and 'seat-hold-countdown-v57' in e2e)
 check('V57 Playwright validates a second client receives 409 contention', 'secondContext' in e2e and 'expect(secondHold.status).toBe(409)' in e2e)
-check('V57 Playwright verifies losing client sees seats HELD', 'toHaveAttribute("title", /HELD/)' in e2e)
+check('V57 Playwright verifies losing client sees seats HELD', 'toHaveAttribute("data-seat-status", "HELD")' in e2e or 'toHaveAttribute("title", /HELD/)' in e2e)
 check('Existing V39 atomic race journey remains present', 'V39 smart seat suggestion and atomic contention guard' in v39e2e)
 check('Existing V39 verifier still covers orphan and atomic hold semantics', 'Recommendation engine avoids new single-seat gaps' in v39verify and 'Atomic Redis multi-seat acquire remains intact' in v39verify)
 

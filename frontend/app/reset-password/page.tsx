@@ -52,7 +52,7 @@ function Inner() {
       <h1 className="text-3xl font-bold">Đặt lại mật khẩu</h1>
       <p className="mt-2 text-sm text-slate-400">Tạo mật khẩu mới đủ mạnh để bảo vệ tài khoản.</p>
       {!token ? (
-        <p className="mt-4 text-red-300">Liên kết đặt lại mật khẩu thiếu token hoặc không hợp lệ.</p>
+        <p className="mt-4 text-red-300">Liên kết đặt lại mật khẩu thiếu mã xác thực hoặc không hợp lệ.</p>
       ) : (
         <form onSubmit={submit} className="mt-6 space-y-4">
           <PasswordInput

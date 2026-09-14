@@ -1,20 +1,9 @@
-import { expect, test, type Page } from "@playwright/test";
-
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await Promise.all([
-    page.waitForURL(/\/admin$/,{timeout:15000}),
-    page.getByRole("button",{name:"Đăng nhập"}).click(),
-  ]);
-}
+import { expect, test } from "@playwright/test";
+import { gotoSurface, loginExistingAdmin } from "./runtime-guards";
 
 test("V59 admin receives websocket operations signals and manages alert state",async({page})=>{
   await page.setViewportSize({width:1920,height:1080});
-  await loginAdmin(page);
+  await loginExistingAdmin(page);
 
   const actionGrid=page.getByTestId("admin-action-grid-v59");
   await expect(actionGrid).toBeVisible();
@@ -36,22 +25,30 @@ test("V59 admin receives websocket operations signals and manages alert state",a
   expect(overlap).toEqual([]);
   await expect(page.getByTestId("admin-tab-grid-v59")).toBeVisible();
 
-  await page.goto("/admin/operations-control");
+  await gotoSurface(page,"/admin/operations-control","operations-control-center-v59");
 
-  await expect(page.getByTestId("operations-control-center-v59")).toContainText("Realtime Operations · V59");
+  await expect(page.getByTestId("operations-control-center-v59")).toContainText("Vận hành thời gian thực · V59");
   await expect(page.getByTestId("operations-control-realtime-v59")).toContainText("WebSocket: Đã kết nối",{timeout:20000});
   await expect(page.getByTestId("operations-control-summary-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-domains-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-history-v59")).toBeVisible();
   await expect(page.getByTestId("operations-control-detail-v58")).toContainText("STOMP_WEBSOCKET");
 
-  const actionGroups=page.getByTestId("operations-control-alert-actions-v59");
-  if(await actionGroups.count()){
-    const first=actionGroups.first();
-    const ack=first.getByRole("button",{name:/Tiếp nhận/});
-    if(await ack.isEnabled()){
+  // Alert snapshots are live and can legitimately change between two DOM reads.
+  // Act only on an OPEN alert that still exposes the machine ack control; never
+  // wait the whole test timeout for a presentation label that may disappear.
+  const openAlerts=page.locator('[data-testid="operations-control-alert-v59"][data-alert-state="OPEN"]');
+  if(await openAlerts.count()){
+    const first=openAlerts.first();
+    const fingerprint=await first.getAttribute("data-alert-fingerprint");
+    const ack=first.getByTestId("operations-alert-ack-v59");
+    const actionable=await ack.isEnabled({timeout:2_000}).catch(()=>false);
+    if(fingerprint&&actionable){
       await ack.click();
-      await expect(first.getByRole("button",{name:/Đã tiếp nhận/})).toBeVisible();
+      await expect.poll(async()=>page.getByTestId("operations-control-alert-v59").evaluateAll((nodes,target)=>{
+        const node=nodes.find(item=>item.getAttribute("data-alert-fingerprint")===target);
+        return node?.getAttribute("data-alert-state")??"MISSING";
+      },fingerprint),{timeout:15_000}).toBe("ACKNOWLEDGED");
       await expect(page.getByTestId("operations-control-history-v59")).toContainText("Tiếp nhận cảnh báo");
     }
   }

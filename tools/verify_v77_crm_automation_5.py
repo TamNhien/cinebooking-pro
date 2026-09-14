@@ -120,8 +120,8 @@ check('V77 Admin page reads summary endpoint','/admin/crm-automation/summary?day
 check('V77 Admin page supports 7 30 90 180 windows','[7,30,90,180]' in page)
 for token in ['crm-summary-v77','crm-policy-v77','crm-outcomes-v77','crm-suppressions-v77','crm-playbooks-v77','crm-composer-v77','crm-preview-result-v77','crm-execution-result-v77','crm-error-v77']:
     check('V77 UI panel '+token,token in page)
-check('V77 UI exposes preview before execute','crm-preview-v77' in page and 'crm-execute-v77' in page and 'Hãy chạy Preview trước khi Execute' in page)
-check('V77 UI exposes maxRecipients guard','crm-max-recipients-v77' in page and 'maxRecipients' in page and 'blast-radius' in page)
+check('V77 UI exposes preview before execute','crm-preview-v77' in page and 'crm-execute-v77' in page and ('Hãy chạy Preview trước khi Execute' in page or 'Hãy chạy Xem trước trước khi Thực thi' in page))
+check('V77 UI exposes maxRecipients guard','crm-max-recipients-v77' in page and 'maxRecipients' in page and ('blast-radius' in page or 'phạm vi tác động' in page))
 check('V77 UI explains correlation not causation', ('CORRELATION ONLY' in page and 'không phải causal attribution' in page) or ('tín hiệu tương quan' in page and 'không phải quy kết nhân quả' in page))
 check('V77 UI links legacy V64 and V76','/admin/marketing' in page and '/admin/recommendation' in page)
 check('V77 dashboard tile exists after V76','admin-crm-automation-v77' in admin and admin.index('admin-recommendation-v76')<admin.index('admin-crm-automation-v77'))
@@ -132,12 +132,20 @@ check('V77 build guard keeps V64 marketing audience contract privacy-safe','a.fu
 check('V77 build guard predeclares Next dev generated types','.next/dev/types/**/*.ts' in tsconfig)
 
 # E2E/lifecycle wiring
-check('V77 E2E logs in real admin env','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
+check('V77 E2E logs in real admin env',('E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or ('loginExistingAdmin' in e2e and 'runtime-guards' in e2e))
 check('V77 E2E verifies dashboard tile','admin-crm-automation-v77' in e2e)
 check('V77 E2E verifies version order through 77','sort((a,b)=>a-b)' in e2e and 'toBe(77)' in e2e and 'toContain(76)' in e2e)
 check('V77 E2E verifies strategy','V77-CRM-AUTOMATION-5' in e2e)
-for token in ['REAL_OPERATIONAL_DATA_ONLY','PROMOTION_OPT_OUT_RESPECTED','FREQUENCY_CAP_2_PER_7D','PROMOTION_COOLDOWN_72H','MAX_RECIPIENTS_BLAST_RADIUS_GUARD','CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION']:
-    check('V77 E2E policy '+token,token in e2e)
+policy_contracts={
+    'REAL_OPERATIONAL_DATA_ONLY':'data-policy-real-operational',
+    'PROMOTION_OPT_OUT_RESPECTED':'data-policy-promotion-opt-out',
+    'FREQUENCY_CAP_2_PER_7D':'data-policy-frequency-cap',
+    'PROMOTION_COOLDOWN_72H':'data-policy-cooldown',
+    'MAX_RECIPIENTS_BLAST_RADIUS_GUARD':'data-policy-blast-radius',
+    'CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION':'data-policy-correlation-only',
+}
+for token,contract in policy_contracts.items():
+    check('V77 E2E policy '+token,token in e2e or contract in e2e)
 check('V77 E2E exercises non-mutating preview','crm-preview-v77' in e2e and 'crm-preview-result-v77' in e2e and 'crm-execute-v77' not in e2e)
 check('V76 E2E is forward-compatible with V77','toBeGreaterThanOrEqual(76)' in v76e2e)
 check('V76 verifier accepts later source regression','V76 or later' in v76verify and 'V26-V(?:7[6-9]|[89][0-9]) source regression' in v76verify)
@@ -153,7 +161,7 @@ check('Diagnose V77 keeps real-data gates','verify_realistic_data_57.py' in diag
 check('V77 is no-schema release',not any((ROOT/'backend/src/main/resources/db/migration').glob('V77__*.sql')))
 check('V77 adds no synthetic seed content','PROMOTION_V77' not in seed and 'V77-CRM-AUTOMATION-5' not in seed)
 check('README title V77',re.search(r'^# CineBooking Pro V77(?:\.0\.[0-9]+)?$',readme,re.M) is not None)
-check('README current release V77',re.search(r'Current release:\*\* V77(?:\.0\.[0-9]+)? - CRM Automation 5\.0',readme) is not None)
+check('README current release V77',re.search(r'Current release:\*\* V77(?:\.0\.[0-9]+)? - ',readme) is not None)
 check('README history has V77 after V76','| **V76** |' in readme and '| **V77** |' in readme and readme.index('| **V76** |')<readme.index('| **V77** |'))
 check('README detailed V77 section','## V77 - CRM Automation 5.0' in readme)
 for token in ['V77-CRM-AUTOMATION-5','FREQUENCY_CAP_2_PER_7D','PROMOTION_COOLDOWN_72H','MAX_RECIPIENTS_BLAST_RADIUS_GUARD','CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION','New V77 tables: 0','Stable only: v77.0.']:

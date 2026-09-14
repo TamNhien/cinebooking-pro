@@ -183,7 +183,7 @@ export default function ProfilePage() {
         </div>
         <div className="card p-5">
           <h2 className="text-lg font-bold">🎂 Quà sinh nhật</h2>
-          <p className="mt-1 text-sm text-slate-400">Voucher cá nhân 20%, tối đa 50.000đ, nhận đúng ngày sinh và dùng trong 30 ngày.</p>
+          <p className="mt-1 text-sm text-slate-400">Mã ưu đãi cá nhân 20%, tối đa 50.000đ, nhận đúng ngày sinh và dùng trong 30 ngày.</p>
           {!profile.birthDate ? <p className="mt-3 text-sm text-amber-300">Hãy thiết lập ngày sinh bên dưới để kích hoạt quyền lợi.</p> : <p className="mt-3 text-sm text-slate-300">Ngày sinh: {new Date(`${profile.birthDate}T00:00:00`).toLocaleDateString("vi-VN")}</p>}
           {member?.birthdayRewardEligible && <button type="button" disabled={busy} onClick={claimBirthdayReward} className="btn btn-primary mt-3">Nhận quà sinh nhật 🎁</button>}
           {profile.birthDate && !member?.birthdayRewardEligible && <div className="mt-3 text-xs text-slate-500">Quà sẽ mở đúng ngày sinh; mỗi năm chỉ nhận một lần.</div>}
@@ -191,20 +191,20 @@ export default function ProfilePage() {
       </section>
 
       <section className="card profile-card p-6">
-        <div><h2 className="text-xl font-bold">🎁 Đổi điểm lấy phần thưởng</h2><p className="mt-1 text-sm text-slate-400">Voucher được gắn với đúng tài khoản. Quà bắp nước tạo mã nhận quà để nhân viên xác nhận tại quầy.</p></div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rewards.map(r => <article key={r.id} className="rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><div className="text-xs font-black text-rose-300">{r.rewardType === "CONCESSION" ? "BẮP NƯỚC" : "VOUCHER"}</div><h3 className="mt-2 font-bold">{r.name}</h3><p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">{r.description}</p><div className="mt-3 flex items-end justify-between gap-3"><div><div className="text-xl font-black text-amber-300">{r.pointsCost} điểm</div><div className="text-xs text-slate-500">Hiệu lực {r.validityDays} ngày</div></div><button type="button" disabled={busy || !r.canRedeem} onClick={()=>redeemReward(r.id)} className="btn btn-primary !px-3 !py-2">{r.canRedeem ? "Đổi" : "Chưa đủ"}</button></div></article>)}{!rewards.length&&<div className="text-sm text-slate-500">Chưa có phần thưởng đang mở.</div>}</div>
+        <div><h2 className="text-xl font-bold">🎁 Đổi điểm lấy phần thưởng</h2><p className="mt-1 text-sm text-slate-400">Mã ưu đãi được gắn với đúng tài khoản. Quà bắp nước tạo mã nhận quà để nhân viên xác nhận tại quầy.</p></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rewards.map(r => <article key={r.id} data-testid={`loyalty-reward-${r.code.toLowerCase()}`} className="rounded-2xl border border-slate-800 bg-slate-950/45 p-4"><div className="text-xs font-black text-rose-300">{r.rewardType === "CONCESSION" ? "BẮP NƯỚC" : "VOUCHER"}</div><h3 className="mt-2 font-bold">{r.name}</h3><p className="mt-1 min-h-10 text-xs leading-5 text-slate-500">{r.description}</p><div className="mt-3 flex items-end justify-between gap-3"><div><div className="text-xl font-black text-amber-300">{r.pointsCost} điểm</div><div className="text-xs text-slate-500">Hiệu lực {r.validityDays} ngày</div></div><button type="button" data-testid={`loyalty-redeem-${r.code.toLowerCase()}`} disabled={busy || !r.canRedeem} onClick={()=>redeemReward(r.id)} className="btn btn-primary !px-3 !py-2">{r.canRedeem ? "Đổi" : "Chưa đủ"}</button></div></article>)}{!rewards.length&&<div className="text-sm text-slate-500">Chưa có phần thưởng đang mở.</div>}</div>
       </section>
 
       <section className="card profile-card p-6">
         <h2 className="text-xl font-bold">🎟 Ví phần thưởng</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div><h3 className="font-bold">Voucher cá nhân</h3><div className="mt-2 space-y-2">{ownedVouchers.map(v=><div key={v.id} className="rounded-xl border border-slate-800 p-3"><div className="font-mono font-black text-amber-300">{v.code}</div><div className="mt-1 text-sm">{v.name}</div><div className="mt-1 text-xs text-slate-500">{v.active?"Có thể sử dụng":"Đã dùng / hết hạn"}{v.endsAt?` · hết hạn ${new Date(v.endsAt).toLocaleDateString("vi-VN")}`:""}</div></div>)}{!ownedVouchers.length&&<div className="text-sm text-slate-500">Chưa có mã ưu đãi cá nhân.</div>}</div></div>
+          <div><h3 className="font-bold">Mã ưu đãi cá nhân</h3><div className="mt-2 space-y-2">{ownedVouchers.map(v=><div key={v.id} className="rounded-xl border border-slate-800 p-3"><div className="font-mono font-black text-amber-300">{v.code}</div><div className="mt-1 text-sm">{v.name}</div><div className="mt-1 text-xs text-slate-500">{v.active?"Có thể sử dụng":"Đã dùng / hết hạn"}{v.endsAt?` · hết hạn ${new Date(v.endsAt).toLocaleDateString("vi-VN")}`:""}</div></div>)}{!ownedVouchers.length&&<div className="text-sm text-slate-500">Chưa có mã ưu đãi cá nhân.</div>}</div></div>
           <div><h3 className="font-bold">Mã nhận bắp nước</h3><div className="mt-2 space-y-2">{redemptions.filter(r=>r.rewardType==="CONCESSION").map(r=><div key={r.id} className="rounded-xl border border-slate-800 p-3"><div className="font-mono font-black text-emerald-300">{r.redemptionCode}</div><div className="mt-1 text-sm">{r.rewardName}</div><div className="mt-1 text-xs text-slate-500">{r.status==="CLAIMED"?`Đã nhận ${r.claimedAt?new Date(r.claimedAt).toLocaleString("vi-VN"):""}`:`Chưa nhận · hết hạn ${new Date(r.expiresAt).toLocaleDateString("vi-VN")}`}</div></div>)}{!redemptions.some(r=>r.rewardType==="CONCESSION")&&<div className="text-sm text-slate-500">Chưa có mã nhận quà tại quầy.</div>}</div></div>
         </div>
       </section>
 
       <section className="card profile-card p-6">
-        <div className="flex items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Lịch sử điểm</h2><p className="mt-1 text-sm text-slate-400">Bao gồm tích, dùng, hoàn, thu hồi, hết hạn, đổi thưởng và điều chỉnh có audit.</p></div></div>
+        <div className="flex items-end justify-between gap-3"><div><h2 className="text-xl font-bold">Lịch sử điểm</h2><p className="mt-1 text-sm text-slate-400">Bao gồm tích, dùng, hoàn, thu hồi, hết hạn, đổi thưởng và điều chỉnh có kiểm toán.</p></div></div>
         <div className="mt-4 divide-y divide-slate-800">{loyalty.slice(0,20).map(tx => { const debit=debitTypes.has(tx.type); return <div key={tx.id} className="flex items-center justify-between gap-4 py-3"><div><div className="font-semibold">{txName(tx.type)}</div><div className="mt-1 text-xs text-slate-500">{tx.description || "Giao dịch thành viên"} · {new Date(tx.createdAt).toLocaleString("vi-VN")}{tx.expiresAt?` · hạn ${new Date(tx.expiresAt).toLocaleDateString("vi-VN")}`:""}</div></div><div className="text-right"><div className={`text-lg font-black ${debit ? "text-rose-300" : "text-emerald-300"}`}>{debit ? "-" : "+"}{tx.points}</div>{tx.balanceAfter!==undefined&&<div className="text-[10px] text-slate-600">còn {tx.balanceAfter}</div>}</div></div>})}{!loyalty.length&&<div className="py-5 text-sm text-slate-500">Chưa có giao dịch điểm.</div>}</div>
       </section>
 
@@ -220,7 +220,7 @@ export default function ProfilePage() {
 
       <section className="card profile-card p-6 space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-xl font-bold">Bảo mật & thiết bị</h2><p className="mt-1 text-sm text-slate-400">Refresh token được xoay vòng. Phiên bị thu hồi sẽ mất quyền truy cập ngay cả khi access token chưa hết hạn.</p></div>
+          <div><h2 className="text-xl font-bold">Bảo mật & thiết bị</h2><p className="mt-1 text-sm text-slate-400">Mã làm mới được xoay vòng. Phiên bị thu hồi sẽ mất quyền truy cập ngay cả khi mã truy cập chưa hết hạn.</p></div>
           <button type="button" disabled={busy || sessions.filter(s=>s.active&&!s.current).length===0} onClick={revokeOtherSessions} className="btn btn-secondary">Đăng xuất thiết bị khác</button>
         </div>
         <div className="space-y-3">

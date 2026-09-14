@@ -16,15 +16,15 @@ test("V65 exposes admin SLO, dependency probes and trace correlation",async({pag
   await loginAdmin(page);
   const tile=page.getByTestId("admin-observability-v65");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Observability V65");
+  await expect(tile).toContainText("Khả năng quan sát V65");
   await tile.click();
 
   await expect(page).toHaveURL(/\/admin\/observability$/);
-  await expect(page.getByTestId("observability-v65")).toContainText("V65 · OBSERVABILITY & RELIABILITY 4.0");
+  await expect(page.getByTestId("observability-v65")).toContainText("V65 · KHẢ NĂNG QUAN SÁT & ĐỘ TIN CẬY 4.0");
   await expect(page.getByTestId("observability-summary-v65")).toContainText("V65-OBSERVABILITY-RELIABILITY-4");
   await expect(page.getByTestId("slo-v65")).toContainText("Availability");
   await expect(page.getByTestId("slo-v65")).toContainText("API P95 latency");
   await expect(page.getByTestId("dependencies-v65")).toContainText("PostgreSQL");
   await expect(page.getByTestId("dependencies-v65")).toContainText("Redis");
-  await expect(page.getByTestId("recent-traces-v65")).toContainText("Trace ID");
+  await expect(page.getByTestId("recent-traces-v65")).toContainText(/Mã truy vết|Trace ID/);
 });

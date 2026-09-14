@@ -15,7 +15,7 @@ async function loginAdmin(page:Page){
 test("V53 admin sees a cinema-scoped operations command center built from real operational signals",async({page})=>{
   await loginAdmin(page);
   await page.goto("/admin/command-center");
-  await expect(page.getByTestId("operations-command-center-v53")).toContainText("Operations Command Center · V53");
+  await expect(page.getByTestId("operations-command-center-v53")).toContainText("Trung tâm điều hành vận hành · V53");
   await expect(page.getByTestId("command-center-summary-v53")).toBeVisible();
   await expect(page.getByTestId("command-center-attention-v53")).toBeVisible();
 

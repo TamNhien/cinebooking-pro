@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getAuth } from "@/lib/auth";
 import { registerCurrentPwaDevice } from "@/lib/pwa";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -19,6 +20,7 @@ export default function PwaManager() {
   const [standalone, setStandalone] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [authUserId,setAuthUserId]=useState<string|undefined>();
+  const { t } = usePresentationLanguage();
 
   const isIos = useMemo(() => typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent), []);
 
@@ -95,18 +97,18 @@ export default function PwaManager() {
   return (
     <div className="pwa-manager" role="status" aria-live="polite">
       {!online ? <>
-        <div className="pwa-manager-copy"><b>📴 Đang ngoại tuyến</b><span>V52 vẫn mở được vé đã lưu và không lưu đệm API/tài khoản.</span></div>
-        <Link className="pwa-manager-action" href="/offline-tickets">Mở vé ngoại tuyến</Link>
+        <div className="pwa-manager-copy"><b>📴 {t("Đang ngoại tuyến","Offline")}</b><span>{t("V52 vẫn mở được vé đã lưu và không lưu đệm API/tài khoản.","V52 can still open saved tickets and does not cache APIs or account data.")}</span></div>
+        <Link className="pwa-manager-action" href="/offline-tickets">{t("Mở vé ngoại tuyến","Open offline tickets")}</Link>
       </> : updateReady ? <>
-        <div className="pwa-manager-copy"><b>✨ Có bản CineBooking mới</b><span>Service Worker V52 sẵn sàng cập nhật.</span></div>
-        <button className="pwa-manager-action" type="button" onClick={update}>Cập nhật</button>
+        <div className="pwa-manager-copy"><b>✨ {t("Có bản CineBooking mới","A new CineBooking version is available")}</b><span>{t("Bộ xử lý nền V52 sẵn sàng cập nhật.","The V52 service worker is ready to update.")}</span></div>
+        <button className="pwa-manager-action" type="button" onClick={update}>{t("Cập nhật","Update")}</button>
       </> : installPrompt ? <>
-        <div className="pwa-manager-copy"><b>📲 Cài CineBooking</b><span>Mở nhanh như ứng dụng, vé ngoại tuyến và Web Push khi được bật.</span></div>
-        <button className="pwa-manager-action" type="button" onClick={install}>Cài ứng dụng</button>
-        <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label="Đóng">×</button>
+        <div className="pwa-manager-copy"><b>📲 {t("Cài CineBooking","Install CineBooking")}</b><span>{t("Mở nhanh như ứng dụng, vé ngoại tuyến và Web Push khi được bật.","Launch it like an app, keep offline tickets, and use Web Push when enabled.")}</span></div>
+        <button className="pwa-manager-action" type="button" onClick={install}>{t("Cài ứng dụng","Install app")}</button>
+        <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label={t("Đóng","Close")}>×</button>
       </> : showIosHint ? <>
-        <div className="pwa-manager-copy"><b>📲 Cài trên iPhone/iPad</b><span>Safari → Chia sẻ → Thêm vào Màn hình chính.</span></div>
-        <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label="Đóng">×</button>
+        <div className="pwa-manager-copy"><b>📲 {t("Cài trên iPhone/iPad","Install on iPhone/iPad")}</b><span>{t("Safari → Chia sẻ → Thêm vào Màn hình chính.","Safari → Share → Add to Home Screen.")}</span></div>
+        <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label={t("Đóng","Close")}>×</button>
       </> : null}
     </div>
   );

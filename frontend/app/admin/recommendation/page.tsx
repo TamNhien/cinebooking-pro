@@ -3,11 +3,27 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { api, currency, dateTime } from "@/lib/api";
+import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { RecommendationAdminSummaryV76, UserProfile } from "@/lib/types";
 
 const WINDOWS=[7,30,90,180] as const;
+
+async function withTransientRecommendationAdminReadRetry<T>(read:()=>Promise<T>){
+  const deadline=Date.now()+12_000;
+  let attempt=0;
+  for(;;){
+    try{return await read();}
+    catch(error){
+      const status=error instanceof ApiError?error.status:0;
+      const retryable=status===0||status===408||status===425||status===429||status>=500;
+      if(!retryable||Date.now()>=deadline)throw error;
+      const delay=Math.min(250*(2**attempt),1500);
+      attempt+=1;
+      await new Promise(resolve=>setTimeout(resolve,delay));
+    }
+  }
+}
 
 export default function RecommendationV76AdminPage(){
   const [days,setDays]=useState<number>(30);
@@ -18,13 +34,16 @@ export default function RecommendationV76AdminPage(){
   const load=useCallback(async()=>{
     setBusy(true);
     try{
-      const me=await api<UserProfile>("/me");
+      const [me,summary]=await withTransientRecommendationAdminReadRetry(()=>Promise.all([
+        api<UserProfile>("/me"),
+        api<RecommendationAdminSummaryV76>(`/admin/recommendation/summary?days=${days}`),
+      ]));
       if(me.role!=="ADMIN"){
         clearAuth();
         window.location.assign("/login?returnTo=/admin/recommendation&reason=admin");
         return;
       }
-      setData(await api<RecommendationAdminSummaryV76>(`/admin/recommendation/summary?days=${days}`));
+      setData(summary);
       setError("");
     }catch(e){setError((e as Error).message)}finally{setBusy(false)}
   },[days]);
@@ -34,7 +53,7 @@ export default function RecommendationV76AdminPage(){
     void load();
   },[load]);
 
-  return <div className="space-y-7" data-testid="recommendation-admin-v76">
+  return <div className="space-y-7" data-testid="recommendation-admin-v76" data-recommendation-admin-ready={data?"true":"false"}>
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
         <div className="mb-2 text-sm text-slate-400"><Link href="/admin" className="hover:text-white">Quản trị viên</Link> / Gợi ý phim</div>
@@ -64,9 +83,9 @@ export default function RecommendationV76AdminPage(){
       <Metric label="Chất lượng" value={data?.coverage.qualityStatus??"-"}/>
     </section>
 
-    <section className="card p-5" data-testid="recommendation-policy-v76">
+    <section className="card p-5" data-testid="recommendation-policy-v76" data-policy-real-operational={data?.evidencePolicy.includes("REAL_OPERATIONAL_DATA_ONLY")?"true":"false"} data-policy-no-synthetic-movie={data?.evidencePolicy.includes("NO_SYNTHETIC_MOVIE_DATA")?"true":"false"} data-policy-assisted-correlation={data?.evidencePolicy.includes("ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION")?"true":"false"}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div><h2 className="text-xl font-bold">Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-500">Không sinh phim/người dùng/lượt đặt vé giả để làm đẹp KPI gợi ý; bảng quản trị không trả email thô hay hồ sơ cá nhân từng người.</p></div>
+        <div><h2 className="text-xl font-bold">Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-500">Không sinh phim/người dùng/lượt đặt vé giả để làm đẹp chỉ số KPI gợi ý; bảng quản trị không trả thư điện tử thô hay hồ sơ cá nhân từng người.</p></div>
         {data&&<span className="text-xs text-slate-500">Tạo lúc {dateTime(data.generatedAt)}</span>}
       </div>
       <div className="mt-4 flex flex-wrap gap-2">{(data?.evidencePolicy??[]).map(x=><code key={x} className="rounded-lg bg-slate-900 px-2 py-1 text-xs text-cyan-300">{x}</code>)}</div>
@@ -107,7 +126,7 @@ export default function RecommendationV76AdminPage(){
           <div className="max-w-4xl">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-400/20 bg-violet-400/10 text-base" aria-hidden="true">↗</span>
-              <h2 className="text-xl font-bold sm:text-2xl">Assisted confirmed đặt vés</h2>
+              <h2 className="text-xl font-bold sm:text-2xl">Lượt đặt vé đã xác nhận có hỗ trợ</h2>
             </div>
             <p className="text-sm leading-6 text-slate-400">
               Lượt đặt vé ĐÃ XÁC NHẬN có cùng khách hàng + cùng phim với lượt nhấp/xem gợi ý trong 7 ngày trước đó. Chỉ dùng để đo mức hỗ trợ của gợi ý, không diễn giải là quan hệ nhân quả.

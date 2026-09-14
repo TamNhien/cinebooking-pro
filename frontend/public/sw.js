@@ -1,4 +1,4 @@
-const VERSION = "v52";
+const VERSION = "v77-0-49";
 const SHELL_CACHE = `cinebooking-shell-${VERSION}`;
 const RUNTIME_CACHE = `cinebooking-runtime-${VERSION}`;
 const IMAGE_CACHE = `cinebooking-images-${VERSION}`;
@@ -16,7 +16,7 @@ const APP_SHELL = [
   "/icon-512.png",
   "/icon-maskable-512.png"
 ];
-const PRIVATE_NAV_PREFIXES=["/admin","/staff","/profile","/security","/notifications","/payments","/bookings","/ticket/","/booking/","/support","/for-you","/favorites","/waitlist"];
+const PRIVATE_NAV_PREFIXES=["/admin","/staff","/profile","/security","/notifications","/payments","/payment","/bookings","/ticket/","/booking/","/support","/for-you","/favorites","/waitlist","/login","/register","/forgot-password","/reset-password"];
 
 function isPrivateNavigation(pathname){return PRIVATE_NAV_PREFIXES.some(prefix=>pathname===prefix||pathname.startsWith(prefix.endsWith("/")?prefix:`${prefix}/`));}
 
@@ -39,6 +39,10 @@ self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     await Promise.all(APP_SHELL.map(path => cachePageAndAssets(cache, path)));
+    // Auth/payment route policy is security- and correctness-sensitive. Activate
+    // the new worker immediately so an older cache policy cannot keep serving
+    // stale login/register/mock-payment HTML during a long-lived browser run.
+    await self.skipWaiting();
   })());
 });
 
@@ -88,6 +92,25 @@ async function privateNavigation(request){
   try{return await fetch(request);}catch{return await caches.match("/offline");}
 }
 
+async function staticAssetNetworkFirst(request) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  try {
+    // V77.0.24: online navigations must hydrate with the JavaScript emitted by
+    // the current Next build. Network-first avoids an older active worker serving
+    // a stale same-path chunk during a deploy/rebuild convergence window.
+    const response = await fetch(request, { cache: "no-cache" });
+    if (response.ok) {
+      cache.put(request, response.clone()).catch(() => {});
+      trimCache(RUNTIME_CACHE,60).catch(()=>{});
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    throw new Error("Static asset unavailable");
+  }
+}
+
 async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
@@ -120,7 +143,12 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname.startsWith("/icon")) {
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(staticAssetNetworkFirst(request));
+    return;
+  }
+
+  if (url.pathname === "/manifest.webmanifest" || url.pathname.startsWith("/icon")) {
     event.respondWith(cacheFirst(request));
     return;
   }

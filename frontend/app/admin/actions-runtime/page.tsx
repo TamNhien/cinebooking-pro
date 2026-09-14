@@ -32,7 +32,7 @@ export default function ActionsRuntimeV73Page(){
 
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="actions-runtime-summary-v73">
       <Metric label="Chiến lược" value="V73-GITHUB-ACTIONS-NODE24-5"/>
-      <Metric label="Trạng thái môi trường chạy" value="NODE24 READY" tone="text-emerald-300"/>
+      <Metric label="Trạng thái môi trường chạy" value="NODE24 SẴN SÀNG" tone="text-emerald-300"/>
       <Metric label="Flyway" value="V72"/>
       <Metric label="Bảng công khai" value="67"/>
     </section>
@@ -64,7 +64,7 @@ export default function ActionsRuntimeV73Page(){
         <h2 className="text-xl font-bold">Xác minh</h2>
         <p className="mt-2 text-sm text-slate-400">Nguồn sự thật vẫn là bộ xác minh mã nguồn và GitHub CI của đúng xác nhận, không phải trạng thái giả lập trên giao diện.</p>
         <div className="mt-4 rounded-xl bg-slate-950 p-4 font-mono text-xs text-slate-300">python -X utf8 .\tools\verify_v73_github_actions_node24.py</div>
-        <div className="mt-3 text-xs text-slate-500">V73 chỉ thay đổi công cụ: không migration, không thay đổi dữ liệu backend, không lưu bí mật trong trình duyệt.</div>
+        <div className="mt-3 text-xs text-slate-500">V73 chỉ thay đổi công cụ: không có bản di trú cơ sở dữ liệu, không thay đổi dữ liệu phía máy chủ, không lưu bí mật trong trình duyệt.</div>
       </div>
     </section>
   </div>;

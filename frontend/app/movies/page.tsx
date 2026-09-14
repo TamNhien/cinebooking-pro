@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import MovieCard from "@/components/MovieCard";
 import { api } from "@/lib/api";
 import type { Movie } from "@/lib/types";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 type MovieTab = "now"|"soon"|"all";
 type SortMode = "featured"|"rating"|"release"|"duration"|"title";
@@ -11,6 +12,7 @@ type SortMode = "featured"|"rating"|"release"|"duration"|"title";
 const genreTokens=(value?:string)=>value?.split(/[,/|]/).map(x=>x.trim()).filter(Boolean)??[];
 
 export default function MoviesPage(){
+  const {t}=usePresentationLanguage();
   const [movies,setMovies]=useState<Movie[]>([]);
   const [q,setQ]=useState("");
   const [tab,setTab]=useState<MovieTab>("now");
@@ -50,31 +52,31 @@ export default function MoviesPage(){
   function resetFilters(){setQ("");setTab("now");setGenre("all");setLanguage("all");setRating("all");setSort("featured");}
 
   return <div className="space-y-6">
-    <div className="section-heading"><div><p className="section-kicker">DANH SÁCH PHIM</p><h1>Khám phá phim</h1><p className="mt-2 text-sm text-slate-400">Tìm nhanh theo thể loại, ngôn ngữ, phân loại độ tuổi và sắp xếp theo nhu cầu.</p></div></div>
+    <div className="section-heading"><div><p className="section-kicker">{t("DANH SÁCH PHIM","MOVIE LIST")}</p><h1>{t("Khám phá phim","Explore movies")}</h1><p className="mt-2 text-sm text-slate-400">{t("Tìm nhanh theo thể loại, ngôn ngữ, phân loại độ tuổi và sắp xếp theo nhu cầu.","Quickly filter by genre, language and age rating, then sort to match your needs.")}</p></div></div>
 
     <div className="card space-y-4 p-4">
       <div className="flex flex-wrap gap-2">
-        <button className={`tab-pill ${tab==="now"?"active":""}`} onClick={()=>setTab("now")}>Đang chiếu</button>
-        <button className={`tab-pill ${tab==="soon"?"active":""}`} onClick={()=>setTab("soon")}>Sắp chiếu</button>
-        <button className={`tab-pill ${tab==="all"?"active":""}`} onClick={()=>setTab("all")}>Tất cả</button>
+        <button className={`tab-pill ${tab==="now"?"active":""}`} onClick={()=>setTab("now")}>{t("Đang chiếu","Now showing")}</button>
+        <button className={`tab-pill ${tab==="soon"?"active":""}`} onClick={()=>setTab("soon")}>{t("Sắp chiếu","Coming soon")}</button>
+        <button className={`tab-pill ${tab==="all"?"active":""}`} onClick={()=>setTab("all")}>{t("Tất cả","All")}</button>
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <label className="xl:col-span-2"><span className="mb-1 block text-xs font-semibold text-slate-400">Tìm phim</span><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder="Tên phim, mô tả, thể loại..."/></label>
-        <label><span className="mb-1 block text-xs font-semibold text-slate-400">Thể loại</span><select className="input" value={genre} onChange={e=>setGenre(e.target.value)}><option value="all">Tất cả thể loại</option>{genres.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-        <label><span className="mb-1 block text-xs font-semibold text-slate-400">Ngôn ngữ</span><select className="input" value={language} onChange={e=>setLanguage(e.target.value)}><option value="all">Tất cả ngôn ngữ</option>{languages.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
-        <label><span className="mb-1 block text-xs font-semibold text-slate-400">Phân loại</span><select className="input" value={rating} onChange={e=>setRating(e.target.value)}><option value="all">Tất cả phân loại</option>{ratings.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+        <label className="xl:col-span-2"><span data-testid="movies-search-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Tìm phim","Search movies")}</span><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder={t("Tên phim, mô tả, thể loại...","Movie title, description, genre...")}/></label>
+        <label><span data-testid="movies-genre-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Thể loại","Genre")}</span><select className="input" value={genre} onChange={e=>setGenre(e.target.value)}><option value="all">{t("Tất cả thể loại","All genres")}</option>{genres.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
+        <label><span data-testid="movies-language-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Ngôn ngữ","Language")}</span><select className="input" value={language} onChange={e=>setLanguage(e.target.value)}><option value="all">{t("Tất cả ngôn ngữ","All languages")}</option>{languages.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
+        <label><span data-testid="movies-rating-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Phân loại","Rating")}</span><select className="input" value={rating} onChange={e=>setRating(e.target.value)}><option value="all">{t("Tất cả phân loại","All ratings")}</option>{ratings.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-slate-800 pt-4">
-        <div className="text-sm text-slate-400"><b className="text-white">{filtered.length}</b> phim phù hợp</div>
+        <div className="text-sm text-slate-400"><b className="text-white">{filtered.length}</b> {t("phim phù hợp","matching movies")}</div>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="min-w-52"><span className="mb-1 block text-xs font-semibold text-slate-400">Sắp xếp</span><select className="input" value={sort} onChange={e=>setSort(e.target.value as SortMode)}><option value="featured">Nổi bật</option><option value="rating">Đánh giá cao</option><option value="release">Ngày khởi chiếu mới nhất</option><option value="duration">Thời lượng ngắn trước</option><option value="title">Tên A → Z</option></select></label>
-          {hasFilters&&<button type="button" className="btn btn-secondary" onClick={resetFilters}>Đặt lại</button>}
+          <label className="min-w-52"><span className="mb-1 block text-xs font-semibold text-slate-400">{t("Sắp xếp","Sort")}</span><select className="input" value={sort} onChange={e=>setSort(e.target.value as SortMode)}><option value="featured">{t("Nổi bật","Featured")}</option><option value="rating">{t("Đánh giá cao","Highest rated")}</option><option value="release">{t("Ngày khởi chiếu mới nhất","Newest release date")}</option><option value="duration">{t("Thời lượng ngắn trước","Shortest duration first")}</option><option value="title">{t("Tên A → Z","Title A → Z")}</option></select></label>
+          {hasFilters&&<button type="button" className="btn btn-secondary" onClick={resetFilters}>{t("Đặt lại","Reset")}</button>}
         </div>
       </div>
     </div>
 
     {error&&<div className="rounded-xl bg-red-950/50 p-4 text-red-300">{error}</div>}
     <div className="movie-grid">{filtered.map(m=><MovieCard key={m.id} movie={m}/>)}</div>
-    {!error&&!filtered.length&&<div className="empty-state">Không tìm thấy phim phù hợp. Hãy thử bỏ bớt bộ lọc.</div>}
+    {!error&&!filtered.length&&<div className="empty-state">{t("Không tìm thấy phim phù hợp. Hãy thử bỏ bớt bộ lọc.","No matching movies found. Try clearing some filters.")}</div>}
   </div>;
 }

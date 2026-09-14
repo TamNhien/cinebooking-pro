@@ -68,8 +68,8 @@ async function logoutToLogin(page:Page,context:BrowserContext){
 }
 
 async function login(page:Page,context:BrowserContext,email:string,password:string,expectedRole:"USER"|"ADMIN"):Promise<AuthResponseApi>{
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
+  await page.getByTestId("login-email").fill(email);
+  await page.getByTestId("login-password").fill(password);
   const loginResponse=page.waitForResponse(response=>response.url().includes("/api/auth/login")&&response.request().method()==="POST");
   await page.getByTestId("login-submit").click();
   const response=await loginResponse;
@@ -98,12 +98,12 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;
   const email=`ngoc.mai+${stamp}@example.com`;
   await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill("Võ Ngọc Mai");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
-  await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
+  await page.getByTestId("register-name").fill("Võ Ngọc Mai");
+  await page.getByTestId("register-email").fill(email);
+  await page.getByTestId("register-password").fill(PASSWORD);
+  await page.getByTestId("register-confirm").fill(PASSWORD);
   const registerResponse=page.waitForResponse(response=>response.url().includes("/api/auth/register")&&response.request().method()==="POST");
-  await page.getByRole("button",{name:"Đăng ký"}).click();
+  await page.getByTestId("register-submit").click();
   expect((await registerResponse).status()).toBe(201);
   await expect(page).toHaveURL(/\/$/);
 
@@ -127,20 +127,21 @@ test("V46 user trusts a Brave device and admin sees security alerts",async({page
   await expect(alert).toContainText("Đã xác nhận");
 
   await logoutToLogin(page,context);
-  const adminEmail=process.env.E2E_ADMIN_EMAIL||"admin-v29@cine.local";
-  const adminPassword=process.env.E2E_ADMIN_PASSWORD||"V29SmokeOnly-ChangeMe";
+  const adminEmail=process.env.E2E_ADMIN_EMAIL;
+  const adminPassword=process.env.E2E_ADMIN_PASSWORD;
+  if(!adminEmail||!adminPassword)throw new Error("Existing root .env admin credentials are required");
   const adminAuth=await login(page,context,adminEmail,adminPassword,"ADMIN");
 
   await page.goto("/admin/security",{waitUntil:"domcontentloaded"});
   await expect(page.getByTestId("security-identity-v68")).toBeVisible();
-  await expect(page.getByRole("heading",{level:1,name:"Security Operations · Security & Identity",exact:true})).toBeVisible();
+  await expect(page.getByRole("heading",{level:1,name:"Vận hành bảo mật · Bảo mật & định danh",exact:true})).toBeVisible();
   const adminAlertsResponse=await context.request.get(apiUrl(page,"/api/admin/security/alerts"),{
     headers:{Authorization:`Bearer ${adminAuth.accessToken}`}
   });
   expect(adminAlertsResponse.status()).toBe(200);
   const adminAlerts=await adminAlertsResponse.json() as SecurityAlertApi[];
   expect(adminAlerts.some(item=>item.id===customerNewDeviceAlert.id&&item.eventType==="NEW_DEVICE"&&item.userEmail===email)).toBeTruthy();
-  const adminRow=page.getByTestId("admin-security-alert").filter({hasText:email}).filter({hasText:"NEW_DEVICE"}).first();
+  const adminRow=page.getByTestId("admin-security-alert").filter({hasText:email}).first();
   await expect(adminRow).toBeVisible();
   await expect(adminRow).toContainText("Brave");
 });

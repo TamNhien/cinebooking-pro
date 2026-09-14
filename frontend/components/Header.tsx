@@ -6,9 +6,10 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { getAuth } from "@/lib/auth";
 import { api, logoutSession } from "@/lib/api";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
 import type { AuthResponse, NotificationItem, NotificationPreference } from "@/lib/types";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type DesktopMenu = "manager" | "admin" | null;
 type DrawerSection = "explore" | "account" | "operations" | "management" | "admin" | null;
@@ -21,6 +22,9 @@ export default function Header(){
   const [desktopMenu,setDesktopMenu]=useState<DesktopMenu>(null);
   const [drawerSection,setDrawerSection]=useState<DrawerSection>(null);
   const pathname=usePathname();
+  const {language}=useLanguage();
+  const en=language==="en";
+  const t=(vi:string,enText:string)=>en?enText:vi;
 
   useEffect(()=>{setMounted(true);},[]);
   useEffect(()=>{ const sync=()=>setA(getAuth()); sync(); window.addEventListener("auth-changed",sync); return()=>window.removeEventListener("auth-changed",sync); },[]);
@@ -96,177 +100,177 @@ export default function Header(){
   const close=()=>{setOpen(false);setDrawerSection(null)};
   const toggleDrawerSection=(section:Exclude<DrawerSection,null>)=>setDrawerSection(current=>current===section?null:section);
   const toggleDesktop=(menu:Exclude<DesktopMenu,null>)=>setDesktopMenu(current=>current===menu?null:menu);
-  const notify=<Link href="/notifications" className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-700 bg-slate-900/85 text-lg" aria-label={"Thông báo"}>🔔{unread>0&&<span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1 text-center text-[10px] font-black leading-5 text-white">{unread>99?"99+":unread}</span>}</Link>;
+  const notify=<Link href="/notifications" className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-700 bg-slate-900/85 text-lg" aria-label={t("Thông báo","Notifications")}>🔔{unread>0&&<span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1 text-center text-[10px] font-black leading-5 text-white">{unread>99?"99+":unread}</span>}</Link>;
 
   const sectionButton=(section:Exclude<DrawerSection,null>,label:string,icon:string)=><button type="button" className={`menu-drawer-section-button ${drawerSection===section?"is-open":""}`} onClick={()=>toggleDrawerSection(section)} aria-expanded={drawerSection===section}><span><span aria-hidden="true">{icon}</span>{label}</span><span className="menu-drawer-chevron" aria-hidden="true">⌄</span></button>;
 
   const drawer=mounted&&open?createPortal(
     <div className="menu-drawer-backdrop" role="presentation" onMouseDown={(e)=>{if(e.target===e.currentTarget)close()}}>
-      <aside id="cinebooking-navigation-drawer" className="menu-drawer" role="dialog" aria-modal="true" aria-label={"Menu điều hướng"}>
+      <aside id="cinebooking-navigation-drawer" className="menu-drawer" role="dialog" aria-modal="true" aria-label={t("Menu điều hướng","Navigation menu")}>
         <div className="menu-drawer-head">
-          <div><p className="menu-drawer-kicker">CineBooking Pro</p><h2>{"Menu"}</h2></div>
-          <button type="button" className="menu-drawer-close" onClick={close} aria-label={"Đóng menu"}>✕</button>
+          <div><p className="menu-drawer-kicker">CineBooking Pro</p><h2>{t("Menu","Menu")}</h2></div>
+          <button type="button" className="menu-drawer-close" onClick={close} aria-label={t("Đóng menu","Close menu")}>✕</button>
         </div>
 
         {auth&&<div className="menu-drawer-user">
-          <div className="min-w-0"><b className="block truncate">{auth.fullName||auth.email}</b><span>{viLabel(auth.role)}</span></div>
+          <div className="min-w-0"><b className="block truncate">{auth.fullName||auth.email}</b><span>{localizedLabel(auth.role,language)}</span></div>
           {unread>0&&<Link onClick={close} href="/notifications" className="menu-drawer-badge">🔔 {unread>99?"99+":unread}</Link>}
         </div>}
 
         <nav className="menu-drawer-nav">
           <div className={`menu-drawer-section-card ${drawerSection==="explore"?"is-open":""}`}>
-            {sectionButton("explore","Khám phá","🧭")}
+            {sectionButton("explore",t("Khám phá","Explore"),"🧭")}
             {drawerSection==="explore"&&<div className="menu-drawer-submenu">
-              <Link onClick={close} href="/movies">🎬 {"Phim"}</Link>
-              <Link onClick={close} href="/cinemas">🏢 {"Rạp & lịch chiếu"}</Link>
-              <Link onClick={close} href="/promotions">🎁 {"Ưu đãi"}</Link>
+              <Link onClick={close} href="/movies">🎬 {t("Phim","Movies")}</Link>
+              <Link onClick={close} href="/cinemas">🏢 {t("Rạp & lịch chiếu","Cinemas & showtimes")}</Link>
+              <Link onClick={close} href="/promotions">🎁 {t("Ưu đãi","Promotions")}</Link>
             </div>}
           </div>
 
           {auth&&<div className={`menu-drawer-section-card ${drawerSection==="account"?"is-open":""}`}>
-            {sectionButton("account","Tài khoản","👤")}
+            {sectionButton("account",t("Tài khoản","Account"),"👤")}
             {drawerSection==="account"&&<div className="menu-drawer-submenu">
-              <Link onClick={close} href="/bookings">🎟 {"Vé của tôi"}</Link>
-              <Link onClick={close} href="/payments">💳 {"Thanh toán"}</Link>
-              <Link onClick={close} href="/favorites">❤️ {"Yêu thích"}</Link>
-              <Link onClick={close} href="/for-you">🎯 {"Gu phim"}</Link>
-              <Link onClick={close} href="/mobile">📱 {"Ứng dụng di động"}</Link>
-              <Link onClick={close} href="/waitlist">🔔 {"Chờ ghế trống"}</Link>
-              <Link onClick={close} href="/profile">👤 {"Tài khoản"}</Link>
-              <Link onClick={close} href="/security">🛡 {"Bảo mật"}</Link>
-              <Link onClick={close} href="/notifications">🔔 {"Thông báo"}{unread>0?` (${unread})`:""}</Link>
-              <Link onClick={close} href="/support">🎧 {"Hỗ trợ"}</Link>
+              <Link onClick={close} href="/bookings">🎟 {t("Vé của tôi","My tickets")}</Link>
+              <Link onClick={close} href="/payments">💳 {t("Thanh toán","Payments")}</Link>
+              <Link onClick={close} href="/favorites">❤️ {t("Yêu thích","Favorites")}</Link>
+              <Link onClick={close} href="/for-you">🎯 {t("Gu phim","For you")}</Link>
+              <Link onClick={close} href="/mobile">📱 {t("Ứng dụng di động","Mobile app")}</Link>
+              <Link onClick={close} href="/waitlist">🔔 {t("Chờ ghế trống","Seat alerts")}</Link>
+              <Link onClick={close} href="/profile">👤 {t("Tài khoản","Account")}</Link>
+              <Link onClick={close} href="/security">🛡 {t("Bảo mật","Security")}</Link>
+              <Link onClick={close} href="/notifications">🔔 {t("Thông báo","Notifications")}{unread>0?` (${unread})`:""}</Link>
+              <Link onClick={close} href="/support">🎧 {t("Hỗ trợ","Support")}</Link>
             </div>}
           </div>}
 
           {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<div className={`menu-drawer-section-card ${drawerSection==="operations"?"is-open":""}`}>
-            {sectionButton("operations","Vận hành","🎟")}
+            {sectionButton("operations",t("Vận hành","Operations"),"🎟")}
             {drawerSection==="operations"&&<div className="menu-drawer-submenu">
-              {["STAFF","MANAGER"].includes(auth.role)&&<Link onClick={close} href="/staff/schedule">🕒 {"Lịch & chấm công"}</Link>}
-              <Link onClick={close} href="/staff/check-in">📷 {"Quét vé"}</Link>
-              <Link onClick={close} href="/staff/operations">📡 {"Vận hành thời gian thực"}</Link>
+              {["STAFF","MANAGER"].includes(auth.role)&&<Link onClick={close} href="/staff/schedule">🕒 {t("Lịch & chấm công","Schedule & attendance")}</Link>}
+              <Link onClick={close} href="/staff/check-in">📷 {t("Quét vé","Ticket scan")}</Link>
+              <Link onClick={close} href="/staff/operations">📡 {t("Vận hành thời gian thực","Realtime operations")}</Link>
             </div>}
           </div>}
 
           {auth?.role==="MANAGER"&&<div className={`menu-drawer-section-card ${drawerSection==="management"?"is-open":""}`}>
-            {sectionButton("management","Quản lý","🧰")}
+            {sectionButton("management",t("Quản lý","Management"),"🧰")}
             {drawerSection==="management"&&<div className="menu-drawer-submenu">
-              <Link onClick={close} href="/admin/shifts">🗓 {"Xếp ca"}</Link>
-              <Link onClick={close} href="/admin/attendance">🧾 {"Bảng công & nghỉ phép"}</Link>
-              <Link onClick={close} href="/admin/command-center">🧭 {"Trung tâm điều hành"}</Link><Link onClick={close} href="/">💺 {"Đặt vé & gợi ý ghế V57"}</Link><Link onClick={close} href="/admin/operations-control">🎛 {"Trung tâm vận hành V58"}</Link><Link onClick={close} href="/admin/operations-control">🎛 {"Vận hành thời gian thực V59"}</Link>
-              <Link onClick={close} href="/admin/performance">🏁 {"Hiệu suất đa rạp"}</Link>
-              <Link onClick={close} href="/admin/retention">🔁 {"Giữ chân khách"}</Link>
-              <Link onClick={close} href="/admin/customer-value">💎 {"Giá trị khách"}</Link>
-              <Link onClick={close} href="/admin/analytics">📊 Phân tích dữ liệu</Link>
-              <Link onClick={close} href="/admin/maintenance">🛠 Bảo trì & thiết bị</Link>
-              <Link onClick={close} href="/admin/support">🎧 Hỗ trợ khách hàng</Link>
+              <Link onClick={close} href="/admin/shifts">🗓 {t("Xếp ca","Shift planning")}</Link>
+              <Link onClick={close} href="/admin/attendance">🧾 {t("Bảng công & nghỉ phép","Attendance & leave")}</Link>
+              <Link onClick={close} href="/admin/command-center">🧭 {t("Trung tâm điều hành","Command center")}</Link><Link onClick={close} href="/admin/booking-seat-intelligence">💺 {t("Đặt vé & gợi ý ghế V57","Booking & seat intelligence V57")}</Link><Link onClick={close} href="/admin/operations-control">🎛 {t("Trung tâm vận hành V58","Operations control V58")}</Link><Link onClick={close} href="/admin/operations-control">🎛 {t("Vận hành thời gian thực V59","Realtime operations V59")}</Link>
+              <Link onClick={close} href="/admin/performance">🏁 {t("Hiệu suất đa rạp","Multi-cinema performance")}</Link>
+              <Link onClick={close} href="/admin/retention">🔁 {t("Giữ chân khách","Customer retention")}</Link>
+              <Link onClick={close} href="/admin/customer-value">💎 {t("Giá trị khách","Customer value")}</Link>
+              <Link onClick={close} href="/admin/analytics">📊 {t("Phân tích dữ liệu","Analytics")}</Link>
+              <Link onClick={close} href="/admin/maintenance">🛠 {t("Bảo trì & thiết bị","Maintenance & equipment")}</Link>
+              <Link onClick={close} href="/admin/support">🎧 {t("Hỗ trợ khách hàng","Customer support")}</Link>
             </div>}
           </div>}
 
           {auth?.role==="ADMIN"&&<div className={`menu-drawer-section-card ${drawerSection==="admin"?"is-open":""}`}>
-            {sectionButton("admin","Quản trị","⚙️")}
+            {sectionButton("admin",t("Quản trị","Administration"),"⚙️")}
             {drawerSection==="admin"&&<div className="menu-drawer-submenu">
-              <Link onClick={close} href="/admin">🧭 Bảng điều khiển</Link>
-              <Link onClick={close} href="/admin/bookings">🎫 Đặt vé</Link>
-              <Link onClick={close} href="/admin/payments">💳 Thanh toán vận hành V60</Link>
-              <Link onClick={close} href="/admin/payment-resilience">💳 Khả năng phục hồi thanh toán V67</Link>
-              <Link onClick={close} href="/admin/risk">🕵 Gian lận & rủi ro V61</Link>
-              <Link onClick={close} href="/admin/staff">👨‍💼 {"Nhân viên"}</Link>
-              <Link onClick={close} href="/admin/shifts">🕒 {"Xếp ca"}</Link>
-              <Link onClick={close} href="/admin/attendance">🧾 {"Bảng công & nghỉ phép"}</Link>
-              <Link onClick={close} href="/admin/vouchers">🎟 {"Mã ưu đãi"}</Link>
-              <Link onClick={close} href="/admin/loyalty">🏆 {"Thành viên"}</Link>
-              <Link onClick={close} href="/admin/pricing">💰 {"Định giá động V62"}</Link>
-              <Link onClick={close} href="/admin/commerce">🍿 {"Bắp nước & thương mại"}</Link><Link onClick={close} href="/admin/inventory">📦 {"Kho bắp nước"}</Link>
-              <Link onClick={close} href="/admin/reviews">⭐ {"Kiểm duyệt đánh giá"}</Link>
-              <Link onClick={close} href="/admin/command-center">🧭 {"Trung tâm điều hành"}</Link><Link onClick={close} href="/">💺 {"Đặt vé & gợi ý ghế V57"}</Link><Link onClick={close} href="/admin/operations-control">🎛 {"Trung tâm vận hành V58"}</Link><Link onClick={close} href="/admin/operations-control">🎛 {"Vận hành thời gian thực V59"}</Link>
-              <Link onClick={close} href="/admin/performance">🏁 {"Hiệu suất đa rạp"}</Link>
-              <Link onClick={close} href="/admin/retention">🔁 {"Giữ chân khách"}</Link>
-              <Link onClick={close} href="/admin/customer-value">💎 {"Giá trị khách"}</Link>
-              <Link onClick={close} href="/admin/analytics">📈 Phân tích dữ liệu</Link>
-              <Link onClick={close} href="/admin/maintenance">🛠 {"Bảo trì & thiết bị"}</Link>
-              <Link onClick={close} href="/admin/support">🎧 {"Hỗ trợ khách hàng"}</Link>
-              <Link onClick={close} href="/admin/security">🔐 {"Bảo mật & định danh V68"}</Link>
-              <Link onClick={close} href="/admin/disaster-recovery">🛟 {"Sao lưu & khôi phục V69"}</Link>
-              <Link onClick={close} href="/admin/privacy-governance">🧾 {"Quản trị dữ liệu V70"}</Link>
-              <Link onClick={close} href="/admin/key-governance">🔑 {"Quản trị khóa V71"}</Link>
-              <Link onClick={close} href="/admin/supply-chain">🧩 {"Chuỗi cung ứng phần mềm V72"}</Link>
+              <Link onClick={close} href="/admin">🧭 {t("Bảng điều khiển","Dashboard")}</Link>
+              <Link onClick={close} href="/admin/bookings">🎫 {t("Đặt vé","Bookings")}</Link>
+              <Link onClick={close} href="/admin/payments">💳 {t("Thanh toán vận hành V60","Payment operations V60")}</Link>
+              <Link onClick={close} href="/admin/payment-resilience">💳 {t("Khả năng phục hồi thanh toán V67","Payment resilience V67")}</Link>
+              <Link onClick={close} href="/admin/risk">🕵 {t("Gian lận & rủi ro V61","Fraud & risk V61")}</Link>
+              <Link onClick={close} href="/admin/staff">👨‍💼 {t("Nhân viên","Staff")}</Link>
+              <Link onClick={close} href="/admin/shifts">🕒 {t("Xếp ca","Shift planning")}</Link>
+              <Link onClick={close} href="/admin/attendance">🧾 {t("Bảng công & nghỉ phép","Attendance & leave")}</Link>
+              <Link onClick={close} href="/admin/vouchers">🎟 {t("Mã ưu đãi","Vouchers")}</Link>
+              <Link onClick={close} href="/admin/loyalty">🏆 {t("Thành viên","Membership")}</Link>
+              <Link onClick={close} href="/admin/pricing">💰 {t("Định giá động V62","Dynamic pricing V62")}</Link>
+              <Link onClick={close} href="/admin/commerce">🍿 {t("Bắp nước & thương mại","Concessions & commerce")}</Link><Link onClick={close} href="/admin/inventory">📦 {t("Kho bắp nước","Concession inventory")}</Link>
+              <Link onClick={close} href="/admin/reviews">⭐ {t("Kiểm duyệt đánh giá","Review moderation")}</Link>
+              <Link onClick={close} href="/admin/command-center">🧭 {t("Trung tâm điều hành","Command center")}</Link><Link onClick={close} href="/admin/booking-seat-intelligence">💺 {t("Đặt vé & gợi ý ghế V57","Booking & seat intelligence V57")}</Link><Link onClick={close} href="/admin/operations-control">🎛 {t("Trung tâm vận hành V58","Operations control V58")}</Link><Link onClick={close} href="/admin/operations-control">🎛 {t("Vận hành thời gian thực V59","Realtime operations V59")}</Link>
+              <Link onClick={close} href="/admin/performance">🏁 {t("Hiệu suất đa rạp","Multi-cinema performance")}</Link>
+              <Link onClick={close} href="/admin/retention">🔁 {t("Giữ chân khách","Customer retention")}</Link>
+              <Link onClick={close} href="/admin/customer-value">💎 {t("Giá trị khách","Customer value")}</Link>
+              <Link onClick={close} href="/admin/analytics">📈 {t("Phân tích dữ liệu","Analytics")}</Link>
+              <Link onClick={close} href="/admin/maintenance">🛠 {t("Bảo trì & thiết bị","Maintenance & equipment")}</Link>
+              <Link onClick={close} href="/admin/support">🎧 {t("Hỗ trợ khách hàng","Customer support")}</Link>
+              <Link onClick={close} href="/admin/security">🔐 {t("Bảo mật & định danh V68","Security & identity V68")}</Link>
+              <Link onClick={close} href="/admin/disaster-recovery">🛟 {t("Sao lưu & khôi phục V69","Backup & recovery V69")}</Link>
+              <Link onClick={close} href="/admin/privacy-governance">🧾 {t("Quản trị dữ liệu V70","Privacy governance V70")}</Link>
+              <Link onClick={close} href="/admin/key-governance">🔑 {t("Quản trị khóa V71","Key governance V71")}</Link>
+              <Link onClick={close} href="/admin/supply-chain">🧩 {t("Chuỗi cung ứng phần mềm V72","Software supply chain V72")}</Link>
               <Link onClick={close} href="/admin/actions-runtime">⚙ {"GitHub Actions V73"}</Link>
-              <Link onClick={close} href="/admin/reliability">🛡 {"Độ tin cậy V74"}</Link>
-              <Link onClick={close} href="/admin/analytics-bi">📊 {"Phân tích dữ liệu & BI V75"}</Link>
-              <Link onClick={close} href="/admin/recommendation">🧠 {"Gợi ý phim V76"}</Link>
-              <Link onClick={close} href="/admin/crm-automation">📣 {"Tự động hóa CRM V77"}</Link>
-              <Link onClick={close} href="/admin/refunds">↩ {"Hoàn vé"}</Link>
-              <Link onClick={close} href="/admin/audit">🛡 Nhật ký kiểm toán</Link>
+              <Link onClick={close} href="/admin/reliability">🛡 {t("Độ tin cậy V74","Reliability V74")}</Link>
+              <Link onClick={close} href="/admin/analytics-bi">📊 {t("Phân tích dữ liệu & BI V75","Analytics & BI V75")}</Link>
+              <Link onClick={close} href="/admin/recommendation">🧠 {t("Gợi ý phim V76","Recommendation V76")}</Link>
+              <Link onClick={close} href="/admin/crm-automation">📣 {t("Tự động hóa CRM V77","CRM automation V77")}</Link>
+              <Link onClick={close} href="/admin/refunds">↩ {t("Hoàn vé","Refunds")}</Link>
+              <Link onClick={close} href="/admin/audit">🛡 {t("Nhật ký kiểm toán","Audit log")}</Link>
             </div>}
           </div>}
         </nav>
         {!auth&&<div className="menu-drawer-footer">
-          <div className="grid grid-cols-2 gap-2"><Link onClick={close} className="btn btn-secondary" href="/register">{"Đăng ký"}</Link><Link onClick={close} className="btn btn-primary" href="/login">{"Đăng nhập"}</Link></div>
+          <div className="grid grid-cols-2 gap-2"><Link onClick={close} className="btn btn-secondary" href="/register">{t("Đăng ký","Register")}</Link><Link onClick={close} className="btn btn-primary" href="/login">{t("Đăng nhập","Sign in")}</Link></div>
         </div>}
       </aside>
     </div>,document.body):null;
 
   return <>
     <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1500px] items-center gap-4 px-4 py-3 md:px-6">
+      <div className="mx-auto flex max-w-[1920px] items-center gap-2 px-4 py-3 md:px-6">
         <Link href="/" className="shrink-0 whitespace-nowrap text-lg font-bold tracking-tight 2xl:text-xl">🎬 CineBooking <span className="text-rose-500">Pro</span></Link>
 
-        <nav className="desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-3 whitespace-nowrap text-[13px] font-semibold 2xl:flex 2xl:text-sm">
-          <Link href="/movies" className="nav-link">{"Phim"}</Link>
-          <Link href="/cinemas" className="nav-link">{"Rạp & lịch chiếu"}</Link>
-          <Link href="/promotions" className="nav-link">{"Ưu đãi"}</Link>
-          {auth&&<Link href="/bookings" className="nav-link">{"Vé của tôi"}</Link>}
-          {auth&&<Link href="/payments" className="nav-link">{"Thanh toán"}</Link>}
-          {auth&&<Link href="/favorites" className="nav-link desktop-nav-extra">{"Yêu thích"}</Link>}
-          {auth&&<Link href="/for-you" className="nav-link">{"Gu phim"}</Link>}
-          {auth&&<Link href="/waitlist" className="nav-link desktop-nav-extra">{"Chờ ghế"}</Link>}
-          {auth&&<Link href="/profile" className="nav-link desktop-nav-extra">{"Tài khoản"}</Link>}
-          {auth&&<Link href="/security" className="nav-link desktop-nav-extra">{"Bảo mật"}</Link>}
-          {auth&&<Link href="/support" className="nav-link desktop-nav-extra">{"Hỗ trợ"}</Link>}
-          {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link desktop-nav-extra">Ca làm</Link>}
-          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link desktop-nav-extra">Soát vé</Link>}
-          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link desktop-nav-extra">Vận hành</Link>}
+        <nav className="desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap text-[12px] font-semibold min-[1850px]:flex 2xl:text-[13px]">
+          <Link href="/movies" className="nav-link">{t("Phim","Movies")}</Link>
+          <Link href="/cinemas" className="nav-link">{t("Rạp & lịch chiếu","Cinemas & showtimes")}</Link>
+          <Link href="/promotions" className="nav-link">{t("Ưu đãi","Promotions")}</Link>
+          {auth&&<Link href="/bookings" className="nav-link">{t("Vé của tôi","My tickets")}</Link>}
+          {auth&&<Link href="/payments" className="nav-link">{t("Thanh toán","Payments")}</Link>}
+          {auth&&<Link href="/favorites" className="nav-link desktop-nav-extra">{t("Yêu thích","Favorites")}</Link>}
+          {auth&&<Link href="/for-you" className="nav-link">{t("Gu phim","For you")}</Link>}
+          {auth&&<Link href="/waitlist" className="nav-link desktop-nav-extra">{t("Chờ ghế","Seat alerts")}</Link>}
+          {auth&&<Link href="/profile" className="nav-link desktop-nav-extra">{t("Tài khoản","Account")}</Link>}
+          {auth&&<Link href="/security" className="nav-link desktop-nav-extra">{t("Bảo mật","Security")}</Link>}
+          {auth&&<Link href="/support" className="nav-link desktop-nav-extra">{t("Hỗ trợ","Support")}</Link>}
+          {auth&&["STAFF","MANAGER"].includes(auth.role)&&<Link href="/staff/schedule" className="nav-link desktop-nav-extra">{t("Ca làm","Shifts")}</Link>}
+          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/check-in" className="nav-link desktop-nav-extra">{t("Soát vé","Check-in")}</Link>}
+          {auth&&["STAFF","MANAGER","ADMIN"].includes(auth.role)&&<Link href="/staff/operations" className="nav-link desktop-nav-extra">{t("Vận hành","Operations")}</Link>}
 
           {auth?.role==="MANAGER"&&<div className="nav-menu relative" data-desktop-menu-root="true">
-            <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="manager"?"is-open":""}`} onClick={()=>toggleDesktop("manager")} aria-expanded={desktopMenu==="manager"}>Quản lý <span aria-hidden="true">⌄</span></button>
-            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link><Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành thời gian thực</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/command-center">Trung tâm điều hành</Link><Link onClick={()=>setDesktopMenu(null)} href="/">Đặt vé & gợi ý ghế V57</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">Trung tâm vận hành V58</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">Vận hành thời gian thực V59</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/performance">Hiệu suất V54</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/retention">Giữ chân khách hàng V55</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/customer-value">Giá trị khách hàng V56</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Phân tích dữ liệu</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link></div>}
+            <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="manager"?"is-open":""}`} onClick={()=>toggleDesktop("manager")} aria-expanded={desktopMenu==="manager"}>{t("Quản lý","Management")} <span aria-hidden="true">⌄</span></button>
+            {desktopMenu==="manager"&&<div className="nav-menu-panel"><Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">{t("Xếp ca","Shift planning")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">{t("Bảng công & nghỉ phép","Attendance & leave")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">{t("Vận hành thời gian thực","Realtime operations")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/command-center">{t("Trung tâm điều hành","Command center")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/booking-seat-intelligence">{t("Đặt vé & gợi ý ghế V57","Booking & seat intelligence V57")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">{t("Trung tâm vận hành V58","Operations control V58")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">{t("Vận hành thời gian thực V59","Realtime operations V59")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/performance">{t("Hiệu suất V54","Performance V54")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/retention">{t("Giữ chân khách hàng V55","Customer retention V55")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/customer-value">{t("Giá trị khách hàng V56","Customer value V56")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">{t("Phân tích dữ liệu","Analytics")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">{t("Bảo trì & thiết bị","Maintenance & equipment")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/support">{t("Hỗ trợ khách hàng","Customer support")}</Link></div>}
           </div>}
 
           {auth?.role==="ADMIN"&&<>
-            <Link href="/admin/bookings" className="nav-link">Đặt vé</Link>
+            <Link href="/admin/bookings" className="nav-link">{t("Đặt vé","Bookings")}</Link>
             <div className="nav-menu relative" data-desktop-menu-root="true">
-              <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="admin"?"is-open":""}`} onClick={()=>toggleDesktop("admin")} aria-expanded={desktopMenu==="admin"}>Quản trị <span aria-hidden="true">⌄</span></button>
+              <button type="button" className={`nav-link nav-menu-button ${desktopMenu==="admin"?"is-open":""}`} onClick={()=>toggleDesktop("admin")} aria-expanded={desktopMenu==="admin"}>{t("Quản trị","Administration")} <span aria-hidden="true">⌄</span></button>
               {desktopMenu==="admin"&&<div className="nav-menu-panel">
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin">Bảng điều khiển</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/payments">Thanh toán vận hành V60</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/payment-resilience">Khả năng phục hồi thanh toán V67</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/risk">Gian lận & rủi ro V61</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">Nhân viên</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">Xếp ca</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">Bảng công & nghỉ phép</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">Vận hành thời gian thực</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">Mã ưu đãi</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/loyalty">Khách hàng thân thiết & thành viên</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">Định giá động V62</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/commerce">Bắp nước & thương mại</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/inventory">Kho bắp nước</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/reviews">Kiểm duyệt đánh giá</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/command-center">Trung tâm điều hành</Link><Link onClick={()=>setDesktopMenu(null)} href="/">Đặt vé & gợi ý ghế V57</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">Trung tâm vận hành V58</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">Vận hành thời gian thực V59</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/performance">Hiệu suất V54</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/retention">Giữ chân khách hàng V55</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/customer-value">Giá trị khách hàng V56</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">Phân tích dữ liệu</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">Bảo trì & thiết bị</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/support">Hỗ trợ khách hàng</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/security">Bảo mật & định danh V68</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/disaster-recovery">Sao lưu & khôi phục V69</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/privacy-governance">Quản trị quyền riêng tư V70</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/key-governance">Quản trị khóa V71</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/supply-chain">Chuỗi cung ứng phần mềm V72</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/actions-runtime">Môi trường chạy Actions V73</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/reliability">Độ tin cậy V74</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics-bi">Phân tích dữ liệu & BI V75</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/recommendation">Gợi ý phim V76</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/crm-automation">Tự động hóa CRM V77</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">Hoàn vé</Link>
-                <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">Nhật ký kiểm toán</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin">{t("Bảng điều khiển","Dashboard")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/payments">{t("Thanh toán vận hành V60","Payment operations V60")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/payment-resilience">{t("Khả năng phục hồi thanh toán V67","Payment resilience V67")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/risk">{t("Gian lận & rủi ro V61","Fraud & risk V61")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/staff">{t("Nhân viên","Staff")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/shifts">{t("Xếp ca","Shift planning")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/attendance">{t("Bảng công & nghỉ phép","Attendance & leave")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/staff/operations">{t("Vận hành thời gian thực","Realtime operations")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/vouchers">{t("Mã ưu đãi","Vouchers")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/loyalty">{t("Khách hàng thân thiết & thành viên","Loyalty & membership")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/pricing">{t("Định giá động V62","Dynamic pricing V62")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/commerce">{t("Bắp nước & thương mại","Concessions & commerce")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/inventory">{t("Kho bắp nước","Concession inventory")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/reviews">{t("Kiểm duyệt đánh giá","Review moderation")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/command-center">{t("Trung tâm điều hành","Command center")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/booking-seat-intelligence">{t("Đặt vé & gợi ý ghế V57","Booking & seat intelligence V57")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">{t("Trung tâm vận hành V58","Operations control V58")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/operations-control">{t("Vận hành thời gian thực V59","Realtime operations V59")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/performance">{t("Hiệu suất V54","Performance V54")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/retention">{t("Giữ chân khách hàng V55","Customer retention V55")}</Link><Link onClick={()=>setDesktopMenu(null)} href="/admin/customer-value">{t("Giá trị khách hàng V56","Customer value V56")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics">{t("Phân tích dữ liệu","Analytics")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/maintenance">{t("Bảo trì & thiết bị","Maintenance & equipment")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/support">{t("Hỗ trợ khách hàng","Customer support")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/security">{t("Bảo mật & định danh V68","Security & identity V68")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/disaster-recovery">{t("Sao lưu & khôi phục V69","Backup & recovery V69")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/privacy-governance">{t("Quản trị quyền riêng tư V70","Privacy governance V70")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/key-governance">{t("Quản trị khóa V71","Key governance V71")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/supply-chain">{t("Chuỗi cung ứng phần mềm V72","Software supply chain V72")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/actions-runtime">{t("Môi trường chạy Actions V73","Actions runtime V73")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/reliability">{t("Độ tin cậy V74","Reliability V74")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics-bi">{t("Phân tích dữ liệu & BI V75","Analytics & BI V75")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/recommendation">{t("Gợi ý phim V76","Recommendation V76")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/crm-automation">{t("Tự động hóa CRM V77","CRM automation V77")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">{t("Hoàn vé","Refunds")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">{t("Nhật ký kiểm toán","Audit log")}</Link>
               </div>}
             </div>
           </>}
@@ -274,8 +278,8 @@ export default function Header(){
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <LanguageSwitcher/>{auth&&notify}
-          {auth ? <><span className="hidden max-w-28 truncate text-sm text-slate-400 2xl:inline" title={auth.fullName}>{auth.fullName}</span><button type="button" className="btn btn-secondary hidden whitespace-nowrap !px-3 !py-2 sm:inline-flex" onClick={logout}>{"Đăng xuất"}</button></> : <><Link className="hidden whitespace-nowrap text-sm font-semibold sm:block" href="/register">{"Đăng ký"}</Link><Link className="btn btn-primary hidden whitespace-nowrap !px-3 !py-2 sm:inline-flex" href="/login">{"Đăng nhập"}</Link></>}
-          <button type="button" className={`menu-trigger ${open?"is-open":""}`} onClick={()=>{setOpen(v=>!v);setDrawerSection(null);setDesktopMenu(null)}} aria-label={open?("Đóng menu"):("Mở menu")} aria-expanded={open} aria-controls="cinebooking-navigation-drawer">{open?"✕":"☰"}</button>
+          {auth ? <><span className="hidden max-w-28 truncate text-sm text-slate-400 2xl:inline" title={auth.fullName}>{auth.fullName}</span><button type="button" className="btn btn-secondary hidden whitespace-nowrap !px-3 !py-2 sm:inline-flex" onClick={logout}>{t("Đăng xuất","Sign out")}</button></> : <><Link className="hidden whitespace-nowrap text-sm font-semibold sm:block" href="/register">{t("Đăng ký","Register")}</Link><Link className="btn btn-primary hidden whitespace-nowrap !px-3 !py-2 sm:inline-flex" href="/login">{t("Đăng nhập","Sign in")}</Link></>}
+          <button type="button" className={`menu-trigger ${open?"is-open":""}`} onClick={()=>{setOpen(v=>!v);setDrawerSection(null);setDesktopMenu(null)}} aria-label={open?t("Đóng menu","Close menu"):t("Mở menu","Open menu")} aria-expanded={open} aria-controls="cinebooking-navigation-drawer">{open?"✕":"☰"}</button>
         </div>
       </div>
     </header>

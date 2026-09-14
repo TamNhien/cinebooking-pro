@@ -425,6 +425,114 @@ jobs:
       - name: Verify V77.0.13 zero-warning Vietnamese UI lint hygiene
         run: python3 tools/verify_v77_0_13_zero_warning_vietnamese_ui_lint.py
 
+      - name: Verify V77.0.14 navigation language dropdown localization
+        run: python3 tools/verify_v77_0_14_navigation_language_dropdown_localization.py
+
+      - name: Verify V77.0.15 V64/V59 runtime and E2E stabilization
+        run: python3 tools/verify_v77_0_15_v64_v59_runtime_e2e.py
+
+      - name: Verify V77.0.16 V59 language surface hotfix
+        run: python3 tools/verify_v77_0_16_v59_language_surface_hotfix.py
+
+      - name: Verify V77.0.17 full-navigation language store fix
+        run: python3 tools/verify_v77_0_17_full_navigation_language_store_fix.py
+
+      - name: Verify V77.0.18 presentation-language type contract fix
+        run: python3 tools/verify_v77_0_18_presentation_language_type_contract_fix.py
+
+      - name: Verify V77.0.19 zero-warning marketing effect dependencies
+        run: python3 tools/verify_v77_0_19_zero_warning_marketing_effect_dependencies.py
+
+      - name: Verify V77.0.20 full E2E runtime stabilization
+        run: python3 tools/verify_v77_0_20_full_e2e_runtime_stabilization.py
+
+      - name: Verify V77.0.21 hydration language and V64 re-entry
+        run: python3 tools/verify_v77_0_21_hydration_language_v64_reentry.py
+
+      - name: Verify V77.0.22 pre-hydration language readiness
+        run: python3 tools/verify_v77_0_22_pre_hydration_language_readiness.py
+
+      - name: Verify V77.0.23 single-provider hydration state
+        run: python3 tools/verify_v77_0_23_single_provider_hydration_state.py
+
+      - name: Verify V77.0.24 hydration bundle and V64 startup reliability
+        run: python3 tools/verify_v77_0_24_hydration_bundle_v64_startup_reliability.py
+
+      - name: Verify V77.0.25 zero-warning LanguageProvider cleanup
+        run: python3 tools/verify_v77_0_25_zero_warning_language_provider_cleanup.py
+
+      - name: Verify V77.0.26 V64 publish feedback persistence
+        run: python3 tools/verify_v77_0_26_v64_publish_feedback_persistence.py
+
+      - name: Verify V77.0.27 layout-effect language reconciliation
+        run: python3 tools/verify_v77_0_27_layout_effect_language_reconciliation.py
+
+      - name: Verify V77.0.28 compose readiness and hydration gate
+        run: python3 tools/verify_v77_0_28_compose_readiness_hydration_gate.py
+
+      - name: Verify V77.0.29 frontend healthcheck contract
+        run: python3 tools/verify_v77_0_29_frontend_healthcheck_contract.py
+
+      - name: Verify V77.0.30 full-suite runtime contract alignment
+        run: python3 tools/verify_v77_0_30_full_suite_runtime_contract_alignment.py
+
+      - name: Verify V77.0.31 remaining full-suite contract alignment
+        run: python3 tools/verify_v77_0_31_remaining_full_suite_contract_alignment.py
+
+      - name: Verify V77.0.32 final-four runtime contract alignment
+        run: python3 tools/verify_v77_0_32_final_four_runtime_contract_alignment.py
+
+      - name: Verify V77.0.33 final-two runtime contract alignment
+        run: python3 tools/verify_v77_0_33_final_two_runtime_contract_alignment.py
+
+      - name: Verify V77.0.34 ticket control runtime contract alignment
+        run: python3 tools/verify_v77_0_34_ticket_control_runtime_contract_alignment.py
+
+      - name: Verify V77.0.35 Admin Payments runtime contract alignment
+        run: python3 tools/verify_v77_0_35_admin_payments_runtime_contract_alignment.py
+
+      - name: Verify V77.0.36 final-three full-suite runtime recovery
+        run: python3 tools/verify_v77_0_36_final_three_full_suite_runtime_recovery.py
+
+      - name: Verify V77.0.37 full-suite policy and alert runtime recovery
+        run: python3 tools/verify_v77_0_37_full_suite_policy_alert_runtime_recovery.py
+
+      - name: Verify V77.0.38 release-gate readiness recovery
+        run: python3 tools/verify_v77_0_38_release_gate_readiness_recovery.py
+
+      - name: Verify V77.0.39 zero-warning full-UI language contract
+        run: python3 tools/verify_v77_0_39_zero_warning_full_ui_language_contract.py
+
+      - name: Verify V77.0.40 runtime language boundary fix
+        run: python3 tools/verify_v77_0_40_runtime_language_boundary_fix.py
+
+      - name: Verify V77.0.41 movies presentation-language runtime fix
+        run: python3 tools/verify_v77_0_41_movies_language_surface_fix.py
+
+      - name: Verify V77.0.42 full-UI language completion
+        run: python3 tools/verify_v77_0_42_full_ui_language_completion.py
+
+      - name: Verify V77.0.43 literal-level language audit fix
+        run: python3 tools/verify_v77_0_43_language_literal_audit_fix.py
+
+      - name: Verify V77.0.44 CRM payload localization and V66 authority visibility
+        run: python3 tools/verify_v77_0_44_crm_payload_v66_authority_fix.py
+
+      - name: Verify V77.0.45 full-suite repeatability and accessibility contract
+        run: python3 tools/verify_v77_0_45_full_suite_repeatability_accessibility_fix.py
+
+      - name: Verify V77.0.46 PWA readiness and language sweep stabilization
+        run: python3 tools/verify_v77_0_46_pwa_readiness_language_sweep_stabilization.py
+
+      - name: Verify V77.0.47 historical release-gate forward compatibility
+        run: python3 tools/verify_v77_0_47_historical_release_gate_forward_compatibility.py
+
+      - name: Verify V77.0.48 maintenance success-feedback timer ownership
+        run: python3 tools/verify_v77_0_48_maintenance_success_feedback_timer_ownership.py
+
+      - name: Verify V77.0.49 release staging whitespace preflight
+        run: python3 tools/verify_v77_0_49_release_staging_whitespace_preflight.py
+
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
 

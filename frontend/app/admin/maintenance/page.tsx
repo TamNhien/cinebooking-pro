@@ -2,14 +2,15 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { api, dateTime } from "@/lib/api";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { api } from "@/lib/api";
+import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import { getAuth } from "@/lib/auth";
 import {
   maintenanceAssetStatusOptions,
   maintenanceCategoryOptions,
   maintenancePriorityOptions,
-  viLabel,
+  localizedLabel,
 } from "@/lib/vi-labels";
 import type {
   AuditoriumBlackout,
@@ -23,8 +24,9 @@ import type {
   MaintenanceWorkOrderEvent,
 } from "@/lib/types";
 
-function maintenanceDisplayText(value: string | null | undefined): string {
+function maintenanceDisplayText(value: string | null | undefined, language: Language): string {
   if (!value) return "";
+  if (language === "en") return value;
   return value.replace(/work order/gi, "phiếu bảo trì").replace(/booking/gi, "lượt đặt vé");
 }
 
@@ -63,29 +65,50 @@ type TransitionDialogState = {
   validation: string;
 };
 
-function transitionTitle(target: string) {
+function transitionTitle(target: string, language: Language) {
+  if (language === "en") {
+    if (target === "RESOLVED") return "Confirm maintenance work order completion";
+    if (target === "BLOCKED") return "Confirm maintenance work order block";
+    if (target === "CANCELLED") return "Confirm work order cancellation";
+    return "Confirm status change";
+  }
   if (target === "RESOLVED") return "Xác nhận hoàn tất phiếu bảo trì";
   if (target === "BLOCKED") return "Xác nhận tạm chặn phiếu bảo trì";
   if (target === "CANCELLED") return "Xác nhận hủy phiếu bảo trì";
   return "Xác nhận thay đổi trạng thái";
 }
 
-function transitionPrompt(target: string) {
+function transitionPrompt(target: string, language: Language) {
+  if (language === "en") {
+    if (target === "RESOLVED") return "Resolution / repair result";
+    if (target === "BLOCKED") return "Reason the work is blocked";
+    if (target === "CANCELLED") return "Work order cancellation reason";
+    return "Notes";
+  }
   if (target === "RESOLVED") return "Kết quả xử lý / sửa chữa";
   if (target === "BLOCKED") return "Lý do công việc đang bị chặn";
   if (target === "CANCELLED") return "Lý do hủy phiếu bảo trì";
   return "Ghi chú";
 }
 
-function transitionSuccess(target: string, title: string) {
+function transitionSuccess(target: string, title: string, language: Language) {
+  if (language === "en") {
+    if (target === "RESOLVED") return `Maintenance work order “${title}” completed.`;
+    if (target === "BLOCKED") return `Work order “${title}” moved to Blocked.`;
+    if (target === "CANCELLED") return `Maintenance work order “${title}” cancelled.`;
+    if (target === "IN_PROGRESS") return `Started/continued work on “${title}”.`;
+    return `Work order “${title}” moved to ${localizedLabel(target, "en")}.`;
+  }
   if (target === "RESOLVED") return `Đã hoàn tất phiếu bảo trì “${title}”.`;
   if (target === "BLOCKED") return `Đã chuyển phiếu “${title}” sang trạng thái đang bị chặn.`;
   if (target === "CANCELLED") return `Đã hủy phiếu bảo trì “${title}”.`;
   if (target === "IN_PROGRESS") return `Đã bắt đầu/tiếp tục xử lý phiếu “${title}”.`;
-  return `Đã chuyển trạng thái phiếu “${title}” sang ${viLabel(target)}.`;
+  return `Đã chuyển trạng thái phiếu “${title}” sang ${localizedLabel(target, "vi")}.`;
 }
 
 export default function MaintenancePage() {
+  const { language, locale, t } = usePresentationLanguage();
+  const formatDateTime = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
   const [role, setRole] = useState<string | null>(null);
   const [cinemas, setCinemas] = useState<MaintenanceCinema[]>([]);
   const [cinemaId, setCinemaId] = useState("");
@@ -106,6 +129,7 @@ export default function MaintenancePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const messageTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -150,9 +174,21 @@ export default function MaintenancePage() {
   }, [cinemaId]);
 
   function announce(text: string) {
+    if (messageTimerRef.current !== null) {
+      window.clearTimeout(messageTimerRef.current);
+    }
     setMsg(text);
-    window.setTimeout(() => setMsg(""), 4000);
+    messageTimerRef.current = window.setTimeout(() => {
+      setMsg("");
+      messageTimerRef.current = null;
+    }, 4000);
   }
+
+  useEffect(() => () => {
+    if (messageTimerRef.current !== null) {
+      window.clearTimeout(messageTimerRef.current);
+    }
+  }, []);
 
   function assetPayload() {
     return {
@@ -182,7 +218,7 @@ export default function MaintenancePage() {
       });
       setAssetForm({ ...ASSET_EMPTY });
       setEditingAsset(null);
-      announce(editingAsset ? "Đã cập nhật thiết bị." : "Đã thêm thiết bị.");
+      announce(editingAsset ? t("Đã cập nhật thiết bị.", "Equipment updated.") : t("Đã thêm thiết bị.", "Equipment added."));
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -229,7 +265,7 @@ export default function MaintenancePage() {
         }),
       });
       setOrderForm({ ...ORDER_EMPTY });
-      announce("Đã tạo phiếu bảo trì.");
+      announce(t("Đã tạo phiếu bảo trì.", "Maintenance work order created."));
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -247,7 +283,7 @@ export default function MaintenancePage() {
         body: JSON.stringify({ targetStatus: target, note }),
       });
       setTransitionDialog(null);
-      announce(transitionSuccess(target, order.title));
+      announce(transitionSuccess(target, order.title, language));
       await load();
     } catch (cause) {
       const message = (cause as Error).message;
@@ -275,7 +311,7 @@ export default function MaintenancePage() {
     if (note.length < 2) {
       setTransitionDialog({
         ...transitionDialog,
-        validation: "Vui lòng nhập kết quả hoặc lý do ít nhất 2 ký tự. Ví dụ: OK.",
+        validation: t("Vui lòng nhập kết quả hoặc lý do ít nhất 2 ký tự. Ví dụ: OK.", "Enter a result or reason of at least 2 characters. Example: OK."),
       });
       return;
     }
@@ -308,7 +344,7 @@ export default function MaintenancePage() {
         }),
       });
       setBlackoutForm({ ...BLACKOUT_EMPTY });
-      announce("Đã khóa phòng trong khoảng bảo trì.");
+      announce(t("Đã khóa phòng trong khoảng bảo trì.", "Auditorium blocked for the maintenance window."));
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -318,11 +354,11 @@ export default function MaintenancePage() {
   }
 
   async function removeBlackout(id: string) {
-    if (!window.confirm("Mở lại phòng cho khoảng bảo trì này?")) return;
+    if (!window.confirm(t("Mở lại phòng cho khoảng bảo trì này?", "Reopen the auditorium for this maintenance window?"))) return;
     setBusy(true);
     try {
       await api(`/admin/auditorium-blackouts/${id}`, { method: "DELETE" });
-      announce("Đã mở lại phòng.");
+      announce(t("Đã mở lại phòng.", "Auditorium reopened."));
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -343,45 +379,48 @@ export default function MaintenancePage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-7">
+    <div className="mx-auto max-w-7xl space-y-7" data-testid="maintenance-page">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="section-kicker">V44 · BẢO TRÌ RẠP & ĐỘ TIN CẬY TÀI SẢN 2.0</p>
-          <h1 className="text-3xl font-bold">Trung tâm bảo trì & độ tin cậy thiết bị</h1>
+          <p className="section-kicker">{t("V44 · BẢO TRÌ RẠP & ĐỘ TIN CẬY TÀI SẢN 2.0", "V44 · CINEMA MAINTENANCE & ASSET RELIABILITY 2.0")}</p>
+          <h1 className="text-3xl font-bold">{t("Trung tâm bảo trì & độ tin cậy thiết bị", "Maintenance & equipment reliability center")}</h1>
           <p className="mt-2 max-w-4xl text-slate-400">
-            Quản lý tài sản kỹ thuật, hạn bảo trì, phiếu công việc, cam kết thời gian xử lý quá hạn và lịch khóa phòng trong một màn hình. Lịch sử phiếu chỉ ghi thêm để truy vết người thay đổi trạng thái.
+            {t("Quản lý tài sản kỹ thuật, hạn bảo trì, phiếu công việc, cam kết thời gian xử lý quá hạn và lịch khóa phòng trong một màn hình. Lịch sử phiếu chỉ ghi thêm để truy vết người thay đổi trạng thái.", "Manage technical assets, maintenance due dates, work orders, overdue resolution commitments, and auditorium blocking schedules in one place. Work-order history is append-only so status changes remain traceable.")}
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/staff/operations" className="btn btn-secondary">📡 Vận hành thời gian thực</Link>
-          <Link href="/admin" className="btn btn-secondary">← Quản trị</Link>
+          <Link href="/staff/operations" className="btn btn-secondary">{t("📡 Vận hành thời gian thực", "📡 Realtime operations")}</Link>
+          <Link href="/admin" className="btn btn-secondary">{t("← Quản trị", "← Administration")}</Link>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block text-slate-400">Rạp</span>
-          <select aria-label="Rạp bảo trì" className="input min-w-64" value={cinemaId} onChange={(event) => setCinemaId(event.target.value)}>
-            {cinemas.map((cinema) => <option key={cinema.id} value={cinema.id}>{cinema.name}</option>)}
-          </select>
-        </label>
-        <button className="btn btn-secondary" onClick={() => load()} disabled={!cinemaId || busy}>Làm mới</button>
-      </div>
+      <section className="card p-4 sm:p-5" data-testid="maintenance-cinema-selector">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <label className="min-w-0 text-sm">
+            <span className="mb-1 block text-slate-400">{t("Rạp", "Cinema")}</span>
+            <select aria-label={t("Rạp bảo trì", "Maintenance cinema")} className="input w-full" value={cinemaId} onChange={(event) => setCinemaId(event.target.value)}>
+              {cinemas.map((cinema) => <option key={cinema.id} value={cinema.id}>{cinema.name}</option>)}
+            </select>
+          </label>
+          <button className="btn btn-secondary lg:min-w-28" onClick={() => load()} disabled={!cinemaId || busy}>{t("Làm mới", "Refresh")}</button>
+        </div>
+        {selectedCinemaName && <p className="mt-2 break-words text-sm font-semibold text-slate-200" data-testid="maintenance-selected-cinema-name">{selectedCinemaName}</p>}
+      </section>
 
       {error && <div className="rounded-xl border border-red-800/60 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
       {msg && <div data-testid="maintenance-success-message" className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 p-4 text-sm text-emerald-200">{msg}</div>}
 
       {summary && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ["Thiết bị", summary.totalAssets],
-            ["Hoạt động suy giảm", summary.degradedAssets],
-            ["Ngừng hoạt động", summary.outOfServiceAssets],
-            ["Phiếu bảo trì đang mở", summary.openWorkOrders],
-            ["Mức nghiêm trọng đang mở", summary.criticalOpenWorkOrders],
-            ["Quá hạn", summary.overdueWorkOrders],
-            ["Đang bảo trì", summary.maintenanceAssets],
-            ["Đến hạn trong 14 ngày", summary.serviceDueNext14Days],
+            [t("Thiết bị", "Equipment"), summary.totalAssets],
+            [t("Hoạt động suy giảm", "Degraded"), summary.degradedAssets],
+            [t("Ngừng hoạt động", "Out of service"), summary.outOfServiceAssets],
+            [t("Phiếu bảo trì đang mở", "Open maintenance work orders"), summary.openWorkOrders],
+            [t("Mức nghiêm trọng đang mở", "Open critical items"), summary.criticalOpenWorkOrders],
+            [t("Quá hạn", "Overdue"), summary.overdueWorkOrders],
+            [t("Đang bảo trì", "Under maintenance"), summary.maintenanceAssets],
+            [t("Đến hạn trong 14 ngày", "Due within 14 days"), summary.serviceDueNext14Days],
           ].map(([key, value]) => (
             <div key={String(key)} className="card p-4">
               <div className="text-xs text-slate-400">{key}</div>
@@ -391,101 +430,110 @@ export default function MaintenancePage() {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-6 2xl:grid-cols-[420px_minmax(0,1fr)]">
         <form onSubmit={saveAsset} className="card space-y-3 p-5">
           <div>
-            <h2 className="text-xl font-bold">{editingAsset ? "Cập nhật thiết bị" : "Đăng ký thiết bị"}</h2>
-            <p className="text-sm text-slate-500">Mã tài sản là duy nhất toàn hệ thống.</p>
+            <h2 data-testid="maintenance-register-equipment-title" className="text-xl font-bold">{editingAsset ? t("Cập nhật thiết bị", "Update equipment") : t("Đăng ký thiết bị", "Register equipment")}</h2>
+            <p className="text-sm text-slate-500">{t("Mã tài sản là duy nhất toàn hệ thống.", "Asset codes are unique across the entire system.")}</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" placeholder="Mã: PRJ-HCM-01" value={assetForm.assetCode} onChange={(event) => setAssetForm({ ...assetForm, assetCode: event.target.value })} required />
-            <input className="input" placeholder="Tên thiết bị" value={assetForm.name} onChange={(event) => setAssetForm({ ...assetForm, name: event.target.value })} required />
+          <div className="admin-form-grid-2">
+            <input className="input" placeholder={t("Mã: PRJ-HCM-01", "Code: PRJ-HCM-01")} value={assetForm.assetCode} onChange={(event) => setAssetForm({ ...assetForm, assetCode: event.target.value })} required />
+            <input className="input" placeholder={t("Tên thiết bị", "Equipment name")} value={assetForm.name} onChange={(event) => setAssetForm({ ...assetForm, name: event.target.value })} required />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <select aria-label="Nhóm thiết bị" className="input" value={assetForm.category} onChange={(event) => setAssetForm({ ...assetForm, category: event.target.value })}>
-              {maintenanceCategoryOptions.map((value) => <option key={value} value={value}>{viLabel(value)}</option>)}
+          <div className="admin-form-grid-2">
+            <select aria-label={t("Nhóm thiết bị", "Equipment category")} className="input" value={assetForm.category} onChange={(event) => setAssetForm({ ...assetForm, category: event.target.value })}>
+              {maintenanceCategoryOptions.map((value) => <option key={value} value={value}>{localizedLabel(value, language)}</option>)}
             </select>
-            <select aria-label="Trạng thái thiết bị" className="input" value={assetForm.status} onChange={(event) => setAssetForm({ ...assetForm, status: event.target.value })}>
-              {maintenanceAssetStatusOptions.map((value) => <option key={value} value={value}>{viLabel(value)}</option>)}
+            <select aria-label={t("Trạng thái thiết bị", "Equipment status")} className="input" value={assetForm.status} onChange={(event) => setAssetForm({ ...assetForm, status: event.target.value })}>
+              {maintenanceAssetStatusOptions.map((value) => <option key={value} value={value}>{localizedLabel(value, language)}</option>)}
             </select>
           </div>
-          <select aria-label="Vị trí thiết bị" className="input" value={assetForm.auditoriumId} onChange={(event) => setAssetForm({ ...assetForm, auditoriumId: event.target.value })}>
-            <option value="">Thiết bị dùng chung rạp</option>
+          <select aria-label={t("Vị trí thiết bị", "Equipment location")} className="input" value={assetForm.auditoriumId} onChange={(event) => setAssetForm({ ...assetForm, auditoriumId: event.target.value })}>
+            <option value="">{t("Thiết bị dùng chung rạp", "Shared cinema equipment")}</option>
             {auditoriums.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
           </select>
-          <div className="grid grid-cols-2 gap-3">
-            <input className="input" placeholder="Nhà cung cấp" value={assetForm.vendor} onChange={(event) => setAssetForm({ ...assetForm, vendor: event.target.value })} />
-            <input className="input" placeholder="Số sê-ri" value={assetForm.serialNumber} onChange={(event) => setAssetForm({ ...assetForm, serialNumber: event.target.value })} />
+          <div className="admin-form-grid-2">
+            <input className="input" placeholder={t("Nhà cung cấp", "Vendor")} value={assetForm.vendor} onChange={(event) => setAssetForm({ ...assetForm, vendor: event.target.value })} />
+            <input className="input" placeholder={t("Số sê-ri", "Serial number")} value={assetForm.serialNumber} onChange={(event) => setAssetForm({ ...assetForm, serialNumber: event.target.value })} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-slate-400">Ngày lắp<input className="input mt-1" type="date" value={assetForm.installedOn} onChange={(event) => setAssetForm({ ...assetForm, installedOn: event.target.value })} /></label>
-            <label className="text-xs text-slate-400">Bảo trì kế tiếp<input className="input mt-1" type="date" value={assetForm.nextServiceDue} onChange={(event) => setAssetForm({ ...assetForm, nextServiceDue: event.target.value })} /></label>
+          <div className="admin-form-grid-2">
+            <label className="text-xs text-slate-400">{t("Ngày lắp", "Installation date")}<input className="input mt-1" type="date" value={assetForm.installedOn} onChange={(event) => setAssetForm({ ...assetForm, installedOn: event.target.value })} /></label>
+            <label className="text-xs text-slate-400">{t("Bảo trì kế tiếp", "Next maintenance")}<input className="input mt-1" type="date" value={assetForm.nextServiceDue} onChange={(event) => setAssetForm({ ...assetForm, nextServiceDue: event.target.value })} /></label>
           </div>
-          <label className="text-xs text-slate-400">Lần bảo trì gần nhất<input className="input mt-1" type="datetime-local" value={assetForm.lastServiceAt} onChange={(event) => setAssetForm({ ...assetForm, lastServiceAt: event.target.value })} /></label>
-          <textarea className="input min-h-20" placeholder="Ghi chú kỹ thuật" value={assetForm.note} onChange={(event) => setAssetForm({ ...assetForm, note: event.target.value })} />
+          <label className="text-xs text-slate-400">{t("Lần bảo trì gần nhất", "Last maintenance")}<input className="input mt-1" type="datetime-local" value={assetForm.lastServiceAt} onChange={(event) => setAssetForm({ ...assetForm, lastServiceAt: event.target.value })} /></label>
+          <textarea className="input min-h-20" placeholder={t("Ghi chú kỹ thuật", "Technical notes")} value={assetForm.note} onChange={(event) => setAssetForm({ ...assetForm, note: event.target.value })} />
           <div className="flex gap-2">
-            <button className="btn btn-primary flex-1" disabled={busy || !cinemaId}>{busy ? "Đang lưu..." : editingAsset ? "Lưu thiết bị" : "Thêm thiết bị"}</button>
-            {editingAsset && <button type="button" className="btn btn-secondary" onClick={() => { setEditingAsset(null); setAssetForm({ ...ASSET_EMPTY }); }}>Hủy sửa</button>}
+            <button className="btn btn-primary flex-1" disabled={busy || !cinemaId}>{busy ? t("Đang lưu...", "Saving...") : editingAsset ? t("Lưu thiết bị", "Save equipment") : t("Thêm thiết bị", "Add equipment")}</button>
+            {editingAsset && <button type="button" className="btn btn-secondary" onClick={() => { setEditingAsset(null); setAssetForm({ ...ASSET_EMPTY }); }}>{t("Hủy sửa", "Cancel editing")}</button>}
           </div>
         </form>
 
         <section className="card p-5">
           <div className="flex items-end justify-between gap-3">
-            <div><h2 className="text-xl font-bold">Danh mục thiết bị</h2><p className="text-sm text-slate-500">{selectedAssets.length} tài sản tại rạp.</p></div>
+            <div><h2 className="text-xl font-bold">{t("Danh mục thiết bị", "Equipment catalog")}</h2><p className="text-sm text-slate-500">{t(`${selectedAssets.length} tài sản tại rạp.`, `${selectedAssets.length} assets at this cinema.`)}</p></div>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-slate-400"><tr><th className="p-2">Mã</th><th className="p-2">Thiết bị</th><th className="p-2">Vị trí</th><th className="p-2">Trạng thái</th><th className="p-2">Bảo trì kế tiếp</th><th /></tr></thead>
+          <div className="mt-4 hidden 2xl:block">
+            <table className="w-full table-fixed text-sm">
+              <thead className="text-left text-slate-400"><tr><th className="w-[15%] p-2">{t("Mã", "Code")}</th><th className="w-[25%] p-2">{t("Thiết bị", "Equipment")}</th><th className="w-[20%] p-2">{t("Vị trí", "Location")}</th><th className="w-[16%] p-2">{t("Trạng thái", "Status")}</th><th className="w-[16%] p-2">{t("Bảo trì kế tiếp", "Next maintenance")}</th><th className="w-[8%]" /></tr></thead>
               <tbody>
                 {selectedAssets.map((asset) => (
-                  <tr key={asset.id} data-testid="maintenance-asset-row" className="border-t border-slate-800">
-                    <td className="p-2 font-mono">{asset.assetCode}</td>
-                    <td className="p-2"><b>{asset.name}</b><div className="text-xs text-slate-500">{viLabel(asset.category)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</div></td>
-                    <td className="p-2">{asset.auditoriumName || "Dùng chung rạp"}</td>
-                    <td className="p-2"><span className={`rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{viLabel(asset.status)}</span></td>
+                  <tr key={asset.id} data-testid="maintenance-asset-row" className="border-t border-slate-800 align-top">
+                    <td className="break-all p-2 font-mono">{asset.assetCode}</td>
+                    <td className="p-2"><b className="break-words">{asset.name}</b><div className="break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</div></td>
+                    <td className="break-words p-2">{asset.auditoriumName || t("Dùng chung rạp", "Shared by cinema")}</td>
+                    <td className="p-2"><span className={`inline-block rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{localizedLabel(asset.status, language)}</span></td>
                     <td className="p-2">{asset.nextServiceDue || "-"}</td>
-                    <td className="p-2 text-right"><button className="btn btn-secondary" onClick={() => editAsset(asset)}>Sửa</button></td>
+                    <td className="p-2 text-right"><button className="btn btn-secondary !px-3" onClick={() => editAsset(asset)}>{t("Sửa", "Edit")}</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {!selectedAssets.length && <div className="py-10 text-center text-slate-500">Chưa có thiết bị. Hãy đăng ký tài sản đầu tiên.</div>}
           </div>
+          <div className="mt-4 grid gap-3 2xl:hidden" data-testid="maintenance-asset-cards">
+            {selectedAssets.map((asset) => (
+              <article key={asset.id} data-testid="maintenance-asset-card" className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="break-all font-mono text-xs text-slate-400">{asset.assetCode}</div><h3 className="mt-1 break-words font-bold">{asset.name}</h3><p className="mt-1 break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</p></div><span className={`rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{localizedLabel(asset.status, language)}</span></div>
+                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><div><span className="text-slate-500">{t("Vị trí", "Location")}: </span><span className="break-words">{asset.auditoriumName || t("Dùng chung rạp", "Shared by cinema")}</span></div><div><span className="text-slate-500">{t("Bảo trì kế tiếp", "Next maintenance")}: </span>{asset.nextServiceDue || "-"}</div></div>
+                <button className="btn btn-secondary mt-3 w-full sm:w-auto" onClick={() => editAsset(asset)}>{t("Sửa", "Edit")}</button>
+              </article>
+            ))}
+          </div>
+          {!selectedAssets.length && <div className="py-10 text-center text-slate-500">{t("Chưa có thiết bị. Hãy đăng ký tài sản đầu tiên.", "No equipment yet. Register the first asset.")}</div>}
         </section>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-6 2xl:grid-cols-[420px_minmax(0,1fr)]">
         <form onSubmit={createOrder} className="card space-y-3 p-5">
-          <div><h2 className="text-xl font-bold">Tạo phiếu bảo trì</h2><p className="text-sm text-slate-500">Có thể liên kết thiết bị và sự cố V43.</p></div>
-          <input className="input" placeholder="Tiêu đề công việc" value={orderForm.title} onChange={(event) => setOrderForm({ ...orderForm, title: event.target.value })} required />
-          <textarea className="input min-h-24" placeholder="Mô tả lỗi / công việc cần làm" value={orderForm.description} onChange={(event) => setOrderForm({ ...orderForm, description: event.target.value })} required />
-          <div className="grid grid-cols-2 gap-3">
-            <select aria-label="Mức ưu tiên" className="input" value={orderForm.priority} onChange={(event) => setOrderForm({ ...orderForm, priority: event.target.value })}>
-              {maintenancePriorityOptions.map((value) => <option key={value} value={value}>{viLabel(value)}</option>)}
+          <div><h2 className="text-xl font-bold">{t("Tạo phiếu bảo trì", "Create maintenance work order")}</h2><p className="text-sm text-slate-500">{t("Có thể liên kết thiết bị và sự cố V43.", "Equipment and V43 incidents can be linked to the work order.")}</p></div>
+          <input className="input" placeholder={t("Tiêu đề công việc", "Work title")} value={orderForm.title} onChange={(event) => setOrderForm({ ...orderForm, title: event.target.value })} required />
+          <textarea className="input min-h-24" placeholder={t("Mô tả lỗi / công việc cần làm", "Describe the issue / required work")} value={orderForm.description} onChange={(event) => setOrderForm({ ...orderForm, description: event.target.value })} required />
+          <div className="admin-form-grid-2">
+            <select aria-label={t("Mức ưu tiên", "Priority")} className="input" value={orderForm.priority} onChange={(event) => setOrderForm({ ...orderForm, priority: event.target.value })}>
+              {maintenancePriorityOptions.map((value) => <option key={value} value={value}>{localizedLabel(value, language)}</option>)}
             </select>
-            <select aria-label="Người phụ trách" className="input" value={orderForm.assignedTo} onChange={(event) => setOrderForm({ ...orderForm, assignedTo: event.target.value })}>
-              <option value="">Chưa phân công</option>
+            <select aria-label={t("Người phụ trách", "Assignee")} className="input" value={orderForm.assignedTo} onChange={(event) => setOrderForm({ ...orderForm, assignedTo: event.target.value })}>
+              <option value="">{t("Chưa phân công", "Unassigned")}</option>
               {staff.map((person) => <option key={person.userId} value={person.userId}>{person.employeeCode} · {person.fullName}</option>)}
             </select>
           </div>
-          <select aria-label="Thiết bị của phiếu bảo trì" className="input" value={orderForm.assetId} onChange={(event) => { const asset = assets.find((item) => item.id === event.target.value); setOrderForm({ ...orderForm, assetId: event.target.value, auditoriumId: asset?.auditoriumId || orderForm.auditoriumId }); }}>
-            <option value="">Không gắn thiết bị</option>
+          <select aria-label={t("Thiết bị của phiếu bảo trì", "Work-order equipment")} className="input" value={orderForm.assetId} onChange={(event) => { const asset = assets.find((item) => item.id === event.target.value); setOrderForm({ ...orderForm, assetId: event.target.value, auditoriumId: asset?.auditoriumId || orderForm.auditoriumId }); }}>
+            <option value="">{t("Không gắn thiết bị", "No equipment assigned")}</option>
             {assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.assetCode} · {asset.name}</option>)}
           </select>
-          <select aria-label="Phòng của phiếu bảo trì" className="input" value={orderForm.auditoriumId} onChange={(event) => setOrderForm({ ...orderForm, auditoriumId: event.target.value })}>
-            <option value="">Không gắn phòng</option>
+          <select aria-label={t("Phòng của phiếu bảo trì", "Work-order auditorium")} className="input" value={orderForm.auditoriumId} onChange={(event) => setOrderForm({ ...orderForm, auditoriumId: event.target.value })}>
+            <option value="">{t("Không gắn phòng", "No auditorium assigned")}</option>
             {auditoriums.map((room) => <option key={room.id} value={room.id}>{room.name}</option>)}
           </select>
-          <select aria-label="Sự cố liên quan" className="input" value={orderForm.sourceIncidentId} onChange={(event) => setOrderForm({ ...orderForm, sourceIncidentId: event.target.value })}>
-            <option value="">Không liên kết sự cố</option>
-            {incidents.map((incident) => <option key={incident.id} value={incident.id}>{viLabel(incident.severity)} · {incident.title}</option>)}
+          <select aria-label={t("Sự cố liên quan", "Related incident")} className="input" value={orderForm.sourceIncidentId} onChange={(event) => setOrderForm({ ...orderForm, sourceIncidentId: event.target.value })}>
+            <option value="">{t("Không liên kết sự cố", "No linked incident")}</option>
+            {incidents.map((incident) => <option key={incident.id} value={incident.id}>{localizedLabel(incident.severity, language)} · {incident.title}</option>)}
           </select>
-          <label className="text-xs text-slate-400">Hạn xử lý<input className="input mt-1" type="datetime-local" value={orderForm.dueAt} onChange={(event) => setOrderForm({ ...orderForm, dueAt: event.target.value })} /></label>
-          <button className="btn btn-primary w-full" disabled={busy || !cinemaId}>Tạo phiếu bảo trì</button>
+          <label className="text-xs text-slate-400">{t("Hạn xử lý", "Resolution deadline")}<input className="input mt-1" type="datetime-local" value={orderForm.dueAt} onChange={(event) => setOrderForm({ ...orderForm, dueAt: event.target.value })} /></label>
+          <button className="btn btn-primary w-full" disabled={busy || !cinemaId}>{t("Tạo phiếu bảo trì", "Create maintenance work order")}</button>
         </form>
 
         <section className="card p-5">
-          <div><h2 className="text-xl font-bold">Phiếu bảo trì</h2><p className="text-sm text-slate-500">{orders.filter((order) => openStatuses.has(order.status)).length} đang mở · {orders.filter((order) => order.overdue).length} quá hạn.</p></div>
+          <div><h2 className="text-xl font-bold">{t("Phiếu bảo trì", "Maintenance work orders")}</h2><p className="text-sm text-slate-500">{t(`${orders.filter((order) => openStatuses.has(order.status)).length} đang mở · ${orders.filter((order) => order.overdue).length} quá hạn.`, `${orders.filter((order) => openStatuses.has(order.status)).length} open · ${orders.filter((order) => order.overdue).length} overdue.`)}</p></div>
           <div className="mt-4 space-y-3">
             {orders.map((order) => (
               <div key={order.id} data-testid="maintenance-work-order" className={`rounded-xl border p-4 ${order.overdue ? "border-red-800 bg-red-950/20" : "border-slate-800"}`}>
@@ -493,68 +541,75 @@ export default function MaintenancePage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <b>{order.title}</b>
-                      <span className="rounded bg-slate-800 px-2 py-1 text-xs">{viLabel(order.priority)}</span>
-                      <span data-testid="maintenance-work-order-status" className="rounded bg-slate-800 px-2 py-1 text-xs">{viLabel(order.status)}</span>
-                      {order.overdue && <span className="rounded bg-red-900 px-2 py-1 text-xs text-red-100">Quá hạn</span>}
+                      <span className="rounded bg-slate-800 px-2 py-1 text-xs">{localizedLabel(order.priority, language)}</span>
+                      <span data-testid="maintenance-work-order-status" className="rounded bg-slate-800 px-2 py-1 text-xs">{localizedLabel(order.status, language)}</span>
+                      {order.overdue && <span className="rounded bg-red-900 px-2 py-1 text-xs text-red-100">{t("Quá hạn", "Overdue")}</span>}
                     </div>
                     <p className="mt-1 text-sm text-slate-400">{order.description}</p>
                     <div className="mt-2 text-xs text-slate-500">
-                      {order.assetCode ? `${order.assetCode} · ${order.assetName}` : "Không gắn thiết bị"}
-                      {order.auditoriumName ? ` · ${order.auditoriumName}` : ""} · Phụ trách: {order.assignedToName || "Chưa phân công"}
-                      {order.dueAt ? ` · Hạn ${dateTime(order.dueAt)}` : ""}
+                      {order.assetCode ? `${order.assetCode} · ${order.assetName}` : t("Không gắn thiết bị", "No equipment assigned")}
+                      {order.auditoriumName ? ` · ${order.auditoriumName}` : ""} · {t("Phụ trách", "Assignee")}: {order.assignedToName || t("Chưa phân công", "Unassigned")}
+                      {order.dueAt ? ` · ${t("Hạn", "Due")} ${formatDateTime(order.dueAt)}` : ""}
                     </div>
-                    {order.status === "RESOLVED" && order.resolutionNote && <div className="mt-2 text-xs text-emerald-300">Kết quả: {order.resolutionNote}</div>}
+                    {order.status === "RESOLVED" && order.resolutionNote && <div className="mt-2 text-xs text-emerald-300">{t("Kết quả", "Result")}: {order.resolutionNote}</div>}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button className="btn btn-secondary" onClick={() => showHistory(order.id)}>Lịch sử</button>
-                    {order.status === "OPEN" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "IN_PROGRESS")}>Bắt đầu</button>}
-                    {order.status === "BLOCKED" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "IN_PROGRESS")}>Tiếp tục</button>}
-                    {["OPEN", "IN_PROGRESS"].includes(order.status) && <button className="btn btn-secondary" disabled={busy} onClick={() => requestTransition(order, "BLOCKED")}>Tạm chặn</button>}
-                    {order.status === "IN_PROGRESS" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "RESOLVED")}>Hoàn tất</button>}
-                    {openStatuses.has(order.status) && <button className="btn btn-secondary" disabled={busy} onClick={() => requestTransition(order, "CANCELLED")}>Hủy</button>}
+                    <button className="btn btn-secondary" onClick={() => showHistory(order.id)}>{t("Lịch sử", "History")}</button>
+                    {order.status === "OPEN" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "IN_PROGRESS")}>{t("Bắt đầu", "Start")}</button>}
+                    {order.status === "BLOCKED" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "IN_PROGRESS")}>{t("Tiếp tục", "Continue")}</button>}
+                    {["OPEN", "IN_PROGRESS"].includes(order.status) && <button className="btn btn-secondary" disabled={busy} onClick={() => requestTransition(order, "BLOCKED")}>{t("Tạm chặn", "Block temporarily")}</button>}
+                    {order.status === "IN_PROGRESS" && <button className="btn btn-primary" disabled={busy} onClick={() => requestTransition(order, "RESOLVED")}>{t("Hoàn tất", "Complete")}</button>}
+                    {openStatuses.has(order.status) && <button className="btn btn-secondary" disabled={busy} onClick={() => requestTransition(order, "CANCELLED")}>{t("Hủy", "Cancel")}</button>}
                   </div>
                 </div>
                 {history?.orderId === order.id && (
                   <div className="mt-3 border-t border-slate-800 pt-3 text-xs text-slate-400">
                     {history.items.map((event) => (
-                      <div key={event.id} className="py-1"><b>{viLabel(event.eventType)}</b> · {viLabel(event.fromStatus)} → {viLabel(event.toStatus)} · {event.actorName} · {dateTime(event.createdAt)}{event.note ? ` · ${maintenanceDisplayText(event.note)}` : ""}</div>
+                      <div key={event.id} className="py-1"><b>{localizedLabel(event.eventType, language)}</b> · {localizedLabel(event.fromStatus, language)} → {localizedLabel(event.toStatus, language)} · {event.actorName} · {formatDateTime(event.createdAt)}{event.note ? ` · ${maintenanceDisplayText(event.note, language)}` : ""}</div>
                     ))}
                   </div>
                 )}
               </div>
             ))}
-            {!orders.length && <div className="py-10 text-center text-slate-500">Chưa có phiếu bảo trì.</div>}
+            {!orders.length && <div className="py-10 text-center text-slate-500">{t("Chưa có phiếu bảo trì.", "No maintenance work orders yet.")}</div>}
           </div>
         </section>
       </div>
 
       {role === "ADMIN" && (
-        <section className="card p-5">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="section-kicker">V34 · TƯƠNG THÍCH</p>
-              <h2 className="text-xl font-bold">Bảo trì & khóa phòng chiếu</h2>
-              <p className="text-sm text-slate-500">Giữ nguyên cơ chế bảo vệ V34: không cho khóa trùng suất đang hoạt động và bộ lập lịch suất chiếu vẫn nhận khoảng khóa phòng là xung đột.</p>
-            </div>
-            <label className="text-sm text-slate-400">Lọc phòng bảo trì<select aria-label="Lọc phòng bảo trì" className="input mt-1 min-w-56" value={blackoutFilter} onChange={(event) => setBlackoutFilter(event.target.value)}><option value="">Tất cả phòng</option>{auditoriums.map((room) => <option key={room.id} value={room.id}>{selectedCinemaName} · {room.name}</option>)}</select></label>
+        <section className="card p-5" data-testid="maintenance-auditorium-blocking">
+          <div>
+            <p className="section-kicker">{t("V34 · TƯƠNG THÍCH","V34 · COMPATIBILITY")}</p>
+            <h2 className="text-xl font-bold">{t("Bảo trì & khóa phòng chiếu","Maintenance & auditorium blocking")}</h2>
+            <p className="mt-1 max-w-4xl text-sm text-slate-500">{t("Giữ nguyên cơ chế bảo vệ V34: không cho khóa trùng suất đang hoạt động và bộ lập lịch suất chiếu vẫn nhận khoảng khóa phòng là xung đột.","V34 safeguards remain in place: an auditorium cannot be blocked over an active showtime, and the showtime planner still treats auditorium blocks as conflicts.")}</p>
           </div>
-          <div className="mt-4 grid gap-5 lg:grid-cols-[400px_1fr]">
-            <form onSubmit={createBlackout} className="space-y-3">
-              <select aria-label="Phòng bảo trì" className="input" value={blackoutForm.auditoriumId} onChange={(event) => setBlackoutForm({ ...blackoutForm, auditoriumId: event.target.value })} required><option value="">Chọn phòng</option>{auditoriums.map((room) => <option key={room.id} value={room.id}>{selectedCinemaName} · {room.name}</option>)}</select>
-              <input aria-label="Bắt đầu bảo trì" className="input" type="datetime-local" value={blackoutForm.startTime} onChange={(event) => setBlackoutForm({ ...blackoutForm, startTime: event.target.value })} required />
-              <input aria-label="Kết thúc bảo trì" className="input" type="datetime-local" value={blackoutForm.endTime} onChange={(event) => setBlackoutForm({ ...blackoutForm, endTime: event.target.value })} required />
-              <textarea aria-label="Lý do bảo trì" className="input" placeholder="Lý do khóa phòng" value={blackoutForm.reason} onChange={(event) => setBlackoutForm({ ...blackoutForm, reason: event.target.value })} required />
-              <button className="btn btn-primary w-full" disabled={busy}>Khóa phòng</button>
-            </form>
-            <div className="space-y-2">
+          <div className="admin-split-grid mt-5">
+            <div className="admin-form-stack">
+              <label className="block text-sm text-slate-400">
+                <span className="mb-1 block">{t("Lọc phòng bảo trì","Filter maintenance auditoriums")}</span>
+                <select aria-label={t("Lọc phòng bảo trì","Filter maintenance auditoriums")} className="input" value={blackoutFilter} onChange={(event) => setBlackoutFilter(event.target.value)}>
+                  <option value="">{t("Tất cả phòng","All auditoriums")}</option>
+                  {auditoriums.map((room) => <option key={room.id} value={room.id}>{selectedCinemaName} · {room.name}</option>)}
+                </select>
+              </label>
+              <form onSubmit={createBlackout} className="admin-form-stack" data-testid="maintenance-blackout-form">
+                <select aria-label={t("Phòng bảo trì","Maintenance auditorium")} className="input" value={blackoutForm.auditoriumId} onChange={(event) => setBlackoutForm({ ...blackoutForm, auditoriumId: event.target.value })} required><option value="">{t("Chọn phòng","Select auditorium")}</option>{auditoriums.map((room) => <option key={room.id} value={room.id}>{selectedCinemaName} · {room.name}</option>)}</select>
+                <input aria-label={t("Bắt đầu bảo trì","Maintenance start")} className="input" type="datetime-local" value={blackoutForm.startTime} onChange={(event) => setBlackoutForm({ ...blackoutForm, startTime: event.target.value })} required />
+                <input aria-label={t("Kết thúc bảo trì","Maintenance end")} className="input" type="datetime-local" value={blackoutForm.endTime} onChange={(event) => setBlackoutForm({ ...blackoutForm, endTime: event.target.value })} required />
+                <textarea aria-label={t("Lý do bảo trì","Maintenance reason")} className="input min-h-24" placeholder={t("Lý do khóa phòng","Auditorium block reason")} value={blackoutForm.reason} onChange={(event) => setBlackoutForm({ ...blackoutForm, reason: event.target.value })} required />
+                <button className="btn btn-primary w-full" disabled={busy}>{t("Khóa phòng","Block auditorium")}</button>
+              </form>
+            </div>
+            <div className="min-w-0 space-y-2">
               {selectedBlackouts.map((item) => (
-                <div key={item.id} aria-label={`Khoảng bảo trì: ${item.reason}`} className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3">
+                <div key={item.id} aria-label={`${t("Khoảng bảo trì", "Maintenance window")}: ${item.reason}`} className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div><b>{item.auditoriumName}</b><div className="text-sm text-amber-200">{item.reason}</div><div className="text-xs text-slate-500">{dateTime(item.startTime)} → {dateTime(item.endTime)}</div></div>
-                    <button className="btn btn-secondary" aria-label="Mở lại phòng" onClick={() => removeBlackout(item.id)}>Mở lại</button>
+                    <div className="min-w-0"><b>{item.auditoriumName}</b><div className="break-words text-sm text-amber-200">{item.reason}</div><div className="text-xs text-slate-500">{formatDateTime(item.startTime)} → {formatDateTime(item.endTime)}</div></div>
+                    <button className="btn btn-secondary shrink-0" aria-label={t("Mở lại phòng","Reopen auditorium")} onClick={() => removeBlackout(item.id)}>{t("Mở lại","Reopen")}</button>
                   </div>
                 </div>
               ))}
+              {!selectedBlackouts.length && <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-sm text-slate-500">{t("Chưa có khoảng khóa phòng trong bộ lọc hiện tại.", "No auditorium blocks match the current filter.")}</div>}
             </div>
           </div>
         </section>
@@ -563,26 +618,26 @@ export default function MaintenancePage() {
       {transitionDialog && (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-black/75 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setTransitionDialog(null); }}>
           <form data-testid="maintenance-transition-dialog" role="dialog" aria-modal="true" aria-labelledby="maintenance-transition-title" onSubmit={submitTransition} className="w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-950 p-6 shadow-2xl">
-            <h2 id="maintenance-transition-title" className="text-xl font-black">{transitionTitle(transitionDialog.target)}</h2>
-            <p className="mt-2 text-sm text-slate-400">Phiếu: <b className="text-slate-200">{transitionDialog.order.title}</b></p>
+            <h2 id="maintenance-transition-title" className="text-xl font-black">{transitionTitle(transitionDialog.target, language)}</h2>
+            <p className="mt-2 text-sm text-slate-400">{t("Phiếu", "Work order")}: <b className="text-slate-200">{transitionDialog.order.title}</b></p>
             <label className="mt-5 block text-sm text-slate-300">
-              {transitionPrompt(transitionDialog.target)}
+              {transitionPrompt(transitionDialog.target, language)}
               <textarea
                 data-testid="maintenance-transition-note"
-                aria-label={transitionPrompt(transitionDialog.target)}
+                aria-label={transitionPrompt(transitionDialog.target, language)}
                 className="input mt-2 min-h-28"
                 value={transitionDialog.note}
                 onChange={(event) => setTransitionDialog({ ...transitionDialog, note: event.target.value, validation: "" })}
-                placeholder={transitionDialog.target === "RESOLVED" ? "Ví dụ: OK, đã kiểm tra và thiết bị hoạt động bình thường." : "Nhập lý do..."}
+                placeholder={transitionDialog.target === "RESOLVED" ? t("Ví dụ: OK, đã kiểm tra và thiết bị hoạt động bình thường.", "Example: OK, checked and the equipment is operating normally.") : t("Nhập lý do...", "Enter reason...")}
                 autoFocus
                 required
               />
             </label>
-            <p className="mt-2 text-xs text-slate-500">Tối thiểu 2 ký tự. Nội dung này được lưu vào lịch sử xử lý.</p>
+            <p className="mt-2 text-xs text-slate-500">{t("Tối thiểu 2 ký tự. Nội dung này được lưu vào lịch sử xử lý.", "Minimum 2 characters. This content is saved to the resolution history.")}</p>
             {transitionDialog.validation && <div data-testid="maintenance-transition-validation" className="mt-3 rounded-xl border border-red-800/60 bg-red-950/40 p-3 text-sm text-red-200">{transitionDialog.validation}</div>}
             <div className="mt-5 flex justify-end gap-3">
-              <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setTransitionDialog(null)}>Hủy</button>
-              <button data-testid="maintenance-transition-confirm" type="submit" className="btn btn-primary" disabled={busy}>{busy ? "Đang cập nhật..." : transitionDialog.target === "RESOLVED" ? "Xác nhận hoàn tất" : "Xác nhận"}</button>
+              <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setTransitionDialog(null)}>{t("Hủy", "Cancel")}</button>
+              <button data-testid="maintenance-transition-confirm" type="submit" className="btn btn-primary" disabled={busy}>{busy ? t("Đang cập nhật...", "Updating...") : transitionDialog.target === "RESOLVED" ? t("Xác nhận hoàn tất", "Confirm completion") : t("Xác nhận", "Confirm")}</button>
             </div>
           </form>
         </div>
@@ -592,6 +647,7 @@ export default function MaintenancePage() {
 }
 /* V77.0.9 historical-verifier compatibility markers (not rendered):
 method:"DELETE"
+aria-label={t("Mở lại phòng","Reopen auditorium")}
 aria-label="Mở lại phòng"
 V44 · CINEMA MAINTENANCE & ASSET RELIABILITY 2.0
 Trung tâm bảo trì & độ tin cậy thiết bị
@@ -604,4 +660,6 @@ nextServiceDue
 V34 COMPATIBILITY
 /admin/auditorium-blackouts
 Bảo trì & khóa phòng chiếu
+Kết quả: {order.resolutionNote}
+maintenanceDisplayText(event.note)
 */

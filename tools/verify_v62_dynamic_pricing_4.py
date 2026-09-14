@@ -136,7 +136,7 @@ check('V62 E2E logs in as admin', 'admin-v29@cine.local' in e2e and 'page.goto("
 check('V62 E2E visits pricing page', 'page.goto("/admin/pricing")' in e2e)
 check('V62 E2E checks strategy version', 'V62_RULESET_1' in e2e)
 check('V62 E2E checks guard bounds', '"-10%"' in e2e and '"+25%"' in e2e)
-check('V62 E2E uses no-write simulator', 'không ghi database' in e2e)
+check('V62 E2E uses no-write simulator', 'không ghi database' in e2e or 'không ghi cơ sở dữ liệu' in e2e)
 check('V62 E2E checks deterministic +12 scenario', 'toContainText("+12%")' in e2e)
 check('V62 E2E checks all three signal labels', all(x in e2e for x in ['Mức lấp đầy','Tốc độ nhu cầu','Thời gian tới suất chiếu']))
 

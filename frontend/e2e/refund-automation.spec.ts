@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ensureSurface, gotoHydrated, gotoSurface, waitForHydratedRuntime } from "./runtime-guards";
 
 const PASSWORD = "V38E2e!Refund123";
 
@@ -7,9 +8,10 @@ test("V38 mock refund auto-processes policy, reopens seat, and updates payment h
   const email = `quang.huy+${stamp}@example.com`;
   let bookingUrl = "";
   let seatLabel = "";
+  let bookingId = "";
 
   await test.step("register customer", async () => {
-    await page.goto("/register");
+    await gotoSurface(page, "/register", "register-name");
     await page.getByPlaceholder("Họ và tên").fill("Phạm Quang Huy");
     await page.getByPlaceholder("Email").fill(email);
     await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
@@ -39,7 +41,7 @@ test("V38 mock refund auto-processes policy, reopens seat, and updates payment h
     await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+$/i);
     bookingUrl = page.url();
 
-    const seat = page.locator('button[aria-label^="Ghế "][title*="AVAILABLE"]').first();
+    const seat = page.locator('button[aria-label^="Ghế "][data-seat-status="AVAILABLE"]').first();
     await expect(seat).toBeVisible();
     seatLabel = (await seat.getAttribute("aria-label")) || "";
     expect(seatLabel).toMatch(/^Ghế /);
@@ -51,9 +53,14 @@ test("V38 mock refund auto-processes policy, reopens seat, and updates payment h
   await test.step("pay with mock gateway", async () => {
     await page.getByRole("button", { name: /Thanh toán/ }).click();
     await expect(page).toHaveURL(/\/payment\/mock\?/);
-    await page.getByRole("button", { name: "Giả lập thành công" }).click();
+    await ensureSurface(page,"mock-payment-success");
+    await page.getByTestId("mock-payment-success").click();
     await expect(page).toHaveURL(/\/bookings$/);
-    await expect(page.getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()).toBeVisible();
+    await waitForHydratedRuntime(page, "/bookings");
+    const confirmedCard=page.locator('[data-testid="booking-card"][data-booking-status="CONFIRMED"]').first();
+    await expect(confirmedCard).toBeVisible();
+    bookingId=(await confirmedCard.getAttribute("data-booking-id"))||"";
+    expect(bookingId).toMatch(/^[0-9a-f-]+$/i);
   });
 
   await test.step("quote shows automatic full refund and request completes immediately", async () => {
@@ -65,20 +72,19 @@ test("V38 mock refund auto-processes policy, reopens seat, and updates payment h
     await expect(policy.getByText("Tự động", { exact: true })).toBeVisible();
     await policy.getByRole("button", { name: /Xác nhận hủy & hoàn/ }).click();
     await expect(page.getByText(/Đã hoàn vé tự động/)).toBeVisible();
-    await expect(page.getByLabel("Trạng thái booking: REFUNDED", { exact: true }).first()).toBeVisible();
+    await expect(page.locator('[data-testid="booking-status"][data-booking-status="REFUNDED"]').first()).toBeVisible();
   });
 
   await test.step("payment history records refunded state", async () => {
-    await page.goto("/payments");
-    const paymentCard = page.locator("article").filter({ hasText: "Hành Trình Sao Hỏa" }).first();
-    await expect(paymentCard).toBeVisible();
-    await expect(paymentCard.getByText("REFUNDED", { exact: true })).toBeVisible();
+    await gotoSurface(page, "/payments", "payments-v47");
+    const paymentCard = page.locator(`[data-testid="payment-history-item"][data-booking-id="${bookingId}"][data-payment-status="REFUNDED"]`).first();
+    await expect(paymentCard).toBeVisible({timeout:30_000});
     await expect(paymentCard.getByText("MOCK", { exact: true })).toBeVisible();
   });
 
   await test.step("released seat becomes available again", async () => {
-    await page.goto(bookingUrl);
-    await expect(page.locator(`button[aria-label="${seatLabel}"][title*="AVAILABLE"]`)).toBeVisible();
+    await gotoHydrated(page, bookingUrl);
+    await expect(page.locator(`button[aria-label="${seatLabel}"][data-seat-status="AVAILABLE"]`)).toBeVisible();
   });
 
   await context.clearCookies();

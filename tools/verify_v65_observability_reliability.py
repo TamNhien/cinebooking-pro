@@ -216,13 +216,13 @@ check("Frontend V65 request sample type exists", "export type ObservabilityReque
 check("V65 Playwright spec exists", bool(e2e))
 check("E2E verifies Admin V65 tile", 'getByTestId("admin-observability-v65")' in e2e)
 check("E2E verifies observability URL", "/admin/observability" in e2e or "admin\\/observability" in e2e)
-check("E2E verifies V65 page header", "V65 · OBSERVABILITY & RELIABILITY 4.0" in e2e)
+check("E2E verifies V65 page header", "V65 · OBSERVABILITY & RELIABILITY 4.0" in e2e or "V65 · KHẢ NĂNG QUAN SÁT & ĐỘ TIN CẬY 4.0" in e2e)
 check("E2E verifies strategy version", "V65-OBSERVABILITY-RELIABILITY-4" in e2e)
 check("E2E verifies Availability SLO", 'toContainText("Availability")' in e2e)
 check("E2E verifies P95 SLO", 'toContainText("API P95 latency")' in e2e)
 check("E2E verifies PostgreSQL probe", 'toContainText("PostgreSQL")' in e2e)
 check("E2E verifies Redis probe", 'toContainText("Redis")' in e2e)
-check("E2E verifies Trace ID table", 'toContainText("Trace ID")' in e2e)
+check("E2E verifies Trace ID table", 'Trace ID' in e2e and ('Mã truy vết' in e2e or 'toContainText("Trace ID")' in e2e))
 
 # CI / release / README / Makefile
 ci_match=re.search(r"V26-V(\d+) source regression",ci)

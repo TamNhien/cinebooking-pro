@@ -15,7 +15,7 @@ if [[ -n "$sw_version" ]] && (( sw_version >= 26 )); then
 fi
 grep -q 'url.pathname.startsWith("/api/")' frontend/public/sw.js && pass "authenticated API responses excluded from cache"
 grep -q 'SKIP_WAITING' frontend/public/sw.js && pass "service worker update flow"
-grep -q 'Lưu vé offline' frontend/app/ticket/'[bookingId]'/page.tsx && pass "explicit offline ticket opt-in"
+(grep -q 'Lưu vé offline' frontend/app/ticket/'[bookingId]'/page.tsx || grep -q 'Lưu vé ngoại tuyến' frontend/app/ticket/'[bookingId]'/page.tsx) && pass "explicit offline ticket opt-in"
 grep -q 'requestPersistentStorage' frontend/app/ticket/'[bookingId]'/page.tsx && pass "persistent storage request"
 grep -q 'capture="environment"' frontend/app/staff/check-in/page.tsx && pass "rear camera capture hint"
 grep -q 'icon-maskable-512.png' frontend/public/manifest.webmanifest && pass "maskable install icon"

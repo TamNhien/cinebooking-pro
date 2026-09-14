@@ -45,7 +45,7 @@ check("E2E browser journey exists", bool(spec) and "register -> login -> seat ->
 check("E2E registers a unique customer", "gia.huy+${stamp}@example.com" in spec and "Nguyễn Gia Huy" in spec and 'getByRole("button", { name: "Đăng ký" })' in spec)
 check("E2E performs explicit customer login", 'page.goto("/login")' in spec and 'getByRole("button", { name: "Đăng nhập" })' in spec)
 check("E2E uses seeded Quick Booking movie", "Hành Trình Sao Hỏa" in spec and 'getByLabel("1. Phim")' in spec)
-check("E2E selects and holds an available seat", 'title*="AVAILABLE"' in spec and "Giữ ghế 5 phút" in spec)
+check("E2E selects and holds an available seat", ('title*="AVAILABLE"' in spec or 'data-seat-status="AVAILABLE"' in spec) and "Giữ ghế 5 phút" in spec)
 check("E2E completes mock payment", "Giả lập thành công" in spec and "CONFIRMED" in spec)
 check("E2E verifies ticket QR", "QR URL vé CineBooking" in spec and "/api/tickets/${id}" in spec)
 check("E2E checks in QR through staff gate UI", "/staff/check-in" in spec and "Kiểm tra & xác nhận check-in" in spec and "Check-in vé thành công." in spec)

@@ -1,4 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { ensureSurface, existingAdminCredentials, gotoHydrated, gotoSurface, loginWithRole, waitForHydratedRuntime } from "./runtime-guards";
 
 const PASSWORD = "V36Transfer!Customer123";
 
@@ -11,20 +12,17 @@ async function logout(page: Page, context: BrowserContext) {
 }
 
 async function register(page: Page, email: string, fullName: string) {
-  await page.goto("/register");
-  await page.getByPlaceholder("Họ và tên").fill(fullName);
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
-  await page.getByPlaceholder("Nhập lại mật khẩu").fill(PASSWORD);
-  await page.getByRole("button", { name: "Đăng ký" }).click();
+  await gotoSurface(page, "/register", "register-name");
+  await page.getByTestId("register-name").fill(fullName);
+  await page.getByTestId("register-email").fill(email);
+  await page.getByTestId("register-password").fill(PASSWORD);
+  await page.getByTestId("register-confirm").fill(PASSWORD);
+  await page.getByTestId("register-submit").click();
   await expect(page).toHaveURL(/\/$/);
 }
 
-async function login(page: Page, email: string, password = PASSWORD) {
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
+async function login(page: Page, email: string, password = PASSWORD, expectedRole: "USER" | "ADMIN" = "USER") {
+  await loginWithRole(page, email, password, expectedRole);
 }
 
 async function authFetchTicketUrl(page: Page, bookingId: string) {
@@ -47,8 +45,7 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const senderEmail = `minh.khang+${stamp}@example.com`;
   const recipientEmail = `gia.han+${stamp}@example.com`;
-  const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
+  const { email: adminEmail, password: adminPassword } = existingAdminCredentials();
 
   await test.step("create recipient account", async () => {
     await register(page, recipientEmail, "Lê Gia Hân");
@@ -84,15 +81,17 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
     await showtime.selectOption({ index: 1 });
     await page.getByRole("button", { name: "Chọn ghế" }).click();
 
-    const availableSeat = page.locator('button[aria-label^="Ghế "][title*="AVAILABLE"]').first();
+    const availableSeat = page.locator('button[aria-label^="Ghế "][data-seat-status="AVAILABLE"]').first();
     await expect(availableSeat).toBeVisible();
     await availableSeat.click();
     await page.getByRole("button", { name: "Giữ ghế 5 phút" }).click();
     await expect(page.getByText(/Ghế được giữ trong/)).toBeVisible();
     await page.getByRole("button", { name: /Thanh toán/ }).click();
     await expect(page).toHaveURL(/\/payment\/mock\?/);
-    await page.getByRole("button", { name: "Giả lập thành công" }).click();
+    await ensureSurface(page,"mock-payment-success");
+    await page.getByTestId("mock-payment-success").click();
     await expect(page).toHaveURL(/\/bookings$/);
+    await waitForHydratedRuntime(page, "/bookings");
   });
 
   let bookingId = "";
@@ -109,7 +108,7 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
     expect(oldQrUrl).toContain("CINEBOOKING%7CV2%7C");
 
     await page.getByRole("button", { name: "🎁 Chuyển/tặng vé" }).click();
-    await page.getByLabel("Email người nhận vé").fill(recipientEmail);
+    await page.getByTestId("ticket-transfer-email").fill(recipientEmail);
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: "Xác nhận chuyển vé" }).click();
     await expect(page.getByRole("heading", { name: "Đã chuyển vé" })).toBeVisible();
@@ -122,7 +121,7 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
     await logout(page, context);
     await login(page, recipientEmail);
     await expect(page).toHaveURL(/\/$/);
-    await page.goto("/bookings");
+    await gotoHydrated(page, "/bookings");
     await expect(page.getByRole("heading", { name: "Ví vé của tôi" })).toBeVisible();
     const ticketLink = page.getByRole("link", { name: "Mở QR vé" }).first();
     await expect(ticketLink).toBeVisible();
@@ -135,18 +134,18 @@ test("confirmed ticket can be transferred once and old QR becomes invalid", asyn
 
   await test.step("staff gate rejects old QR but accepts transferred QR", async () => {
     await logout(page, context);
-    await login(page, adminEmail, adminPassword);
+    await login(page, adminEmail, adminPassword, "ADMIN");
     await expect(page).toHaveURL(/\/admin$/);
-    await page.goto("/staff/check-in");
+    await gotoHydrated(page, "/staff/check-in");
     await expect(page.getByText("ADMIN có quyền check-in khẩn cấp")).toBeVisible();
 
     const input = page.locator('textarea[placeholder*="/staff/check-in?ticket="]');
     await input.fill(oldQrUrl);
-    await page.getByRole("button", { name: "Kiểm tra & xác nhận check-in" }).click();
+    await page.getByTestId("staff-check-in-submit").click();
     await expect(page.getByText(/QR vé đã hết hiệu lực/)).toBeVisible();
 
     await input.fill(newQrUrl);
-    await page.getByRole("button", { name: "Kiểm tra & xác nhận check-in" }).click();
-    await expect(page.getByText("Check-in vé thành công.")).toBeVisible();
+    await page.getByTestId("staff-check-in-submit").click();
+    await expect(page.getByText(/Soát vé.*thành công/)).toBeVisible();
   });
 });

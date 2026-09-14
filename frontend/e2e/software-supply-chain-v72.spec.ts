@@ -14,7 +14,7 @@ test("V72 Software Supply Chain Integrity exposes append-only digest posture and
   await loginAdmin(page);
   const tile=page.getByTestId("admin-supply-chain-v72");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Supply Chain V72");
+  await expect(tile).toContainText("Chuỗi cung ứng phần mềm V72");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
@@ -23,9 +23,9 @@ test("V72 Software Supply Chain Integrity exposes append-only digest posture and
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/supply-chain$/);
-  await expect(page.getByTestId("supply-chain-v72")).toContainText("V72 · SOFTWARE SUPPLY CHAIN INTEGRITY 5.0");
+  await expect(page.getByTestId("supply-chain-v72")).toContainText("V72 · TOÀN VẸN CHUỖI CUNG ỨNG PHẦN MỀM 5.0");
   await expect(page.getByTestId("supply-chain-summary-v72")).toContainText("V72-SUPPLY-CHAIN-INTEGRITY-5");
   await expect(page.getByTestId("supply-chain-policy-v72")).toContainText("DIGESTS_ONLY");
-  await expect(page.getByTestId("supply-chain-policy-v72")).toContainText("V72 mặc định không tự chặn release");
+  await expect(page.getByTestId("supply-chain-policy-v72")).toContainText(/V72 mặc định không tự chặn (bản phát hành|release)/);
   await expect(page.getByTestId("supply-chain-error-v72")).toHaveCount(0);
 });

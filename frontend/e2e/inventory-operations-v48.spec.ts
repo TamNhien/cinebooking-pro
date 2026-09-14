@@ -30,15 +30,20 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await page.getByPlaceholder("Mật khẩu").fill(adminPassword);
   await Promise.all([page.waitForURL(/\/admin$/,{timeout:15000}),page.getByRole("button",{name:"Đăng nhập"}).click()]);
 
-  // The disposable E2E migration baseline intentionally contains one cinema only.
-  // Create a second branch through the real admin API so V48 can exercise an actual transfer.
-  // createCinema must provision inventory + price rows for every existing concession product.
+  // Reuse one stable transfer branch so serial E2E runs never pollute the persistent DB
+  // with timestamp-suffixed cinema names. Create it only when it does not exist yet.
   const auth=await adminAuth(context,page);
-  const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
-    headers:{Authorization:`Bearer ${auth.accessToken}`},
-    data:{name:`CineHub Bình Thạnh ${Date.now()}`,address:"88 Nguyễn Gia Trí, Phường Thạnh Mỹ Tây, TP.HCM"}
-  });
-  expect(createCinema.status()).toBe(201);
+  const branchName="CineHub Bình Thạnh";
+  const existingBranches=await context.request.get(new URL("/api/admin/inventory/branches",page.url()).toString(),{headers:{Authorization:`Bearer ${auth.accessToken}`}});
+  expect(existingBranches.ok()).toBeTruthy();
+  const existing=await existingBranches.json() as Array<{cinemaName:string}>;
+  if(!existing.some(item=>item.cinemaName===branchName)){
+    const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
+      headers:{Authorization:`Bearer ${auth.accessToken}`},
+      data:{name:branchName,address:"88 Nguyễn Gia Trí, Phường Thạnh Mỹ Tây, TP.HCM"}
+    });
+    expect(createCinema.status()).toBe(201);
+  }
 
   await page.goto("/admin/inventory");
   await expect(page.getByRole("heading",{name:"Kho bắp nước theo rạp"})).toBeVisible();
@@ -74,4 +79,10 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await page.getByTestId("inventory-transfer-button").click();
   await expect(page.getByRole("status")).toContainText("Đã điều chuyển 1");
   await expect(page.getByText("TRANSFER_OUT",{exact:true}).first()).toBeVisible();
+
+  const scopeToggle=page.getByTestId("inventory-history-scope-toggle");
+  await scopeToggle.click();
+  await expect(scopeToggle).toHaveText("Chỉ rạp hiện tại");
+  await scopeToggle.click();
+  await expect(scopeToggle).toHaveText("Xem toàn chi nhánh");
 });

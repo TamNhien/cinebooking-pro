@@ -19,6 +19,42 @@ $checks = @(
   'tools/verify_v77_0_11_docker_windows_node_modules_hygiene.py',
   'tools/verify_v77_0_12_typescript_localization_contract_hygiene.py',
   'tools/verify_v77_0_13_zero_warning_vietnamese_ui_lint.py',
+  'tools/verify_v77_0_14_navigation_language_dropdown_localization.py',
+  'tools/verify_v77_0_15_v64_v59_runtime_e2e.py',
+  'tools/verify_v77_0_16_v59_language_surface_hotfix.py',
+  'tools/verify_v77_0_17_full_navigation_language_store_fix.py',
+  'tools/verify_v77_0_18_presentation_language_type_contract_fix.py',
+  'tools/verify_v77_0_19_zero_warning_marketing_effect_dependencies.py',
+  'tools/verify_v77_0_20_full_e2e_runtime_stabilization.py',
+  'tools/verify_v77_0_21_hydration_language_v64_reentry.py',
+  'tools/verify_v77_0_22_pre_hydration_language_readiness.py',
+  'tools/verify_v77_0_23_single_provider_hydration_state.py',
+  'tools/verify_v77_0_24_hydration_bundle_v64_startup_reliability.py',
+  'tools/verify_v77_0_25_zero_warning_language_provider_cleanup.py',
+  'tools/verify_v77_0_26_v64_publish_feedback_persistence.py',
+  'tools/verify_v77_0_27_layout_effect_language_reconciliation.py',
+  'tools/verify_v77_0_28_compose_readiness_hydration_gate.py',
+  'tools/verify_v77_0_29_frontend_healthcheck_contract.py',
+  'tools/verify_v77_0_30_full_suite_runtime_contract_alignment.py',
+  'tools/verify_v77_0_31_remaining_full_suite_contract_alignment.py',
+  'tools/verify_v77_0_32_final_four_runtime_contract_alignment.py',
+  'tools/verify_v77_0_33_final_two_runtime_contract_alignment.py',
+  'tools/verify_v77_0_34_ticket_control_runtime_contract_alignment.py',
+  'tools/verify_v77_0_35_admin_payments_runtime_contract_alignment.py',
+  'tools/verify_v77_0_36_final_three_full_suite_runtime_recovery.py',
+  'tools/verify_v77_0_37_full_suite_policy_alert_runtime_recovery.py',
+  'tools/verify_v77_0_38_release_gate_readiness_recovery.py',
+  'tools/verify_v77_0_39_zero_warning_full_ui_language_contract.py',
+  'tools/verify_v77_0_40_runtime_language_boundary_fix.py',
+  'tools/verify_v77_0_41_movies_language_surface_fix.py',
+  'tools/verify_v77_0_42_full_ui_language_completion.py',
+  'tools/verify_v77_0_43_language_literal_audit_fix.py',
+  'tools/verify_v77_0_44_crm_payload_v66_authority_fix.py',
+  'tools/verify_v77_0_45_full_suite_repeatability_accessibility_fix.py',
+  'tools/verify_v77_0_46_pwa_readiness_language_sweep_stabilization.py',
+  'tools/verify_v77_0_47_historical_release_gate_forward_compatibility.py',
+  'tools/verify_v77_0_48_maintenance_success_feedback_timer_ownership.py',
+  'tools/verify_v77_0_49_release_staging_whitespace_preflight.py',
   'tools/verify_realistic_data_57.py',
   'tools/verify_seed_demo_57.py'
 )
@@ -29,4 +65,4 @@ foreach ($check in $checks) {
   if ($LASTEXITCODE -ne 0) { throw "Verification failed: $check" }
 }
 
-Write-Host "`nPASS: CineBooking V77.0.13 CRM Automation 5.0 + zero-warning Vietnamese UI lint hygiene source diagnostics completed." -ForegroundColor Green
+Write-Host "`nPASS: CineBooking V77.0.48 maintenance success-feedback timer ownership source diagnostics completed." -ForegroundColor Green

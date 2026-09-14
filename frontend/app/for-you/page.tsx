@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import type { RecommendationFeedbackResponse, RecommendationHome, RecommendationItem, RecommendationMode, RecommendationTasteProfile } from "@/lib/types";
 import MovieCard from "@/components/MovieCard";
@@ -12,6 +12,22 @@ import { useLanguage } from "@/components/LanguageProvider";
 type FeedbackType="MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE";
 
 const modes:RecommendationMode[]=["FAMILIAR","BALANCED","DISCOVERY"];
+
+async function withTransientReadRetry<T>(read:()=>Promise<T>){
+  const deadline=Date.now()+12_000;
+  let attempt=0;
+  for(;;){
+    try{return await read();}
+    catch(error){
+      const status=error instanceof ApiError?error.status:0;
+      const retryable=status===0||status===408||status===425||status===429||status>=500;
+      if(!retryable||Date.now()>=deadline)throw error;
+      const delay=Math.min(250*(2**attempt),1500);
+      attempt+=1;
+      await new Promise(resolve=>setTimeout(resolve,delay));
+    }
+  }
+}
 
 export default function ForYouPage(){
   const {language}=useLanguage(); const en=language==="en";
@@ -24,10 +40,10 @@ export default function ForYouPage(){
 
   async function load(nextMode:RecommendationMode=mode){
     try{
-      const [h,p]=await Promise.all([
+      const [h,p]=await withTransientReadRetry(()=>Promise.all([
         api<RecommendationHome>(`/recommendations/home?limit=12&mode=${nextMode}`),
         api<RecommendationTasteProfile>("/recommendations/profile")
-      ]);
+      ]));
       setHome(h); setProfile(p); setMode(h.mode||nextMode); setError("");
     }catch(e){setError((e as Error).message)}
   }
@@ -66,7 +82,7 @@ export default function ForYouPage(){
 
   return <div className="space-y-8" data-testid="for-you-v50" data-version="v76">
     <div data-testid="for-you-v76" className="space-y-8">
-    <div data-testid="for-you-v63" className="space-y-8">
+    <div data-testid="for-you-v63" data-recommendation-ready={home&&profile?"true":"false"} className="space-y-8">
       <section className="rounded-3xl border border-violet-700/40 bg-gradient-to-br from-violet-950/55 via-slate-950 to-rose-950/30 p-6 md:p-8">
         <p className="section-kicker">V76 · GỢI Ý PHIM 5.0</p>
         <div className="mt-2 text-xs text-slate-500">Nền tảng tương thích: <span>V63 · GỢI Ý PHIM 4.0</span></div>
@@ -95,7 +111,7 @@ export default function ForYouPage(){
       {error&&<div className="rounded-xl border border-red-700/50 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
 
       <section>
-        <div className="section-heading"><div><p className="section-kicker">{en?"DEEP EXPLAINABLE PICKS":"GỢI Ý SÂU CÓ GIẢI THÍCH"}</p><h2>{en?"Why each movie fits you":"Vì sao từng phim hợp với bạn"}</h2><p className="mt-2 max-w-4xl text-sm text-slate-400">{en?"V76 keeps the deep V63 taste model and adds an explicit evidence policy plus production quality measurement. Ranking still uses only real CineBooking signals and deterministic diversity reranking.":"V76 giữ mô hình gu sâu từ V63, bổ sung evidence policy rõ ràng và đo chất lượng recommendation ở mức vận hành. Xếp hạng vẫn chỉ dùng tín hiệu CineBooking thật và diversity rerank xác định."}</p></div></div>
+        <div className="section-heading"><div><p className="section-kicker">{en?"DEEP EXPLAINABLE PICKS":"GỢI Ý SÂU CÓ GIẢI THÍCH"}</p><h2>{en?"Why each movie fits you":"Vì sao từng phim hợp với bạn"}</h2><p className="mt-2 max-w-4xl text-sm text-slate-400">{en?"V76 keeps the deep V63 taste model and adds an explicit evidence policy plus production quality measurement. Ranking still uses only real CineBooking signals and deterministic diversity reranking.":"V76 giữ mô hình gu sâu từ V63, bổ sung chính sách bằng chứng rõ ràng và đo chất lượng gợi ý ở mức vận hành. Xếp hạng vẫn chỉ dùng tín hiệu CineBooking thật và cơ chế xếp hạng lại để tăng đa dạng."}</p></div></div>
         <div className="movie-grid" data-testid="recommendation-grid-v50" data-v63-grid="true">
           {items.map(item=><div key={item.movie.id} className="space-y-2" data-testid="recommendation-item-v50" data-v63-item="true">
             <MovieCard movie={item.movie} trackingSource={`FOR_YOU_V76_${mode}`}/>
@@ -115,9 +131,9 @@ export default function ForYouPage(){
         {!items.length&&<div className="empty-state">{en?"No recommendation candidates are available yet.":"Chưa có phim phù hợp để gợi ý."}</div>}
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 text-sm text-slate-400" data-testid="recommendation-evidence-v76">
-        <b className="text-slate-200">{en?"V76 evidence policy":"Evidence Policy V76"}</b>
-        <p className="mt-2">{en?"V76 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V76 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, booking CONFIRMED, click/view có decay, MORE/LESS/HIDE, metadata phim và suất OPEN tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
+      <section className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5 text-sm text-slate-400" data-testid="recommendation-evidence-v76" data-policy-real-operational={home?.evidencePolicy.includes("REAL_OPERATIONAL_DATA_ONLY")?"true":"false"} data-policy-no-synthetic-movie={home?.evidencePolicy.includes("NO_SYNTHETIC_MOVIE_DATA")?"true":"false"}>
+        <b className="text-slate-200">{en?"V76 evidence policy":"Chính sách bằng chứng V76"}</b>
+        <p className="mt-2">{en?"V76 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V76 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, lượt đặt vé ĐÃ XÁC NHẬN, lượt nhấp/xem có suy giảm theo thời gian, THÊM/ÍT HƠN/ẨN, siêu dữ liệu phim và suất ĐANG MỞ trong tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
         <div className="mt-3 flex flex-wrap gap-2">{(home?.evidencePolicy||["REAL_OPERATIONAL_DATA_ONLY","NO_SYNTHETIC_MOVIE_DATA","EXPLAINABLE_RECOMMENDATIONS"]).map(x=><code key={x} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-cyan-300">{x}</code>)}</div>
         <div className="mt-3 text-xs">Thuật toán: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · Chế độ: <code>{home?.mode||mode}</code></div>
       </section>

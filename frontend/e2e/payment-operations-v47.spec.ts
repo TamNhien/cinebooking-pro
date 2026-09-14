@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ensureSurface, gotoSurface, waitForHydratedRuntime } from "./runtime-guards";
 
 const PASSWORD = "V47E2e!Payment123";
 
@@ -6,7 +7,7 @@ test("V47 failed payment -> retry -> cancel attempt -> retry -> success with lin
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `duc.huy+${stamp}@example.com`;
 
-  await page.goto("/register");
+  await gotoSurface(page, "/register", "register-name");
   await page.getByPlaceholder("Họ và tên").fill("Võ Đức Huy");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
@@ -29,7 +30,7 @@ test("V47 failed payment -> retry -> cancel attempt -> retry -> success with lin
   await page.getByRole("button", { name: "Chọn ghế" }).click();
   await expect(page).toHaveURL(/\/booking\/[0-9a-f-]+$/i);
 
-  const seat = page.locator('button[aria-label^="Ghế "][title*="AVAILABLE"]').first();
+  const seat = page.locator('button[aria-label^="Ghế "][data-seat-status="AVAILABLE"]').first();
   await expect(seat).toBeVisible();
   await seat.click();
   await page.getByRole("button", { name: "Giữ ghế 5 phút" }).click();
@@ -38,38 +39,41 @@ test("V47 failed payment -> retry -> cancel attempt -> retry -> success with lin
   // Attempt #1 -> FAILED.
   await page.getByRole("button", { name: /Thanh toán/ }).click();
   await expect(page).toHaveURL(/\/payment\/mock\?/);
-  await page.getByRole("button", { name: "Giả lập thất bại" }).click();
+  await ensureSurface(page,"mock-payment-fail");
+  await page.getByTestId("mock-payment-fail").click();
   await expect(page).toHaveURL(/\/bookings$/);
 
-  await page.goto("/payments");
-  await expect(page.getByText("Payment Center · V47")).toBeVisible();
-  const failed = page.locator("article").filter({ hasText: "Lần #1" }).first();
-  await expect(failed.getByText("FAILED", { exact: true })).toBeVisible();
+  await gotoSurface(page, "/payments", "payments-v47");
+  await expect(page.getByText("Trung tâm thanh toán · V47")).toBeVisible();
+  const failed = page.locator('[data-testid="payment-history-item"][data-attempt-no="1"][data-payment-status="FAILED"]').first();
+  await expect(failed).toBeVisible({timeout:30_000});
   await failed.getByRole("button", { name: "Thử lại thanh toán" }).click();
   await expect(page).toHaveURL(/\/payment\/mock\?/);
 
   // Attempt #2 stays PENDING, then the user cancels only this attempt.
-  await page.goto("/payments");
-  const pending = page.locator("article").filter({ hasText: "Lần #2" }).first();
-  await expect(pending.getByText("PENDING", { exact: true })).toBeVisible();
+  await gotoSurface(page, "/payments", "payments-v47");
+  const pending = page.locator('[data-testid="payment-history-item"][data-attempt-no="2"][data-payment-status="PENDING"]').first();
+  await expect(pending).toBeVisible({timeout:30_000});
   await pending.getByRole("button", { name: "Hủy lần thanh toán" }).click();
-  await expect(page.locator("article").filter({ hasText: "Lần #2" }).first().getByText("CANCELLED", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid="payment-history-item"][data-attempt-no="2"][data-payment-status="CANCELLED"]').first()).toBeVisible({timeout:30_000});
 
-  const cancelled = page.locator("article").filter({ hasText: "Lần #2" }).first();
-  await cancelled.getByRole("button", { name: "Xem timeline" }).click();
-  await expect(cancelled.getByText("PAYMENT_CANCELLED", { exact: true })).toBeVisible();
+  const cancelled = page.locator('[data-testid="payment-history-item"][data-attempt-no="2"][data-payment-status="CANCELLED"]').first();
+  await cancelled.getByTestId("payment-timeline-toggle").click();
+  await expect(cancelled.locator('[data-testid="payment-timeline-event"][data-event-type="PAYMENT_CANCELLED"]')).toBeVisible();
   await cancelled.getByRole("button", { name: "Thử lại thanh toán" }).click();
   await expect(page).toHaveURL(/\/payment\/mock\?/);
 
   // Attempt #3 succeeds and the booking is confirmed.
-  await page.getByRole("button", { name: "Giả lập thành công" }).click();
+  await ensureSurface(page,"mock-payment-success");
+  await page.getByTestId("mock-payment-success").click();
   await expect(page).toHaveURL(/\/bookings$/);
-  await expect(page.getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()).toBeVisible();
+  await waitForHydratedRuntime(page, "/bookings");
+  await expect(page.locator('[data-testid="booking-status"][data-booking-status="CONFIRMED"]').first()).toBeVisible();
 
-  await page.goto("/payments");
-  const success = page.locator("article").filter({ hasText: "Lần #3" }).first();
-  await expect(success.getByText("SUCCESS", { exact: true })).toBeVisible();
-  await success.getByRole("button", { name: "Xem timeline" }).click();
-  await expect(success.getByText("PAYMENT_RETRY_CREATED", { exact: true })).toBeVisible();
-  await expect(success.getByText("PAYMENT_SUCCEEDED", { exact: true })).toBeVisible();
+  await gotoSurface(page, "/payments", "payments-v47");
+  const success = page.locator('[data-testid="payment-history-item"][data-attempt-no="3"][data-payment-status="SUCCESS"]').first();
+  await expect(success).toBeVisible({timeout:30_000});
+  await success.getByTestId("payment-timeline-toggle").click();
+  await expect(success.locator('[data-testid="payment-timeline-event"][data-event-type="PAYMENT_RETRY_CREATED"]')).toBeVisible();
+  await expect(success.locator('[data-testid="payment-timeline-event"][data-event-type="PAYMENT_SUCCEEDED"]')).toBeVisible();
 });

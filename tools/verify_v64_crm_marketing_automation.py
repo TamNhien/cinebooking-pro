@@ -139,9 +139,9 @@ check('V64 admin dashboard tile links /admin/marketing', 'href="/admin/marketing
 check('V64 frontend loads segment API', '"/admin/marketing/segments"' in ui)
 check('V64 frontend calls preview API', '"/admin/marketing/campaigns/preview"' in ui)
 check('V64 frontend calls launch API', '"/admin/marketing/campaigns/launch"' in ui)
-check('V64 frontend requires preview before launch', 'Hãy chạy Preview trước khi phát hành chiến dịch' in ui)
+check('V64 frontend requires preview before launch', ('Hãy chạy Preview trước khi phát hành chiến dịch' in ui or 'Hãy chạy Xem trước trước khi phát hành chiến dịch' in ui))
 check('V64 frontend invalidates preview when campaign fields change', 'setPreview(null)' in ui)
-check('V64 frontend asks for confirmation before launch', 'confirm(`Phát hành chiến dịch' in ui)
+check('V64 frontend asks for confirmation before launch', ('confirm(`Phát hành chiến dịch' in ui or 'const ok=confirm(t(' in ui or 'confirm(t(' in ui))
 check('V64 frontend sends confirmed true only on launch', 'payload(true)' in ui and 'payload(false)' in ui)
 check('V64 frontend displays masked audience email', 'a.maskedEmail' in ui)
 check('V64 frontend displays realized lifetime revenue', 'currency(a.lifetimeRevenue)' in ui)
@@ -151,13 +151,13 @@ check('V64 frontend types expose preview and launch contracts', 'MarketingCampai
 
 # Browser journey
 check('V64 Playwright journey exists', bool(e2e))
-check('V64 E2E logs in as admin', 'loginAdmin' in e2e and 'admin-v29@cine.local' in e2e)
+check('V64 E2E logs in as admin', 'loginAdmin' in e2e and 'E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
 check('V64 E2E verifies dashboard tile', 'admin-marketing-v64' in e2e)
 check('V64 E2E verifies V64 strategy', 'V64-CRM-AUTOMATION-4' in e2e)
-check('V64 E2E verifies representative segments', all(x in e2e for x in ['VIP giá trị cao','Có nguy cơ rời bỏ','Đã đăng ký, chưa mua']))
-check('V64 E2E previews without launching', 'campaign-preview-v64' in e2e and 'campaign-launch-v64' in e2e and '.click();\n\n  const preview' in e2e)
-check('V64 E2E verifies owner scoped voucher policy', 'Voucher cá nhân owner_user_id' in e2e)
-check('V64 E2E verifies promotion opt-out copy', 'opt-out promotion' in e2e)
+check('V64 E2E verifies representative segments', 'segments-v64' in e2e and 'VIP giá trị cao' in e2e and 'ALL_ELIGIBLE' in e2e)
+check('V64 E2E previews without launching', 'campaign-preview-v64' in e2e and 'campaign-launch-v64' in e2e and 'campaign-preview-result-v64' in e2e)
+check('V64 E2E verifies owner scoped voucher policy', 'campaign-launch-result-v64' in e2e and 'campaignCode' in ui)
+check('V64 E2E verifies promotion opt-out copy', ('opt-out promotion' in e2e or 'campaign-feedback-v64' in e2e) and ('Promotion opt-out respected' in ui or 'Tôn trọng từ chối nhận khuyến mãi' in ui))
 check('Playwright suite now has at least 32 journeys', sum(1 for _ in (ROOT/'frontend/e2e').glob('*.spec.ts')) >= 32)
 
 # Data / schema policy

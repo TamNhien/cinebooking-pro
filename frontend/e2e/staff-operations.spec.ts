@@ -9,8 +9,8 @@ test("V43 admin sees realtime staff operations and can close an incident",async(
   await Promise.all([page.waitForURL(/\/admin$/,{timeout:15000}),page.getByRole("button",{name:"Đăng nhập"}).click()]);
 
   await page.goto("/staff/operations");
-  await expect(page.getByRole("heading",{name:"Trung tâm vận hành rạp realtime"})).toBeVisible();
-  await expect(page.getByText("Lượt check-in realtime",{exact:false})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Trung tâm vận hành rạp theo thời gian thực"})).toBeVisible();
+  await expect(page.getByText("Lượt soát vé theo thời gian thực",{exact:false})).toBeVisible();
 
   const stamp=Date.now().toString();
   const incidentTitle=`Khách cần hỗ trợ tại cổng soát vé ${stamp}`;
@@ -19,9 +19,9 @@ test("V43 admin sees realtime staff operations and can close an incident",async(
   await page.getByRole("button",{name:"Ghi nhận sự cố"}).click();
   const card=page.getByTestId("staff-incident").filter({hasText:incidentTitle});
   await expect(card).toBeVisible();
-  await expect(card).toContainText("OPEN");
+  await expect(card).toContainText(/Đang mở|OPEN/);
   await card.getByPlaceholder("Ghi chú xử lý").fill("Đã kiểm tra mã vé, hướng dẫn khách quét lại và xác nhận vào rạp thành công");
   await card.getByRole("button",{name:"Đóng sự cố"}).click();
-  await expect(card).toContainText("RESOLVED");
+  await expect(card).toContainText(/Đã xử lý|RESOLVED/);
   await expect(card).toContainText("Đã kiểm tra mã vé, hướng dẫn khách quét lại và xác nhận vào rạp thành công");
 });

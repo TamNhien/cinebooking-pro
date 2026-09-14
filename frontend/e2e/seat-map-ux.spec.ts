@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { gotoSurface } from "./runtime-guards";
 
 const PASSWORD = "V39SeatRace!Customer123";
 
@@ -82,7 +83,7 @@ test("V39 smart seat suggestion and atomic contention guard", async ({ page, bro
   const secondPage = await secondContext.newPage();
   try {
     await register(secondPage, secondEmail, "Trần Thảo Vy");
-    await secondPage.goto(bookingUrl);
+    await gotoSurface(secondPage,bookingUrl,"booking-seat-map-v39");
     await expect(secondPage.getByLabel("Gợi ý ghế thông minh")).toBeVisible();
 
     await test.step("two users racing the same pair produce exactly one winner", async () => {
@@ -94,9 +95,9 @@ test("V39 smart seat suggestion and atomic contention guard", async ({ page, bro
 
       const winnerPage = a.status===200 ? page : secondPage;
       const loserPage = a.status===200 ? secondPage : page;
-      await loserPage.goto(bookingUrl);
+      await gotoSurface(loserPage,bookingUrl,"booking-seat-map-v39");
       for (const code of candidate.seatCodes) {
-        await expect(loserPage.getByRole("button", { name: `Ghế ${code}` })).toHaveAttribute("title", /HELD/);
+        await expect(loserPage.locator(`button[data-seat-code="${code}"]`)).toHaveAttribute("data-seat-status", "HELD");
       }
 
       const release = await authedJson(winnerPage, `/api/showtimes/${showtimeId}/holds`, { method: "DELETE", body: { seatIds: candidate.seatIds } });

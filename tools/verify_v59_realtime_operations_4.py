@@ -125,7 +125,7 @@ check('Admin quick actions use responsive grid instead of dense flex row', 'admi
 check('Admin action labels expand vertically and remain readable', all(x in globals_css for x in ['.admin-action-grid .admin-action-btn','min-height:48px','text-wrap:balance']))
 check('Admin tab buttons use responsive readable grid', 'admin-tab-grid' in globals_css and 'data-testid="admin-tab-grid-v59"' in admin and 'admin-tab-btn' in admin)
 check('Desktop header defers low-priority links to drawer on normal screens', 'desktop-primary-nav' in header and header.count('desktop-nav-extra')>=8 and '@media (min-width:2200px)' in globals_css)
-check('Desktop full navigation starts at 2XL to avoid account-control overlap', '2xl:flex' in header and ' xl:flex ' not in header)
+check('Desktop full navigation starts only on wide screens to avoid account-control overlap', ('2xl:flex' in header or 'min-[1850px]:flex' in header) and ' xl:flex ' not in header)
 
 check('V59 Playwright journey exists', 'V59 admin receives websocket operations signals and manages alert state' in e2e)
 check('V59 Playwright checks admin buttons for clipping', 'scrollWidth>node.clientWidth+1' in e2e and 'scrollHeight>node.clientHeight+1' in e2e and 'expect(clipped).toEqual([])' in e2e)
@@ -133,7 +133,7 @@ check('V59 Playwright checks admin buttons do not overlap', 'collisions.push' in
 check('V59 Playwright waits for WebSocket connection', 'operations-control-realtime-v59' in e2e and 'WebSocket: Đã kết nối' in e2e)
 check('V59 Playwright checks realtime transport contract', 'STOMP_WEBSOCKET' in e2e)
 check('V59 Playwright checks alert history', 'operations-control-history-v59' in e2e)
-check('V59 Playwright exercises alert acknowledgement when present', 'getByRole("button",{name:/Tiếp nhận/})' in e2e and 'Tiếp nhận cảnh báo' in e2e)
+check('V59 Playwright exercises alert acknowledgement when present', (('getByRole("button",{name:/Tiếp nhận/})' in e2e) or ('operations-alert-ack-v59' in e2e and 'data-alert-state="OPEN"' in e2e)) and 'Tiếp nhận cảnh báo' in e2e)
 check('V59 Playwright keeps cinema-scope coverage', 'operations-control-cinema-filter-v58' in e2e and 'selectOption({index:1})' in e2e)
 
 ci_match=re.search(r'name:\s*V26-V(\d+) source regression',ci)

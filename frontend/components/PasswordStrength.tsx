@@ -1,6 +1,7 @@
 "use client";
 
 import { passwordChecks, passwordStrength } from "@/lib/password";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 type Props = {
   password: string;
@@ -17,24 +18,28 @@ const levelClass = [
 ];
 
 export default function PasswordStrength({ password, confirmPassword = "", showMatch = false }: Props) {
+  const { language, t } = usePresentationLanguage();
   const checks = passwordChecks(password);
   const strength = passwordStrength(password);
   const segments = strength.level;
   const match = showMatch && confirmPassword.length > 0 ? password === confirmPassword : null;
 
   const requirements = [
-    [checks.length, "Ít nhất 8 ký tự"],
-    [checks.upper, "Có chữ hoa (A-Z)"],
-    [checks.lower, "Có chữ thường (a-z)"],
-    [checks.number, "Có chữ số (0-9)"],
-    [checks.special, "Có ký tự đặc biệt (!@#$...)"],
+    [checks.length, t("Ít nhất 8 ký tự","At least 8 characters")],
+    [checks.upper, t("Có chữ hoa (A-Z)","Includes an uppercase letter (A-Z)")],
+    [checks.lower, t("Có chữ thường (a-z)","Includes a lowercase letter (a-z)")],
+    [checks.number, t("Có chữ số (0-9)","Includes a number (0-9)")],
+    [checks.special, t("Có ký tự đặc biệt (!@#$...)","Includes a special character (!@#$...)")],
   ] as const;
+  const strengthLabel = language === "en"
+    ? ({ "Chưa nhập":"Not entered", "Yếu":"Weak", "Trung bình":"Medium", "Mạnh":"Strong", "Rất mạnh":"Very strong" }[strength.label] ?? strength.label)
+    : strength.label;
 
   return (
     <div className="space-y-3 rounded-xl border border-slate-700/80 bg-slate-950/35 p-4" aria-live="polite">
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-slate-400">Độ mạnh mật khẩu</span>
-        <span className="font-semibold text-slate-100">{strength.label}</span>
+        <span className="text-slate-400">{t("Độ mạnh mật khẩu","Password strength")}</span>
+        <span className="font-semibold text-slate-100">{strengthLabel}</span>
       </div>
       <div className="grid grid-cols-4 gap-1.5" aria-hidden="true">
         {[1, 2, 3, 4].map(i => (
@@ -50,7 +55,7 @@ export default function PasswordStrength({ password, confirmPassword = "", showM
       </div>
       {showMatch && (
         <div className={`text-sm font-medium ${match === null ? "text-slate-500" : match ? "text-emerald-300" : "text-red-300"}`}>
-          {match === null ? "Nhập lại mật khẩu để kiểm tra trùng khớp." : match ? "✓ Hai mật khẩu trùng khớp." : "✕ Mật khẩu xác nhận chưa trùng khớp."}
+          {match === null ? t("Nhập lại mật khẩu để kiểm tra trùng khớp.","Re-enter the password to verify the match.") : match ? t("✓ Hai mật khẩu trùng khớp.","✓ Passwords match.") : t("✕ Mật khẩu xác nhận chưa trùng khớp.","✕ Confirmation password does not match.")}
         </div>
       )}
     </div>

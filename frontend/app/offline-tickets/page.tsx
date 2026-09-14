@@ -46,7 +46,7 @@ export default function OfflineTicketsPage(){
     await deleteOfflineTicket(id); if(selected===id)setSelected(null); await load();
   }
 
-  return <div className="mx-auto max-w-4xl">
+  return <div className="mx-auto max-w-4xl" data-testid="offline-tickets-v52">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="section-kicker">PWA · V52</p><h1 className="text-3xl font-black">Vé ngoại tuyến đã kiểm soát</h1><p className="mt-2 text-slate-400">QR được lưu cục bộ, có trạng thái đồng bộ và tự đánh dấu stale khi vé bị chuyển, hoàn hoặc không còn hợp lệ.</p></div>
       <div className="flex flex-wrap gap-2"><Link href="/mobile" className="btn btn-secondary">📱 Trung tâm di động</Link><Link href="/bookings" className="btn btn-secondary">← Vé của tôi</Link></div>
@@ -76,7 +76,7 @@ export default function OfflineTicketsPage(){
             {stale?<div className="rounded-xl border border-red-800/60 bg-red-950/30 p-4 text-sm text-red-200">QR đã được ẩn. {t.invalidReason||"Vé không còn hợp lệ trên máy chủ."}</div>:<img src={t.qrDataUrl} alt={`QR vé ${t.movieTitle}`} className={`mx-auto w-72 max-w-full rounded-2xl bg-white p-3 ${t.checkedInAt?"opacity-40":""}`}/>}
             <div className="mt-4 break-all text-xs text-slate-500">Mã đặt vé #{t.bookingId}</div>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {!stale&&typeof navigator!=="undefined"&&navigator.onLine&&<Link href={`/ticket/${t.bookingId}`} className="btn btn-primary">Mở vé online</Link>}
+              {!stale&&typeof navigator!=="undefined"&&navigator.onLine&&<Link href={`/ticket/${t.bookingId}`} className="btn btn-primary">Mở vé trực tuyến</Link>}
               <button type="button" className="btn btn-secondary" onClick={()=>remove(t.bookingId)}>Xóa khỏi thiết bị</button>
             </div>
           </div>}

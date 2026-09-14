@@ -2,9 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.13 - CRM Automation 5.0 + Zero-Warning Vietnamese UI Lint Hygiene
+> **Current release:** V77.0.49 - Release Staging Whitespace Preflight
+
+> **Current language policy (V77.0.49):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.13` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.49` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -26,6 +28,8 @@ V77.0.11 fixes Docker frontend builds on Windows hosts after a real Compose buil
 V77.0.12 fixes the TypeScript contract regressions exposed only after the V77.0.11 Docker isolation fix allowed the Linux production build to reach type checking. Vietnamese display localization had accidentally changed machine property identifiers (`membershipTier`, `liveThreads`, `planningScore`) and omitted two `viLabel` imports, while the shared Vietnamese label map contained a duplicate `RECEIVED` key. V77.0.12 restores the original ASCII API/type contracts, keeps the visible Vietnamese labels, and adds a guard that rejects non-ASCII property identifiers in frontend TypeScript. This is a no-schema patch; Flyway remains V72 / 67 public tables.
 
 V77.0.13 closes the final zero-warning ESLint regression exposed after V77.0.12 reached a clean Docker production build. The restored V57 dashboard shortcut now uses Next.js `Link` instead of a raw internal `<a href="/">`, and the showtime planner removes an unused `viLabel` import. Visible labels remain Vietnamese, V57/V58 remain restored, and machine contracts are unchanged. This is a no-schema patch; Flyway remains V72 / 67 public tables.
+
+V77.0.14 completes the Vietnamese UI/navigation repair identified after V77.0.13: the V57 Admin shortcut now opens a dedicated `/admin/booking-seat-intelligence` surface backed by real `/admin/showtimes` and `/admin/bookings` data and links directly into each real seat map; Chromium/Windows native selects receive readable height/padding/option rhythm; and VN/EN switching is now a **site-wide presentation setting** with English as the clean-profile default and a persisted explicit Vietnamese/English choice. `LanguageProvider` updates `document.lang`, shared shell copy and a guarded runtime static-UI catalog so pages that have not yet been individually rewritten with `useLanguage()` still switch without translating API routes, enum values, JSON properties, movie/customer data or code blocks. The V56 customer-value page is fully bilingual and locale-aware, and its accidental localized API path `/admin/customer-value/điểmcard` is corrected back to the immutable machine contract `/admin/customer-value/scorecard`, fixing the red `Lỗi hệ thống` banner shown on the real Admin page. The V61 risk screen keeps machine values such as `BLOCK_RECOMMENDED` unchanged. V77.0.14 remains a **no-schema patch**; Flyway stays V72 / 67 public tables.
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
 > **Frontend:** Next.js 16.3.4 / Node.js 24 / Playwright Chromium
@@ -53,6 +57,8 @@ D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
 - `tools/seed-demo-57-tables.ps1` là deterministic CI/reference fixture. `pwa_device` reference chỉ ghi metadata thiết bị tự nhiên với `push_enabled=false`; không bịa endpoint/p256dh/auth. Không dùng fixture này để ghi đè dữ liệu nghiệp vụ thật trên database bạn đang dùng.
 
 ## Version history / changelog
+
+> **Quy ước tài liệu:** Toàn bộ lịch sử nâng cấp được gộp duy nhất trong `README.md` này và sắp xếp theo thứ tự phiên bản tăng dần. Không tạo các file `v*-release-notes.md`, `CHANGELOG*.md` hoặc `THAY_DOI_V*.md` riêng cho từng phiên bản.
 
 Bảng này là chỉ mục cập nhật chính thức theo source hiện tại. Mỗi bản mới phải thêm một dòng ở đây; không dùng roadmap tương lai để mô tả như tính năng đã tồn tại. Những version có migration ghi đúng tên migration; những version frontend/tooling không đổi schema được ghi `Không`.
 
@@ -150,6 +156,42 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.11** | **Sửa Docker build trên Windows: loại host `node_modules` khỏi build context, tránh shim `node.exe`, giữ dependency Linux tách khỏi `node_modules` Windows** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V77.0.12** | **Sửa hồi quy TypeScript sau Việt hóa: khôi phục property contract ASCII, bổ sung import `viLabel`, loại key nhãn trùng và thêm guard chống dịch nhầm tên biến/property** | **Không đổi schema (Flyway V72 / 67 tables)** |
 | **V77.0.13** | **Khép zero-warning lint sau Việt hóa: dùng Next `Link` cho shortcut V57 và loại import `viLabel` không dùng ở bộ lập lịch suất chiếu** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.14** | **Hoàn tất navigation/language/dropdown/localization: V57 có trang Admin riêng từ dữ liệu thật, VN/EN lưu lựa chọn, select dễ đọc trên Chromium/Windows, Việt hóa presentation-only và đồng bộ Browser E2E** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.15** | **Sửa V64 Xem trước/Phát hành có phản hồi ngay tại form + hướng dẫn V68 step-up; chuẩn hóa V59 VN/EN theo nút ngôn ngữ; restore ngôn ngữ trước hydration; harden Browser E2E theo tài khoản Admin hiện hữu** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.16** | **V59 chỉ hiển thị một tên miền nghiệp vụ mỗi ô; Việt hóa severity + lịch sử cảnh báo; harden V64 segment selector và full-navigation VN/EN theo lỗi runtime thực tế** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.17** | **Sửa race full-navigation VN/EN bằng `useSyncExternalStore`: localStorage + html lang + provider được hợp nhất thành một presentation snapshot; Maintenance/Showtimes giữ EN sau page.goto/reload** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.18** | **Sửa production build TypeScript sau V77.0.17: khóa generic `useSyncExternalStore<Language>` và server snapshot `Language`, ngăn inferred `string` lan sang Analytics/Attendance/Maintenance/V59/V64 và các surface dùng helper** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.19** | **Khép zero-warning lint ở V64 Marketing: ổn định `refreshStepUp` và `load` bằng `useCallback`, khai báo đầy đủ dependency cho `useEffect`, loại cảnh báo `react-hooks/exhaustive-deps` mà không suppress rule** | **Không đổi schema (Flyway V72 / 67 tables)** |
+| **V77.0.20** | **Ổn định full Browser E2E sau khi targeted V59/V64/language đã PASS: gom VN/EN về một external store duy nhất, làm mới Service Worker cho auth/payment hard-navigation, chống race Support/V64, dùng selector máy ổn định và cập nhật các assertion theo copy hiện hành** | **Không đổi schema (Flyway V72 / 67 tables), không thêm seed nghiệp vụ giả** |
+| **V77.0.21** | **Sửa 2 regression targeted còn lại sau V77.0.20: hậu-hydration re-emit language store để full navigation EN không kẹt copy VI; V64 re-entry sau V68 bỏ `/me` dư thừa, retry overview có giới hạn và chờ đúng trạng thái dữ liệu thật sẵn sàng** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.22** | **Khép lỗi targeted cuối: root bootstrap đặt `lang` + readiness marker trước hydration từ cùng `cinebooking_language`; React reconciles marker theo snapshot đã commit; E2E lấy copy người dùng nhìn thấy làm readiness contract thay vì phụ thuộc attribute nội bộ** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.23** | **Fix hard-navigation EN hydration thật: bỏ phụ thuộc `useSyncExternalStore` server snapshot, LanguageProvider dùng single React-owned language state, restore preference hậu hydration bằng deferred reconciliation; E2E xác nhận chính EN switcher state + Maintenance/Showtimes English copy** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.24** | **Khép 2 lỗi targeted còn lại: provider commit persisted language trực tiếp trong mount effect + một rAF guard; Service Worker dùng network-first cho `/_next/static/` để không hydrate bằng bundle cũ; V64 retry overview thật tối đa 12 giây khi backend Docker vừa khởi động** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.25** | **Khép zero-warning lint mới nhất: loại bỏ `eslint-disable react-hooks/set-state-in-effect` đã trở thành unused directive trong `LanguageProvider`; giữ nguyên toàn bộ hydration/runtime V77.0.24, không suppress rule và không đổi nghiệp vụ** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.26** | **Sửa hồi quy V64 sau publish: post-launch overview refresh không còn xóa feedback `Đã phát hành/Published`; launch result vẫn là nguồn sự thật, refresh overview là bước hậu xử lý best-effort và targeted E2E tiếp tục bắt feedback thành công hiển thị** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.27** | **Sửa hard-navigation EN còn lệch giữa `<html lang=en>` và React copy V56: LanguageProvider chuyển initial browser reconciliation sang `useLayoutEffect`, giữ single React-owned state và thêm cửa sổ reconciliation hữu hạn cho selective hydration; E2E xác nhận EN switcher trước `Customer Value & RFM Intelligence`** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.28** | **Sửa root cause cold-start: Compose chờ `service_healthy` cho 2 backend + frontend trước khi mở Nginx; root có hydration readiness marker và Playwright chỉ assert sau khi JavaScript thật đã hydrate, tránh SSR VI/disabled/loading giả khi chunk/API chưa sẵn sàng** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.29** | **Sửa frontend healthcheck V77.0.28 bị unhealthy trên Docker Windows: thêm route `/healthz` độc lập auth/backend, dùng Node core `http` thay `fetch(/login)`, pin `HOSTNAME=0.0.0.0` + `PORT=3000`; giữ nguyên backend/frontend `service_healthy` gate và hydration marker** | **Không đổi schema (Flyway V72 / 67 tables), giữ Admin hiện hữu từ `.env`** |
+| **V77.0.30** | **Khép full-suite runtime contract sau V77.0.29: dùng helper đăng nhập/hydration chung, selector machine-readable cho booking/reward/ticket transfer, cập nhật copy Việt hiện hành, loại hard-code ngày/phim lỗi thời và chờ đúng async/step-up state; targeted 3/3 của V77.0.29 được giữ nguyên** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.31** | **Căn chỉnh 10 regression còn lại sau baseline V77.0.30 = 36/46: machine contracts cho booking/payment/finance/privacy/PWA/check-in, V57 hold reload, movie-detail readiness, Smart Planner provenance; loại các selector/copy cố định còn sót** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.32** | **Khép 4 lỗi trong focused regression V77.0.31: timeline thanh toán dùng machine event contract, movie detail không bị auxiliary API làm mất core payload, Finance đối soát dùng machine status, V47 timeline bỏ selector copy cũ** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.33** | **Khép 2 lỗi focused còn lại của V77.0.32: QR vé dùng stable machine selector thay vì alt text đã Việt hóa; movie detail retry core GET có giới hạn và focused E2E dùng surface recovery thay vì chờ một lần duy nhất** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.34** | **Khép lỗi focused cuối của V77.0.33: các action trên trang vé dùng stable test-id contracts (`ticket-add-calendar`, `ticket-copy-booking-code`, `ticket-print`) thay vì phụ thuộc copy cũ `Mã booking`; Booking Flow chứng minh nút copy thuộc đúng booking** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.35** | **Khép selector presentation còn sót trong Booking Flow sau staff check-in: Admin Payments dùng chung machine readiness contract `payment-production-readiness-v60` + provider selector `payment-readiness-mock-v60` với canonical V60 E2E, không còn bắt heading/copy compatibility cũ** | **Không đổi schema (Flyway V72 / 67 tables), chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.36** | **Khép 3 lỗi còn lại của full suite V77.0.35 = 43/46: V51 Analytics và V63 Recommendation có bounded transient read recovery + data-ready gating sau reload; V39 seat contention dùng showtime-bound `booking-seat-map-v39` và bounded navigation recovery cho loser client** | **Không đổi schema (Flyway V72 / 67 tables), không retry business write, chỉ dùng Admin hiện hữu từ `.env`** |
+| **V77.0.37** | **Khép 4 regression còn lại của full suite V77.0.36 = 42/46: V75/V76/V69 chờ authoritative payload bằng bounded transient-read recovery + machine readiness/evidence contracts; V59 alert actions dùng fingerprint/state/test-id ổn định và tránh race với realtime refresh** | **Không đổi schema (Flyway V72 / 67 tables), không retry business write, chỉ dùng Admin hiện hữu từ `.env`; lịch sử tiếp tục gộp duy nhất trong README.md** |
+| **V77.0.38** | **Ổn định release-gate sau khi V77.0.37 chạy trực tiếp đạt 46/46 nhưng stable release rerun sau fresh Docker chỉ đạt 44/46: V66 Seat Operations và V77 CRM chờ authoritative payload/readiness bằng bounded transient-read retry + machine contracts** | **Không đổi schema (Flyway V72 / 67 tables), không retry business write, chỉ dùng Admin hiện hữu từ `.env`; tiếp tục chỉ một README.md tăng dần theo phiên bản** |
+| **V77.0.39** | **Khép zero-warning lint và audit ngôn ngữ toàn giao diện: bỏ import `Page` thừa ở CRM E2E; Header/shared controls chuyển sang presentation-owned VI/EN; legacy UI có catalog + bridge cho menu/nút/link/label/option/placeholder/aria/title/alt và tiêu đề; E2E mở rộng kiểm tra EN không rò copy Việt rồi chuyển ngược VN** | **Không đổi schema (Flyway V72 / 67 tables), không dịch machine/business data, chỉ dùng Admin hiện hữu từ `.env`; lịch sử vẫn duy nhất README.md tăng dần** |
+| **V77.0.40** | **Runtime language-boundary fix: V59 historical marker is language-owned; EN regression checks presentation copy instead of rejecting legitimate Vietnamese business data; dynamic cinema options are opt-out data; legacy bridge initial scan now covers alt-only elements** | **No schema change (Flyway V72), existing Admin from `.env`, single README.md history, zero-warning lint fix preserved** |
+| **V77.0.41** | **Fix runtime EN leak on `/movies`: the movie discovery page now owns all presentation copy through `usePresentationLanguage()`, including Search movies / Genre / Language / Rating and filter/sort controls; backend-derived movie metadata remains source-owned business data via explicit opt-out boundaries** | **No schema change (Flyway V72), existing Admin is read from root `.env`, no hard-coded targeted-test account, single README.md history** |
+| **V77.0.42** | **Full-UI language completion: fixes the next runtime leak `CINEMA_EXPERIENCE → Trải nghiệm rạp`, composes machine/status VI→EN labels into the legacy bridge, adds 307 audited presentation translations, localizes customer support/payments directly, switches cinema date/month locale with VN/EN, and moves native admin/staff/CRM dialogs onto explicit language-owned copy** | **No schema change (Flyway V72), existing Admin remains sourced from root `.env`, dynamic business data stays untranslated, single README.md history** |
+| **V77.0.43** | **Literal-level language audit fix: closes the Windows EN leak `Lần thử` / `Đơn vị thanh toán / Cổng thanh toán`, adds a focused V43 presentation catalog for remaining release-gate copy, and replaces the flawed line-level source audit with literal/text-node checks so one `t()` on a compact JSX line can no longer hide untranslated siblings** | **No schema change (Flyway V72), existing Admin remains sourced from root `.env`, business data remains untranslated, single README.md history** |
+| **V77.0.44** | **CRM payload localization + V66 authority visibility: CRM playbook cards now render label/definition/recommendation through the active VI/EN copy contract instead of raw backend Vietnamese payload; the V66 durable-hold authority marker is always present once the booking page renders, not only after a seat is held** | **No schema change (Flyway V72), existing Admin remains sourced from root `.env`, targeted regression explicitly covers both failures** |
+| **V77.0.45** | **Full-suite repeatability + accessibility contract: restores MovieCard accessible link names expected by discovery E2E (`Xem chi tiết <movie>` without punctuation drift); Smart Planner E2E uses an isolated future date and removes generated showtimes after commit so repeated runs on the same persistent Docker database cannot saturate a fixed date and collapse `suggested` to 0** | **No schema change (Flyway V72), no Smart Planner business-rule weakening, existing Admin remains sourced from root `.env`; V77.0.44 targeted 3/3 remains preserved** |
+| **V77.0.46** | **PWA readiness + full-suite language sweep stabilization: `/mobile` publishes authoritative `/pwa/config` before browser-device registration so delayed Service Worker readiness cannot leave `data-delivery-mode=LOADING`; PWA device registration uses bounded Service Worker readiness; the 13-surface VN/EN sweep removes duplicate navigations and gets a dedicated 180-second budget for full-suite load** | **No schema change (Flyway V72), no fake push mode or relaxed language assertions, existing Admin remains sourced from root `.env`; V77.0.45 focused 2/2 and targeted 3/3 remain preserved** |
+| **V77.0.47** | **Historical release-gate forward compatibility: after V77.0.46 reached focused 2/2, targeted 3/3 and full browser 46/46, stable release preflight was blocked by the historical V77.0.9 verifier because it recognized only legacy `viLabel(...)`; the verifier now also recognizes the current language-aware `localizedLabel(value, language)`/`label(...)` rendering used by Payment and Support** | **No runtime/business-rule change, no schema change (Flyway V72), Admin remains sourced from root `.env`; historical gate semantics are preserved while accepting the newer localization implementation** |
+| **V77.0.48** | **Maintenance success-feedback timer ownership: V77.0.47 release preflight reached full Browser E2E but the V44 maintenance journey intermittently lost `maintenance-success-message` after resolving a work order; `announce()` now owns exactly one timer, cancels the previous timer before publishing new feedback, and cleans it up on unmount so an older success timeout cannot erase a newer completion message** | **No maintenance business-rule change, no schema change (Flyway V72), exact `ok` completion result and authoritative reload remain enforced; Admin still comes from root `.env`** |
+| **V77.0.49** | **Release staging whitespace preflight: V77.0.48 passed 46/46 Browser E2E inside `release.ps1`, then publication was correctly blocked by `git diff --cached --check` because `README.md` ended with a new blank line. README EOF is normalized and a dedicated source gate now detects duplicate terminal newlines before the expensive browser gate.** | **Keeps `git diff --cached --check` fail-closed, no business/runtime/schema change (Flyway V72), Admin still comes from root `.env`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -6167,3 +6209,1652 @@ $LASTEXITCODE
 ```
 
 Mong đợi: `0` lỗi, `0` cảnh báo và exit code `0`. Stable only: `v77.0.13`. Flyway vẫn V72 / 67 public tables.
+
+### V77.0.14 - Hoàn tất điều hướng, VN/EN, dropdown và Việt hóa presentation-only
+
+V77.0.14 sửa đồng bộ các lỗi giao diện còn lại sau V77.0.13. Shortcut **Đặt vé & gợi ý ghế V57** trên Dashboard đi tới `/admin/booking-seat-intelligence`, trang này đọc trực tiếp `/admin/showtimes` + `/admin/bookings` và mở sơ đồ ghế thật bằng `/booking/<showtimeId>`. Toàn bộ `select.input` có chiều cao/padding/line-height rõ hơn trên Chromium/Windows. Bộ chuyển **EN / VN** dùng **Tiếng Anh làm mặc định trên profile sạch**, lưu `cinebooking_language` trong `localStorage`, giữ lựa chọn sau reload và nay áp dụng ở cấp toàn website: `LanguageProvider` cập nhật `document.lang`, cung cấp `t(vi,en)` + locale, đồng thời có runtime bridge chỉ dịch **static UI copy** đã được catalog từ UI source và shared label/error presentation maps. Bridge không đụng `CODE/PRE`, API routes, JSON keys, enum/status machine values, tên phim, tên khách hàng hoặc dữ liệu vận hành động.
+
+Màn **Giá trị khách hàng V56** đã được làm bilingual đầy đủ (heading, mô tả, filter, summary, RFM, value bands, top customers, empty/error state và format số/ngày theo locale). Lỗi đỏ `Lỗi hệ thống` trong ảnh thực tế được xác định là do frontend gọi nhầm đường dẫn đã bị Việt hóa `/admin/customer-value/điểmcard`; source nay gọi đúng contract backend `/admin/customer-value/scorecard`. Browser E2E V56 kiểm tra trang tải được dữ liệu thật, không có error banner, chuyển VN → EN → VN và kiểm tra cả Admin Dashboard static copy đổi ngôn ngữ. Runtime lint V57 vẫn zero-warning: không còn `eslint-disable` thừa và không gọi `Date.now()` trực tiếp trong render; mốc thời gian được ghi nhận sau khi tải dữ liệu vận hành rồi mới dùng để tính số suất sắp tới.
+
+`viLabel()` tiếp tục chỉ dịch ở lớp hiển thị: hỗ trợ cả enum có dấu gạch dưới và chuỗi có dấu cách như `SEAT_HOLD_RELEASED` / `SEAT HOLD RELEASED`; các code/API/DB vẫn giữ tiếng Anh. Màn V61 hiển thị nhãn, bằng chứng và giải thích tiếng Việt nhưng request disposition vẫn gửi machine value `BLOCK_RECOMMENDED`. Hai link V57 còn sót trong mobile drawer cũng đã được sửa từ `/` sang `/admin/booking-seat-intelligence`.
+
+Kiểm tra source:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+```
+
+Kiểm tra toàn bộ source regression khai báo trong CI:
+
+```powershell
+Get-ChildItem .\tools\verify_*.py | Out-Null
+# CI V77.0.14 có 94 source verifier; chạy đúng chuỗi trong .github/workflows/ci.yml hoặc diagnose-v77.ps1 cho nhóm V77.
+```
+
+Kiểm tra lint/build:
+
+```powershell
+cd .\frontend
+npm install
+npm run lint
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+```
+
+Mong đợi: verifier V77.0.14 `94/94 PASS`, ESLint `0 errors / 0 warnings`, production build thành công. Stable only: `v77.0.14`. Flyway vẫn V72 / 67 public tables.
+
+Bản V77.0.14 đã được harden thêm cho chất lượng **English toàn site** sau kiểm tra thực tế trên màn bảo trì: các cụm UI phổ biến được dịch theo phrase/full-copy trước lexical fallback để tránh kiểu ghép từ máy móc như `Code account product is duy most entire system`. Riêng màn `/admin/maintenance` có English copy rõ ràng cho đăng ký thiết bị, mã tài sản, tên thiết bị, thiết bị dùng chung rạp, trạng thái và luồng phiếu bảo trì. Verifier quét toàn bộ catalog static UI và chặn các token tiếng Việt thường bị rò vào EN.
+
+Bổ sung kiểm tra Edge thực tế phát hiện E2E V56 từng dùng `page.addInitScript()` để ép `cinebooking_language=vi`; Playwright chạy init script này trên **mọi navigation**, nên sau khi người dùng/test chọn EN rồi `page.goto('/admin/maintenance')`, preference bị test tự ghi đè về VN. V77.0.14 corrected chỉ seed VN một lần trên trang login, sau đó kiểm tra `localStorage` vẫn là `en` và `<html lang="en">` sau full-page navigation. Runtime i18n cũng nhận exact/shared mapping trước, chỉ fallback trên static UI catalog và audit toàn bộ 2.438 chuỗi catalog để EN không còn ký tự tiếng Việt có dấu.
+
+Browser E2E V56 cũng không còn phụ thuộc placeholder/ngôn ngữ khi đăng nhập: `login-email`, `login-password`, `login-submit` là selector ổn định. Khi muốn chạy bằng Microsoft Edge cài sẵn trên Windows:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test "e2e/customer-value-v56.spec.ts" --project=chromium
+```
+
+E2E này kiểm tra thêm regression ở màn bảo trì: EN phải hiển thị `Register equipment`, `Asset codes are unique across the entire system.`, `Equipment name`, `Shared cinema equipment` và không còn chuỗi Việt tương ứng.
+
+#### V77.0.14 corrected — full-navigation language restore + Showtime Planner + layout audit
+
+Đợt kiểm tra Edge tiếp theo phát hiện trường hợp `localStorage.cinebooking_language = en` nhưng document mới vẫn khởi tạo `<html lang="vi">` sau full-page navigation. Bản corrected bổ sung bootstrap ngôn ngữ trước hydration trong `app/layout.tsx` và guard `restored` trong `LanguageProvider`, vì vậy lựa chọn EN không còn bị trạng thái mặc định VI ghi đè khi mở route mới. Edge E2E nay kiểm tra đồng thời `localStorage`, `<html lang>`, Maintenance và Showtime Planner qua navigation thật.
+
+Màn Showtime Planner được bổ sung full-copy English tự nhiên cho lịch sử chạy, lịch hiện có trong phòng, mô tả/metric và evidence reasons; các machine status/source như `OPEN`, `MANUAL`, `SMART` vẫn giữ nguyên trong API/DB nhưng được localize ở presentation layer. Các trang Admin có raw status/role/severity rõ ràng (booking/payment, security, staff, shifts, attendance, analytics, operations-control) cũng được đưa qua shared presentation labels.
+
+Bố cục form được chuẩn hóa ở cấp global: mọi `.input` một dòng có `min-height: 52px`, `width: 100%`, `min-width: 0`; thêm `admin-form-grid-2`, `admin-form-stack`, `admin-split-grid` responsive. Riêng V34 Maintenance được căn lại filter + form cùng một cột, các select/date input cùng chiều cao/rộng và E2E đo geometry để chặn hồi quy. Verifier V77.0.14 corrected: `94/94 PASS`; no-schema contract không đổi, Flyway vẫn V72 / 67 public tables.
+
+#### V77.0.14 corrected — direct render-time bilingual ownership for Edge/full navigation
+
+Kết quả Edge thực tế cho thấy `localStorage` và `<html lang="en">` có thể đã đúng nhưng một số vùng Maintenance vẫn còn text server-rendered tiếng Việt vì chúng phụ thuộc hoàn toàn vào DOM mutation bridge. Corrected build chuyển các vùng được báo lỗi trên `/admin/maintenance` sang **render trực tiếp bằng `t(vi,en)`**: tiêu đề đăng ký/cập nhật thiết bị, mô tả mã tài sản, placeholder/aria-label, option thiết bị dùng chung, ngày bảo trì, bảng tài sản, tạo phiếu, action buttons và empty state. `/admin/showtimes` cũng chuyển các vùng Smart Planner/Manual Batch quan trọng sang explicit bilingual rendering thay vì trông chờ word/phrase fallback.
+
+`LanguageProvider` khôi phục preference bằng `useLayoutEffect` và đặt `data-language-ready="true"` sau khi context đã đồng bộ với `localStorage`; Browser E2E trên Edge chờ marker này trước khi assert copy. Điều này phân biệt rõ bootstrap `<html lang>` với trạng thái React language đã thực sự sẵn sàng, tránh false-positive kiểu `lang=en` nhưng nội dung vẫn VI.
+
+#### V77.0.14 corrected — VN/EN presentation purity + provider-state Edge gate
+
+Rà soát full source sau ảnh thực tế `/admin/showtimes` cho thấy chế độ VN vẫn có thể lộ các cụm tiếng Anh có thể dịch được như `Preview lịch`, `Smart Planner`, `poster`, `realtime`, `booking`, `audit`, `camera`, `offline`, `voucher` trong một số copy cũ. Bản corrected này chuẩn hóa source-copy về tiếng Việt tự nhiên ở chế độ VN (ví dụ `Xem trước lịch`, `Bộ lập lịch thông minh`, `áp phích`, `theo thời gian thực`, `lượt đặt vé`, `kiểm toán`, `máy ảnh`, `ngoại tuyến`, `mã ưu đãi`) và giữ machine identifiers/brand/protocol như API, DB, QR, JWT, Redis, PostgreSQL, Flyway, GitHub Actions, VNPay, MoMo không bị dịch sai. Runtime bridge được bổ sung exact EN→VI đối xứng cho static UI legacy, còn các vùng Showtime/Maintenance quan trọng vẫn render trực tiếp bằng `t(vi,en)` để tránh trộn ngôn ngữ.
+
+Edge E2E không còn phụ thuộc riêng vào `data-language-ready` trên `<html>` vì marker document có thể bị mất/ghi đè trong chu kỳ full navigation dù `lang` và `localStorage` đã đúng. `LanguageProvider` nay xuất sentinel React ẩn `data-testid="language-provider-state"` với `data-language={language}`; E2E dùng sentinel này để xác nhận context thật đã restore rồi mới assert copy VN/EN. Bootstrap vẫn đánh dấu `data-language-ready="bootstrap"` và provider vẫn nâng lên `true`, nhưng marker này chỉ dùng chẩn đoán, không còn là gate duy nhất. Verifier cuối bổ sung full-source bilingual-purity audit và không dùng hard-coded số check để các guard mới có thể tăng dần mà không tạo false failure.
+
+
+### V77.0.14 corrected — English-default bilingual policy
+
+- English is now the default UI language for a fresh browser profile. The persisted `cinebooking_language=vi|en` preference is still honored across reloads and full-page navigation.
+- The React `LanguageProvider` initializes from the before-hydration document language, eliminating the observed `html=en` / provider=`vi` race in Microsoft Edge.
+- Vietnamese is opt-in. English-to-Vietnamese fallback is exact-only: approved UI copy is translated, while unknown terms, brands, technical identifiers, movie/customer data, API paths and machine enum values remain unchanged.
+- The desktop header uses a wider 1920px shell and delays the full desktop navigation until 1850px to prevent logo/navigation/language controls from colliding.
+- Edge E2E starts from a clean English-default profile, validates EN → VI → EN, cross-page persistence, Maintenance, Customer Value, Showtime Planner and form geometry.
+- Flyway stays V72 / 67 public tables; this remains a no-schema patch.
+
+## V77.0.14 English-default language switch convergence hotfix
+
+- Keeps English as the clean-profile default and preserves exact-only Vietnamese fallback for unknown/unapproved English copy.
+- The final corrected provider uses lazy `useState(readClientLanguage)` rather than an external-store snapshot, because Edge exposed a case where the click completed but the external snapshot did not converge.
+- `EN` / `VN` clicks now persist `cinebooking_language`, update `<html lang/data-language>`, update React state synchronously, then dispatch one compatibility event.
+- The mutation observer reads the current language through a ref, so it cannot keep translating with the previous language after a switch.
+- Edge E2E asserts storage + `<html lang>` + LanguageProvider state convergence after every relevant EN/VN switch.
+
+
+### V77.0.14 corrected — English-default Admin/Retention purity + deterministic language switch
+
+Bản corrected này xử lý hai hồi quy được bắt trực tiếp trên Microsoft Edge: (1) bấm **VN** nhưng `cinebooking_language` vẫn giữ `en`; `LanguageProvider` nay dùng lazy `useState(readClientLanguage)` và `setLanguage()` cập nhật đồng bộ `localStorage` + `<html lang/data-language>` + React state trước khi phát compatibility event, nên EN/VN không còn phụ thuộc external-store notification timing; (2) Admin Dashboard và V55 Retention còn English/Vietnamese ghép từ do lexical DOM fallback. Admin quick-action grid, tabs, movie editor/list, PosterUploader và toàn bộ V55 Retention quan trọng nay sở hữu copy trực tiếp bằng `t(vi,en)`. V55 còn localize lifecycle DTO động theo machine code (`NEW_30D`, `ACTIVE_REPEAT`, `AT_RISK`, `DORMANT`, `LAPSED`) để backend vẫn giữ dữ liệu gốc nhưng English presentation không rò tiếng Việt. Known demo movie genres được dịch presentation-only khi EN, không sửa database.
+
+Focused verifier hiện là **124/124 PASS**. E2E Edge mở rộng kiểm tra Admin English action labels, EN→VN→EN convergence, Maintenance/Showtime và V55 Retention English/Vietnamese. No-schema contract không đổi: Flyway vẫn V72 / 67 public tables.
+
+
+### V77.0.14 corrected — Admin TypeScript build hotfix
+
+Bản corrected này sửa lỗi production build `TS2349: No constituent of type 'Tab' is callable` trong `frontend/app/admin/page.tsx`. Nguyên nhân là callback `.map(t => ...)` của hàng tab Admin đã vô tình che khuất helper dịch `t(vi,en)`, nên các lời gọi `t("Phim","Movies")`, `t("Rạp","Cinemas")`... bị TypeScript hiểu là đang gọi biến `Tab`. Callback nay dùng tên `tabKey`, giữ nguyên helper `t` từ `LanguageProvider`. Verifier V77.0.14 bổ sung guard riêng để chặn hồi quy shadowing này; verifier V77.0.9 cũng được làm forward-compatible với policy English-default/bilingual hiện tại mà vẫn giữ kiểm tra thứ tự V56 → V57 → V58 → V59. No-schema contract không đổi.
+
+
+### V77.0.14 corrected — Edge native language-click fallback
+
+Edge runtime still exposed one deterministic failure after all source/build gates passed: on `/admin/maintenance`, `page.getByTestId("language-vi").click()` completed but `localStorage.cinebooking_language` stayed `en` for the full 15-second assertion window. To remove the remaining dependency on React delegated-event hydration timing, `LanguageSwitcher` now marks each language button with `data-language-target`. The root `beforeInteractive` bootstrap installs exactly one capture-phase native click listener that persists `vi|en`, synchronizes `<html lang/data-language>`, and dispatches the existing `cinebooking-language-change` event before the React bubble handler runs. The normal React `setLanguage()` path remains authoritative after hydration, so this is a deterministic fallback rather than a second translation system. Edge E2E now asserts the native wiring contract before exercising EN → VN → EN.
+
+### V77.0.14 corrected — English-default full-source dynamic UI + V51 Analytics + Edge hydration replay
+
+Bản corrected này xử lý lớp lỗi còn lại được phát hiện trên Microsoft Edge khi giao diện mặc định là English. `LanguageProvider` nay đăng ký đồng bộ `cinebooking-language-change` trong `useLayoutEffect` và đọc lại snapshot `localStorage`/bootstrap ngay khi hydrate, vì Edge/Playwright có thể click nút ngôn ngữ trên HTML đã render trước khi passive effect của React kịp đăng ký listener. Nhờ đó click `VN` trước/đúng lúc hydrate vẫn hội tụ đủ ba lớp: `cinebooking_language=vi`, `<html lang="vi">` và React provider `data-language="vi"`.
+
+English runtime bridge cũng được harden cho toàn source: static copy tiếp tục dùng catalog hiện có, còn các template/dynamic fragment ghép với số liệu thật (ví dụ `11 đơn vị`, `4 booking xác nhận`) chỉ đi qua danh sách phrase được phê duyệt, không word-translate phần dữ liệu còn lại. Full-source verifier quét toàn bộ TSX template interpolation và yêu cầu mọi fragment tiếng Việt động đều có phrase translation; hiện gate đạt `135/135 PASS`.
+
+Riêng `/admin/analytics` V51 có full-copy English tự nhiên cho margin/cost-basis cards và các section quan trọng: `Revenue`, `Tickets / services`, `Concessions`, `Concession cost basis`, `Gross margin`, `MARGIN & COST-BASIS COVERAGE`, đồng thời các status động dùng `localizedLabel(..., language)` thay vì luôn ép `viLabel`. Browser E2E chặn lại các chuỗi lỗi từng xuất hiện như `TICKET / TRANSLATE SERVICE`, `EDGE BENEFIT PROFIT MERGE`, `Doanh thu` và `đơn vị` khi đang ở EN. No-schema contract không đổi; Flyway vẫn V72 / 67 public tables.
+
+### V77.0.14 compact VN/EN selector refinement
+- Restores the compact two-segment legacy language selector requested for the header.
+- Visual order is `VN | EN`; the active language uses red, the inactive language uses light gray.
+- Removes the decorative dot row so the control matches the legacy compact appearance.
+- English remains the clean-profile default; only the selector presentation changes.
+
+
+## V77.0.14 compact VN/EN selector + Edge hydration convergence hotfix
+
+- Keeps the compact legacy-style `VN | EN` segmented control (VN left, EN right; active red, inactive light gray).
+- Keeps English as the clean-profile default; a saved user preference still wins on reload.
+- Fixes the Edge hydration race where the native pre-hydration language click could update `localStorage`/`<html lang>` while React `LanguageProvider` remained on the previous language.
+- `LanguageProvider` now rechecks the external-store snapshot with `queueMicrotask(onStoreChange)` immediately after subscription, without `setState` inside an effect and without reintroducing the zero-warning lint regression.
+
+### V77.0.14 correction — V77.0.0 language flow restoration
+
+Theo source V77.0.0 gốc được dùng làm chuẩn, V77.0.14 khôi phục nguyên luồng ngôn ngữ cũ thay vì tiếp tục dùng các kiến trúc i18n thử nghiệm của các hotfix trước:
+
+- `frontend/components/LanguageProvider.tsx` là byte-identical với V77.0.0: state khởi tạo `vi`, `useEffect` đọc `localStorage.cinebooking_language`, `setLanguage()` cập nhật React state + localStorage + `<html lang>` và phát `language-changed`.
+- `frontend/components/LanguageSwitcher.tsx` là byte-identical với V77.0.0: hai nút `VN | EN`, active theo provider state và giữ hàng language dots của source gốc.
+- `frontend/app/layout.tsx` là byte-identical với V77.0.0; document server-render khởi tạo `lang="vi"`.
+- CSS selector VN/EN được phục hồi đúng kích thước/hình thức V77.0.0, gồm desktop width 82px và mobile header width 64px.
+- Các runtime translator/MutationObserver/static-catalog được thêm sau V77.0.0 đã bị loại khỏi runtime. V77.0.14 không còn dịch DOM hoặc ghép từ sau render.
+- Những trang mới của V77.0.14 cần `t(vi,en)`/locale dùng `usePresentationLanguage`, một helper presentation-only đọc chính `language` từ provider V77.0.0. Helper này không thay đổi persistence/event/lifecycle của provider gốc.
+- Warning ESLint `_language` / `_en` của provider Vietnamese-only trước đó không còn tồn tại. Provider V77.0.0 giữ đúng suppression lịch sử cho `react-hooks/set-state-in-effect`, nên zero-warning lint không phát cảnh báo ở restore effect.
+
+Kiểm tra:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+
+cd .\frontend
+npm run lint
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+```
+
+Browser E2E Microsoft Edge kiểm tra đúng contract V77.0.0: clean profile bắt đầu VI, preference EN đã lưu được restore, nút VN/EN cập nhật localStorage + `<html lang>`, và preference tiếp tục được restore sau full-page navigation.
+
+### V77.0.14 overlay cleanup for the V77.0.0 language flow
+
+If this source is extracted **over an older V77.0.14 working tree**, ZIP extraction cannot delete files that existed only in the older tree. Three obsolete post-V77.0.0 i18n files may therefore remain on disk even though they are not part of this Full Source ZIP:
+
+- `frontend/lib/i18n-runtime.ts`
+- `frontend/lib/i18n-en-supplement.ts`
+- `frontend/lib/i18n-static-catalog.generated.ts`
+
+Run the cleanup once after overlaying onto an existing folder:
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File .\tools\cleanup_v77_0_14_v7700_language_flow.ps1
+```
+
+The V77.0.14 verifier validates that none of those post-V77.0.0 runtimes are referenced by application code. A clean extraction of the Full Source ZIP contains none of the three files.
+
+### V77.0.14 verifier Windows permission fix
+
+- `verify_v77_0_14_navigation_language_dropdown_localization.py` now scans only application-source files and explicitly skips dependency/build artifact trees such as `frontend/node_modules`, `.next`, Playwright reports, coverage and build outputs.
+- The runtime-reference scan also tolerates unreadable/non-text files, so a Windows `PermissionError` inside `node_modules/next/dist/compiled/*` can no longer abort the verifier.
+- The V77.0.0 language-flow contract itself is unchanged; this is a verifier robustness fix only.
+
+### V77.0.14 CRM nullable suppression-reason TypeScript repair
+
+- Fixed the production TypeScript gate in `frontend/app/admin/crm-automation/page.tsx` where `suppressionReason?: string | null` was passed to a helper that only accepted `string`.
+- `suppressionLabel()` now accepts `string | null | undefined` and renders a safe bilingual fallback when the API omits the reason.
+- The V77.0.0 language-provider / switcher / root-layout contract remains unchanged.
+- V77.0.14 verification now guards this nullable DTO contract to prevent TS2345 regression.
+
+
+## V77.0.14 V51 chart spacing polish
+- Removed the dark rounded tiles behind Forecast and Daily Revenue columns.
+- Daily Revenue now uses a dynamic equal-width grid so all visible days stretch evenly across the card width.
+- No API/schema changes; V77.0.0 language flow remains unchanged.
+
+## V77.0.14 — Full local E2E gate + automatic GitHub stable release
+
+Stable publication is now one command and follows the required order: **verify source -> security audit -> zero-warning lint -> production build -> Docker full stack -> Microsoft Edge Playwright E2E -> push `main` -> wait exact-commit CI -> immutable tag -> GitHub Actions auto-release**.
+
+Prerequisites on Windows PowerShell:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+
+git --version
+gh --version
+gh auth status
+docker version
+node --version
+npm --version
+```
+
+If GitHub CLI is not authenticated yet:
+
+```powershell
+gh auth login
+```
+
+The normal stable release command is:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+powershell -ExecutionPolicy Bypass -File .\scripts\release.ps1 v77.0.14
+```
+
+`release.ps1` defaults to `https://localhost`, the installed Microsoft Edge channel (`msedge`), and the **entire** `frontend/e2e` suite. No Git commit, push, tag or GitHub Release is allowed until local Browser E2E has passed.
+
+For a diagnostic run of only selected specs before the official full release gate:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+powershell -ExecutionPolicy Bypass -File .\scripts\release.ps1 v77.0.14 `
+  -E2ESpec @(
+    "e2e/customer-value-v56.spec.ts",
+    "e2e/analytics-forecasting-v51.spec.ts",
+    "e2e/crm-automation-5-v77.spec.ts"
+  )
+```
+
+Do not use `-SkipE2E`, `-SkipDocker`, `-SkipVerify` or `-SkipCiWait` for the official stable publication. They are troubleshooting switches only.
+
+After all local gates pass, the script pushes `main`, waits for `.github/workflows/ci.yml` on the exact commit, creates and pushes the immutable tag, then waits for `.github/workflows/v77-auto-release.yml`. The tag workflow automatically creates the stable GitHub Release and attaches:
+
+```text
+cinebooking-pro-77.0.14-full-source.zip
+cinebooking-pro-77.0.14-full-source.sha256.txt
+```
+
+The Full Source asset is produced by `git archive HEAD`, so `.env`, `node_modules`, `.next`, Playwright reports, local certificates and untracked secrets are not included.
+
+Useful status commands while publishing:
+
+```powershell
+gh run list --workflow ci.yml --limit 5
+gh run list --workflow v77-auto-release.yml --limit 5
+gh release view v77.0.14 --web
+```
+
+If Browser E2E fails, nothing is pushed. Inspect the report with:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npx playwright show-report
+```
+
+If CI fails after `main` is pushed, the script stops **before** creating the tag. Fix the failure and rerun the release command. Stable tags are immutable and are never overwritten.
+
+
+### V77.0.14 existing-admin E2E credential contract
+
+Browser E2E and the stable release now reuse the existing administrator configured in the repository-root `.env`. `ADMIN_EMAIL` and `ADMIN_PASSWORD` are mapped to `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` before Playwright starts. Explicit `E2E_ADMIN_*` values still take priority. No alternate admin account is created, and the release script never prints the admin password. If neither the root `.env` nor explicit E2E credentials are available, Playwright fails closed instead of silently falling back to a different historical password. The login and registration email fields also retain the stable `Email` placeholder used by the historical E2E suite.
+
+
+## V77.0.14 layout/runtime hardening follow-up
+
+- V44 maintenance selector and equipment catalog reflow without horizontal scrolling; selected cinema name stays visible.
+- V57 showtime intelligence uses a compact desktop table plus responsive cards.
+- V62 pricing editor/weekdays, V23 attendance filters, and V43 tracked-cinema selector were rebalanced for normal desktop widths.
+- V48 `Xem toàn chi nhánh` now actually removes the cinema filter and toggles back; inventory history uses cards below desktop widths.
+- V48 E2E reuses `CineHub Bình Thạnh` instead of creating timestamp-suffixed cinema names. `tools/cleanup_v48_e2e_cinema_noise.ps1` removes only unreferenced historical timestamp test cinemas and fails closed on SQL errors.
+- V69 user-facing naming now uses the natural Vietnamese term “Sao lưu & phục hồi sau thảm họa” while machine strategy/version values remain unchanged.
+- Showtime E2E option helpers use `getAttribute("value")`, avoiding `SVGElement | HTMLElement` `.value` TypeScript failures during `next build`.
+
+## V77.0.14 final responsive-layout / E2E contract hardening
+
+This final V77.0.14 stabilization keeps the exact V77.0.0 language-provider/switcher/root-layout contract while finishing the admin/staff presentation and browser-regression work requested after the full Edge run.
+
+- V44 Maintenance: long cinema names remain visible without opening the select; equipment/KPI layout reflows before becoming cramped.
+- V57 Booking & Seat Intelligence: compact desktop showtime table plus responsive cards; real showtime/booking/seat-map flow remains unchanged.
+- V62 Dynamic Pricing, V23 Attendance and V43 Staff Operations: responsive controls/cards avoid squeezed horizontal layouts.
+- V48 Inventory: the history-scope button now really toggles current cinema vs all branches; historical E2E no longer creates timestamp-suffixed cinema names. `tools/cleanup_v48_e2e_cinema_noise.ps1` removes only orphan numeric-suffix test cinemas and fails closed on PostgreSQL errors.
+- V69 presentation uses consistent Backup & Disaster Recovery terminology and removes malformed mixed-language labels.
+- V45 Support immediately keeps a newly-created case visible while the durable list catches up.
+- V68 step-up grant handling no longer lets an immediately stale status fetch overwrite a successful grant.
+- Seat E2E reads `data-seat-status` machine state instead of localized `title` text.
+- Showtime E2E selects the seeded movie by stable title and obtains `<option>` values with `getAttribute("value")`, avoiding the TypeScript `HTMLElement | SVGElement` `.value` narrowing error.
+- Historical E2E presentation assertions were aligned with the current Vietnamese-first V77.0.0 language flow without changing API/machine values.
+
+Release gates remain: source verifiers -> zero-warning lint -> production build -> full 8-service Docker/observability stack -> full Microsoft Edge Playwright suite -> push `main` -> exact-commit CI -> immutable stable tag -> automatic GitHub Release.
+
+## V77.0.15 — V64 Preview/Publish + V59 bilingual runtime & E2E stabilization
+
+V77.0.15 xử lý trực tiếp các lỗi phát hiện khi chạy full Browser E2E và kiểm tra giao diện thật, không thay đổi schema hay tạo dữ liệu nghiệp vụ giả. Flyway vẫn **V72 / 67 public tables**.
+
+- **V64 CRM & Marketing:** nút **Xem trước** hiển thị phản hồi và audience preview ngay dưới cụm nút thay vì nằm khuất phía dưới danh sách segment. **Phát hành** chỉ tiếp tục khi preview còn hợp lệ và V68 step-up đang mở; nếu chưa mở/hết hạn thì UI hiện cảnh báo ngay tại form và có link sang `/admin/security`. Sau khi phát hành, số voucher tạo mới/tái sử dụng và số notification tạo/bỏ qua được hiển thị rõ ràng.
+- **V59 Realtime Operations:** toàn bộ 7 domain Payment/Booking/Equipment/Staff/Support/Inventory/Incident có presentation map VI/EN riêng; không còn trộn label tiếng Anh từ backend vào trang tiếng Việt. Nút VN/EN điều khiển toàn bộ copy hiển thị của V59 và giữ nguyên machine domain/status/API contract.
+- **Language full navigation:** root layout đọc `cinebooking_language` trước hydration để một preference EN đã lưu không bị chớp/quay về `vi` khi `page.goto()` hoặc full navigation. `LanguageProvider` V77.0.0 vẫn là authority cho state/persistence/click.
+- **V68 step-up:** UI dùng grant chưa hết hạn trong `sessionStorage` làm client-side authority trong lúc status API hội tụ, tránh trạng thái vừa unlock xong lại hiện `ĐÃ KHÓA`.
+- **E2E hardening:** thêm stable testid cho mock payment/register, tách testid desktop/mobile Maintenance, thêm journey kiểm tra V59 VI→EN và V64 Preview→V68→Publish. Playwright tiếp tục lấy **tài khoản Admin hiện hữu** từ `.env` gốc; không tạo admin thay thế và không in password.
+
+Verify tập trung:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v64_crm_marketing_automation.py
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+python -X utf8 .\tools\verify_v77_0_15_v64_v59_runtime_e2e.py
+```
+
+Docker full stack mặc định của dự án:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+
+# Kiểm tra đúng cùng compose/profile
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  ps
+```
+
+Browser E2E sau khi stack đã sẵn sàng:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test --project=chromium
+```
+
+Stable release:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.15
+```
+
+Official release gate vẫn giữ thứ tự: source verifiers → security audit → zero-warning lint → production build → Docker full observability stack → full Microsoft Edge Playwright → push `main` → exact-commit CI → immutable tag → automatic GitHub Release.
+
+## V77.0.16 — V59 language surface + runtime regression hotfix
+
+V77.0.16 sửa trực tiếp các lỗi còn thấy trên giao diện thật và targeted Browser E2E sau V77.0.15. Đây vẫn là **no-schema patch**: Flyway giữ nguyên **V72 / 67 public tables**, không thêm seed business data và giữ nguyên tài khoản Admin hiện hữu trong `.env`.
+
+- **V59 domain cards:** mỗi card chỉ còn **một tên miền nghiệp vụ**; không còn hai dòng lặp Thanh toán/Thanh toán, Đặt vé/Đặt vé, Kho/Kho.
+- **V59 cảnh báo:** severity machine values CRITICAL/HIGH/MEDIUM/LOW chỉ dùng nội bộ; giao diện VN hiển thị NGHIÊM TRỌNG/CAO/TRUNG BÌNH/THẤP.
+- **V59 lịch sử:** không render thẳng audit detail dạng INVENTORY · ... · count=26; UI hiển thị Kho · ... · Số lượng=26 ở VN và Inventory · ... · Count=26 ở EN; system thành hệ thống ở VN.
+- **V64:** selector bảy segment luôn có option ổn định trong lúc overview API hội tụ; Browser E2E xác nhận đủ 7 option trước khi chọn.
+- **VN/EN full navigation:** presentation hook đồng bộ từ cinebooking_language, html lang, pageshow và language-changed, xử lý trường hợp html đã EN nhưng nội dung Maintenance vẫn còn VI.
+
+Verify tập trung:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+python -X utf8 .\tools\verify_v77_0_15_v64_v59_runtime_e2e.py
+python -X utf8 .\tools\verify_v77_0_16_v59_language_surface_hotfix.py
+```
+
+Docker full stack:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+```
+
+Stable release sau khi runtime gate PASS:
+```powershell
+.\scripts\release.ps1 v77.0.16
+```
+
+## V77.0.17 — Full-navigation language store fix
+
+V77.0.17 sửa lỗi targeted Browser E2E còn lại sau V77.0.16: `html lang="en"` và `cinebooking_language=en` đã đúng nhưng một số client surface sau full navigation vẫn render bản dịch tiếng Việt, điển hình tiêu đề Maintenance **Đăng ký thiết bị** thay vì **Register equipment**.
+
+Nguyên nhân được loại bỏ ở lớp presentation helper: phiên bản trước duy trì một `useState` shadow cho ngôn ngữ bên cạnh `LanguageProvider`, `localStorage` và `document.lang`, tạo cửa sổ race trong hydration/full navigation. V77.0.17 chuyển snapshot trình bày sang React `useSyncExternalStore`, lấy `cinebooking_language` làm browser authority, `document.documentElement.lang` làm fallback và giữ provider V77.0.0 làm fallback cuối. Nút VN/EN vẫn dùng provider cũ, không đổi API/machine enum/database.
+
+Regression gate giữ nguyên các lỗi đã sửa trước đó: V59 không lặp domain/mixed language; V64 segment selector luôn đủ 7 option; Browser E2E tiếp tục kiểm tra EN qua `/admin/maintenance` và `/admin/showtimes`. Đây vẫn là **no-schema patch** trên Flyway **V72 / 67 public tables**, không seed dữ liệu giả và không thay tài khoản Admin hiện hữu.
+
+Verify tập trung:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+python -X utf8 .\tools\verify_v77_0_15_v64_v59_runtime_e2e.py
+python -X utf8 .\tools\verify_v77_0_16_v59_language_surface_hotfix.py
+python -X utf8 .\tools\verify_v77_0_17_full_navigation_language_store_fix.py
+```
+
+Docker full stack:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+```
+
+Targeted Browser E2E:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Stable release sau khi runtime gate PASS:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.17
+```
+
+## V77.0.18 — Presentation language type-contract / production build fix
+
+V77.0.18 sửa đúng lỗi production build được Docker phát hiện sau V77.0.17. Runtime design `useSyncExternalStore` là đúng, nhưng lời gọi hook chưa khóa generic nên TypeScript suy rộng `resolvedLanguage` thành `string` do server snapshot `() => "vi"`. Kết quả là mọi consumer đang yêu cầu `Language` hoặc `"vi" | "en"` đồng loạt báo `TS2322` / `TS2345` trong Analytics, Attendance, Booking Seat Intelligence, CRM Automation, Maintenance, Marketing, Operations Control, Payments, Risk, Security, Showtimes, Staff và staff operations.
+
+Bản vá giữ nguyên cơ chế runtime V77.0.17 và chỉ siết type contract tại nguồn:
+
+```ts
+const resolvedLanguage = useSyncExternalStore<Language>(
+  subscribe,
+  getSnapshot,
+  (): Language => "vi",
+);
+```
+
+Nhờ vậy `usePresentationLanguage().language` tiếp tục là union hẹp `"vi" | "en"`, không còn bị widen thành `string`. Không cần ép kiểu tại hàng chục trang, không thay API, không thay machine enum, không đổi `LanguageProvider`, không đổi database và không thêm seed.
+
+Verify tập trung:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_17_full_navigation_language_store_fix.py
+python -X utf8 .\tools\verify_v77_0_18_presentation_language_type_contract_fix.py
+```
+
+Docker full stack:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+```
+
+Production build gate phải qua TypeScript trước khi chạy Browser E2E. Sau khi Docker build PASS, chạy targeted language/V59/V64 và sau đó full suite như các bước V77.0.17.
+
+Stable release sau khi toàn bộ runtime gate PASS:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.18
+```
+
+## V77.0.19 — Zero-warning Marketing hook / ESLint fix
+
+V77.0.19 sửa đúng warning runtime gate còn lại được `npm run lint` phát hiện ở `frontend/app/admin/marketing/page.tsx`: effect khởi tạo gọi `load()` nhưng dependency array rỗng, khiến `react-hooks/exhaustive-deps` báo warning và làm `eslint . --max-warnings=0` trả exit code 1.
+
+Bản vá không tắt rule ESLint. `refreshStepUp` được ổn định bằng `useCallback([])`, `load` được ổn định bằng `useCallback([refreshStepUp])`, và effect khai báo `[load, refreshStepUp]`. Luồng nghiệp vụ V64 giữ nguyên: kiểm tra Admin, tải `/admin/marketing/segments`, đồng bộ V68 step-up, lắng nghe `step-up-changed`/`focus`, và reload overview sau khi phát hành thành công. V77.0.18 Language type contract vẫn giữ nguyên.
+
+Verify tập trung:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_18_presentation_language_type_contract_fix.py
+python -X utf8 .\tools\verify_v77_0_19_zero_warning_marketing_effect_dependencies.py
+```
+
+Zero-warning lint:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm run lint
+$LASTEXITCODE
+```
+
+Mong đợi: `0 errors`, `0 warnings`, `$LASTEXITCODE = 0`. Sau đó chạy Docker full observability, targeted Browser E2E và full Browser E2E trước stable release.
+
+Stable release:
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.19
+```
+
+## V77.0.20 — Full Browser E2E Runtime Stabilization
+
+V77.0.20 xử lý toàn bộ nhóm hồi quy được lộ ra khi chạy **full Playwright 46 journeys** sau V77.0.19. Lượt chạy thực tế trước bản vá có **24 failed / 22 passed**, trong khi `npm run lint`, production `npm run build`, Docker Compose full observability và targeted V59/V64/language E2E đã PASS. Bản vá này vì vậy tập trung vào runtime/navigation/test-contract thay vì thay đổi nghiệp vụ hoặc dữ liệu.
+
+Các thay đổi chính:
+
+- **Một nguồn ngôn ngữ duy nhất:** `LanguageProvider` sở hữu `useSyncExternalStore<Language>` và `usePresentationLanguage` chỉ tiêu thụ store này, loại race giữa `localStorage`, `<html lang>` và provider sau full navigation.
+- **Service Worker V77.0.20:** bump cache generation và ép các navigation nhạy cảm `/login`, `/register`, `/payment`, `/forgot-password`, `/reset-password` đi network-only; API tiếp tục không cache; policy mới dùng `skipWaiting()` + `clients.claim()` để không giữ shell cũ.
+- **Hard-navigation guard cho E2E:** auth/payment tests có một lần recovery ở read/navigation surface khi trình duyệt còn shell cũ; không retry business write.
+- **Support race:** kết quả GET lúc mount được merge với optimistic case vừa tạo thay vì ghi đè danh sách.
+- **V64:** Preview chỉ bật khi overview thật đã sẵn sàng; E2E chờ segment cards sau khi quay lại từ V68 step-up.
+- **V51:** E2E chờ mutation lưu cost-basis hoàn tất trước reload.
+- **Dữ liệu thật / selector ổn định:** discovery và maintenance blackout không hard-code UUID/tên phim; maintenance dùng card đang hiển thị; seat contention dùng `data-seat-code`/`data-seat-status`.
+- **Localization-compatible regression:** V58/V59, V65, V67, V52, V71, V72, V73/V74, V43 và V49 dùng copy hiện hành hoặc machine-readable testid thay vì ép chuỗi legacy Anh/Việt.
+
+V77.0.20 vẫn là **no-schema release**: Flyway giữ V72 / 67 public tables, không thêm migration V77 và không thêm business seed giả. Tài khoản Admin tiếp tục lấy từ `.env` hiện hữu; không tạo hoặc thay password Admin.
+
+### Verify V77.0.20
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_20_full_e2e_runtime_stabilization.py
+```
+
+### Docker full stack
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+### Full Browser E2E
+
+```powershell
+npx playwright test --project=chromium
+```
+
+Chỉ release stable khi full suite đạt **0 failed**:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.20
+```
+## V77.0.21 — Hydration Language & V64 Re-entry Reliability
+
+Lượt targeted runtime sau V77.0.20 còn **2 failed / 1 passed**. V64 quay lại `/admin/marketing` sau khi mở khóa V68 nhưng `segments-v64` chưa có dữ liệu thật trong 15 giây; đồng thời full navigation giữ `localStorage=cinebooking_language=en` và `<html lang="en">` nhưng Maintenance vẫn render copy tiếng Việt `Đăng ký thiết bị`. V77.0.21 sửa đúng hai nguyên nhân này, không mở rộng schema hoặc seed.
+
+- **Language hậu hydration:** `LanguageProvider` vẫn dùng `useSyncExternalStore<Language>`, nhưng sau hydration sẽ đọc lại browser snapshot, đồng bộ `document.lang`, đặt marker `data-cinebooking-language-ready` và phát lại `language-changed` sau khi subscription đã được cài. Nhờ vậy surface client không còn kẹt ở VI server snapshot sau `page.goto()`/reload.
+- **V64 re-entry:** page dùng role đã lưu trong auth hiện hành để gate UI, còn `/api/admin/marketing/segments` vẫn là nguồn authorization/data thật ở backend. Bỏ round-trip `/me` dư thừa sau V68, thêm tối đa 3 lần retry ngắn cho lỗi runtime tạm thời nhưng **không retry 401/403**, và hiển thị trạng thái `segments-loading-v64` thay vì vùng trống.
+- **E2E đúng tín hiệu:** V64 chờ nút Preview được enable (nghĩa là overview thật đã sẵn sàng), không suy luận readiness bằng số button segment. Language E2E chờ `data-cinebooking-language-ready=en` rồi mới assert Maintenance/Showtimes EN.
+- **Admin cũ:** Browser E2E không còn fallback `admin-v29@cine.local`; bắt buộc lấy `E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD` từ `.env` hiện hữu.
+- **Service Worker:** bump cache generation `v77-0-21` để loại bundle/cache cũ khi kiểm tra lại full-navigation.
+
+V77.0.21 vẫn là **no-schema release**: Flyway V72 / 67 public tables; không tạo tài khoản Admin mới, không thay password và không thêm business seed giả.
+
+### Verify V77.0.21
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_21_hydration_language_v64_reentry.py
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy `npx playwright test --project=chromium`; chỉ release stable khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.21
+```
+
+## V77.0.22 — Pre-hydration Language Readiness & Visible-copy E2E
+
+Lượt targeted runtime sau V77.0.21 còn đúng **1 failed / 2 passed**. V59 và V64 đã PASS; failure còn lại không phải do `localStorage` hoặc `<html lang>` sai: log cho thấy `<html lang="en">` đã đúng nhưng assertion trên attribute nội bộ `data-cinebooking-language-ready` nhận `null`, nên test dừng trước khi kiểm tra copy Maintenance. V77.0.22 sửa đúng contract này.
+
+- **Bootstrap trước hydration:** root layout render sẵn `data-cinebooking-language-ready="vi"`; inline bootstrap đọc `cinebooking_language` và cập nhật **cả `lang` lẫn readiness marker** bằng cùng một giá trị trước khi React hydrate.
+- **Reconcile theo snapshot React đã commit:** `LanguageProvider` giữ `useSyncExternalStore<Language>` và đồng bộ lại `lang`/readiness marker khi `language` thực tế đã khớp browser snapshot.
+- **E2E theo hành vi người dùng:** full-navigation language test vẫn xác nhận `localStorage=en` và `<html lang="en">`, nhưng readiness chính là copy nhìn thấy `Register equipment` rồi `Preview schedule`; attribute nội bộ chỉ còn là diagnostic, không còn là điều kiện làm fail một UI đã render đúng.
+- **V64/V59:** không thay logic runtime đã PASS ở lượt V77.0.21.
+- **Service Worker:** bump generation `v77-0-22` để bundle layout/provider mới không bị giữ bởi cache cũ.
+
+V77.0.22 vẫn là **no-schema release**: Flyway V72 / 67 public tables; không tạo Admin mới, không đổi password và không thêm business seed giả.
+
+### Verify V77.0.22
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_22_pre_hydration_language_readiness.py
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy `npx playwright test --project=chromium`; chỉ release stable khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.22
+```
+
+
+## V77.0.23 — Single-provider Hydration State Reliability
+
+Lượt targeted runtime sau V77.0.22 vẫn còn **1 failed / 2 passed**. V59 và V64 tiếp tục PASS. Failure duy nhất đã xác nhận đúng bản chất: `localStorage.cinebooking_language=en` và `<html lang="en">` đều đúng sau `page.goto("/admin/maintenance")`, nhưng React `LanguageProvider` vẫn giữ server snapshot VI nên copy Maintenance còn `Đăng ký thiết bị` thay vì `Register equipment`.
+
+V77.0.23 không tiếp tục vá marker hay assertion. Bản này thay cơ chế hydration của nguồn ngôn ngữ:
+
+- **Single React-owned language state:** `LanguageProvider` dùng `useState<Language>("vi")` làm nguồn React duy nhất. VI ban đầu khớp server-rendered tree, tránh hydration mismatch.
+- **Guaranteed post-hydration restore:** sau mount, provider đọc `cinebooking_language`/`document.lang` rồi `setLanguageState(restored)` bằng `queueMicrotask(reconcileFromBrowser)`. Đây là một React state update thật, nên mọi descendant phải rerender theo EN sau hard navigation; không còn phụ thuộc external-store server snapshot tự hội tụ.
+- **Không tạo store thứ hai:** `usePresentationLanguage()` chỉ tiêu thụ `useLanguage()`; không đọc `localStorage` hoặc dùng `useSyncExternalStore` riêng.
+- **Click VN/EN tức thời:** `setLanguage()` cập nhật React state trước, sau đó persist `localStorage`, đồng bộ `<html lang>`/readiness marker và phát compatibility event.
+- **Cross-tab / bfcache:** `storage`, `pageshow` và `language-changed` vẫn reconcile về browser snapshot.
+- **E2E mạnh hơn:** sau hard navigation sang Maintenance, test xác nhận nút EN có `aria-pressed=true` trước khi kiểm tra `Register equipment`, rồi tiếp tục tới `Preview schedule`. Như vậy test chứng minh chính provider state đã hội tụ, không chỉ kiểm tra DOM attribute.
+- **Service Worker:** cache generation tăng `v77-0-23` để browser không giữ bundle provider cũ.
+
+V77.0.23 vẫn là **no-schema release**: Flyway V72 / 67 public tables; không tạo Admin mới, không đổi password và không thêm business seed giả.
+
+### Verify V77.0.23
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_23_single_provider_hydration_state.py
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy full Browser E2E; chỉ release stable khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.23
+```
+
+## V77.0.24 — Hydration Bundle + V64 Startup Reliability
+
+Lượt targeted runtime sau V77.0.23 vẫn còn **2 failed / 1 passed**. Hai failure có cùng dấu hiệu runtime chưa hội tụ kịp: V64 đứng ở `Đang tải phân khúc khách hàng thật...` quá 15 giây, còn full navigation sang Maintenance có `localStorage=en`/`<html lang="en">` nhưng React switcher vẫn giữ `aria-pressed=false` cho EN.
+
+V77.0.24 xử lý tại hai lớp runtime thay vì nới lỏng assertion:
+
+- **Language hydration commit trực tiếp:** `LanguageProvider` vẫn có một `useState<Language>("vi")` để khớp server tree, nhưng mount effect gọi `reconcileFromBrowser()` trực tiếp thay vì đặt lần commit duy nhất trong `queueMicrotask`. Một `requestAnimationFrame` duy nhất chạy lại reconciliation sau paint để bao phủ cửa sổ hydration muộn mà không tạo polling loop hay store thứ hai.
+- **Không hydrate bằng bundle cũ:** Service Worker tăng generation lên `v77-0-24`; `/_next/static/` chuyển sang **network-first** khi online và chỉ dùng cache làm fallback khi network lỗi. API vẫn tuyệt đối không cache, private navigation vẫn network-only.
+- **V64 chờ backend Docker hội tụ:** overview thật `/api/admin/marketing/segments` retry transient failure trong **12-second bounded window**; `401/403` fail closed ngay. Sau khi hết retry UI hiện nút thử lại riêng thay vì loading vô hạn; focus/online có thể retry khi overview vẫn chưa có.
+- **E2E vẫn nghiêm:** V64 chờ `campaign-preview-v64` enabled tối đa 30 giây rồi vẫn bắt buộc thấy segment thật `VIP giá trị cao`. Language E2E vẫn bắt EN switcher `aria-pressed=true`, `Register equipment` và `Preview schedule`. Không có fallback Admin.
+- **No-schema:** Flyway vẫn V72 / 67 public tables; không tạo Admin mới, không đổi password, không thêm business seed giả.
+
+### Verify V77.0.24
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_24_hydration_bundle_v64_startup_reliability.py
+```
+
+### Targeted E2E
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy full Browser E2E; chỉ release stable khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.24
+```
+
+## V77.0.25 — Zero-Warning LanguageProvider Cleanup
+
+Lượt kiểm tra Windows sau V77.0.24 xác nhận source verifier **26/26 PASS**, nhưng `npm run lint` dừng với đúng **1 warning / 0 errors** tại `frontend/components/LanguageProvider.tsx:1:1`: **`Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')`**. Vì frontend chạy ESLint với `--max-warnings=0`, warning này làm `$LASTEXITCODE = 1` dù code runtime không có lỗi lint thực tế.
+
+V77.0.25 sửa đúng warning này bằng cách **xóa duy nhất directive suppression đã không còn cần thiết**. Không chạy `--fix` mù và không tắt rule toàn cục. Toàn bộ cơ chế V77.0.24 vẫn giữ nguyên: một React-owned `Language` state, persisted-language reconciliation trong mount effect, một `requestAnimationFrame` guard hậu paint, Service Worker network-first cho `/_next/static/`, V64 bounded startup retry và các Browser E2E contract hiện tại.
+
+- Không đổi API/machine contract.
+- Không đổi Service Worker generation vì patch chỉ loại comment lint không còn tác dụng runtime.
+- Không migration/schema mới; Flyway vẫn V72 / 67 public tables.
+- Không tạo Admin mới, không đổi password và không thêm business seed giả.
+
+### Verify V77.0.25
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_25_zero_warning_language_provider_cleanup.py
+```
+
+### Zero-warning lint
+
+```powershell
+cd .\frontend
+npm run lint
+$LASTEXITCODE
+```
+
+Mong đợi: **0 errors / 0 warnings / exit code 0**. Sau đó chạy production build, Docker full observability, targeted E2E và full Browser E2E như V77.0.24 trước khi stable release.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.25
+```
+## V77.0.26 — V64 Publish Feedback Persistence Fix
+
+Lượt Windows runtime sau V77.0.25 xác nhận verifier **12/12 PASS**, zero-warning lint **exit 0**, production build/TypeScript **68/68 pages PASS**, Docker full observability **37/37 build** và targeted language/V59 đã hội tụ. Failure còn lại duy nhất nằm ở V64 sau publish: `campaign-launch-result-v64` đã xuất hiện (backend launch thành công), nhưng `campaign-feedback-v64` bị post-launch `load()` xóa success message rồi đổi về trạng thái `Sẵn sàng`.
+
+V77.0.26 giữ nguyên API, V68 step-up, idempotent launch và overview refresh, nhưng thay đổi thứ tự commit UI:
+
+- lưu `publishedMessage` từ response launch thật;
+- giữ `setResult(data)` làm bằng chứng publish thành công;
+- vẫn chạy `await load()` để refresh overview thật sau publish;
+- coi overview refresh là hậu xử lý best-effort, không được biến launch đã thành công thành failure UI;
+- sau refresh, commit lại `feedbackKind=success` và `publishedMessage`, vì vậy `campaign-feedback-v64` giữ `Đã phát hành/Published`;
+- targeted E2E vẫn bắt cả `campaign-launch-result-v64` lẫn success feedback, không nới lỏng assertion.
+
+Không migration/schema mới; Flyway vẫn V72 / 67 public tables. Không tạo Admin mới, không đổi password và không thêm business seed giả.
+
+### Verify V77.0.26
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_26_v64_publish_feedback_persistence.py
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy full Browser E2E; chỉ release stable khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.26
+```
+## V77.0.27 — Layout-Effect Language Reconciliation Fix
+
+Lượt Windows runtime sau V77.0.26 xác nhận verifier **14/14 PASS**, zero-warning lint **exit 0**, production build/TypeScript **68/68 pages PASS**, Docker full observability **37/37 build** và V59/V64 targeted đã PASS. Failure còn lại duy nhất nằm ở hard navigation tới `/admin/customer-value`: document đã là `<html lang="en">` nhưng React provider vẫn render copy VI, nên E2E nhận `Giá trị khách hàng & phân tích RFM · V56` thay vì `Customer Value & RFM Intelligence`.
+
+V77.0.27 giữ single React-owned `Language` state nhưng chuyển browser reconciliation từ passive mount effect sang **layout effect** để preference đã được root bootstrap khôi phục có thể commit vào React trước painted client copy. Patch còn giữ một cửa sổ reconciliation hữu hạn (`rAF` + 50/250/1000 ms) cho selective/late hydration, không tạo polling vô hạn và không tạo language store thứ hai.
+
+- `cinebooking_language` vẫn là persisted browser preference;
+- explicit VN/EN click vẫn cập nhật React + localStorage + `document.lang` đồng thời;
+- `storage`, `pageshow` và same-tab `language-changed` vẫn được giữ;
+- customer-value E2E giờ xác nhận chính EN switcher `aria-pressed=true` trước khi assert `Customer Value & RFM Intelligence`, vì vậy test không thể PASS chỉ nhờ `<html lang=en>`;
+- Service Worker generation bump lên `v77-0-27` để tránh giữ cache generation cũ trong lượt runtime mới.
+
+Không migration/schema mới; Flyway vẫn V72 / 67 public tables. Không tạo Admin mới, không đổi password và không thêm business seed giả.
+
+### Verify V77.0.27
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_27_layout_effect_language_reconciliation.py
+```
+
+### Targeted E2E
+
+```powershell
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu: **3 passed / 0 failed**. Sau đó chạy full Browser E2E và chỉ stable release khi full suite đạt **0 failed**.
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.27
+```
+
+## V77.0.28 — Compose Readiness & Hydration Gate Fix
+
+Log Windows của V77.0.27 cho thấy cả ba targeted specs cùng fail theo một mẫu: V64 giữ nút Preview disabled, V56 có `<html lang="en">` nhưng EN switcher vẫn `aria-pressed=false`, và V59 có server-rendered heading nhưng chưa có domain cards. Đây là dấu hiệu **server HTML đã tới browser nhưng client JavaScript/API bootstrap chưa hoàn tất**, không phải ba regression nghiệp vụ độc lập.
+
+V77.0.28 xử lý root cause ở hai lớp:
+
+- `docker-compose.yml` bổ sung healthcheck cho cả `backend-1`, `backend-2` và `frontend`; `frontend` chỉ start sau hai backend `service_healthy`, còn `nginx` chỉ start sau frontend + cả hai backend `service_healthy`. Vì vậy `docker compose ... up -d --build` không mở edge HTTPS vào một stack mới chỉ ở trạng thái process-started.
+- Root layout có `data-cinebooking-runtime-ready="pending"`; `RuntimeReadyMarker` chỉ đổi thành `true` khi client JavaScript thật sự chạy. Playwright `gotoHydrated`/`waitForHydratedRuntime` chờ marker này và chỉ retry **một read/navigation** nếu cold-start bỏ lỡ hydration chunk; business write không bao giờ bị replay.
+- V56 dùng hydration gate cho `/login`, `/admin/customer-value`, `/admin/maintenance`, `/admin/showtimes`; V59 chờ thêm snapshot summary thật trước domain-card assertions; V64 dùng cùng runtime gate cho login/security/marketing re-entry.
+- Service Worker generation bump lên `v77-0-28`; `/api/*` tiếp tục không cache.
+
+Patch không đổi schema: Flyway vẫn V72. Tài khoản Admin vẫn lấy từ `.env` hiện hữu; không tạo Admin hoặc password mới.
+
+### Verify V77.0.28
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_28_compose_readiness_hydration_gate.py
+```
+
+### Docker full stack
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+
+# Backend/frontend phải healthy trước khi nginx được mở
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  ps
+```
+
+### Stable release
+
+```powershell
+.\scripts\release.ps1 v77.0.28
+```
+
+## V77.0.29 — Frontend Healthcheck Contract Fix
+
+Log Windows của V77.0.28 xác nhận source verifier 17/17, zero-warning lint và production build đều PASS; hai backend replica cũng đạt `healthy`. Tuy nhiên `frontend` bị Docker đánh dấu `unhealthy` trong khoảng 138 giây, khiến Compose dừng trước Nginx với `dependency failed to start`. V77.0.29 sửa đúng healthcheck contract này, không nới readiness gate.
+
+- Thêm `frontend/app/healthz/route.ts`: route Next.js động, trả HTTP 200 `ok`, `Cache-Control: no-store`, không gọi backend, không yêu cầu auth và không phụ thuộc biến môi trường nghiệp vụ.
+- Frontend healthcheck dùng Node core `http.get()` tới `http://127.0.0.1:3000/healthz` và yêu cầu đúng status 200; bỏ probe `fetch('/login')` vốn phụ thuộc user-facing page/runtime fetch semantics.
+- Standalone runner và Compose pin rõ `HOSTNAME=0.0.0.0` và `PORT=3000`, tránh sai khác bind-address giữa image/runtime.
+- `frontend` vẫn chỉ start sau `backend-1` + `backend-2` healthy; `nginx` vẫn chỉ mở sau frontend + cả hai backend healthy. V77.0.28 hydration marker/E2E gate được giữ nguyên.
+- Không đổi schema; Flyway vẫn V72. Admin tiếp tục lấy từ `.env` hiện hữu; không tạo tài khoản hoặc password mới.
+
+### Verify V77.0.29
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_29_frontend_healthcheck_contract.py
+```
+
+### Docker full stack
+
+```powershell
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  ps
+```
+
+Mong đợi `backend-1`, `backend-2`, `frontend`, `postgres`, `redis` đều `(healthy)`; Nginx/Prometheus/Grafana `Up`. Không dùng `down -v`.
+
+### Stable release
+
+```powershell
+.\scripts\release.ps1 v77.0.29
+```
+
+## V77.0.30 — Full-Suite Runtime Contract Alignment
+
+Runtime Windows của V77.0.29 đã xác nhận verifier 16/16, zero-warning lint, production build, Docker health contract và `/healthz` đều PASS. Targeted V59/V64/V56 đạt **3 passed / 0 failed**. Khi chạy toàn bộ **46 Browser E2E**, kết quả còn **30 passed / 16 failed**. Các lỗi còn lại tập trung ở contract kiểm thử đã cũ hoặc hard-navigation/async state chưa được gate thống nhất, không phải lỗi Docker healthcheck nữa.
+
+V77.0.30 chuẩn hóa full suite theo đúng UI/runtime hiện hành:
+
+- `runtime-guards.ts` có `existingAdminCredentials`, `loginWithRole`, `loginExistingAdmin`, `waitForAuthRole` và `waitForStepUpGrant`; mọi spec được sửa chỉ dùng Admin hiện hữu từ root `.env`, không còn fallback account/password.
+- Booking badge có `data-booking-status` để E2E kiểm tra trạng thái máy `CONFIRMED/REFUNDED` mà không phụ thuộc bản dịch aria.
+- Loyalty reward có testid theo reward code (`RWD20K`, `RWDCORN`), ticket transfer có testid email ổn định, Admin Support/Payments/Offline Tickets/Showtime Planning có root testid rõ ràng.
+- Discovery vẫn bắt buộc ngày 30/09/2026 khả dụng nhưng không đóng băng `max=2026-09-30`; dữ liệu thật hiện có thể mở rộng lịch đến 15/10/2026.
+- V47/V52/V74 và Support theo copy Việt hiện hành: `Trung tâm thanh toán`, `Vé ngoại tuyến`, `chuyển dự phòng`, `Vận hành hỗ trợ`.
+- V50/Loyalty/Showtime/Smart Planner chờ bounded async readiness thay vì suy ra từ SSR hoặc placeholder. Showtime Planner chọn phim đang thực sự active thay vì hard-code một phim có thể bị test trước thay đổi trạng thái.
+- V68 chờ token step-up trong `sessionStorage` trước khi assert badge mở khóa; business write vẫn không bị retry.
+- Không đổi schema, không seed business giả, không thay tài khoản Admin. Flyway vẫn V72.
+
+### Verify V77.0.30
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_30_full_suite_runtime_contract_alignment.py
+```
+
+### Lint + production build
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm run lint
+$LASTEXITCODE
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+```
+
+### Docker full stack
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  up -d --build
+
+docker compose `
+  -f docker-compose.yml `
+  -f docker-compose.https.yml `
+  --profile observability `
+  ps
+```
+
+### Targeted regression trước full suite
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-marketing-automation-v64.spec.ts `
+  e2e/customer-value-v56.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu targeted: `3 passed / 0 failed`. Sau đó chạy:
+
+```powershell
+npx playwright test --project=chromium
+```
+
+Mục tiêu stable gate: `46 passed / 0 failed`. Chỉ khi full suite xanh mới release:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.30
+```
+
+
+
+## V77.0.31 — Remaining Full-Suite Contract Alignment
+
+Baseline runtime thực tế của V77.0.30 trên Windows + Docker + Microsoft Edge:
+
+```text
+Verifier V77.0.30  33/33 PASS
+Lint                PASS (exit 0)
+Production build    PASS
+Docker health       PASS
+Targeted E2E        3/3 PASS
+Full E2E            36 passed / 10 failed
+```
+
+10 regression còn lại tập trung ở contract kiểm thử cũ, không phải một lỗi nền duy nhất. V77.0.31 bổ sung machine-readable contract cho booking card, payment history, finance ledger, privacy retention mode, PWA delivery mode và staff check-in; chờ dữ liệu thật ở V57/movie detail; đồng thời chuẩn hóa provenance của Smart Planner và bỏ các assertion phụ thuộc copy/hard-code còn sót.
+
+### Verify V77.0.31
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_31_remaining_full_suite_contract_alignment.py
+```
+
+Mục tiêu: `26/26 checks passed`.
+
+### Runtime gates
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm run lint
+$env:NEXT_PUBLIC_API_URL="/api"
+npm run build
+
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+docker compose -f docker-compose.yml -f docker-compose.https.yml --profile observability up -d --build
+docker compose -f docker-compose.yml -f docker-compose.https.yml --profile observability ps
+
+cd .\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+npx playwright test --project=chromium
+```
+
+Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.31
+```
+
+## V77.0.32 — Final-Four Runtime Contract Alignment
+
+Baseline runtime thực tế của V77.0.31 trên Windows + Docker + Microsoft Edge:
+
+```text
+Verifier V77.0.31         26/26 PASS
+Lint                       PASS (exit 0)
+Production build           PASS (68/68 pages)
+Docker health              PASS
+/healthz                   PASS
+Targeted V59/V64/V56       3/3 PASS
+Focused 11-test regression 7 passed / 4 failed
+```
+
+Bốn lỗi còn lại không phải một lỗi backend chung: payment timeline vẫn phụ thuộc copy cũ `Xem timeline`/raw enum, movie detail cần tách core payload khỏi auxiliary request, Finance hiển thị trạng thái đối soát đã Việt hóa trong khi E2E bắt `CLEAN`, và V47 lặp lại cùng timeline-copy contract. V77.0.32 thêm machine-readable timeline/reconciliation contracts và tách core movie load khỏi auxiliary requests.
+
+### Verify V77.0.32
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_32_final_four_runtime_contract_alignment.py
+```
+
+Mục tiêu: `16/16 checks passed`.
+
+### Focused 4-test regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/booking-flow.spec.ts `
+  e2e/discovery-calendar.spec.ts `
+  e2e/financial-ledger.spec.ts `
+  e2e/payment-operations-v47.spec.ts `
+  --project=chromium
+```
+
+Sau focused gate, chạy `npx playwright test --project=chromium`. Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`.
+
+## V77.0.33 — Final-Two Runtime Contract Alignment
+
+Baseline runtime thực tế của V77.0.32 trên Windows + Docker + Microsoft Edge:
+
+```text
+Verifier V77.0.32          16/16 PASS
+Lint                        PASS (exit 0)
+Production build            PASS (68/68 pages)
+Docker health               PASS
+/healthz                    PASS
+Targeted V59/V64/V56        3/3 PASS
+Focused 4-test regression   2 passed / 2 failed
+```
+
+Hai lỗi còn lại là contract/runtime edge-case tách biệt. Booking Flow mở đúng trang vé nhưng E2E vẫn tìm QR qua alt text cũ `QR URL vé CineBooking`, trong khi giao diện hiện tại đã Việt hóa thành `Đường dẫn QR vé CineBooking`. Movie Detail vẫn có thể mất surface nếu core `/movies/{id}` gặp một lỗi đọc tạm thời vì client chỉ thử đúng một lần; focused E2E cũng chỉ chờ surface mà không dùng recovery navigation chuẩn đã có.
+
+V77.0.33 thêm `ticket-qr-v33` + `data-booking-id`, dùng selector machine-readable trong Booking Flow, retry **chỉ** core movie GET tạm thời trong cửa sổ hữu hạn 12 giây (không retry 4xx business/not-found), và chuyển Discovery sang `gotoSurface(...)` để có đúng một recovery navigation nếu surface chưa hội tụ. Auxiliary showtime/review/recommendation vẫn dùng `Promise.allSettled` và không thể làm mất core movie payload.
+
+### Verify V77.0.33
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_33_final_two_runtime_contract_alignment.py
+```
+
+### Focused 2-test regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/booking-flow.spec.ts `
+  e2e/discovery-calendar.spec.ts `
+  --project=chromium
+```
+
+Sau focused gate, chạy `npx playwright test --project=chromium`. Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.33
+```
+
+## V77.0.34 — Ticket Control Runtime Contract Alignment
+
+Baseline runtime thực tế của V77.0.33 trên Windows + Docker + Microsoft Edge:
+
+```text
+Verifier V77.0.33          18/18 PASS
+Lint                        PASS (exit 0)
+Production build            PASS (68/68 pages)
+Docker health               PASS
+/healthz                    PASS
+Targeted V59/V64/V56        3/3 PASS
+Focused 2-test regression   1 passed / 1 failed
+```
+
+Discovery Calendar đã PASS. Lỗi còn lại duy nhất nằm trong Booking Flow sau khi QR `ticket-qr-v33` đã hiển thị đúng: E2E vẫn tìm nút bằng copy cũ `Mã booking`, trong khi UI hiện tại dùng `Mã đặt vé`. Đây là regression selector/presentation, không phải lỗi booking/payment/QR backend.
+
+V77.0.34 thêm machine selectors ổn định cho ba action trên trang vé: `ticket-add-calendar`, `ticket-copy-booking-code` + `data-booking-id`, và `ticket-print`. Booking Flow dùng các contract này thay cho copy hiển thị, đồng thời xác nhận nút copy code thuộc đúng booking vừa thanh toán. Không thay đổi nghiệp vụ, không retry write, không đổi schema và không tạo Admin mới.
+
+### Verify V77.0.34
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_34_ticket_control_runtime_contract_alignment.py
+```
+
+### Focused final regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/booking-flow.spec.ts `
+  e2e/discovery-calendar.spec.ts `
+  --project=chromium
+```
+
+Sau focused gate, chạy `npx playwright test --project=chromium`. Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.34
+```
+
+
+
+## V77.0.35 — Admin Payments Runtime Contract Alignment
+
+Runtime Windows của V77.0.34 đã qua verifier `14/14`, lint/build, Docker health và targeted V59/V64/language `3/3`. Focused `booking-flow + discovery-calendar` đạt `1 passed / 1 failed`: Discovery đã xanh; Booking Flow đi qua QR và ticket controls nhưng dừng sau Admin/staff check-in vì vẫn tìm heading cũ `Thanh toán production & đối soát` trên `/admin/payments`. Surface hiện hành đã dùng copy `Thanh toán vận hành & đối soát`; canonical V60 E2E từ trước đã có readiness contract ổn định `payment-production-readiness-v60`.
+
+V77.0.35 không đổi UI hoặc nghiệp vụ để chiều test. Booking Flow chuyển sang đúng contract đang được V60 dùng: `gotoSurface(page, "/admin/payments", "payment-production-readiness-v60")`, xác nhận readiness panel và `payment-readiness-mock-v60`. Hai assertion presentation cũ `Thanh toán production & đối soát` và `Payment Production · V60` bị loại khỏi Booking Flow. Historical V60 source verifier được mở rộng forward-compatible để chấp nhận cùng machine readiness contract thay cho việc buộc Booking Flow giữ copy cũ. Không retry business write, không đổi schema và không tạo Admin mới.
+
+### Verify V77.0.35
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_35_admin_payments_runtime_contract_alignment.py
+```
+
+### Focused final regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/booking-flow.spec.ts `
+  e2e/discovery-calendar.spec.ts `
+  --project=chromium
+```
+
+Sau focused gate, chạy `npx playwright test --project=chromium`. Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.35
+```
+
+## V77.0.36 — Final Three Full-Suite Runtime Recovery
+
+Runtime Windows của V77.0.35 đã đóng toàn bộ focused gate trước đó: verifier `16/16`, lint/build, Docker health, `/healthz`, targeted V59/V64/language `3/3` và focused `booking-flow + discovery-calendar` `2/2` đều PASS. Full Browser E2E sau đó đạt **43 passed / 3 failed**. Ba lỗi còn lại đều là read/runtime convergence sau navigation hoặc reload, không phải lỗi business write:
+
+- **V51 Analytics**: sau `page.reload()`, shell `analytics-v51` đã render nhưng `forecast-v51` chưa xuất hiện trong cửa sổ 15 giây.
+- **V63 Recommendation 4.0**: sau reload, shell `for-you-v63` đã có nhưng recommendation reason chưa hội tụ vì home/profile read chưa hoàn tất.
+- **V39 Seat Map contention**: sau race 200/409, loser navigation có thể chưa tải được seat map nên button theo `data-seat-code` chưa tồn tại dù hold write đã hoàn tất đúng.
+
+V77.0.36 xử lý ở đúng read contract thay vì nới assertion. Analytics thêm bounded transient GET retry 12 giây cho dashboard; E2E dùng `loginExistingAdmin`, `ensureSurface(...forecast-v51...)` và không còn fallback Admin. Recommendation home/profile dùng bounded transient read retry, đồng thời `for-you-v63` expose `data-recommendation-ready=true` chỉ sau khi cả hai payload thật đã về; reload E2E chờ contract này trước khi xác minh explainability. Booking core showtime + seat-map GET cũng có bounded transient retry 12 giây; seat map expose `booking-seat-map-v39` + `data-showtime-id`, và V39 E2E dùng `gotoSurface(...)` cho second client/loser navigation. Các POST/DELETE hold vẫn **single-shot**, không retry business write.
+
+### Verify V77.0.36
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_36_final_three_full_suite_runtime_recovery.py
+```
+
+### Focused 3-test regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/analytics-forecasting-v51.spec.ts `
+  e2e/recommendation-4-v63.spec.ts `
+  e2e/seat-map-ux.spec.ts `
+  --project=chromium
+```
+
+Sau focused gate, chạy `npx playwright test --project=chromium`. Stable release chỉ được tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.36
+```
+
+## V77.0.37 — Full-Suite Policy & Alert Runtime Recovery
+
+Runtime Windows của V77.0.36 đã qua verifier `20/20`, lint/build, Docker health, `/healthz` và focused V51/V63/V39 `3/3`. Full Browser E2E sau đó đạt **42 passed / 4 failed**. Bốn lỗi còn lại cùng nằm ở read/presentation convergence hoặc realtime DOM race, không phải lỗi business write:
+
+- **V75 Analytics & BI**: shell `analytics-bi-v75` đã render nhưng summary payload chưa hội tụ, nên `analytics-bi-policy-v75` chỉ có phần mô tả tiếng Việt và chưa có policy `REAL_OPERATIONAL_DATA_ONLY` / `NO_SYNTHETIC_FUNNEL_EVENTS`.
+- **V69 Backup & DR**: trang render fallback `Bằng chứng CSDL: —`, `Danh mục trọng yếu: 0 bảng` trước khi summary thật về; backend V69 vẫn trả `immutableEvidence=true` khi summary đọc thành công.
+- **V59 Realtime Operations**: live alert snapshot có thể đổi giữa `actionGroups.count()` và `ack.isEnabled()`, khiến Playwright chờ một button presentation đã biến mất cho đến hết timeout 90 giây.
+- **V76 Recommendation 5.0**: Admin shell đã render nhưng evidence policy payload chưa hội tụ, nên các raw policy codes chưa tồn tại trong DOM dù surface đã có.
+
+V77.0.37 xử lý ở contract đọc và machine state thay vì nới nghiệp vụ. V75 Analytics BI, V69 Backup/DR và V76 Admin Recommendation dùng bounded transient GET retry trong cửa sổ 12 giây, chỉ retry network/408/425/429/5xx. Các surface expose readiness/evidence state lấy từ payload thật: `data-analytics-bi-ready`, `data-dr-ready`, `data-evidence-mode=APPEND_ONLY`, `data-recommendation-admin-ready` cùng các policy attributes. `/for-you` cũng expose policy attributes từ `home.evidencePolicy` sau `data-recommendation-ready=true`.
+
+V59 alert card expose `operations-control-alert-v59` + `data-alert-fingerprint` + `data-alert-state`; action dùng `operations-alert-ack-v59` / `operations-alert-resolve-v59`. E2E chỉ thao tác alert đang `OPEN`, giới hạn kiểm tra action trong 2 giây và theo dõi đúng fingerprint đến `ACKNOWLEDGED`, nên realtime refresh không còn biến một locator stale thành timeout 90 giây. Các test V75/V69/V76/V59 đều dùng **Admin hiện hữu từ root `.env`**, không có fallback credential. Business writes không được tự retry.
+
+### Verify V77.0.37
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_37_full_suite_policy_alert_runtime_recovery.py
+```
+
+### Focused 4-test regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/analytics-bi-v75.spec.ts `
+  e2e/backup-disaster-recovery-v69.spec.ts `
+  e2e/realtime-operations-v59.spec.ts `
+  e2e/recommendation-5-v76.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu focused: `4 passed / 0 failed`. Sau đó chạy `npx playwright test --project=chromium`; stable release chỉ tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.37
+```
+
+## V77.0.38 — Release-Gate Readiness Recovery
+
+Runtime Windows của V77.0.37 đã chứng minh source/runtime chính ổn định: verifier `26/26`, lint/build, Docker health, focused 4-test `4/4` và một lượt full Browser E2E trực tiếp đạt **46 passed / 0 failed**. Tuy nhiên khi chạy `./scripts/release.ps1 v77.0.37`, release flow rebuild/restart Docker rồi chạy lại full Browser E2E và xuất hiện **44 passed / 2 failed**. Release script đã fail-closed trước commit/push/tag/release. Hai lỗi là read-convergence sau fresh runtime, không phải business-write failure:
+
+- **V66 Booking Consistency & Seat Locking**: Admin Seat Operations đã render shell nhưng `seat-consistency-summary-v66` vẫn còn placeholder `—` khi assertion chạy. V77.0.38 thêm bounded transient GET retry 12 giây cho `/me` + `/admin/seat-operations/summary`, expose `data-seat-summary-ready` / `data-summary-ready` và machine counts. E2E chờ authoritative readiness trước khi xác minh hold đang hoạt động. Hold POST/DELETE vẫn single-shot.
+- **V77 CRM Automation 5.0**: `crm-policy-v77` đã render phần mô tả nhưng summary/evidence payload chưa hội tụ nên raw policy codes chưa có trong DOM. V77.0.38 thêm bounded transient GET retry 12 giây, `data-crm-ready` và sáu evidence-policy machine attributes. E2E dùng các attributes sau khi payload thật sẵn sàng, không phụ thuộc timing của presentation codes.
+
+Cả hai E2E được chuyển sang `loginExistingAdmin(...)`; không còn hardcoded fallback Admin/password. Retry chỉ áp dụng cho read network/HTTP `408/425/429/5xx`; authorization/business errors fail-closed. Source vẫn Flyway V72 và lịch sử nâng cấp tiếp tục gộp duy nhất trong `README.md`.
+
+### Verify V77.0.38
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_38_release_gate_readiness_recovery.py
+```
+
+### Focused release-gate regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  --project=chromium
+```
+
+Mục tiêu focused: `2 passed / 0 failed`. Sau đó chạy `npx playwright test --project=chromium`; stable release chỉ tạo khi full Browser E2E đạt `46 passed / 0 failed`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.38
+```
+
+## V77.0.39 — Zero-Warning Full-UI Language Contract
+
+Runtime Windows của V77.0.38 đã qua verifier `26/26` và production build Next.js/TypeScript `68/68`, nhưng zero-warning lint dừng ở đúng một warning: `frontend/e2e/crm-automation-5-v77.spec.ts` còn import `type Page` không sử dụng (`@typescript-eslint/no-unused-vars`), làm `eslint . --max-warnings=0` trả exit code `1`. V77.0.39 loại import thừa này; không suppress rule và không hạ chuẩn lint.
+
+Audit source cho thấy nguyên nhân nhiều nút không đổi khi bấm **EN** là các surface legacy vẫn render copy tiếng Việt tĩnh dù `LanguageProvider` đã đổi state toàn cục. V77.0.39 xử lý theo hai lớp:
+
+- **Presentation-owned cho shared/navigation:** `Header`, PWA manager, MovieCard, PasswordInput/Strength, StarRating và LanguageSwitcher dùng trực tiếp language state để render VI/EN. Header drawer/desktop menu được rà lại các entry Manager/Admin; các nút chuyển ngôn ngữ có machine selector `language-switch-vi` / `language-switch-en`.
+- **Compatibility bridge cho surface legacy:** `LegacyUiLocalizationBridge` chỉ dịch các chuỗi UI đã được audit trong catalog `interactive-ui-translations.ts`. Phạm vi gồm menu, button, link, label, option, placeholder, `aria-label`, `title`, `alt` và heading. Bridge theo dõi DOM được render muộn bằng `MutationObserver`, phục hồi nguyên văn copy Việt khi bấm VN và không dịch enum/status machine, payload backend, tên phim, email/ID hay dữ liệu nghiệp vụ động.
+
+Catalog V77.0.39 chứa hơn 1.400 mục VI→EN đã audit. Static source audit bảo đảm toàn bộ literal tiếng Việt trong các control tương tác được catalog/source-owned; heading chính cũng được phủ. Service Worker cache generation tăng lên `v77-0-39` để shell cũ không giữ bundle giao diện trước bản sửa.
+
+E2E `realtime-operations-v59-language.spec.ts` vẫn là một journey hiện hữu (không tăng số lượng full suite) nhưng mở rộng kiểm tra: chuyển EN, quét interactive controls để phát hiện rò copy Việt, đi qua `/admin/vouchers`, `/admin/analytics-bi`, `/admin/actions-runtime`, sau đó chuyển lại VN và xác nhận copy Việt trở lại.
+
+V77.0.39 không đổi schema; database authority vẫn Flyway V72. Không tạo Admin mới, không hard-code/fallback password và không thay đổi business write/retry policy. Source tiếp tục chỉ có **một `README.md`** cho toàn bộ lịch sử phiên bản.
+
+### Verify V77.0.39
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_39_zero_warning_full_ui_language_contract.py
+```
+
+### Language regression + full gate
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  --project=chromium
+
+npx playwright test --project=chromium
+```
+
+Stable release chỉ được tạo khi zero-warning lint, build, Docker health và full Browser E2E đều xanh:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+.\scripts\release.ps1 v77.0.39
+```
+
+## V77.0.40 - Runtime Language Boundary & Full-UI EN Regression Fix
+
+Windows validation of V77.0.39 confirmed the source verifier `38/38`, zero-warning lint exit code `0`, production build, and healthy Docker runtime. The targeted language run then exposed one remaining V59 regression: the test rejected the entire Operations Control root whenever any Vietnamese diacritic was present. That mixed presentation copy with legitimate business data such as cinema names, and the hidden V58 compatibility marker was still fixed Vietnamese text.
+
+V77.0.40 fixes the boundary instead of translating business data:
+
+- `operations-control-center-v58` now follows the active VI/EN language and renders `Operations Control Center - V58` semantics in EN.
+- Dynamic cinema names remain unchanged business data and are marked with `data-i18n-skip="true"`; proper names are never machine-translated merely because EN is selected.
+- The V59 language regression now checks explicit presentation-owned headings/controls and removes opted-out business-data descendants before searching interactive UI for Vietnamese leakage.
+- The EN browser sweep now keeps one persisted language session across `/`, `/movies`, `/cinemas`, `/payments`, `/support`, `/admin`, `/admin/payments`, `/admin/staff`, `/admin/support`, and `/admin/crm-automation` (plus the existing voucher/BI/actions regression surfaces).
+- Movie/cinema/customer/staff values rendered inside interactive controls are marked as source-owned business data where needed, so the regression rejects Vietnamese UI copy without translating names, identifiers, movie metadata, or backend-derived values.
+- `LegacyUiLocalizationBridge` now includes `[alt]` in the initial attribute walk, closing the alt-only first-paint gap while retaining MutationObserver handling for later changes.
+- The V77.0.39 zero-warning CRM import fix remains intact; no ESLint suppression is added.
+- Service Worker cache generation advances to `v77-0-40`.
+
+This patch does not change schema, payment/booking business writes, or Admin credentials. Flyway remains V72 and the repository continues to keep all upgrade history in this single README.md.
+
+### Verify V77.0.40
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_40_runtime_language_boundary_fix.py
+```
+
+### Language regression
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  --project=chromium
+```
+
+After the targeted gate is green, run the full suite and only then release `v77.0.40`.
+
+## V77.0.41 - Movies Presentation-Language Runtime Fix
+
+Windows targeted validation of V77.0.40 reached the expanded EN sweep and exposed the next concrete leak on `/movies`: `Tìm phim`, `Thể loại` and `Phân loại` were still hard-coded Vietnamese presentation text. The regression correctly ignored source-owned genre/rating values, but the label copy itself was not owned by the active language state.
+
+V77.0.41 moves the complete movie discovery presentation surface onto `usePresentationLanguage()` instead of relying on the legacy bridge for these controls:
+
+- Search, genre, language and rating labels now render directly from the live VI/EN state.
+- Search placeholder, tabs, default filter options, sort controls, result summary, reset button, heading and empty state all switch in the same render.
+- Dynamic genre/language/rating values from movie data remain unchanged business data and keep `data-i18n-skip="true"`.
+- The V59 cross-surface E2E now asserts the four `/movies` labels explicitly in EN before running the generic Vietnamese-leak audit.
+- Playwright continues to resolve `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` from the existing root `.env` `ADMIN_EMAIL` / `ADMIN_PASSWORD`; this patch does not introduce a new Admin account.
+- Service Worker cache generation advances to `v77-0-41` so a browser that already cached V77.0.40 cannot keep the stale movie page bundle.
+
+No schema migration is added; Flyway remains V72 and all version history remains in this single `README.md`.
+
+### Verify V77.0.41
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_41_movies_language_surface_fix.py
+```
+
+### Targeted runtime gate
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  --project=chromium
+```
+
+After the targeted gate is green, run the full 46-test browser suite and only then release `v77.0.41`.
+
+## V77.0.42 - Full-UI Language Completion
+
+Windows validation of V77.0.41 confirmed `24/24` source verification, zero-warning lint, a successful `68/68` production build, and a healthy full Docker stack. The expanded language journey then reached `/support` and exposed the next real EN leak: the category option `CINEMA_EXPERIENCE` was still rendered through the Vietnamese-only `viLabel(...)` path as `Trải nghiệm rạp`.
+
+V77.0.42 fixes the underlying language boundary broadly instead of adding one isolated string:
+
+- `LegacyUiLocalizationBridge` now composes the existing audited catalog, a new V77.0.42 presentation catalog, and `VI_LABEL_TO_EN`; rendered machine/status labels such as `Trải nghiệm rạp` therefore become `Cinema experience` in EN without changing the backend enum value.
+- A new presentation catalog adds **307 audited VI→EN entries** for customer/public and release-gate admin surfaces that still contained static Vietnamese body copy outside the older interactive-only catalog.
+- `/support` and `/payments` now render machine/status/category labels directly with `localizedLabel(value, language)` instead of relying on Vietnamese-only `viLabel(...)` output.
+- `/cinemas` now derives day, month, and time formatting from the live presentation locale (`vi-VN` / `en-US`), so EN no longer keeps Vietnamese calendar words.
+- Admin, staff, and CRM native `confirm()` / validation feedback touched by the sweep now have explicit VI/EN branches because DOM mutation cannot translate native browser dialogs.
+- Admin Support accessibility labels, Analytics BI day units, and voucher dynamic validation/status feedback now follow the active presentation language.
+- The V59 cross-surface language regression explicitly asserts the historical `Cinema experience` support option and expands the leak selector to headings, section kickers, empty states, and table headers in addition to buttons, labels, options, navigation, and placeholders.
+- Source verification audits the complete browser-sweep source set against direct language ownership, both translation catalogs, and canonical machine labels. Business data remains source-owned and is still excluded through `data-i18n-skip="true"` where needed.
+- Service Worker cache generation advances to `v77-0-42` so browsers cannot keep V77.0.41 bundles after the language fix.
+
+The existing Admin account continues to come only from root `.env` (`ADMIN_EMAIL` / `ADMIN_PASSWORD`). No new Admin account is created. No schema migration is added; Flyway remains V72.
+
+### Verify V77.0.42
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_42_full_ui_language_completion.py
+```
+
+### Targeted VN → EN → VN runtime gate
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  --project=chromium
+```
+
+Expected targeted gate: `3 passed / 0 failed`. After that, run the full 46-test browser suite and only then release `v77.0.42`.
+
+## V77.0.43 - Literal-Level Language Audit Fix
+
+Windows validation of V77.0.42 confirmed `28/28` source verification, zero-warning lint, a successful `68/68` production build, and a healthy full Docker stack. The targeted VN → EN journey then exposed another concrete Admin Payments leak: the table headers `Lần thử` and `Đơn vị thanh toán / Cổng thanh toán` remained Vietnamese in EN mode.
+
+The important root cause was in the verifier itself: V77.0.42 marked an entire source line as language-owned whenever that line contained any `t(...)`, `localizedLabel(...)`, or language branch. Compact JSX in `admin/payments/page.tsx` keeps an entire table row on one line, so unrelated Vietnamese `<th>` literals on that same line were falsely accepted.
+
+V77.0.43 corrects both runtime copy and the verification model:
+
+- A focused V77.0.43 presentation catalog adds the missing Admin Payments headers plus remaining static release-gate text/fragments found by literal-level scanning.
+- The legacy bridge checks the V77.0.43 catalog before the V77.0.42 fallback and canonical machine/status labels.
+- The browser regression explicitly requires `Attempt` and `Merchant / Payment gateway` on `/admin/payments` before the generic Vietnamese-leak audit runs.
+- The new verifier audits literal JSX text nodes and quoted presentation literals independently instead of trusting an entire source line because one sibling expression is localized.
+- Existing V77.0.39–V77.0.42 language verifiers remain forward-compatible with the V77.0.43 stable target and Service Worker generation.
+- Service Worker cache generation advances to `v77-0-43` so a browser cannot retain V77.0.42 UI bundles.
+
+The existing Admin account continues to come only from root `.env` (`ADMIN_EMAIL` / `ADMIN_PASSWORD`). No new Admin account is created. No schema migration is added; Flyway remains V72.
+
+### Verify V77.0.43
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_43_language_literal_audit_fix.py
+```
+
+### Targeted VN → EN → VN runtime gate
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/realtime-operations-v59-language.spec.ts `
+  e2e/crm-automation-5-v77.spec.ts `
+  e2e/booking-consistency-seat-locking-v66.spec.ts `
+  --project=chromium
+```
+
+Expected targeted gate: `3 passed / 0 failed`. After that, run the full 46-test browser suite and only then release `v77.0.43`.
+
+
+
+## V77.0.44 - CRM Payload Localization + V66 Authority Visibility Fix
+
+V77.0.44 closes the two runtime failures observed after V77.0.43 passed verifier/lint/build/Docker:
+
+- `booking-consistency-seat-locking-v66.spec.ts` could not find `seat-hold-authority-v66` because the marker was incorrectly rendered only after `held=true`. The authority marker now renders whenever the booking surface is available and still reports `POSTGRESQL_WITH_REDIS_MIRROR` (or the backend-provided authority).
+- `/admin/crm-automation` playbook cards were still using raw backend Vietnamese `label`, `definition`, and `recommendedAction` even though `playbookCopy()` already had canonical English copy. The cards now use `playbookCopy(p, language)`, and their Eligible/Ready/Blocked/Suggestion/Default discount labels use the live presentation language.
+- The language E2E explicitly proves `Activate first booking`, `VIP appreciation`, the English suggestion copy and `Default discount` while preserving source-owned business data boundaries.
+- Service Worker cache generation advances to `v77-0-44`. Flyway remains V72 and Admin credentials remain sourced from the root `.env`.
+
+### Verify V77.0.44
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_44_crm_payload_v66_authority_fix.py
+```
+
+Expected: `V77.0.44 CRM payload/V66 authority verification: 22/22 checks passed`.
+
+## V77.0.45 - Full-Suite Repeatability + Accessibility Contract Fix
+
+V77.0.45 closes the final two failures observed after V77.0.44 reached targeted **3/3** and the full browser suite reached **44/46**:
+
+- `discovery-calendar.spec.ts` timed out waiting for the accessible link name `Xem chi tiết Hành Trình Sao Hỏa`. V77.0.44's `MovieCard` had inserted punctuation (`Xem chi tiết: Hành Trình Sao Hỏa`), which drifted from the long-standing accessibility/E2E contract. `MovieCard` now renders `Xem chi tiết <movie>` / `View details <movie>` again without the colon.
+- `showtime-smart-planner-v49.spec.ts` received `suggested=0` on the fixed date `2026-10-15`. The Smart Planner business logic was valid; the E2E was not repeatable against the persistent Docker database because successful historical runs could keep adding showtimes to the same date. The test now derives an isolated future planning date per execution.
+- After a successful Smart Planner commit, the E2E captures the authoritative commit response and deletes only the temporary showtimes created by that test, using the already authenticated Admin bearer token. The planning run remains as provenance. Cleanup runs in `finally`, so later assertion failures do not leave the generated showtimes behind.
+- The test still requires a non-zero suggestion, still commits through the real backend, and still verifies the Smart Planner run history. No planner conflict, maintenance, spacing, scoring, or transaction rule is weakened.
+- Service Worker cache generation advances to `v77-0-45`. Flyway remains V72 and the existing Admin account remains sourced from root `.env`.
+
+### Verify V77.0.45
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_45_full_suite_repeatability_accessibility_fix.py
+```
+
+Expected: `V77.0.45 full-suite repeatability/accessibility verification: 18/18 checks passed`.
+
+## V77.0.46 - PWA Readiness + Full-Suite Language Sweep Stabilization
+
+Windows validation of V77.0.45 confirmed the dedicated verifier, zero-warning lint, the `68/68` production build, a healthy full Docker stack, the focused Discovery/Smart-Planner gate at **2/2**, and the VN/EN/V66 targeted gate at **3/3**. The full 46-test browser suite then reached **44/46** with two remaining full-suite-only failures:
+
+- `pwa-mobile-v52.spec.ts` stayed at `data-delivery-mode="LOADING"` for 30 seconds. `/mobile` was waiting for `registerCurrentPwaDevice()` before reading `/pwa/config`; device registration in turn waited indefinitely on `navigator.serviceWorker.ready`. Under a long browser suite, delayed Service Worker activation could therefore block an unrelated server configuration value. V77.0.46 fetches and publishes the authoritative push configuration first, then performs browser-device registration. The registration helper now uses an existing registration when available and otherwise applies a bounded Service Worker readiness fallback. It never invents `VAPID_BACKGROUND` or `FOREGROUND_FALLBACK`; those values still come only from `/api/pwa/config`.
+- `realtime-operations-v59-language.spec.ts` timed out at the global 90-second limit while running the broad VN/EN release sweep. The same test had already passed in the targeted 3/3 gate, and its sweep intentionally navigates across 13 public/customer/admin surfaces. V77.0.46 removes three duplicate post-sweep navigations by moving their exact assertions into the existing route loop, and gives this one comprehensive language test a dedicated 180-second timeout. The actual language assertions remain unchanged and are not relaxed.
+
+Service Worker cache generation advances to `v77-0-46`. Flyway remains V72. Existing Admin credentials continue to come only from the root `.env`.
+
+### Verify V77.0.46
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_46_pwa_readiness_language_sweep_stabilization.py
+```
+
+Expected: `V77.0.46 PWA readiness/language sweep verification: 20/20 checks passed`.
+
+### Focused runtime gate
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+$env:PLAYWRIGHT_BASE_URL="https://localhost"
+$env:PLAYWRIGHT_BROWSER_CHANNEL="msedge"
+
+npx playwright test `
+  e2e/pwa-mobile-v52.spec.ts `
+  e2e/realtime-operations-v59-language.spec.ts `
+  --project=chromium
+```
+
+Expected focused gate: `2 passed / 0 failed`. Then rerun the targeted 3/3 and full 46-test suite before releasing `v77.0.46`.
+
+## V77.0.47 - Historical Release-Gate Forward Compatibility
+
+Windows validation of V77.0.46 completed the runtime release gates successfully: dedicated verifier **20/20**, zero-warning lint, production build **68/68**, healthy full Docker stack, focused PWA/V59 **2/2**, targeted language/CRM/V66 **3/3**, and the full browser suite **46/46**. The stable release script then stopped during source preflight at the historical `verify_v77_0_9_vietnamese_ui_maintenance_completion.py` gate with **64/66** checks.
+
+The first two failing historical checks were stale implementation-shape assertions, not runtime failures: Payment status and Support case status/category are now rendered through `localizedLabel(value, language)` via a local `label(...)` helper, while the old V77.0.9 verifier recognized only direct `viLabel(...)` calls. V77.0.47 updates that historical verifier to accept either contract while still requiring explicit render-time localization of the exact status/category fields.
+
+A full replay of the stable preflight also exposed the next stale historical assertion in V77.0.14: it rejected any `.evaluate(...)` call in the Smart-Planner E2E, even though V77.0.45 introduced a legitimate `page.evaluate(...)` only to read the existing authenticated token for cleanup. The original V77.0.14 risk was specifically evaluating `<option>` nodes to read `.value`, so V77.0.47 narrows that verifier to reject option-node evaluation while allowing unrelated authenticated-page evaluation.
+
+This patch also advances all later V77.0.29+ forward-compatibility metadata to the V77.0.47 stable target, adds a dedicated V77.0.47 verifier, and wires it into stable release, CI, diagnostics and Makefile. No payment/support business logic, browser behavior, schema, seed data or Admin credential policy changes. Service Worker metadata advances to `v77-0-47` for version consistency.
+
+### Verify V77.0.47
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_47_historical_release_gate_forward_compatibility.py
+python -X utf8 .\tools\verify_v77_0_9_vietnamese_ui_maintenance_completion.py
+python -X utf8 .\tools\verify_v77_0_14_navigation_language_dropdown_localization.py
+```
+
+Expected: the V77.0.47, V77.0.9 and V77.0.14 historical gates pass. Because V77.0.46 already reached full browser **46/46**, rerun the normal stable release preflight on the V77.0.47 source and release only if every source/runtime/CI gate remains green.
+
+## V77.0.48 - Maintenance Success-Feedback Timer Ownership
+
+Windows stable-release validation of V77.0.47 passed the repaired historical source gates, dependency audit, zero-warning lint, production build and healthy full Docker stack. The release Browser E2E gate then reached **45/46** with one failure in `maintenance-reliability.spec.ts`: after submitting the valid two-character result `ok`, the transition dialog closed but `maintenance-success-message` was missing before the assertion could observe `Đã hoàn tất phiếu bảo trì`.
+
+The maintenance UI previously allowed every call to `announce()` to start an independent four-second timeout. The V44 journey generates several messages in quick succession (equipment created, work order created, work started, work completed). An older timeout could therefore fire after a newer message had been published and clear the new message. V77.0.48 gives the success-message lifecycle a single owner through `messageTimerRef`: a new announcement first cancels the previous timeout, publishes its own text, installs one bounded timeout, and releases the timer reference when it fires. The timer is also cancelled on component unmount.
+
+The transition contract itself is unchanged: the backend transition still completes first, the dialog closes only after the transition succeeds, the success message is published before the authoritative `load()`, and the browser regression still requires the exact `ok` result, resolved status, persisted `Kết quả: ok`, history transition and visible completion feedback. No retry, longer global timeout, database reset, schema migration or weakened assertion is introduced. Service Worker metadata advances to `v77-0-48`; Flyway remains V72 and Admin credentials remain sourced only from the root `.env`.
+
+### Verify V77.0.48
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_48_maintenance_success_feedback_timer_ownership.py
+```
+
+Expected: `V77.0.48 maintenance success-feedback timer ownership verification: 22/22 checks passed`. Then run the focused V44 E2E and the normal stable release flow.
+
+## V77.0.49 - Release Staging Whitespace Preflight
+
+V77.0.48 passed the focused maintenance browser journey and the complete 46-test browser suite. During the stable-only release command, the same full Browser E2E gate passed again, so GitHub publication became eligible. The next fail-closed staging guard then rejected the staged tree because `README.md` ended with an extra blank line (`new blank line at EOF`). No Git commit, push, tag, or GitHub Release was started.
+
+V77.0.49 keeps `git diff --cached --check` unchanged and fixes the source hygiene instead of weakening the release gate. The root README now ends with exactly one newline byte, and `verify_v77_0_49_release_staging_whitespace_preflight.py` checks that README has a canonical single newline EOF, rejects duplicate terminal blank lines, confirms the Git staged-diff whitespace gate remains enabled, and remains no-schema on Flyway V72. This catches the release blocker during source preflight before dependency audit, build, Docker, and the full browser suite.
+
+### Verify V77.0.49
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_49_release_staging_whitespace_preflight.py
+```
+
+Expected: `V77.0.49 release staging whitespace preflight verification: 20/20 checks passed`. Then run the normal stable release flow with `.\scripts\release.ps1 v77.0.49`.

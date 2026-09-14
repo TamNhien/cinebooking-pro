@@ -56,15 +56,30 @@ function subscriptionFields(subscription:PushSubscription|null){
 
 export async function pushConfig(){return api<PwaPushConfig>("/pwa/config");}
 
+async function resolveServiceWorkerRegistration(timeoutMs=8_000):Promise<ServiceWorkerRegistration|null>{
+  if(typeof navigator==="undefined"||!("serviceWorker" in navigator))return null;
+  const existing=await navigator.serviceWorker.getRegistration().catch(()=>undefined);
+  if(existing)return existing;
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try{
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>(resolve=>{timer=setTimeout(()=>resolve(null),timeoutMs);}),
+    ]);
+  }finally{
+    if(timer)clearTimeout(timer);
+  }
+}
+
 export async function registerCurrentPwaDevice(options:{subscribe?:boolean}={}){
   const auth=getAuth();
   if(!auth||typeof navigator==="undefined"||!("serviceWorker" in navigator))return {device:null as PwaDevice|null,config:null as PwaPushConfig|null,subscription:null as PushSubscription|null};
   const config=await pushConfig();
-  const registration=await navigator.serviceWorker.ready;
-  const pushManager=registration.pushManager;
+  const registration=await resolveServiceWorkerRegistration();
+  const pushManager=registration?.pushManager;
   let subscription=pushManager?await pushManager.getSubscription():null;
   if(options.subscribe&&config.enabled){
-    if(!pushManager)throw new Error("Trình duyệt không hỗ trợ PushManager.");
+    if(!registration||!pushManager)throw new Error("Service Worker chưa sẵn sàng cho Web Push.");
     if(typeof Notification==="undefined")throw new Error("Trình duyệt không hỗ trợ Web Push.");
     let permission=Notification.permission;
     if(permission!=="granted")permission=await Notification.requestPermission();
@@ -84,8 +99,8 @@ export async function registerCurrentPwaDevice(options:{subscribe?:boolean}={}){
 
 export async function disableCurrentDevicePush(){
   const auth=getAuth();if(!auth||typeof navigator==="undefined"||!("serviceWorker" in navigator))return;
-  const registration=await navigator.serviceWorker.ready;
-  const subscription=registration.pushManager?await registration.pushManager.getSubscription():null;
+  const registration=await resolveServiceWorkerRegistration();
+  const subscription=registration?.pushManager?await registration.pushManager.getSubscription():null;
   if(subscription)await subscription.unsubscribe().catch(()=>false);
   const key=getPwaDeviceKey();
   await api<PwaDevice>(`/pwa/devices/${encodeURIComponent(key)}`,{method:"PUT",body:JSON.stringify({deviceLabel:deviceLabel(),platform:platformName(),userAgent:navigator.userAgent||"",standalone:isStandalonePwa(),pushEnabled:false,endpoint:null,p256dh:null,authSecret:null})});
@@ -96,7 +111,7 @@ export async function listPwaDevices(){return api<PwaDevice[]>(`/pwa/devices?cur
 
 export async function removePwaDevice(device:PwaDevice){
   if(device.current&&typeof navigator!=="undefined"&&"serviceWorker" in navigator){
-    const registration=await navigator.serviceWorker.ready;const subscription=registration.pushManager?await registration.pushManager.getSubscription():null;if(subscription)await subscription.unsubscribe().catch(()=>false);
+    const registration=await resolveServiceWorkerRegistration();const subscription=registration?.pushManager?await registration.pushManager.getSubscription():null;if(subscription)await subscription.unsubscribe().catch(()=>false);
   }
   await api(`/pwa/devices/${encodeURIComponent(device.deviceKey)}`,{method:"DELETE"});
 }

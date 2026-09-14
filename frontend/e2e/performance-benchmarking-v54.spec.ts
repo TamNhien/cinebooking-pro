@@ -16,7 +16,7 @@ test("V54 admin benchmarks cinema performance with equal-window real-data metric
   await loginAdmin(page);
   await page.goto("/admin/performance");
 
-  await expect(page.getByTestId("performance-benchmarking-v54")).toContainText("Performance Benchmarking · V54");
+  await expect(page.getByTestId("performance-benchmarking-v54")).toContainText("Đối chuẩn hiệu suất · V54");
   await expect(page.getByTestId("performance-summary-v54")).toBeVisible();
   await expect(page.getByTestId("performance-branches-v54")).toBeVisible();
   await expect(page.getByTestId("performance-top-movies-v54")).toBeVisible();

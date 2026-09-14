@@ -20,7 +20,7 @@ makefile = text("Makefile")
 old = text("tools/verify_v77_0_12_typescript_localization_contract_hygiene.py")
 
 ok('import Link from "next/link";' in admin, "Admin dashboard imports Next Link")
-ok('<Link href="/" data-testid="admin-booking-seat-intelligence-v57"' in admin, "V57 dashboard entry uses Next Link for internal root navigation")
+ok(('<Link href="/" data-testid="admin-booking-seat-intelligence-v57"' in admin) or ('<Link href="/admin/booking-seat-intelligence" data-testid="admin-booking-seat-intelligence-v57"' in admin), "V57 dashboard entry uses Next Link for internal navigation")
 ok('<a href="/" data-testid="admin-booking-seat-intelligence-v57"' not in admin, "V57 dashboard entry no longer uses raw anchor to internal root")
 ok('Đặt vé & gợi ý ghế V57' in admin, "V57 visible label remains Vietnamese")
 ok('data-testid="admin-operations-control-v58"' in admin and 'Trung tâm vận hành V58' in admin, "V58 dashboard entry remains present and Vietnamese")

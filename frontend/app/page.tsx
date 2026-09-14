@@ -59,7 +59,7 @@ export default function Home(){
 
     <section className="feature-strip">
       <div><span>🎟️</span><div><b>{en?"Online booking":"Đặt vé trực tuyến"}</b><p>{en?"Choose a movie, cinema, date and showtime in one simple flow.":"Chọn phim, rạp, ngày và suất chiếu trong một luồng."}</p></div></div>
-      <div><span>💺</span><div><b>{en?"Realtime seats":"Ghế realtime"}</b><p>{en?"Seat availability updates instantly to reduce duplicate bookings.":"Trạng thái ghế cập nhật tức thời, hạn chế đặt trùng."}</p></div></div>
+      <div><span>💺</span><div><b>{en?"Realtime seats":"Ghế thời gian thực"}</b><p>{en?"Seat availability updates instantly to reduce duplicate bookings.":"Trạng thái ghế cập nhật tức thời, hạn chế đặt trùng."}</p></div></div>
       <div><span>🎯</span><div><b>{en?"Smart recommendations":"Gợi ý thông minh"}</b><p>{en?"Recommendations improve from favorites, ratings and booking history.":"Gợi ý học từ yêu thích, đánh giá và lịch sử đặt vé."}</p></div></div>
     </section>
 
@@ -67,7 +67,7 @@ export default function Home(){
       <div className="section-heading"><div><p className="section-kicker">{en?"BENEFITS":"ƯU ĐÃI"}</p><h2>{en?"Promotions & services":"Ưu đãi & tiện ích"}</h2></div><Link href="/promotions" className="text-sm font-semibold text-rose-400">{en?"View more →":"Xem thêm →"}</Link></div>
       <div className="promo-grid">
         <Link href="/promotions" className="promo-card promo-one"><small>{en?"MEMBERS":"THÀNH VIÊN"}</small><h3>{en?"Earn points with every booking":"Tích điểm mỗi lần đặt vé"}</h3><p>{en?"Track ticket history and membership benefits.":"Theo dõi lịch sử vé và quyền lợi hạng thành viên."}</p></Link>
-        <Link href="/promotions" className="promo-card promo-two"><small>{en?"ONLINE BOOKING":"ĐẶT VÉ ONLINE"}</small><h3>{en?"Choose seats before arriving":"Chọn ghế trước khi đến rạp"}</h3><p>{en?"Hold seats for a limited time and pay online.":"Giữ ghế trong thời gian giới hạn và thanh toán trực tuyến."}</p></Link>
+        <Link href="/promotions" className="promo-card promo-two"><small>{en?"ONLINE BOOKING":"ĐẶT VÉ TRỰC TUYẾN"}</small><h3>{en?"Choose seats before arriving":"Chọn ghế trước khi đến rạp"}</h3><p>{en?"Hold seats for a limited time and pay online.":"Giữ ghế trong thời gian giới hạn và thanh toán trực tuyến."}</p></Link>
         <Link href="/cinemas" className="promo-card promo-three"><small>{en?"SHOWTIMES":"LỊCH CHIẾU"}</small><h3>{en?"Find cinemas and showtimes":"Tìm rạp và suất chiếu"}</h3><p>{en?"Browse schedules by cinema and choose a convenient time.":"Xem lịch theo từng cụm rạp và chọn giờ phù hợp."}</p></Link>
       </div>
     </section>

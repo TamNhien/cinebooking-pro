@@ -2,12 +2,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, dateTime } from "@/lib/api";
-import { clearAuth } from "@/lib/auth";
+import { ApiError, api, dateTime } from "@/lib/api";
+import { clearAuth, getAuth } from "@/lib/auth";
 import { viLabel } from "@/lib/vi-labels";
 import type { SeatConsistencySummaryV66, SeatHoldItemV66, SeatReconcileResultV66, UserProfile } from "@/lib/types";
 
 const REFRESH_MS=5_000;
+
+async function withTransientSeatOperationsReadRetry<T>(read:()=>Promise<T>){
+  const deadline=Date.now()+12_000;
+  let attempt=0;
+  for(;;){
+    try{return await read();}
+    catch(error){
+      const status=error instanceof ApiError?error.status:0;
+      const retryable=status===0||status===408||status===425||status===429||status>=500;
+      if(!retryable||Date.now()>=deadline)throw error;
+      const delay=Math.min(250*(2**attempt),1500);
+      attempt+=1;
+      await new Promise(resolve=>setTimeout(resolve,delay));
+    }
+  }
+}
 
 function stateClass(state:string){
   if(state==="HELD")return "border-amber-700/60 bg-amber-950/35 text-amber-200";
@@ -24,16 +40,24 @@ export default function SeatOperationsV66(){
 
   const load=useCallback(async()=>{
     try{
-      const me=await api<UserProfile>("/me");
+      const [me,nextSummary]=await withTransientSeatOperationsReadRetry(()=>Promise.all([
+        api<UserProfile>("/me"),
+        api<SeatConsistencySummaryV66>("/admin/seat-operations/summary"),
+      ]));
       if(me.role!=="ADMIN"){
         clearAuth();window.location.assign("/login?returnTo=/admin/seat-operations&reason=admin");return;
       }
-      setSummary(await api<SeatConsistencySummaryV66>("/admin/seat-operations/summary"));
+      setSummary(nextSummary);
       setError("");
     }catch(e){setError((e as Error).message);}
   },[]);
 
-  useEffect(()=>{void load();const id=window.setInterval(()=>void load(),REFRESH_MS);return()=>window.clearInterval(id);},[load]);
+  useEffect(()=>{
+    if(!getAuth()){window.location.assign("/login?returnTo=/admin/seat-operations&reason=required");return;}
+    void load();
+    const id=window.setInterval(()=>void load(),REFRESH_MS);
+    return()=>window.clearInterval(id);
+  },[load]);
 
   async function reconcile(){
     setBusy(true);setMessage("");setError("");
@@ -45,7 +69,7 @@ export default function SeatOperationsV66(){
   }
 
   const active=useMemo(()=>summary?.recentHolds.filter(x=>x.state==="HELD")??[],[summary]);
-  return <div className="space-y-6" data-testid="seat-operations-v66">
+  return <div className="space-y-6" data-testid="seat-operations-v66" data-seat-summary-ready={summary?"true":"false"}>
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div><p className="section-kicker">V66 · NHẤT QUÁN ĐẶT VÉ & KHÓA GHẾ 4.0</p><h1 className="text-3xl font-black">🎫 Vận hành ghế</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">PostgreSQL giữ quyền sở hữu ghế bền vững; Redis chỉ mirror TTL để tăng tốc. Mọi checkout vẫn bị chặn cuối bằng unique invariant của booking_seat.</p></div>
       <div className="flex gap-2"><a className="btn btn-secondary" href="/admin">← Bảng điều khiển</a><button data-testid="seat-reconcile-v66" className="btn btn-primary" disabled={busy} onClick={reconcile}>{busy?"Đang đối soát...":"Đối soát CSDL ↔ Redis"}</button></div>
@@ -54,7 +78,7 @@ export default function SeatOperationsV66(){
     {error&&<div data-testid="seat-operations-error-v66" className="rounded-2xl border border-rose-800/70 bg-rose-950/40 p-4 text-rose-200">{error}</div>}
     {message&&<div className="rounded-2xl border border-emerald-800/70 bg-emerald-950/35 p-4 text-emerald-200">{message}</div>}
 
-    <div data-testid="seat-consistency-summary-v66" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+    <div data-testid="seat-consistency-summary-v66" data-summary-ready={summary?"true":"false"} data-active-holds={summary?.activeHolds??""} data-conflicts-24h={summary?.conflictsLast24Hours??""} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
       <Metric label="Lượt giữ ghế đang hoạt động" value={summary?.activeHolds??"—"}/>
       <Metric label="Hết hạn ≤60s" value={summary?.expiringWithin60Seconds??"—"}/>
       <Metric label="Đã chuyển đổi · 24 giờ" value={summary?.convertedLast24Hours??"—"}/>
@@ -86,7 +110,7 @@ export default function SeatOperationsV66(){
 
 function Metric({label,value}:{label:string;value:string|number}){return <div className="card p-4"><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</div><div className="mt-2 text-2xl font-black">{value}</div></div>}
 function Info({label,value}:{label:string;value:string}){return <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"><div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</div><div className="mt-1 break-all text-sm font-bold text-slate-200">{value}</div></div>}
-function HoldTable({rows}:{rows:SeatHoldItemV66[]}){return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm"><thead><tr className="text-left text-slate-500"><th className="p-3">Trạng thái</th><th className="p-3">Phim / Ghế</th><th className="p-3">Người dùng</th><th className="p-3">Token</th><th className="p-3">Tạo</th><th className="p-3">Hết hạn</th><th className="p-3">Đặt vé</th><th className="p-3">Sự kiện</th></tr></thead><tbody>{rows.length?rows.map(x=><tr key={x.id} className="border-t border-slate-800/80"><td className="p-3"><span className={`inline-flex rounded-full border px-2 py-1 text-xs font-bold ${stateClass(x.state)}`}>{viLabel(x.state)}</span></td><td className="p-3"><b>{x.movieTitle}</b><div className="text-slate-500">Ghế {x.seatCode}</div></td><td className="p-3">{x.userEmail}</td><td className="p-3 font-mono text-xs text-slate-400">{x.holdToken.slice(0,8)}…</td><td className="p-3">{dateTime(x.createdAt)}</td><td className="p-3">{dateTime(x.expiresAt)}</td><td className="p-3 font-mono text-xs text-slate-400">{x.convertedBookingId?`${x.convertedBookingId.slice(0,8)}…`:"—"}</td><td className="p-3 text-xs text-slate-400">{viLabel(x.lastEvent)}</td></tr>):<tr><td className="p-5 text-slate-500" colSpan={8}>Chưa có lượt giữ ghế trong lịch sử gần đây.</td></tr>}</tbody></table></div>}
+function HoldTable({rows}:{rows:SeatHoldItemV66[]}){return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm"><thead><tr className="text-left text-slate-500"><th className="p-3">Trạng thái</th><th className="p-3">Phim / Ghế</th><th className="p-3">Người dùng</th><th className="p-3">Mã xác thực</th><th className="p-3">Tạo</th><th className="p-3">Hết hạn</th><th className="p-3">Đặt vé</th><th className="p-3">Sự kiện</th></tr></thead><tbody>{rows.length?rows.map(x=><tr key={x.id} className="border-t border-slate-800/80"><td className="p-3"><span className={`inline-flex rounded-full border px-2 py-1 text-xs font-bold ${stateClass(x.state)}`}>{viLabel(x.state)}</span></td><td className="p-3"><b>{x.movieTitle}</b><div className="text-slate-500">Ghế {x.seatCode}</div></td><td className="p-3">{x.userEmail}</td><td className="p-3 font-mono text-xs text-slate-400">{x.holdToken.slice(0,8)}…</td><td className="p-3">{dateTime(x.createdAt)}</td><td className="p-3">{dateTime(x.expiresAt)}</td><td className="p-3 font-mono text-xs text-slate-400">{x.convertedBookingId?`${x.convertedBookingId.slice(0,8)}…`:"—"}</td><td className="p-3 text-xs text-slate-400">{viLabel(x.lastEvent)}</td></tr>):<tr><td className="p-5 text-slate-500" colSpan={8}>Chưa có lượt giữ ghế trong lịch sử gần đây.</td></tr>}</tbody></table></div>}
 /* V77.0.9 historical-verifier compatibility markers (not rendered):
 V66 · BOOKING CONSISTENCY & SEAT LOCKING 4.0
 */

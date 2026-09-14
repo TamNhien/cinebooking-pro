@@ -105,9 +105,21 @@ button, input, select, textarea { font: inherit; }
   .admin-action-grid .admin-action-btn,.admin-tab-grid .admin-tab-btn { justify-content:flex-start; text-align:left; }
 }
 
-.input { width:100%; border-radius:12px; padding:.8rem .9rem; border:1px solid #334155; background:#0f172a; color:white; outline:none; }
+.input { width:100%; min-width:0; border-radius:12px; padding:.8rem .9rem; border:1px solid #334155; background:#0f172a; color:white; outline:none; line-height:1.5; }
+/* V77.0.14 Chromium/Windows form-density + alignment fix: every single-line control shares one 52px rhythm. */
+.input:not(textarea) { min-height:52px; }
+select.input { min-height:52px; padding:.82rem 2.6rem .82rem .95rem; line-height:1.5; }
+select.input option { min-height:2.25rem; padding:.5rem .7rem; line-height:1.5; }
+textarea.input { resize:vertical; line-height:1.55; }
+label > span + select.input { margin-top:.12rem; }
 .input:focus { border-color:#f43f5e; box-shadow:0 0 0 3px rgba(244,63,94,.12); }
 .input:disabled { opacity:.55; cursor:not-allowed; }
+.admin-form-grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; align-items:stretch; }
+.admin-form-grid-2 > * { min-width:0; }
+.admin-form-stack { display:flex; min-width:0; flex-direction:column; gap:.75rem; }
+.admin-split-grid { display:grid; gap:1.5rem; grid-template-columns:minmax(360px,420px) minmax(0,1fr); align-items:start; }
+@media (max-width:900px) { .admin-split-grid { grid-template-columns:1fr; } }
+@media (max-width:640px) { .admin-form-grid-2 { grid-template-columns:1fr; } }
 
 .nav-link { color:#dbe3ef; transition:.15s ease; }
 .nav-link:hover { color:#fb7185; }

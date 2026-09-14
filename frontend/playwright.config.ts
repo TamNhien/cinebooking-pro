@@ -38,8 +38,13 @@ function loadProjectAdminCredentials(){
   // Explicit E2E_* always wins. Otherwise mirror the same ADMIN_* values that
   // Docker Compose/Spring uses. The local .env is read only; secrets are never
   // printed or copied into test artifacts by this loader.
-  process.env.E2E_ADMIN_EMAIL ||= process.env.ADMIN_EMAIL || localEnv.ADMIN_EMAIL || "admin@cine.local";
-  process.env.E2E_ADMIN_PASSWORD ||= process.env.ADMIN_PASSWORD || localEnv.ADMIN_PASSWORD || "Admin@123";
+  const resolvedEmail=process.env.E2E_ADMIN_EMAIL || process.env.ADMIN_EMAIL || localEnv.ADMIN_EMAIL;
+  const resolvedPassword=process.env.E2E_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || localEnv.ADMIN_PASSWORD;
+  if(!resolvedEmail || !resolvedPassword){
+    throw new Error("Playwright requires the existing admin credentials from root .env (ADMIN_EMAIL/ADMIN_PASSWORD) or explicit E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD.");
+  }
+  process.env.E2E_ADMIN_EMAIL=resolvedEmail;
+  process.env.E2E_ADMIN_PASSWORD=resolvedPassword;
 }
 
 loadProjectAdminCredentials();

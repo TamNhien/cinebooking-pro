@@ -122,7 +122,7 @@ check('Admin Dashboard exposes V73 runtime tile', 'admin-actions-runtime-v73' in
 check('V72 V73 tile order is contiguous', 'Supply Chain V72' in admin and 'Actions Runtime V73' in admin and admin.index('Supply Chain V72') < admin.index('Actions Runtime V73'))
 check('Header exposes V73 runtime surface', '/admin/actions-runtime' in header and 'Actions Runtime V73' in header)
 check('V73 runtime surface exposes strategy', 'actions-runtime-v73' in ui and 'V73-GITHUB-ACTIONS-NODE24-5' in ui)
-check('V73 runtime surface shows Node24 baseline', 'NODE24 READY' in ui and 'actions/upload-artifact@v7' in ui and 'actions/setup-java@v6' in ui)
+check('V73 runtime surface shows Node24 baseline', ('NODE24 READY' in ui or 'NODE24 SẴN SÀNG' in ui) and 'actions/upload-artifact@v7' in ui and 'actions/setup-java@v6' in ui)
 check('V73 runtime surface stays metadata-only', 'GITHUB_TOKEN' not in ui and 'gho_' not in ui and 'fetch(' not in ui and '/api/' not in ui)
 
 passed = sum(ok for _, ok in checks)

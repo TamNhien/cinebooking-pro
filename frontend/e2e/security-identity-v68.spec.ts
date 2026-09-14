@@ -1,18 +1,9 @@
 import { expect, test, type Page, type BrowserContext } from "@playwright/test";
+import { gotoSurface, loginExistingAdmin, waitForStepUpGrant } from "./runtime-guards";
 
 const AUTH_KEY="cinebooking_auth_v3";
 const STEP_KEY="cinebooking_admin_step_up_v68";
 
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"Admin@123";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
-  await page.waitForURL(/\/admin$/,{timeout:15000});
-  return {email,password};
-}
 
 async function tokens(page:Page){
   return page.evaluate(({authKey,stepKey})=>{
@@ -32,16 +23,17 @@ async function removeTemp(context:BrowserContext,page:Page,id:string,accessToken
 }
 
 test("V68 admin step-up protects sensitive writes and emits security headers",async({page,context})=>{
-  const admin=await loginAdmin(page);
+  const admin=await loginExistingAdmin(page);
   const tile=page.getByTestId("admin-security-identity-v68");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("Security & Identity V68");
+  await expect(tile).toContainText("Bảo mật & định danh V68");
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/security$/);
-  await expect(page.getByTestId("security-identity-v68")).toContainText("V68 · SECURITY & IDENTITY 5.0");
+  await gotoSurface(page, "/admin/security", "security-identity-v68");
+  await expect(page.getByTestId("security-identity-v68")).toContainText("V68 · BẢO MẬT & ĐỊNH DANH 5.0");
   await expect(page.getByTestId("security-identity-summary-v68")).toContainText("V68-SECURITY-IDENTITY-5");
   await expect(page.getByTestId("security-headers-v68")).toContainText("HSTS khi HTTPS");
 
@@ -60,7 +52,8 @@ test("V68 admin step-up protects sensitive writes and emits security headers",as
 
   await page.getByTestId("step-up-password-v68").fill(admin.password);
   await page.getByTestId("step-up-unlock-v68").click();
-  await expect(page.getByTestId("step-up-status-v68")).toContainText("UNLOCKED");
+  await waitForStepUpGrant(page);
+  await expect(page.getByTestId("step-up-status-v68")).toContainText(/ĐÃ MỞ KHÓA|UNLOCKED/, { timeout: 30_000 });
   const elevated=await tokens(page);
   expect(elevated.stepUpToken).toBeTruthy();
 

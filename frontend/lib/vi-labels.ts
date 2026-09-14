@@ -174,11 +174,139 @@ const LABELS_VI: Record<string, string> = {
   DEBIT: "Nợ",
   CREDIT: "Có",
   DATE: "Ngày",
+
+  CUSTOMER: "Khách hàng",
+  PROCESSED: "Đã xử lý",
+  SEAT_HOLD_RELEASED: "Đã nhả giữ ghế",
+  SEAT_HOLD_EXPIRED: "Giữ ghế đã hết hạn",
+
+  BOOKING_VELOCITY: "Tần suất đặt vé cao",
+  PAYMENT_FAILURES: "Thanh toán thất bại lặp lại",
+  REPEATED_PAYMENT_FAILURES: "Thanh toán thất bại lặp lại",
+  PAYMENT_ATTEMPTS: "Tần suất thử thanh toán",
+  VOUCHER_VELOCITY: "Tần suất sử dụng mã ưu đãi",
+  REFUND_PATTERN: "Mật độ hoàn tiền",
+  SECURITY_RISK: "Rủi ro từ cảnh báo bảo mật",
+  SECURITY_ALERT_RISK: "Rủi ro từ cảnh báo bảo mật",
+  SECURITY_ALERT_VOLUME: "Tần suất cảnh báo bảo mật",
+  LOGIN_FAILURES: "Đăng nhập thất bại liên tiếp",
+  IP_DIVERSITY: "Nhiều địa chỉ IP đăng nhập",
 };
+
+const LABELS_EN_OVERRIDES: Record<string, string> = {
+  ADMIN: "Administrator",
+  MANAGER: "Manager",
+  STAFF: "Staff",
+  USER: "Customer",
+  OTHER: "Other",
+  PROJECTOR: "Projector",
+  AUDIO: "Audio",
+  HVAC: "HVAC",
+  SCREEN: "Screen",
+  POS: "POS",
+  NETWORK: "Network",
+  POWER: "Power",
+  SAFETY: "Safety",
+  DEGRADED: "Degraded",
+  OPEN: "Open",
+  CLOSED: "Closed",
+  IN_PROGRESS: "In progress",
+  RESOLVED: "Resolved",
+  CANCELLED: "Cancelled",
+  CANCELED: "Cancelled",
+  OPERATIONAL: "Operational",
+  OUT_OF_SERVICE: "Out of service",
+  MAINTENANCE: "Maintenance",
+  ACTIVE: "Active",
+  INACTIVE: "Inactive",
+  ON_LEAVE: "On leave",
+  ENABLED: "Enabled",
+  DISABLED: "Disabled",
+  PENDING: "Pending",
+  SUCCESS: "Success",
+  FAILED: "Failed",
+  REVIEW: "Review",
+  REFUNDED: "Refunded",
+  PAID: "Paid",
+  CONFIRMED: "Confirmed",
+  EXPIRED: "Expired",
+  NOTIFIED: "Notified",
+  CREATED: "Created",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  MANUAL: "Manual",
+  BATCH: "Batch",
+  SMART: "Smart",
+  RUNNING: "Running",
+  COMPLETED: "Completed",
+  WARNING: "Warning",
+  WARN: "Warning",
+  HEALTHY: "Healthy",
+  UNHEALTHY: "Unhealthy",
+  UP: "Up",
+  DOWN: "Down",
+  ALL: "All",
+  READY: "Ready",
+  PARTIAL: "Partial",
+  VALID: "Valid",
+  INVALID: "Invalid",
+  AVAILABLE: "Available",
+  SETTLED: "Settled",
+  BOOKING: "Booking",
+  PAYMENT: "Payment",
+  REFUND: "Refund",
+  TICKET: "Ticket",
+  CINEMA_EXPERIENCE: "Cinema experience",
+  TECHNICAL: "Technical",
+  INCIDENT: "Incident",
+  ACCESS: "Access",
+  ACCOUNT: "Account",
+  SECURITY: "Security",
+  PROMOTION: "Promotion",
+  GENERAL: "General",
+  STANDARD: "Standard",
+  VIP: "VIP",
+  COUPLE: "Couple seat",
+  ACCESSIBLE: "Accessible",
+  PERCENT: "Percent",
+  FIXED: "Fixed amount",
+  INFO: "Information",
+  EQUIPMENT: "Equipment",
+  SUPPORT: "Support",
+  INVENTORY: "Inventory",
+  CUSTOMER: "Customer",
+  PROCESSED: "Processed",
+};
+
+function englishMachineLabel(machine: string): string {
+  const override = LABELS_EN_OVERRIDES[machine];
+  if (override) return override;
+  const lower = machine.toLowerCase().replaceAll("_", " ");
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** Presentation-only reverse catalog for the global VN/EN shell.
+ * Machine enum/status values remain unchanged; only their rendered Vietnamese label is mapped.
+ */
+export const VI_LABEL_TO_EN: Readonly<Record<string, string>> = (() => {
+  const result: Record<string, string> = {};
+  for (const [machine, vi] of Object.entries(LABELS_VI)) {
+    if (!(vi in result)) result[vi] = englishMachineLabel(machine);
+  }
+  return Object.freeze(result);
+})();
+
+
+export function localizedLabel(value: string | null | undefined, language: "vi" | "en"): string {
+  if (value == null || value === "") return "—";
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  if (language === "en") return englishMachineLabel(normalized);
+  return LABELS_VI[normalized] ?? value.replaceAll("_", " ");
+}
 
 export function viLabel(value: string | null | undefined): string {
   if (value == null || value === "") return "—";
-  const normalized = value.trim().toUpperCase();
+  const normalized = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
   return LABELS_VI[normalized] ?? value.replaceAll("_", " ");
 }
 

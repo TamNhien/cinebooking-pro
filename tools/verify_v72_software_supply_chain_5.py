@@ -200,7 +200,7 @@ check('V72 E2E verifies tile','admin-supply-chain-v72' in e2e)
 check('V72 E2E verifies ascending versions','sort((a,b)=>a-b)' in e2e and 'toBeGreaterThanOrEqual(72)' in e2e)
 check('V72 E2E verifies strategy','V72-SUPPLY-CHAIN-INTEGRITY-5' in e2e)
 check('V72 E2E verifies digest policy','DIGESTS_ONLY' in e2e)
-check('V72 E2E verifies advisory release gate','V72 mặc định không tự chặn release' in e2e)
+check('V72 E2E verifies advisory release gate','V72 mặc định không tự chặn release' in e2e or ('V72 mặc định không tự chặn' in e2e and 'bản phát hành|release' in e2e))
 check('V72 E2E rejects UI error banner','supply-chain-error-v72' in e2e and 'toHaveCount(0)' in e2e)
 check('Playwright loopback HTTPS remains','ignoreHTTPSErrors: ignoreLoopbackHttpsErrors' in playwright)
 

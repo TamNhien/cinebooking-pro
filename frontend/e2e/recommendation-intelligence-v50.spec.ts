@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { gotoSurface, waitForHydratedRuntime } from "./runtime-guards";
 
 const PASSWORD="V50E2e!Taste123";
 
@@ -6,7 +7,7 @@ test("V50 user tunes explainable recommendations with explicit taste feedback",a
   const stamp=`${Date.now()}-${Math.floor(Math.random()*100000)}`;
   const email=`hoang.anh+${stamp}@example.com`;
 
-  await page.goto("/register");
+  await gotoSurface(page, "/register", "register-name");
   await page.getByPlaceholder("Họ và tên").fill("Phạm Hoàng Anh");
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
@@ -14,9 +15,8 @@ test("V50 user tunes explainable recommendations with explicit taste feedback",a
   await page.getByRole("button",{name:"Đăng ký"}).click();
   await expect(page).toHaveURL(/\/$/);
 
-  await page.goto("/for-you");
-  await expect(page.getByTestId("for-you-v50")).toBeVisible();
-  await expect(page.getByTestId("taste-profile")).toBeVisible();
+  await gotoSurface(page, "/for-you", "for-you-v50");
+  await expect(page.getByTestId("taste-profile")).toBeVisible({ timeout: 30_000 });
   const cards=page.getByTestId("recommendation-item-v50");
   await expect.poll(async()=>cards.count()).toBeGreaterThan(0);
 
@@ -26,7 +26,8 @@ test("V50 user tunes explainable recommendations with explicit taste feedback",a
   await expect(page.getByTestId("taste-profile")).toContainText(/phản hồi/);
 
   // Feedback survives a reload and the explanation is now personalized.
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await waitForHydratedRuntime(page, "/for-you");
   await expect(page.getByTestId("for-you-v50")).toBeVisible();
   await expect(page.getByText(/Vì bạn muốn xem thêm phim giống|Hợp gu/).first()).toBeVisible();
 

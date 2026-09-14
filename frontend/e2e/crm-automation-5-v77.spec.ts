@@ -1,21 +1,12 @@
-import { expect, test, type Page } from "@playwright/test";
-
-async function loginAdmin(page:Page){
-  const email=process.env.E2E_ADMIN_EMAIL||"admin@cine.local";
-  const password=process.env.E2E_ADMIN_PASSWORD||"Admin@123";
-  await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(email);
-  await page.getByPlaceholder("Mật khẩu").fill(password);
-  await page.getByRole("button",{name:"Đăng nhập"}).click();
-  await page.waitForURL(/\/admin$/,{timeout:15000});
-}
+import { expect, test } from "@playwright/test";
+import { ensureSurface, loginExistingAdmin } from "./runtime-guards";
 
 test("V77 CRM Automation 5.0 exposes lifecycle safety and preview",async({page})=>{
-  await loginAdmin(page);
+  await loginExistingAdmin(page);
 
   const tile=page.getByTestId("admin-crm-automation-v77");
   await expect(tile).toBeVisible();
-  await expect(tile).toContainText("CRM Automation V77");
+  await expect(tile).toContainText("Tự động hóa CRM V77");
   await expect(tile).toHaveAttribute("href","/admin/crm-automation");
 
   const versionLabels=await page.locator('[data-testid="admin-action-grid-v59"] a').allTextContents();
@@ -26,17 +17,20 @@ test("V77 CRM Automation 5.0 exposes lifecycle safety and preview",async({page})
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/crm-automation$/);
-  await expect(page.getByTestId("crm-automation-v77")).toContainText("V77 · CRM AUTOMATION 5.0");
+  const crm=await ensureSurface(page,"crm-automation-v77","/admin/crm-automation");
+  await expect(crm).toContainText("V77 · TỰ ĐỘNG HÓA CRM 5.0");
+  await expect(crm).toHaveAttribute("data-crm-ready","true",{timeout:30_000});
   await expect(page.getByTestId("crm-summary-v77")).toContainText("V77-CRM-AUTOMATION-5");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("REAL_OPERATIONAL_DATA_ONLY");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("PROMOTION_OPT_OUT_RESPECTED");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("FREQUENCY_CAP_2_PER_7D");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("PROMOTION_COOLDOWN_72H");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("MAX_RECIPIENTS_BLAST_RADIUS_GUARD");
-  await expect(page.getByTestId("crm-policy-v77")).toContainText("CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION");
-  await expect(page.getByTestId("crm-outcomes-v77")).toContainText("CORRELATION ONLY");
+  const policy=page.getByTestId("crm-policy-v77");
+  await expect(policy).toHaveAttribute("data-policy-real-operational","true");
+  await expect(policy).toHaveAttribute("data-policy-promotion-opt-out","true");
+  await expect(policy).toHaveAttribute("data-policy-frequency-cap","true");
+  await expect(policy).toHaveAttribute("data-policy-cooldown","true");
+  await expect(policy).toHaveAttribute("data-policy-blast-radius","true");
+  await expect(policy).toHaveAttribute("data-policy-correlation-only","true");
+  await expect(page.getByTestId("crm-outcomes-v77")).toContainText("CHỈ LÀ TƯƠNG QUAN");
   await expect(page.getByTestId("crm-suppressions-v77")).toContainText("PROMOTION_OPT_OUT");
-  await expect(page.getByTestId("crm-playbooks-v77")).toContainText("AT_RISK_WINBACK");
+  await expect(page.getByTestId("crm-playbooks-v77")).toContainText("Kịch bản vòng đời");
 
   await page.getByPlaceholder("VD: WINBACK_SEP").fill("E2ECRM77");
   await page.getByTestId("crm-max-recipients-v77").fill("100");

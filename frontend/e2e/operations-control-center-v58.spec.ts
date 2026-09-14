@@ -16,16 +16,17 @@ test("V58 admin sees centralized near-realtime payment booking equipment staff s
   await loginAdmin(page);
   await page.goto("/admin/operations-control");
 
-  await expect(page.getByTestId("operations-control-center-v58")).toContainText("Operations Control Center · V58");
+  await expect(page.getByTestId("operations-control-center-v58")).toContainText("Trung tâm điều khiển vận hành · V58");
   await expect(page.getByTestId("operations-control-summary-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-domains-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-alerts-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-detail-v58")).toBeVisible();
-  await expect(page.getByTestId("operations-control-live-v58")).toContainText("Live snapshot");
+  await expect(page.getByTestId("operations-control-live-v58")).toContainText(/Ảnh chụp thời gian thực|Live snapshot/);
 
-  const domainText=await page.getByTestId("operations-control-domains-v58").innerText();
-  for(const domain of ["PAYMENT","BOOKING","EQUIPMENT","STAFF","SUPPORT","INVENTORY","INCIDENT"]){
-    expect(domainText).toContain(domain);
+  const domains = {payment:/Thanh toán|Payments/,booking:/Đặt vé|Bookings/,equipment:/Thiết bị|Equipment/,staff:/Nhân sự|Staff/,support:/Hỗ trợ|Support/,inventory:/Kho|Inventory/,incident:/Sự cố|Incidents/} as const;
+  for (const [code,label] of Object.entries(domains)) {
+    await expect(page.getByTestId(`operations-domain-${code}-v59`)).toBeVisible();
+    await expect(page.getByTestId(`operations-domain-name-${code}-v59`)).toHaveText(label);
   }
 
   const auto=page.getByTestId("operations-control-auto-refresh-v58");

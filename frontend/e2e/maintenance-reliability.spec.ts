@@ -1,15 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 test("V44 quản trị viên đăng ký thiết bị và hoàn tất phiếu bảo trì", async ({ page }) => {
-  const adminEmail = process.env.E2E_ADMIN_EMAIL || "admin-v29@cine.local";
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD || "V29SmokeOnly-ChangeMe";
+  const adminEmail = process.env.E2E_ADMIN_EMAIL;
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) throw new Error("Existing root .env admin credentials are required");
 
   await page.goto("/login");
-  await page.getByPlaceholder("Email").fill(adminEmail);
-  await page.getByPlaceholder("Mật khẩu").fill(adminPassword);
+  await page.getByTestId("login-email").fill(adminEmail);
+  await page.getByTestId("login-password").fill(adminPassword);
   await Promise.all([
     page.waitForURL(/\/admin$/, { timeout: 15000 }),
-    page.getByRole("button", { name: "Đăng nhập" }).click(),
+    page.getByTestId("login-submit").click(),
   ]);
 
   await page.goto("/admin/maintenance");
@@ -23,7 +24,7 @@ test("V44 quản trị viên đăng ký thiết bị và hoàn tất phiếu b�
   await page.getByPlaceholder("Tên thiết bị").fill(assetName);
   await page.getByRole("button", { name: "Thêm thiết bị" }).click();
 
-  const assetRow = page.getByTestId("maintenance-asset-row").filter({ hasText: code });
+  const assetRow = page.getByTestId("maintenance-asset-card").filter({ hasText: code });
   await expect(assetRow).toBeVisible();
   await expect(assetRow).toContainText(assetName);
   await expect(assetRow).toContainText("Máy chiếu");

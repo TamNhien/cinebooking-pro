@@ -1,0 +1,71 @@
+name: CineBooking V77 Automatic Stable Release
+
+on:
+  push:
+    tags:
+      - 'v77.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish V77 immutable stable release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate V77 stable tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^v77\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid V77 stable tag: $TAG" >&2
+            exit 1
+          fi
+
+      - name: Package clean Full Source and SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          ZIP="cinebooking-pro-${VERSION}-full-source.zip"
+          SHA="cinebooking-pro-${VERSION}-full-source.sha256.txt"
+          git archive --format=zip --output="$ZIP" HEAD
+          sha256sum "$ZIP" | tee "$SHA"
+          echo "RELEASE_ZIP=$ZIP" >> "$GITHUB_ENV"
+          echo "RELEASE_SHA=$SHA" >> "$GITHUB_ENV"
+
+      - name: Create GitHub stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; uploading canonical assets with --clobber."
+            gh release upload "$TAG" "$RELEASE_ZIP" "$RELEASE_SHA" --clobber
+          else
+            gh release create "$TAG" \
+              "$RELEASE_ZIP" \
+              "$RELEASE_SHA" \
+              --verify-tag \
+              --title "CineBooking Pro $TAG" \
+              --generate-notes \
+              --latest
+          fi
+
+      - name: Verify published release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          gh release view "$TAG" --json tagName,isDraft,isPrerelease,url,assets

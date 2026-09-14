@@ -10,6 +10,22 @@ import { viLabel } from "@/lib/vi-labels";
 import { useLanguage } from "@/components/LanguageProvider";
 import type { Booking, ConcessionProduct, PaymentProviderAvailability, PaymentStart, SeatMap, SeatSelectionValidation, SeatSuggestion, SeatSuggestionResponse, Showtime, UserProfile, VoucherQuote, WaitlistStatus } from "@/lib/types";
 
+async function withTransientBookingReadRetry<T>(read:()=>Promise<T>){
+  const deadline=Date.now()+12_000;
+  let attempt=0;
+  for(;;){
+    try{return await read();}
+    catch(error){
+      const status=error instanceof ApiError?error.status:0;
+      const retryable=status===0||status===408||status===425||status===429||status>=500;
+      if(!retryable||Date.now()>=deadline)throw error;
+      const delay=Math.min(250*(2**attempt),1500);
+      attempt+=1;
+      await new Promise(resolve=>setTimeout(resolve,delay));
+    }
+  }
+}
+
 export default function BookingPage({params}:{params:Promise<{showtimeId:string}>}){
   const {showtimeId}=use(params);
   const {language}=useLanguage();
@@ -48,10 +64,10 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
     setFatalError("");
     try {
       // Showtime + seat map are required. Optional commerce/profile failures must not leave the page stuck loading.
-      const [s,m]=await Promise.all([
+      const [s,m]=await withTransientBookingReadRetry(()=>Promise.all([
         api<Showtime>(`/showtimes/${showtimeId}`),
         api<SeatMap>(`/showtimes/${showtimeId}/seats`)
-      ]);
+      ]));
       setShowtime(s);
       setMap(m);
       const mine=m.seats.filter(seat=>seat.heldByMe).map(seat=>seat.id);
@@ -78,7 +94,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       if(e instanceof ApiError && e.status===404){
         setFatalError(en
           ? "This showtime no longer exists. It may have been deleted or changed by an administrator."
-          : "Suất chiếu này không còn tồn tại. Có thể suất chiếu đã bị Admin xoá hoặc thay đổi.");
+          : "Suất chiếu này không còn tồn tại. Có thể suất chiếu đã bị quản trị viên xoá hoặc thay đổi.");
       } else {
         setFatalError(err.message || (en ? "Could not load this showtime." : "Không thể tải suất chiếu này."));
       }
@@ -103,7 +119,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
   useEffect(()=>{if(!providerAvailability.length)return;if(providerReady(provider))return;const first=providerAvailability.find(x=>x.enabled);if(first)setProvider(first.provider);},[providerAvailability,provider]);
   useEffect(()=>{
     const scheme=location.protocol==="https:"?"wss":"ws";
-    const client=new Client({brokerURL:`${scheme}://${location.host}/ws`,reconnectDelay:2000,onConnect:()=>client.subscribe(`/topic/showtimes/${showtimeId}/seats`,()=>{setLiveMessage(en?"Seat map updated live.":"Sơ đồ ghế vừa được cập nhật realtime.");load().catch(()=>{});})});
+    const client=new Client({brokerURL:`${scheme}://${location.host}/ws`,reconnectDelay:2000,onConnect:()=>client.subscribe(`/topic/showtimes/${showtimeId}/seats`,()=>{setLiveMessage(en?"Seat map updated live.":"Sơ đồ ghế vừa được cập nhật theo thời gian thực.");load().catch(()=>{});})});
     client.activate(); return()=>{void client.deactivate();};
   },[showtimeId,load,en]);
   useEffect(()=>{
@@ -203,7 +219,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
     <div className="mt-6 flex flex-wrap justify-center gap-3">
       <Link href="/cinemas" className="btn btn-primary">{en?"Choose another showtime":"Chọn suất chiếu khác"}</Link>
       <Link href="/movies" className="btn btn-secondary">{en?"Browse movies":"Xem danh sách phim"}</Link>
-      {auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-secondary">{en?"Open Admin":"Mở Admin"}</Link>}
+      {auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-secondary">{en?"Open Admin":"Mở trang quản trị"}</Link>}
     </div>
   </div>;
 
@@ -213,7 +229,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
         <div className="mb-7 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><div className="text-sm font-semibold text-rose-400">{showtime.cinemaName} · {showtime.auditoriumName}</div><h1 className="mt-1 text-2xl font-bold md:text-3xl">{showtime.movieTitle}</h1><p className="mt-1 text-slate-400">{dateTime(showtime.startTime)}</p></div><button type="button" className="btn btn-secondary" disabled={busy} onClick={refreshSeats}>{en?"Refresh seats":"Làm mới ghế"}</button></div>
         {liveMessage&&<div role="status" className="mb-5 rounded-xl border border-cyan-800/60 bg-cyan-950/35 px-4 py-2 text-sm text-cyan-200">⚡ {liveMessage}</div>}
         <div className="mx-auto mb-9 max-w-3xl"><div className="h-2 rounded-full bg-gradient-to-r from-transparent via-slate-200 to-transparent shadow-[0_8px_30px_rgba(255,255,255,.16)]"/><div className="mt-3 text-center text-xs uppercase tracking-[.4em] text-slate-500">{en?"SCREEN":"MÀN HÌNH"}</div></div>
-        {rows.length===0?<div className="mx-auto max-w-xl rounded-2xl border border-amber-700/50 bg-amber-950/25 p-6 text-center"><div className="text-4xl">💺</div><h2 className="mt-3 text-lg font-bold text-amber-100">{en?"No seats configured for this auditorium":"Phòng chiếu này chưa có sơ đồ ghế"}</h2><p className="mt-2 text-sm leading-6 text-amber-200/80">{en?"An administrator needs to generate or add seats before customers can book this showtime.":"Admin cần tạo sơ đồ ghế cho phòng chiếu trước khi khách đặt vé."}</p>{auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-primary mt-4 inline-flex">{en?"Open Admin":"Mở trang Admin"}</Link>}</div>:<>
+        {rows.length===0?<div className="mx-auto max-w-xl rounded-2xl border border-amber-700/50 bg-amber-950/25 p-6 text-center"><div className="text-4xl">💺</div><h2 className="mt-3 text-lg font-bold text-amber-100">{en?"No seats configured for this auditorium":"Phòng chiếu này chưa có sơ đồ ghế"}</h2><p className="mt-2 text-sm leading-6 text-amber-200/80">{en?"An administrator needs to generate or add seats before customers can book this showtime.":"Quản trị viên cần tạo sơ đồ ghế cho phòng chiếu trước khi khách đặt vé."}</p>{auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-primary mt-4 inline-flex">{en?"Open Admin":"Mở trang quản trị"}</Link>}</div>:<>
           <div data-testid="booking-seat-intelligence-v57" aria-label={en?"Smart seat recommendation":"Gợi ý ghế thông minh"} className="mb-6 rounded-2xl border border-violet-800/50 bg-violet-950/20 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -229,7 +245,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
             </div>
             {suggestions.length>0&&<div data-testid="seat-intelligence-suggestions-v57" className="mt-3 grid gap-2 md:grid-cols-2">{suggestions.slice(0,4).map((suggestion,index)=><button type="button" key={suggestion.seatIds.join("-")} onClick={()=>chooseSuggestion(suggestion.seatIds)} disabled={held} className="rounded-xl border border-slate-700/80 bg-slate-950/45 p-3 text-left transition hover:border-violet-500"><div className="flex items-center justify-between gap-3"><strong>{index===0?"★ ":""}{suggestion.seatCodes.join(", ")}</strong><span className="text-sm text-amber-300">{currency(suggestion.totalPrice)}</span></div><div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-violet-300"><span>{suggestion.qualityLabel}</span><span>{en?"Score":"Điểm"} {suggestion.score}</span><span>{en?"Center":"Trung tâm"} {suggestion.centerScore}/100</span><span>{en?"No orphan":"Không ghế lẻ"} {suggestion.orphanSafetyScore}/100</span></div>{suggestion.dynamicAdjustment!==0&&<div className={`mt-1 text-[11px] ${suggestion.dynamicAdjustment>0?"text-amber-300":"text-emerald-300"}`}>{en?"Dynamic pricing":"Giá động minh bạch"}: {suggestion.dynamicAdjustment>0?"+":""}{currency(suggestion.dynamicAdjustment)}</div>}<p className="mt-1 text-xs text-slate-400">{suggestion.reason}</p></button>)}</div>}
           </div>
-          <div className="overflow-x-auto pb-4"><div className="mx-auto w-max min-w-[620px] space-y-3 px-3">{rows.map(([row,seats])=><div key={row} className="flex items-center justify-center gap-2"><span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span>{seats.map(s=>{const isSelected=selected.includes(s.id);const cls=s.status==="BLOCKED"?"border-slate-800 bg-black/50 text-slate-700 cursor-not-allowed":s.status==="BOOKED"?"border-slate-700 bg-slate-800 text-slate-600 cursor-not-allowed":s.status==="HELD"&&!s.heldByMe?"border-amber-700 bg-amber-900/70 text-amber-200 cursor-not-allowed":isSelected||s.heldByMe?"border-rose-300 bg-rose-500 text-white shadow-lg shadow-rose-950/40":s.seatType==="VIP"?"border-violet-700 bg-violet-950/60 text-violet-200 hover:bg-violet-900":s.seatType==="COUPLE"?"border-pink-700 bg-pink-950/60 text-pink-200 hover:bg-pink-900":s.seatType==="ACCESSIBLE"?"border-cyan-700 bg-cyan-950/60 text-cyan-200 hover:bg-cyan-900":"border-emerald-800 bg-emerald-950/60 text-emerald-200 hover:bg-emerald-900";return <button key={s.id} type="button" aria-label={`Ghế ${s.code}`} title={`${s.code} · ${viLabel(s.seatType)} · ${currency(s.price)}${s.dynamicAdjustment?` · Giá động ${s.dynamicAdjustment>0?"+":""}${currency(s.dynamicAdjustment)}${s.pricingRules?.length?` (${s.pricingRules.map(viLabel).join(", ")})`:""}`:""} · ${viLabel(s.status)}`} onClick={()=>toggle(s.id,s.status,s.heldByMe)} className={`h-10 w-12 rounded-t-xl rounded-b-md border text-xs font-bold transition ${cls}`}>{s.status==="BLOCKED"?"×":s.seatNumber}</button>})}<span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span></div>)}</div></div>
+          <div data-testid="booking-seat-map-v39" data-showtime-id={showtimeId} className="overflow-x-auto pb-4"><div className="mx-auto w-max min-w-[620px] space-y-3 px-3">{rows.map(([row,seats])=><div key={row} className="flex items-center justify-center gap-2"><span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span>{seats.map(s=>{const isSelected=selected.includes(s.id);const cls=s.status==="BLOCKED"?"border-slate-800 bg-black/50 text-slate-700 cursor-not-allowed":s.status==="BOOKED"?"border-slate-700 bg-slate-800 text-slate-600 cursor-not-allowed":s.status==="HELD"&&!s.heldByMe?"border-amber-700 bg-amber-900/70 text-amber-200 cursor-not-allowed":isSelected||s.heldByMe?"border-rose-300 bg-rose-500 text-white shadow-lg shadow-rose-950/40":s.seatType==="VIP"?"border-violet-700 bg-violet-950/60 text-violet-200 hover:bg-violet-900":s.seatType==="COUPLE"?"border-pink-700 bg-pink-950/60 text-pink-200 hover:bg-pink-900":s.seatType==="ACCESSIBLE"?"border-cyan-700 bg-cyan-950/60 text-cyan-200 hover:bg-cyan-900":"border-emerald-800 bg-emerald-950/60 text-emerald-200 hover:bg-emerald-900";return <button key={s.id} type="button" aria-label={`Ghế ${s.code}`} data-seat-code={s.code} data-seat-status={s.status} title={`${s.code} · ${viLabel(s.seatType)} · ${currency(s.price)}${s.dynamicAdjustment?` · Giá động ${s.dynamicAdjustment>0?"+":""}${currency(s.dynamicAdjustment)}${s.pricingRules?.length?` (${s.pricingRules.map(viLabel).join(", ")})`:""}`:""} · ${viLabel(s.status)}`} onClick={()=>toggle(s.id,s.status,s.heldByMe)} className={`h-10 w-12 rounded-t-xl rounded-b-md border text-xs font-bold transition ${cls}`}>{s.status==="BLOCKED"?"×":s.seatNumber}</button>})}<span className="w-7 text-center text-sm font-bold text-slate-500">{row}</span></div>)}</div></div>
           <div className="mt-7 grid gap-2 text-xs text-slate-400 sm:grid-cols-2 xl:grid-cols-5"><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-emerald-800 bg-emerald-950/60"/> {en?"Standard":"Ghế thường"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-violet-700 bg-violet-950/60"/> VIP</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-pink-700 bg-pink-950/60"/> {en?"Couple":"Ghế đôi"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded bg-rose-500"/> {en?"Selected":"Đang chọn"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded border border-cyan-700 bg-cyan-950/60"/> ♿ {en?"Accessible":"Ghế hỗ trợ"}</span><span className="flex items-center gap-2"><i className="h-4 w-5 rounded bg-slate-800"/> {en?"Booked/blocked":"Đã đặt/khóa"}</span></div>
           {soldOut&&<div className="mt-6 rounded-2xl border border-amber-700/60 bg-amber-950/30 p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-bold text-amber-100">🔔 {en?"No seats available right now":"Hiện tại đã hết ghế"}</div><p className="mt-1 text-sm leading-6 text-amber-200/75">{en?"Join the waitlist and CineBooking will notify you when a seat is released.":"Đăng ký danh sách chờ; CineBooking sẽ tự báo khi có ghế được mở lại."}</p></div><button type="button" className={waitlist?.subscribed?"btn btn-secondary":"btn btn-primary"} disabled={waitlistBusy} onClick={toggleWaitlist}>{waitlistBusy?(en?"Saving...":"Đang lưu..."):waitlist?.subscribed?(en?"Cancel alert":"Huỷ theo dõi"):(en?"Notify me":"Báo khi có ghế")}</button></div>{waitlist?.subscribed&&<div className="mt-3 text-xs font-semibold text-emerald-300">✓ {en?"Seat alert is active":"Đang theo dõi suất chiếu này"} · <Link className="underline" href="/waitlist">{en?"Manage waitlist":"Quản lý danh sách chờ"}</Link></div>}</div>}
         </>}
@@ -253,10 +269,10 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
 
       <div className="mt-5"><label className="text-xs font-bold uppercase tracking-wider text-slate-500">{en?"Voucher":"Mã ưu đãi"}</label><div className="mt-2 flex gap-2"><input className="input !py-2" value={voucherCode} onChange={e=>{setVoucherCode(e.target.value.toUpperCase());setVoucher(null)}} placeholder="WELCOME10"/><button className="btn btn-secondary" disabled={busy||!voucherCode.trim()} onClick={applyVoucher}>{en?"Apply":"Áp dụng"}</button></div>{voucher&&<p className="mt-2 text-xs text-emerald-300">✓ {voucher.name}</p>}{gross<=0&&voucherCode.trim()&&<p className="mt-2 text-xs text-amber-300">{en?"Select a seat to calculate the discount.":"Chọn ghế để hệ thống tính số tiền được giảm."}</p>}</div>
 
-      {profile&&<div className="mt-5"><div className="flex items-center justify-between"><label className="text-xs font-bold uppercase tracking-wider text-slate-500">{en?"Use points":"Dùng điểm"}</label><span className="text-xs text-amber-300">{en?"Available":"Có"}: {profile.loyaltyPoints}</span></div><input className="input mt-2" type="number" min={0} max={maxPoints} value={points} onChange={e=>setPoints(Math.max(0,Math.min(maxPoints,Number(e.target.value)||0)))} disabled={maxPoints<=0}/><p className="mt-1 text-xs text-slate-500">1 điểm = 100đ · {en?"up to 30% after voucher":"tối đa 30% giá trị sau voucher"} · tối đa {maxPoints}</p></div>}
+      {profile&&<div className="mt-5"><div className="flex items-center justify-between"><label className="text-xs font-bold uppercase tracking-wider text-slate-500">{en?"Use points":"Dùng điểm"}</label><span className="text-xs text-amber-300">{en?"Available":"Có"}: {profile.loyaltyPoints}</span></div><input className="input mt-2" type="number" min={0} max={maxPoints} value={points} onChange={e=>setPoints(Math.max(0,Math.min(maxPoints,Number(e.target.value)||0)))} disabled={maxPoints<=0}/><p className="mt-1 text-xs text-slate-500">1 điểm = 100đ · {en?"up to 30% after voucher":"tối đa 30% giá trị sau mã ưu đãi"} · tối đa {maxPoints}</p></div>}
 
-      {held&&<div data-testid="seat-hold-countdown-v57" aria-label={en?"Server synchronized realtime seat hold countdown":"Đếm ngược giữ ghế realtime đồng bộ máy chủ"} className={`mt-4 rounded-xl p-3 text-center text-sm ${seconds<=60?"border border-amber-700/60 bg-amber-950/45 text-amber-200":"bg-rose-950/40 text-rose-200"}`}>{en?"Seats held for":"Ghế được giữ trong"} <strong>{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,"0")}</strong><div className="mt-1 text-[11px] opacity-75">{seconds<=60?(en?"Complete checkout soon — less than one minute remains.":"Hãy thanh toán sớm — thời gian giữ ghế còn dưới 1 phút."):(en?"Realtime countdown uses the durable PostgreSQL hold expiry; Redis is only a TTL mirror.":"Đếm ngược theo durable hold trong PostgreSQL; Redis chỉ là lớp mirror TTL.")}</div></div>}
-      {held&&<div data-testid="seat-hold-authority-v66" className="mt-2 text-center text-[11px] font-semibold text-emerald-300">🛡 V66 · {map?.holdAuthority||"POSTGRESQL_WITH_REDIS_MIRROR"} · chống đặt trùng ghế trên nhiều máy chủ</div>}
+      {held&&<div data-testid="seat-hold-countdown-v57" aria-label={en?"Server synchronized realtime seat hold countdown":"Đếm ngược giữ ghế theo thời gian thực, đồng bộ với máy chủ"} className={`mt-4 rounded-xl p-3 text-center text-sm ${seconds<=60?"border border-amber-700/60 bg-amber-950/45 text-amber-200":"bg-rose-950/40 text-rose-200"}`}>{en?"Seats held for":"Ghế được giữ trong"} <strong>{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,"0")}</strong><div className="mt-1 text-[11px] opacity-75">{seconds<=60?(en?"Complete checkout soon — less than one minute remains.":"Hãy thanh toán sớm — thời gian giữ ghế còn dưới 1 phút."):(en?"Realtime countdown uses the durable PostgreSQL hold expiry; Redis is only a TTL mirror.":"Đếm ngược theo thời hạn giữ ghế bền vững trong PostgreSQL; Redis chỉ là lớp sao chép thời hạn TTL.")}</div></div>}
+      <div data-testid="seat-hold-authority-v66" className="mt-2 text-center text-[11px] font-semibold text-emerald-300">🛡 V66 · {map?.holdAuthority||"POSTGRESQL_WITH_REDIS_MIRROR"} · {en?"cross-server duplicate-seat protection":"chống đặt trùng ghế trên nhiều máy chủ"}</div>
       {!auth&&rows.length>0&&<div className="mt-4 rounded-xl bg-amber-950/40 p-3 text-sm text-amber-200">{en?<>Please <Link className="underline" href="/login">đăng nhập</Link> để giữ ghế.</>:<>Bạn cần <Link className="underline" href="/login">đăng nhập</Link> để giữ ghế.</>}</div>}
       {message&&<div className="mt-4 rounded-xl bg-red-950/50 p-3 text-sm text-red-300">{message}</div>}
       {rows.length>0&&(!held?<button disabled={!selected.length||busy||!!pendingBooking} onClick={holdSeats} className="btn btn-primary mt-5 w-full">{busy?(en?"Processing...":"Đang xử lý..."):(en?"Hold seats for 5 minutes":"Giữ ghế 5 phút")}</button>:<><label className="mt-5 block text-sm text-slate-400">{en?"Payment method":"Phương thức thanh toán"}</label><select className="input mt-2" value={provider} onChange={e=>setProvider(e.target.value)}>{providerReady("MOCK")&&<option value="MOCK">Thanh toán mô phỏng nội bộ</option>}{providerReady("VNPAY")&&<><option value="VNPAY">VNPay</option><option value="VNPAY_QR">VNPay QR</option></>}{providerReady("MOMO")&&<><option value="MOMO">MoMo</option><option value="MOMO_QR">MoMo QR</option></>}</select>{providerAvailability.length>0&&!providerAvailability.some(x=>x.enabled)&&<p className="mt-2 text-xs text-rose-300">Không có cổng thanh toán nào đang được bật. Quản trị viên cần cấu hình thông tin xác thực đơn vị thanh toán hoặc bật chế độ mô phỏng.</p>}<button disabled={busy||seconds===0||!providerReady(provider)} onClick={checkout} className="btn btn-primary mt-4 w-full">{en?"Pay now":"Thanh toán"} · {currency(previewTotal)}</button><p className="mt-2 text-center text-[11px] leading-4 text-slate-500">🔒 {en?"Duplicate checkout retries are protected by an idempotency key.":"Chống tạo đơn trùng khi mạng chập chờn hoặc nút thanh toán bị gửi lại."}</p><button disabled={busy} onClick={release} className="btn btn-secondary mt-2 w-full">{en?"Release seats":"Bỏ giữ ghế"}</button></>)}
@@ -269,7 +285,7 @@ providerReady("VNPAY")
 providerReady("MOMO")
 Thanh toán nội bộ (MOCK)
 !providerReady(provider)
-chống double-booking đa replica
+chống đặt trùng ghế trên nhiều bản sao dịch vụ
 */
 /* V77.0.9 historical verifier aliases (not rendered):
 BOOKING & SEAT INTELLIGENCE · V57

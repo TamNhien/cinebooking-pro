@@ -47,7 +47,7 @@ check("Check-in emits cross-replica operations event", 'StaffOperationsEventPubl
 check("Redis publisher uses dedicated staff operations channel", 'cinebooking:staff-operations-events' in pub)
 check("Redis subscriber broadcasts cinema-scoped WebSocket topic", '/topic/staff-operations/' in sub)
 check("Redis config registers staff operations subscriber", 'StaffOperationsEventPublisher.CHANNEL' in redis and 'RedisStaffOperationsEventSubscriber' in redis)
-check("V43 frontend has realtime operations page", all(x in ui for x in ['STAFF OPERATIONS 2.0 · V43','Trung tâm vận hành rạp realtime','@stomp/stompjs','/topic/staff-operations/']))
+check("V43 frontend has realtime operations page", all(x in ui for x in ['STAFF OPERATIONS 2.0 · V43',('Trung tâm vận hành rạp realtime' if 'Trung tâm vận hành rạp realtime' in ui else 'Trung tâm vận hành rạp theo thời gian thực'),'@stomp/stompjs','/topic/staff-operations/']))
 check("V43 frontend polls as WebSocket fallback", '15000' in ui and 'setInterval' in ui)
 check("V43 frontend supports handover create/accept", all(x in ui for x in ['Tạo bàn giao','Nhận bàn giao','/staff/operations/handovers']))
 check("V43 frontend supports incident create/resolve", all(x in ui for x in ['Ghi nhận sự cố','Đóng sự cố','/staff/operations/incidents']))

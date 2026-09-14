@@ -74,8 +74,8 @@ test("V41 notification inbox archives and restores a durable notification", asyn
 
   await page.goto("/notifications");
   await expect(page.getByRole("heading", { name:"Trung tâm thông báo" })).toBeVisible();
-  await expect(page.getByText("🏆 Loyalty & thành viên", { exact:true })).toBeVisible();
-  await expect(page.getByText("💺 Waitlist", { exact:true })).toBeVisible();
+  await expect(page.getByText("🏆 Điểm & thành viên", { exact:true })).toBeVisible();
+  await expect(page.getByText("💺 Danh sách chờ", { exact:true })).toBeVisible();
   let card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
   await expect(card).toBeVisible();
   await card.getByTestId("notification-archive-toggle").click();

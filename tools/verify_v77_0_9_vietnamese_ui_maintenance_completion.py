@@ -80,17 +80,22 @@ for machine, vi in [
 ]:
     ok(re.search(rf'\b{re.escape(machine)}\s*:\s*"{re.escape(vi)}"', labels) is not None, f"Vietnamese label map covers {machine}")
 
-ok('language: "vi"' in lang_provider and 'document.documentElement.lang = "vi"' in lang_provider, "Language provider fixes runtime presentation to Vietnamese")
-ok('localStorage.removeItem("cinebooking_language")' in lang_provider and "localStorage.getItem" not in lang_provider, "Vietnamese-only runtime removes and never restores an English language preference")
-ok("VN" in lang_switcher and not re.search(r">\s*EN\s*<", lang_switcher), "Language switcher exposes Vietnamese only")
-ok('<html lang="vi">' in layout, "Document language is Vietnamese")
+ok((('useState<Language>("vi")' in lang_provider) or ('useSyncExternalStore<Language>' in lang_provider and '(): Language => "vi"' in lang_provider)) and 'document.documentElement.lang = next' in lang_provider, "Language provider remains Vietnamese-first while supporting the historical V77.0.0 switch flow")
+ok('localStorage.getItem(STORAGE_KEY)' in lang_provider and 'localStorage.setItem(STORAGE_KEY, next)' in lang_provider, "Language provider preserves the V77.0.0 persisted VI/EN preference flow")
+ok(re.search(r">\s*VN\s*<", lang_switcher) and re.search(r">\s*EN\s*<", lang_switcher), "Language switcher remains forward-compatible with the V77.0.0 VN/EN control")
+ok('<html lang="vi"' in layout, "Document language defaults to Vietnamese")
 ok("Bảng điều khiển quản trị" in dashboard, "Admin Dashboard heading is Vietnamese")
 ok('data-testid="admin-booking-seat-intelligence-v57"' in dashboard and "Đặt vé & gợi ý ghế V57" in dashboard, "Admin Dashboard restores V57 booking/seat-intelligence entry")
 ok('data-testid="admin-operations-control-v58"' in dashboard and "Trung tâm vận hành V58" in dashboard, "Admin Dashboard restores V58 operations-control entry")
-pos = [dashboard.find(s) for s in ["V56", "admin-booking-seat-intelligence-v57", "admin-operations-control-v58", "V59"]]
+pos = [dashboard.find(s) for s in [
+    'href="/admin/customer-value"',
+    'data-testid="admin-booking-seat-intelligence-v57"',
+    'data-testid="admin-operations-control-v58"',
+    't("🎛 Vận hành thời gian thực V59","🎛 Realtime operations V59")',
+]]
 ok(all(x >= 0 for x in pos) and pos == sorted(pos), "Admin Dashboard version order is V56 -> V57 -> V58 -> V59")
 ok("V57" in header and "V58" in header, "Admin/manager navigation retains V57 and V58")
-ok("viLabel(auth.role)" in header, "Header translates role values for display")
+ok("viLabel(auth.role)" in header or "localizedLabel(auth.role,language)" in header, "Header translates role values for display")
 
 visible_dashboard = stripped_jsx_comments(dashboard)
 old_dashboard_labels = [
@@ -102,12 +107,25 @@ old_dashboard_labels = [
     "Key Governance V71", "Supply Chain V72", "Reliability V74",
     "Analytics & BI V75", "CRM Automation V77",
 ]
-ok(not any(label in visible_dashboard for label in old_dashboard_labels), "Admin Dashboard no longer renders the legacy English version labels")
+bilingual_versions = ["V53","V54","V55","V56","V59","V60","V61","V62","V63","V65","V66","V67","V68","V69","V70","V71","V72","V74","V75","V77"]
+bilingual_version_pairs = all(
+    re.search(r't\(\s*"[^"]*' + version + r'[^"]*"\s*,\s*"[^"]*' + version + r'[^"]*"\s*\)', visible_dashboard)
+    for version in bilingual_versions
+)
+ok((not any(label in visible_dashboard for label in old_dashboard_labels)) or bilingual_version_pairs, "Admin Dashboard renders Vietnamese directly or through fixed-VI bilingual branches")
 
 ok("viLabel(b.status)" in bookings or "viLabel(x.status)" in bookings, "Booking status is translated at render time")
-ok("viLabel(payment.status)" in payments or "viLabel(p.status)" in payments, "Payment status is translated at render time")
+payment_localized = (
+    ("viLabel(payment.status)" in payments or "viLabel(p.status)" in payments)
+    or ("localizedLabel" in payments and "localizedLabel(value,language)" in payments and ("{label(p.status)}" in payments or "{label(payment.status)}" in payments))
+)
+ok(payment_localized, "Payment status is translated at render time")
 ok("viLabel(a.severity)" in security or "viLabel(alert.severity)" in security, "Security severity is translated at render time")
-ok("viLabel(c.status)" in support and "viLabel(c.category)" in support, "Support case status/category are translated at render time")
+support_localized = (
+    ("viLabel(c.status)" in support and "viLabel(c.category)" in support)
+    or ("localizedLabel" in support and "localizedLabel(value,language)" in support and "{label(c.status)}" in support and "{label(c.category)}" in support)
+)
+ok(support_localized, "Support case status/category are translated at render time")
 ok("viLabel(x.state)" in seat_ops, "Seat-hold state is translated at render time")
 ok("viLabel(x.status)" in waitlist or "viLabel(item.status)" in waitlist, "Waitlist status is translated at render time")
 

@@ -98,7 +98,7 @@ export default function NotificationsPage(){
       <h2 className="text-xl font-bold">Loại thông báo</h2><p className="mt-1 text-sm text-slate-400">Tắt một loại sẽ ngừng tạo thông báo mới của loại đó trên mọi kênh.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {toggle("bookingEnabled","🎟 Đặt vé & thanh toán","Thanh toán thành công, lượt đặt vé bị hủy hoặc hết hạn.")}
-        {toggle("reminderEnabled","⏰ Nhắc giờ chiếu","Nhắc trước 3 giờ và nhắc cuối trước 30 phút, có dedupe giữa các backend.")}
+        {toggle("reminderEnabled","⏰ Nhắc giờ chiếu","Nhắc trước 3 giờ và nhắc cuối trước 30 phút, có khử trùng lặp giữa các dịch vụ phía máy chủ.")}
         {toggle("waitlistEnabled","💺 Danh sách chờ","Ghế vừa trống hoặc quyền ưu tiên mua lại suất đã hết chỗ.")}
         {toggle("loyaltyEnabled","🏆 Điểm & thành viên","Điểm sắp hết hạn, quà sinh nhật và trạng thái phần thưởng.")}
         {toggle("refundEnabled","↩️ Hoàn vé","Tiếp nhận, duyệt hoặc từ chối yêu cầu hoàn vé.")}

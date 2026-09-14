@@ -184,11 +184,11 @@ check('V69 UI loads all three read endpoints','/admin/disaster-recovery/summary'
 check('V69 UI does not expose host absolute backup path','FullPath' not in ui and 'D:\\' not in ui)
 
 # E2E / Playwright
-check('V69 E2E logs in as real admin','E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
+check('V69 E2E logs in as real admin',('E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or 'loginExistingAdmin(page)' in e2e)
 check('V69 E2E verifies tile','admin-disaster-recovery-v69' in e2e)
 check('V69 E2E verifies version order forward-compatible','sort((a,b)=>a-b)' in e2e and ('toBeGreaterThanOrEqual(69)' in e2e or 'toBe(69)' in e2e))
 check('V69 E2E verifies strategy','V69-BACKUP-DR-5' in e2e)
-check('V69 E2E verifies append-only policy','APPEND-ONLY' in e2e)
+check('V69 E2E verifies append-only policy','APPEND-ONLY' in e2e or ('data-evidence-mode' in e2e and 'APPEND_ONLY' in e2e))
 check('V69 E2E rejects UI error banner','disaster-recovery-error-v69' in e2e and 'toHaveCount(0)' in e2e)
 check('Playwright still supports loopback HTTPS mkcert','ignoreHTTPSErrors: ignoreLoopbackHttpsErrors' in playwright)
 

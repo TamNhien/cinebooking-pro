@@ -93,14 +93,14 @@ export default function SupplyChainPage(){
     </section>
 
     <section className="card p-5" data-testid="supply-chain-policy-v72">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🛡 Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-400">Bằng chứng freshness: {summary?.evidenceMaxAgeHours??168} giờ. V72 mặc định không tự chặn bản phát hành; CI/bản phát hành vẫn là mã nguồn of truth.</p></div><div className="text-sm font-bold">DIGESTS_ONLY · APPEND_ONLY_EVIDENCE</div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🛡 Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-400">Độ mới của bằng chứng: {summary?.evidenceMaxAgeHours??168} giờ. V72 mặc định không tự chặn bản phát hành; CI/bản phát hành vẫn là nguồn tham chiếu chuẩn.</p></div><div className="text-sm font-bold">DIGESTS_ONLY · APPEND_ONLY_EVIDENCE</div></div>
       <div className="mt-4 grid gap-3 md:grid-cols-2"><p className="text-sm text-slate-300">✅ SHA-256, xác nhận nguồn, tham chiếu bản dựng/SBOM và bộ đếm quét.</p><p className="text-sm text-slate-300">❌ Không lưu JAR/bundle/image binary, dependency package content hoặc nội dung báo cáo quét.</p></div>
     </section>
 
     <section className="grid gap-4 lg:grid-cols-2">
       <form className="card p-5" onSubmit={recordArtifact} data-testid="supply-chain-artifact-form-v72">
         <h2 className="text-lg font-black">📦 Ghi bằng chứng gói tạo tác</h2><p className="mt-2 text-sm text-slate-400">Thao tác ghi yêu cầu xác thực tăng cường V68.</p>
-        <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Loại gói tạo tác</label><select className="input mt-2 w-full" value={artifactType} onChange={e=>setArtifactType(e.target.value as ArtifactType)}><option value="BACKEND_JAR">Gói JAR backend</option><option value="FRONTEND_BUNDLE">Gói frontend</option><option value="CONTAINER_IMAGE">Ảnh container</option><option value="DEPENDENCY_INVENTORY">Danh mục phụ thuộc</option></select>
+        <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Loại gói tạo tác</label><select className="input mt-2 w-full" value={artifactType} onChange={e=>setArtifactType(e.target.value as ArtifactType)}><option value="BACKEND_JAR">Gói JAR phía máy chủ</option><option value="FRONTEND_BUNDLE">Gói giao diện</option><option value="CONTAINER_IMAGE">Ảnh vùng chứa</option><option value="DEPENDENCY_INVENTORY">Danh mục phụ thuộc</option></select>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Nhãn phiên bản</label><input className="input mt-2 w-full" maxLength={80} value={versionLabel} onChange={e=>setVersionLabel(e.target.value)}/>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">SHA-256</label><input className="input mt-2 w-full" maxLength={64} value={sha256} onChange={e=>setSha256(e.target.value)} placeholder="64 ký tự hex viết thường"/>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Commit nguồn</label><input className="input mt-2 w-full" maxLength={64} value={sourceCommit} onChange={e=>setSourceCommit(e.target.value)} placeholder="Git xác nhận SHA"/>
@@ -111,7 +111,7 @@ export default function SupplyChainPage(){
       </form>
 
       <form className="card p-5" onSubmit={recordScan} data-testid="supply-chain-scan-form-v72">
-        <h2 className="text-lg font-black">🔎 Ghi bằng chứng quét</h2><p className="mt-2 text-sm text-slate-400">Kết luận ĐẠT/CẢNH BÁO/KHÔNG ĐẠT được backend tính; giao diện không được tự khai báo đạt.</p>
+        <h2 className="text-lg font-black">🔎 Ghi bằng chứng quét</h2><p className="mt-2 text-sm text-slate-400">Kết luận ĐẠT/CẢNH BÁO/KHÔNG ĐẠT được dịch vụ phía máy chủ tính; giao diện không được tự khai báo đạt.</p>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Gói tạo tác</label><select className="input mt-2 w-full" required value={artifactId} onChange={e=>setArtifactId(e.target.value)}><option value="" disabled>Chọn bằng chứng gói tạo tác</option>{artifacts.map(a=><option key={a.id} value={a.id}>{a.artifactKey} · {a.artifactType}</option>)}</select>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Trình quét</label><input className="input mt-2 w-full" maxLength={80} value={scanner} onChange={e=>setScanner(e.target.value)}/>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Phiên bản trình quét</label><input className="input mt-2 w-full" maxLength={80} value={scannerVersion} onChange={e=>setScannerVersion(e.target.value)}/>

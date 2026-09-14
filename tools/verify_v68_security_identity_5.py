@@ -179,7 +179,8 @@ check('V68 clock samples current time outside render','const tick=()=>setClock(D
 check('V46 Security Operations compatibility remains','Security Operations' in ui and 'admin-security-alert' in ui)
 
 # E2E
-check('V68 E2E logs in as admin','loginAdmin' in e2e and 'E2E_ADMIN_PASSWORD' in e2e)
+runtime=text('frontend/e2e/runtime-guards.ts')
+check('V68 E2E logs in as admin',('loginAdmin' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or ('loginExistingAdmin' in e2e and 'existingAdminCredentials' in runtime and 'E2E_ADMIN_PASSWORD' in runtime))
 check('V68 E2E verifies Admin tile','admin-security-identity-v68' in e2e)
 check('V68 E2E verifies strategy','V68-SECURITY-IDENTITY-5' in e2e)
 check('V68 E2E proves sensitive write blocked without step-up','blocked.status()).toBe(428)' in e2e)
@@ -223,8 +224,9 @@ check('Stable-only release script accepts stable semantic tag',"^v[0-9]+\\.[0-9]
 check('Stable-only release script rejects pre-release','Pre-release tags are disabled' in release_script)
 check('Stable-only release script waits exact CI commit','gh run list --workflow ci.yml --commit $sha' in release_script and 'gh run watch' in release_script)
 check('Stable-only release script creates annotated tag','git tag -a $Version $sha' in release_script)
-check('Stable-only release script creates GitHub release','gh release create $Version --verify-tag' in release_script)
-check('Stable-only release script marks latest','--latest' in release_script)
+release_workflow=(ROOT/'.github/workflows/v77-auto-release.yml').read_text(encoding='utf-8') if (ROOT/'.github/workflows/v77-auto-release.yml').exists() else ''
+check('Stable-only release script creates GitHub release','gh release create $Version --verify-tag' in release_script or ('gh release create' in release_workflow and 'v77-auto-release.yml' in release_script))
+check('Stable-only release script marks latest','--latest' in release_script or '--latest' in release_workflow)
 check('Stable-only release script never creates rc tag','-rc.' not in release_script)
 
 # docs

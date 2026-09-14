@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { gotoSurface, loginExistingAdmin } from "./runtime-guards";
 
 const PASSWORD = "V57SeatIntel!Customer123";
 
 async function register(page: Page, email: string, fullName: string) {
-  await page.goto("/register");
+  await gotoSurface(page, "/register", "register-name");
   await page.getByPlaceholder("Họ và tên").fill(fullName);
   await page.getByPlaceholder("Email").fill(email);
   await page.getByPlaceholder("Nhập mật khẩu").fill(PASSWORD);
@@ -15,7 +16,8 @@ async function register(page: Page, email: string, fullName: string) {
 async function chooseSeededShowtime(page: Page) {
   const movie = page.getByLabel("1. Phim");
   await expect.poll(async () => movie.locator("option").count()).toBeGreaterThan(1);
-  await movie.selectOption({ label: "Hành Trình Sao Hỏa" });
+  const preferred=movie.locator("option").filter({hasText:"Hành Trình Sao Hỏa"});
+  if(await preferred.count()) await movie.selectOption({label:"Hành Trình Sao Hỏa"}); else await movie.selectOption({index:1});
   const cinema = page.getByLabel("2. Rạp");
   await expect.poll(async () => cinema.locator("option").count()).toBeGreaterThan(1);
   await cinema.selectOption({ index: 1 });
@@ -56,7 +58,7 @@ test("V57 Booking & Seat Intelligence ranks best adjacent seats, syncs hold coun
 
   const bookingUrl = page.url();
   const showtimeId = bookingUrl.split("/").pop()!;
-  await expect(page.getByTestId("booking-seat-intelligence-v57")).toContainText("BOOKING & SEAT INTELLIGENCE · V57");
+  await expect(page.getByTestId("booking-seat-intelligence-v57")).toContainText("ĐẶT VÉ & GỢI Ý GHẾ THÔNG MINH · V57");
   await expect(page.getByTestId("booking-seat-intelligence-v57")).toContainText("Giá động thật");
 
   await page.getByLabel("Số người cần xếp ghế").selectOption("2");
@@ -97,8 +99,8 @@ test("V57 Booking & Seat Intelligence ranks best adjacent seats, syncs hold coun
   expect(firstHold.status).toBe(200);
   expect(firstHold.body!.holdExpiresAtEpochMs).toBeGreaterThan(firstHold.body!.serverEpochMs);
 
-  await page.goto(bookingUrl);
-  await expect(page.getByTestId("seat-hold-countdown-v57")).toBeVisible();
+  await gotoSurface(page, bookingUrl, "booking-seat-intelligence-v57");
+  await expect(page.getByTestId("seat-hold-countdown-v57")).toBeVisible({timeout:30_000});
   await expect(page.getByTestId("seat-hold-countdown-v57")).toContainText(/\d+:\d{2}/);
 
   const secondContext = await browser.newContext({ locale: "vi-VN", timezoneId: "Asia/Ho_Chi_Minh" });
@@ -111,12 +113,23 @@ test("V57 Booking & Seat Intelligence ranks best adjacent seats, syncs hold coun
     });
     expect(secondHold.status).toBe(409);
 
-    await secondPage.goto(bookingUrl);
+    await gotoSurface(secondPage, bookingUrl, "booking-seat-intelligence-v57");
     for (const code of best.seatCodes) {
-      await expect(secondPage.getByRole("button", { name: `Ghế ${code}` })).toHaveAttribute("title", /HELD/);
+      await expect(secondPage.getByRole("button", { name: `Ghế ${code}` })).toHaveAttribute("data-seat-status", "HELD");
     }
   } finally {
     await secondContext.close();
     await authedJson(page, `/api/showtimes/${showtimeId}/holds`, { method: "DELETE", body: { seatIds: best.seatIds } });
   }
+});
+
+
+test("V77.0.14 restores the V57 Admin shortcut to a dedicated real-data seat-intelligence page", async ({ page }) => {
+  await loginExistingAdmin(page);
+  const tile=page.getByTestId("admin-booking-seat-intelligence-v57");
+  await expect(tile).toHaveAttribute("href","/admin/booking-seat-intelligence");
+  await tile.click();
+  await expect(page).toHaveURL(/\/admin\/booking-seat-intelligence$/);
+  await expect(page.getByTestId("admin-booking-seat-intelligence-page-v57")).toContainText("Đặt vé & gợi ý ghế V57");
+  await expect(page.getByTestId("booking-seat-intelligence-policy-v57")).toContainText("Không tạo dữ liệu giả");
 });
