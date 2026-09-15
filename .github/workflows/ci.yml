@@ -533,6 +533,13 @@ jobs:
       - name: Verify V77.0.49 release staging whitespace preflight
         run: python3 tools/verify_v77_0_49_release_staging_whitespace_preflight.py
 
+      - name: Verify V77.0.50 V26 CI Service-Worker version parser compatibility
+        run: python3 tools/verify_v77_0_50_v26_ci_service_worker_version_parser.py
+      - name: Verify V77.0.51 V66 booking authority boot surface
+        run: python3 tools/verify_v77_0_51_v66_booking_authority_boot_surface.py
+      - name: Verify V77.0.52 full-suite transient read resilience
+        run: python3 tools/verify_v77_0_52_full_suite_transient_read_resilience.py
+
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72
 

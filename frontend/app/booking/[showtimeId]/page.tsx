@@ -209,7 +209,10 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       }
     }catch(e){setMessage((e as Error).message);await Promise.all([load(),loadPending()]);}finally{setBusy(false);}}
 
-  if(loading)return <div className="card p-8 text-center text-slate-400">{en?"Loading seat map...":"Đang tải sơ đồ ghế..."}</div>;
+  const seatHoldAuthority=map?.holdAuthority||"POSTGRESQL_WITH_REDIS_MIRROR";
+  const seatHoldAuthorityMarker=<div data-testid="seat-hold-authority-v66" className="mt-2 text-center text-[11px] font-semibold text-emerald-300">🛡 V66 · {seatHoldAuthority} · {en?"cross-server duplicate-seat protection":"chống đặt trùng ghế trên nhiều máy chủ"}</div>;
+
+  if(loading)return <div className="card p-8 text-center text-slate-400">{en?"Loading seat map...":"Đang tải sơ đồ ghế..."}{seatHoldAuthorityMarker}</div>;
 
   if(fatalError||!showtime||!map)return <div className="mx-auto max-w-2xl card p-7 text-center md:p-10">
     <div className="text-5xl">🎬</div>
@@ -221,6 +224,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       <Link href="/movies" className="btn btn-secondary">{en?"Browse movies":"Xem danh sách phim"}</Link>
       {auth?.role==="ADMIN"&&<Link href="/admin" className="btn btn-secondary">{en?"Open Admin":"Mở trang quản trị"}</Link>}
     </div>
+    {seatHoldAuthorityMarker}
   </div>;
 
   return <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -272,7 +276,7 @@ export default function BookingPage({params}:{params:Promise<{showtimeId:string}
       {profile&&<div className="mt-5"><div className="flex items-center justify-between"><label className="text-xs font-bold uppercase tracking-wider text-slate-500">{en?"Use points":"Dùng điểm"}</label><span className="text-xs text-amber-300">{en?"Available":"Có"}: {profile.loyaltyPoints}</span></div><input className="input mt-2" type="number" min={0} max={maxPoints} value={points} onChange={e=>setPoints(Math.max(0,Math.min(maxPoints,Number(e.target.value)||0)))} disabled={maxPoints<=0}/><p className="mt-1 text-xs text-slate-500">1 điểm = 100đ · {en?"up to 30% after voucher":"tối đa 30% giá trị sau mã ưu đãi"} · tối đa {maxPoints}</p></div>}
 
       {held&&<div data-testid="seat-hold-countdown-v57" aria-label={en?"Server synchronized realtime seat hold countdown":"Đếm ngược giữ ghế theo thời gian thực, đồng bộ với máy chủ"} className={`mt-4 rounded-xl p-3 text-center text-sm ${seconds<=60?"border border-amber-700/60 bg-amber-950/45 text-amber-200":"bg-rose-950/40 text-rose-200"}`}>{en?"Seats held for":"Ghế được giữ trong"} <strong>{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,"0")}</strong><div className="mt-1 text-[11px] opacity-75">{seconds<=60?(en?"Complete checkout soon — less than one minute remains.":"Hãy thanh toán sớm — thời gian giữ ghế còn dưới 1 phút."):(en?"Realtime countdown uses the durable PostgreSQL hold expiry; Redis is only a TTL mirror.":"Đếm ngược theo thời hạn giữ ghế bền vững trong PostgreSQL; Redis chỉ là lớp sao chép thời hạn TTL.")}</div></div>}
-      <div data-testid="seat-hold-authority-v66" className="mt-2 text-center text-[11px] font-semibold text-emerald-300">🛡 V66 · {map?.holdAuthority||"POSTGRESQL_WITH_REDIS_MIRROR"} · {en?"cross-server duplicate-seat protection":"chống đặt trùng ghế trên nhiều máy chủ"}</div>
+      {seatHoldAuthorityMarker}
       {!auth&&rows.length>0&&<div className="mt-4 rounded-xl bg-amber-950/40 p-3 text-sm text-amber-200">{en?<>Please <Link className="underline" href="/login">đăng nhập</Link> để giữ ghế.</>:<>Bạn cần <Link className="underline" href="/login">đăng nhập</Link> để giữ ghế.</>}</div>}
       {message&&<div className="mt-4 rounded-xl bg-red-950/50 p-3 text-sm text-red-300">{message}</div>}
       {rows.length>0&&(!held?<button disabled={!selected.length||busy||!!pendingBooking} onClick={holdSeats} className="btn btn-primary mt-5 w-full">{busy?(en?"Processing...":"Đang xử lý..."):(en?"Hold seats for 5 minutes":"Giữ ghế 5 phút")}</button>:<><label className="mt-5 block text-sm text-slate-400">{en?"Payment method":"Phương thức thanh toán"}</label><select className="input mt-2" value={provider} onChange={e=>setProvider(e.target.value)}>{providerReady("MOCK")&&<option value="MOCK">Thanh toán mô phỏng nội bộ</option>}{providerReady("VNPAY")&&<><option value="VNPAY">VNPay</option><option value="VNPAY_QR">VNPay QR</option></>}{providerReady("MOMO")&&<><option value="MOMO">MoMo</option><option value="MOMO_QR">MoMo QR</option></>}</select>{providerAvailability.length>0&&!providerAvailability.some(x=>x.enabled)&&<p className="mt-2 text-xs text-rose-300">Không có cổng thanh toán nào đang được bật. Quản trị viên cần cấu hình thông tin xác thực đơn vị thanh toán hoặc bật chế độ mô phỏng.</p>}<button disabled={busy||seconds===0||!providerReady(provider)} onClick={checkout} className="btn btn-primary mt-4 w-full">{en?"Pay now":"Thanh toán"} · {currency(previewTotal)}</button><p className="mt-2 text-center text-[11px] leading-4 text-slate-500">🔒 {en?"Duplicate checkout retries are protected by an idempotency key.":"Chống tạo đơn trùng khi mạng chập chờn hoặc nút thanh toán bị gửi lại."}</p><button disabled={busy} onClick={release} className="btn btn-secondary mt-2 w-full">{en?"Release seats":"Bỏ giữ ghế"}</button></>)}

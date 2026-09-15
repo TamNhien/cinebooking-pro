@@ -5,6 +5,7 @@ import { Client } from "@stomp/stompjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, currency } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import type {
   OperationsControlCinemaV58,
@@ -122,8 +123,13 @@ export default function OperationsControlCenterV59(){
 
   async function load(selected=selectedRef.current,quiet=false){
     if(!quiet)setLoading(true);if(!quiet)setMessage("");
-    try{const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";setData(await api<OperationsControlSnapshotV59>(`/admin/operations-control/snapshot${qs}`));}
-    catch(e){setMessage((e as Error).message)}finally{if(!quiet)setLoading(false)}
+    try{
+      const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";
+      const snapshot=await withTransientReadRetry(signal=>
+        api<OperationsControlSnapshotV59>(`/admin/operations-control/snapshot${qs}`,{signal})
+      );
+      setData(snapshot);
+    }catch(e){setMessage((e as Error).message)}finally{if(!quiet)setLoading(false)}
   }
   async function loadHistory(selected=selectedRef.current){
     try{const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";setHistory(await api<OperationsControlHistoryV59[]>(`/admin/operations-control/alerts/history${qs}`));}catch{}
@@ -137,9 +143,12 @@ export default function OperationsControlCenterV59(){
   useEffect(()=>{
     const local=getAuth();if(!local){window.location.assign("/login?returnTo=/admin/operations-control&reason=required");return;}
     (async()=>{try{
-      const profile=await api<UserProfile>("/me");
+      const [profile,options]=await withTransientReadRetry(signal=>Promise.all([
+        api<UserProfile>("/me",{signal}),
+        api<OperationsControlCinemaV58[]>("/admin/operations-control/cinemas",{signal}),
+      ]));
       if(!["MANAGER","ADMIN"].includes(profile.role)){clearAuth();window.location.assign("/login?returnTo=/admin/operations-control&reason=admin");return;}
-      setMe(profile);const options=await api<OperationsControlCinemaV58[]>("/admin/operations-control/cinemas");setCinemas(options);
+      setMe(profile);setCinemas(options);
       const initial=profile.role==="MANAGER"&&options.length?options[0].cinemaId:"";selectedRef.current=initial;setCinemaId(initial);await Promise.all([load(initial),loadHistory(initial)]);
     }catch(e){setMessage((e as Error).message);setLoading(false)}})();
   },[]);

@@ -2,11 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.49 - Release Staging Whitespace Preflight
+> **Current release:** V77.0.52 - Full-Suite Transient Read Resilience
 
-> **Current language policy (V77.0.49):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
+> **Current language policy (V77.0.52):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.49` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.52` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -192,6 +192,9 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.47** | **Historical release-gate forward compatibility: after V77.0.46 reached focused 2/2, targeted 3/3 and full browser 46/46, stable release preflight was blocked by the historical V77.0.9 verifier because it recognized only legacy `viLabel(...)`; the verifier now also recognizes the current language-aware `localizedLabel(value, language)`/`label(...)` rendering used by Payment and Support** | **No runtime/business-rule change, no schema change (Flyway V72), Admin remains sourced from root `.env`; historical gate semantics are preserved while accepting the newer localization implementation** |
 | **V77.0.48** | **Maintenance success-feedback timer ownership: V77.0.47 release preflight reached full Browser E2E but the V44 maintenance journey intermittently lost `maintenance-success-message` after resolving a work order; `announce()` now owns exactly one timer, cancels the previous timer before publishing new feedback, and cleans it up on unmount so an older success timeout cannot erase a newer completion message** | **No maintenance business-rule change, no schema change (Flyway V72), exact `ok` completion result and authoritative reload remain enforced; Admin still comes from root `.env`** |
 | **V77.0.49** | **Release staging whitespace preflight: V77.0.48 passed 46/46 Browser E2E inside `release.ps1`, then publication was correctly blocked by `git diff --cached --check` because `README.md` ended with a new blank line. README EOF is normalized and a dedicated source gate now detects duplicate terminal newlines before the expensive browser gate.** | **Keeps `git diff --cached --check` fail-closed, no business/runtime/schema change (Flyway V72), Admin still comes from root `.env`** |
+| **V77.0.50** | **V26 CI Service-Worker version parser compatibility: after V77.0.49 passed local release gates and was pushed to `main`, GitHub CI stopped at `bash tools/verify-v26-source.sh` with 13/14 because the historical parser only recognized `const VERSION = "v26"`-style cache IDs and could not parse the current patch-form `v77-0-49`. The V26 gate now accepts numeric patch-form cache generations while preserving the major-version >=26 requirement.** | **CI/verifier-only compatibility fix; PWA behavior and cache-safety checks remain intact, no schema change (Flyway V72), Admin still comes from root `.env`** |
+| **V77.0.51** | **V66 booking authority boot-surface stability: after V77.0.50 restored the V26 Linux CI gate, the stable release full-browser run still exposed a timing window where `/booking/{showtimeId}` rendered only its loading/unavailable early-return before the V66 authority marker existed. The authority marker is now a boot-safe render invariant present during loading, unavailable/error and normal booking states, while the API race still proves the authoritative value `POSTGRESQL_WITH_REDIS_MIRROR`.** | **Runtime-contract stabilization only; no seat-lock algorithm change, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
+| **V77.0.52** | **Full-suite transient read resilience: after V77.0.51 made the V66 authority surface boot-safe, the next full 46-test run exposed four independent UI shells whose authenticated read APIs could transiently fail or stall under sustained suite load (Notifications V41, Observability V65, Command Center V53 and Operations Control V58/V59). A shared abortable read helper now retries only transient GET failures/timeouts within a bounded 12-second budget while preserving 401/403 fail-closed behavior and all real backend assertions.** | **Runtime read-resilience only; no fake summary/card data, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -7858,3 +7861,51 @@ python -X utf8 .\tools\verify_v77_0_49_release_staging_whitespace_preflight.py
 ```
 
 Expected: `V77.0.49 release staging whitespace preflight verification: 20/20 checks passed`. Then run the normal stable release flow with `.\scripts\release.ps1 v77.0.49`.
+## V77.0.50 - V26 CI Service-Worker Version Parser Compatibility
+
+V77.0.49 passed its dedicated source-hygiene verifier and the staged Git whitespace check, then the stable release flow completed local source/runtime gates and pushed the exact commit to `main`. GitHub CI subsequently stopped in the historical V26 PWA source gate at **13/14**. Every printed PWA behavior check passed; the missing check was `service worker cache version`.
+
+The V26 verifier still parsed only the original cache format `const VERSION = "v26"`. Current V77 patch releases intentionally use a patch-scoped cache ID such as `v77-0-49`, so the old grep returned no numeric version even though the cache generation was newer than V26. V77.0.50 updates only that parser: it accepts `v<major>`, `v<major>-<minor>-<patch>`, or dotted numeric equivalents, extracts the leading major number, and still requires that major to be at least 26. The authenticated-API cache exclusion, offline-ticket storage, install/update UX and all other V26 checks are unchanged.
+
+A dedicated V77.0.50 verifier requires the historical shell gate to produce **14/14**, proves the parser recognizes the current patch-form Service Worker generation, confirms CI continues to execute the V26 shell gate, and preserves Flyway V72/no-schema plus the existing stable-only release flow.
+
+### Verify V77.0.50
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_50_v26_ci_service_worker_version_parser.py
+bash tools/verify-v26-source.sh
+```
+
+Expected: V77.0.50 verifier passes and `verify-v26-source.sh` ends with `14/14 checks passed`. Then rerun `./scripts/release.ps1 v77.0.50` from PowerShell.
+## V77.0.51 - V66 Booking Authority Boot-Surface Stability
+
+The V77.0.50 release run proved the historical V26 PWA gate was repaired, but its full Browser E2E run stopped at 45/46 because `booking-consistency-seat-locking-v66.spec.ts` could navigate to `/booking/{showtimeId}` while the booking page was still inside its loading/transient-read early return. The V66 authority marker had already been made independent of `held`, but it still lived only below the page's loading and unavailable guards, so the DOM temporarily had no `seat-hold-authority-v66` surface.
+
+V77.0.51 makes the authority marker a boot-safe render invariant. The same marker is rendered while the seat map is loading, on the unavailable/error surface, and in the normal booking summary. The marker continues to use the seat-map authority when available and the architectural default `POSTGRESQL_WITH_REDIS_MIRROR` before the map arrives. The V66 browser journey is not weakened: it still races two independent users against the same seat pair, requires exactly one 200 and one 409, verifies the winning API response authority and UUID hold token, verifies the booking marker, verifies Admin operations visibility, and releases the winning hold.
+
+No Flyway migration is added; latest remains V72. No Admin credential fallback is added. Service Worker generation advances to `v77-0-51`.
+
+### Verify V77.0.51
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_51_v66_booking_authority_boot_surface.py
+```
+
+Expected: the V77.0.51 verifier passes, then run the focused V66 Playwright journey before the full 46-test Browser E2E gate and stable-only release.
+## V77.0.52 - Full-Suite Transient Read Resilience
+
+The V77.0.51 focused V66 journey passed 1/1, but the subsequent full 46-test browser run stopped at 42/46. Four otherwise unrelated pages rendered their page shells while their authenticated read data never reached the expected UI surface within the browser gate: the V41 notification test could not see the durable test notification it had just created, V65 remained on `Đang tải SLO...`, and V53/V58 had no summary surface. The failures share the same transport shape: authenticated idempotent reads under sustained full-suite load.
+
+V77.0.52 adds `frontend/lib/transient-read.ts`, a bounded abortable retry helper for read-only requests. Each attempt owns an `AbortController`; transient network/abort, HTTP 408, 425, 429 and 5xx failures may retry with exponential backoff, but the entire operation is capped at 12 seconds and each attempt at 3.5 seconds. Authentication/authorization failures are not retryable, and mutation requests are not routed through this helper. Notifications, Observability V65, Command Center V53 and Operations Control V58/V59 now use this helper only for their GET/bootstrap reads. No placeholder notification, SLO, command-center summary or operations snapshot is fabricated.
+
+The existing browser contracts remain unchanged: V41 must still create a durable notification and prove archive/restore/read state; V65 must still render the real SLO/dependency payload; V53 and V58/V59 must still render real operational snapshots; V66 keeps its exact 200/409 seat-hold race and authority checks; the historical V26 shell gate remains 14/14. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-52`.
+
+### Verify V77.0.52
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v77_0_52_full_suite_transient_read_resilience.py
+```
+
+Expected: V77.0.52 verifier passes. Then run the four focused browser journeys, the full 46-test suite, and finally `./scripts/release.ps1 v77.0.52`.

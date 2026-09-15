@@ -46,7 +46,7 @@ ok('maintenance-transition-note' in e2e and '.fill("ok")' in e2e,
    'V44 browser regression preserves the exact two-character completion result')
 ok('maintenance-work-order-status' in e2e and 'Đã hoàn tất' in e2e and 'Kết quả: ok' in e2e,
    'V44 browser regression still proves authoritative resolved state and stored repair result')
-ok(any(x in sw for x in ['const VERSION = "v77-0-48";','const VERSION = "v77-0-49";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
    'Service Worker release metadata is V77.0.48 or forward-compatible V77.0.49')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -60,8 +60,8 @@ ok(name in ci, 'Main CI runs the V77.0.48 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.48 verifier')
 ok('verify-v77-0-48' in make and 'release-v77-0-48' in make,
    'Makefile exposes V77.0.48 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V77.0.48','Current release:** V77.0.49']) and any(x in readme for x in ['`v77.0.48`','`v77.0.49`']) and 'V77.0.48 - Maintenance Success-Feedback Timer Ownership' in readme,
-   'README retains V77.0.48 history under the V77.0.49-or-newer stable target')
+ok(any(x in readme for x in ['Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']) and 'V77.0.48 - Maintenance Success-Feedback Timer Ownership' in readme,
+   'README retains V77.0.48 history under the V77.0.50-or-newer stable target')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    'Source keeps one consolidated root Markdown history document')
 ok(any(x in prev for x in ['v77-0-48','v77-0-49']) and 'V77.0.48' in prev,

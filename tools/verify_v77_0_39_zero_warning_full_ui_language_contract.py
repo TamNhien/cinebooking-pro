@@ -88,7 +88,7 @@ ok('/admin/vouchers' in lang_spec and '/admin/analytics-bi' in lang_spec and '/a
 ok('↻ Refresh' in lang_spec and '↻ Làm mới' in lang_spec,
    'Browser regression proves English then restored Vietnamese presentation')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-39";','const VERSION = "v77-0-40";','const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-39";','const VERSION = "v77-0-40";','const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
    'Service Worker cache generation remains V77.0.39-or-newer so stale pre-language-fix shell is evicted')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -105,7 +105,7 @@ ok(name in release and name in ci and name in diag,
    'Release/CI/diagnostics run the V77.0.39 verifier')
 ok('verify-v77-0-39' in make and 'release-v77-0-39' in make,
    'Makefile exposes V77.0.39 verify/release targets')
-ok(any(x in readme for x in ['Current release:** V77.0.39','Current release:** V77.0.40','Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49']) and any(x in readme for x in ['`v77.0.39`','`v77.0.40`','`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`']) and 'Zero-Warning Full-UI Language Contract' in readme,
+ok(any(x in readme for x in ['Current release:** V77.0.39','Current release:** V77.0.40','Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.39`','`v77.0.40`','`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']) and 'Zero-Warning Full-UI Language Contract' in readme,
    'README retains V77.0.39 history under the V77.0.45-or-newer stable target')
 ok('Page` không sử dụng' in readme and 'LegacyUiLocalizationBridge' in readme and 'language-switch-en' in readme,
    'README records the lint root cause and full-UI language recovery scope')

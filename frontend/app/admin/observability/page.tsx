@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import type { ObservabilitySummaryV65, ObservabilitySloV65, UserProfile } from "@/lib/types";
 
 const REFRESH_MS=10_000;
@@ -17,11 +18,14 @@ export default function ObservabilityV65Page(){
   const load=useCallback(async()=>{
     setBusy(true);
     try{
-      const me=await api<UserProfile>("/me");
+      const [me,nextSummary]=await withTransientReadRetry(signal=>Promise.all([
+        api<UserProfile>("/me",{signal}),
+        api<ObservabilitySummaryV65>("/admin/observability/summary",{signal}),
+      ]));
       if(me.role!=="ADMIN"){
         clearAuth();window.location.assign("/login?returnTo=/admin/observability&reason=admin");return;
       }
-      setSummary(await api<ObservabilitySummaryV65>("/admin/observability/summary"));
+      setSummary(nextSummary);
       setMsg("");
     }catch(e){
       setMsg((e as Error).message);

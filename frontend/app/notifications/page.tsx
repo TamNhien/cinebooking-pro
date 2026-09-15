@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { disableCurrentDevicePush, registerCurrentPwaDevice } from "@/lib/pwa";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import type { NotificationItem, NotificationPreference } from "@/lib/types";
 
 type Filter = "ALL"|"UNREAD"|"BOOKING"|"REMINDER"|"REFUND"|"STAFF_SHIFT"|"PROMOTION"|"LOYALTY"|"WAITLIST";
@@ -25,7 +26,10 @@ export default function NotificationsPage(){
   const [browserPermission,setBrowserPermission]=useState<string>("unsupported");
 
   const load=async(nextView:View=view)=>{
-    const [list,p]=await Promise.all([api<NotificationItem[]>(`/notifications?view=${nextView}`),api<NotificationPreference>("/notifications/preferences")]);
+    const [list,p]=await withTransientReadRetry(signal=>Promise.all([
+      api<NotificationItem[]>(`/notifications?view=${nextView}`,{signal}),
+      api<NotificationPreference>("/notifications/preferences",{signal}),
+    ]));
     setItems(list);setPrefs(p);
   };
 

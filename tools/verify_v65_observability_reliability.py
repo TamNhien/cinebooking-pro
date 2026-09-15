@@ -197,8 +197,8 @@ check("V65 tile links /admin/observability", 'href="/admin/observability"' in ad
 check("Observability V65 UI exists", bool(ui))
 check("UI identifies V65 Observability & Reliability 4.0", "V65 · OBSERVABILITY & RELIABILITY 4.0" in ui)
 check("UI displays strategy version", "V65-OBSERVABILITY-RELIABILITY-4" in ui)
-check("UI loads ADMIN user guard", 'api<UserProfile>("/me")' in ui and 'me.role!=="ADMIN"' in ui)
-check("UI calls summary endpoint", 'api<ObservabilitySummaryV65>("/admin/observability/summary")' in ui)
+check("UI loads ADMIN user guard", ('api<UserProfile>("/me")' in ui or 'api<UserProfile>("/me",{signal})' in ui) and 'me.role!=="ADMIN"' in ui)
+check("UI calls summary endpoint", 'api<ObservabilitySummaryV65>("/admin/observability/summary")' in ui or 'api<ObservabilitySummaryV65>("/admin/observability/summary",{signal})' in ui)
 check("UI auto refreshes every 10s", "REFRESH_MS=10_000" in ui and "window.setInterval" in ui)
 for testid in ["observability-summary-v65", "slo-v65", "dependencies-v65", "runtime-v65", "stack-v65", "recent-traces-v65"]:
     check(f"UI exposes {testid}", f'data-testid="{testid}"' in ui)

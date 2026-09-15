@@ -55,6 +55,9 @@ $checks = @(
   'tools/verify_v77_0_47_historical_release_gate_forward_compatibility.py',
   'tools/verify_v77_0_48_maintenance_success_feedback_timer_ownership.py',
   'tools/verify_v77_0_49_release_staging_whitespace_preflight.py',
+  'tools/verify_v77_0_50_v26_ci_service_worker_version_parser.py',
+  'tools/verify_v77_0_51_v66_booking_authority_boot_surface.py',
+  'tools/verify_v77_0_52_full_suite_transient_read_resilience.py',
   'tools/verify_realistic_data_57.py',
   'tools/verify_seed_demo_57.py'
 )

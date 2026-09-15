@@ -1331,3 +1331,21 @@ verify-v77-0-49:
 
 release-v77-0-49:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.49
+
+verify-v77-0-50:
+	python tools/verify_v77_0_50_v26_ci_service_worker_version_parser.py
+
+release-v77-0-50:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.50
+
+verify-v77-0-51:
+	python tools/verify_v77_0_51_v66_booking_authority_boot_surface.py
+
+release-v77-0-51:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.51
+
+verify-v77-0-52:
+	python tools/verify_v77_0_52_full_suite_transient_read_resilience.py
+
+release-v77-0-52:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.52

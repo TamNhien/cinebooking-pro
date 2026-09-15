@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
 import { viLabel } from "@/lib/vi-labels";
 import { clearAuth, getAuth } from "@/lib/auth";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import type { CommandCenterCinemaV53, CommandCenterSummaryV53, UserProfile } from "@/lib/types";
 
 const number=(v:number)=>new Intl.NumberFormat("vi-VN").format(v||0);
@@ -26,7 +27,9 @@ export default function OperationsCommandCenterV53(){
     setLoading(true);setMessage("");
     try{
       const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";
-      const summary=await api<CommandCenterSummaryV53>(`/admin/command-center/summary${qs}`);
+      const summary=await withTransientReadRetry(signal=>
+        api<CommandCenterSummaryV53>(`/admin/command-center/summary${qs}`,{signal})
+      );
       setData(summary);
     }catch(e){setMessage((e as Error).message)}finally{setLoading(false)}
   }
@@ -36,12 +39,14 @@ export default function OperationsCommandCenterV53(){
     if(!local){window.location.assign("/login?returnTo=/admin/command-center&reason=required");return;}
     (async()=>{
       try{
-        const profile=await api<UserProfile>("/me");
+        const [profile,options]=await withTransientReadRetry(signal=>Promise.all([
+          api<UserProfile>("/me",{signal}),
+          api<CommandCenterCinemaV53[]>("/admin/command-center/cinemas",{signal}),
+        ]));
         if(!["MANAGER","ADMIN"].includes(profile.role)){
           clearAuth();window.location.assign("/login?returnTo=/admin/command-center&reason=admin");return;
         }
         setMe(profile);
-        const options=await api<CommandCenterCinemaV53[]>("/admin/command-center/cinemas");
         setCinemas(options);
         const initial=profile.role==="MANAGER"&&options.length?options[0].cinemaId:"";
         setCinemaId(initial);
