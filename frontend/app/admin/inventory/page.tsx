@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import { getAuth } from "@/lib/auth";
 import type { InventoryBranchOverview, InventoryMovement, InventoryProduct, InventorySummary, InventoryTransfer } from "@/lib/types";
 
@@ -27,7 +28,9 @@ export default function InventoryAdmin(){
   const [allBranchesHistory,setAllBranchesHistory]=useState(false);
 
   async function loadBranches(){
-    const rows=await api<InventoryBranchOverview[]>("/admin/inventory/branches");
+    const rows=await withTransientReadRetry(signal=>
+      api<InventoryBranchOverview[]>("/admin/inventory/branches",{signal})
+    );
     setBranches(rows);
     const next=cinemaId||rows[0]?.cinemaId||"";
     if(next&&!cinemaId)setCinemaId(next);
@@ -38,10 +41,10 @@ export default function InventoryAdmin(){
   async function load(cid:string,productId?:string){
     if(!cid)return;
     const query=`cinemaId=${encodeURIComponent(cid)}${productId?`&productId=${encodeURIComponent(productId)}`:""}`;
-    const [s,m]=await Promise.all([
-      api<InventorySummary>(`/admin/inventory?cinemaId=${encodeURIComponent(cid)}`),
-      api<InventoryMovement[]>(`/admin/inventory/movements?${query}`)
-    ]);
+    const [s,m]=await withTransientReadRetry(signal=>Promise.all([
+      api<InventorySummary>(`/admin/inventory?cinemaId=${encodeURIComponent(cid)}`,{signal}),
+      api<InventoryMovement[]>(`/admin/inventory/movements?${query}`,{signal})
+    ]));
     setSummary(s);if(!allBranchesHistory)setMovements(m);
     const chosen=productId||selectedId||s.products[0]?.productId||"";
     setSelectedId(chosen);
@@ -80,10 +83,14 @@ export default function InventoryAdmin(){
   async function toggleHistoryScope(){
     try{
       if(allBranchesHistory){
-        setMovements(await api<InventoryMovement[]>(`/admin/inventory/movements?cinemaId=${encodeURIComponent(cinemaId)}`));
+        setMovements(await withTransientReadRetry(signal=>
+          api<InventoryMovement[]>(`/admin/inventory/movements?cinemaId=${encodeURIComponent(cinemaId)}`,{signal})
+        ));
         setAllBranchesHistory(false);
       }else{
-        setMovements(await api<InventoryMovement[]>("/admin/inventory/movements"));
+        setMovements(await withTransientReadRetry(signal=>
+          api<InventoryMovement[]>("/admin/inventory/movements",{signal})
+        ));
         setAllBranchesHistory(true);
       }
     }catch(e){setMsg((e as Error).message)}

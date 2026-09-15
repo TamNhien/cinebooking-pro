@@ -55,8 +55,8 @@ ok('run: python3 tools/verify_v31_ticket_wallet.py' in ci,
 v31_run=subprocess.run([sys.executable, str(ROOT/'tools/verify_v31_ticket_wallet.py')], cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 ok(v31_run.returncode==0 and '38/38 checks passed' in v31_run.stdout,
    'Historical V31 verifier exits zero on the current source with all 38 checks')
-ok('const VERSION = "v77-0-54";' in sw,
-   'Service Worker release metadata advances to V77.0.54')
+ok(any(x in sw for x in ['const VERSION = "v77-0-54";','const VERSION = "v77-0-55";','const VERSION = "v77-0-56";','const VERSION = "v77-0-57";','const VERSION = "v77-0-59";','const VERSION = "v77-0-60";','const VERSION = "v77-0-61";']),
+   'Service Worker release metadata is V77.0.54 or forward-compatible V77.0.55')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
 ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob('V73*.sql')),
@@ -67,16 +67,16 @@ ok(name in ci, 'Main CI runs the V77.0.54 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.54 verifier')
 ok('verify-v77-0-54' in make and 'release-v77-0-54' in make,
    'Makefile exposes V77.0.54 verify/release lifecycle')
-ok('Current release:** V77.0.54' in readme and '`v77.0.54`' in readme,
-   'README records V77.0.54 as the stable target')
+ok(any(x in readme for x in ['Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in readme for x in ['`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
+   'README retains V77.0.54 history under the V77.0.55-or-newer stable target')
 ok('36/38' in readme and 'verify_v31_ticket_wallet.py' in readme and '38/38' in readme,
    'README records the exact V31 CI blocker and restored 38/38 contract')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    'Source keeps one consolidated root Markdown history document')
 ok(('v77-0-54' in prev or 'V77.0.54' in prev),
    'V77.0.53 verifier is forward-compatible with V77.0.54 release metadata')
-ok('Current release:** V77.0.54' in v29 and '`v77.0.54`' in v29,
-   'V77.0.29 forward-compatibility chain accepts the V77.0.54 stable target')
+ok(any(x in v29 for x in ['Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in v29 for x in ['`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
+   'V77.0.29 forward-compatibility chain accepts the V77.0.55 stable target')
 
 passed=sum(checks)
 print(f"\nV77.0.54 historical V31 Ticket Wallet contract compatibility verification: {passed}/{len(checks)} checks passed")

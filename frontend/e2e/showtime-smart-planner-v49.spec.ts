@@ -1,5 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { gotoSurface, loginExistingAdmin } from "./runtime-guards";
+
+async function selectOptionContaining(select:Locator,text:string){
+  const option=select.locator("option").filter({hasText:text}).first();
+  await expect(option).toBeAttached();
+  const value=await option.getAttribute("value");
+  expect(value).toBeTruthy();
+  await select.selectOption(value!);
+}
 
 function isolatedPlannerDate(){
   const dayMs=86_400_000;
@@ -13,12 +21,13 @@ test("V49 Smart Planner suggests demand-balanced conflict-free showtimes and com
   await gotoSurface(page, "/admin/showtimes", "smart-showtime-planner");
   const cinema=page.getByTestId("smart-cinema-select");
   const movie=page.getByTestId("smart-movie-select");
+  await expect(page.getByTestId("smart-showtime-planner")).toContainText(/THÔNG MINH|SMART/i);
   await expect.poll(async()=>cinema.locator("option").count(),{timeout:30_000}).toBeGreaterThan(1);
   await expect.poll(async()=>movie.locator("option").count(),{timeout:30_000}).toBeGreaterThan(1);
   // Do not select the first cinema: V48 creates a transfer-only branch with no
   // auditorium earlier in this serial suite, which can sort before the baseline.
   await cinema.selectOption({label:"CineHub Quận 1"});
-  await movie.selectOption({index:1});
+  await selectOptionContaining(movie,"Hành Trình Sao Hỏa");
   const selectedMovieLabel=(await movie.locator("option:checked").textContent()||"").trim();
   const selectedMovie=selectedMovieLabel.split(" · ")[0].trim();
   expect(selectedMovie).not.toBe("");

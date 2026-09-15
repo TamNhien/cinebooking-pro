@@ -27,7 +27,13 @@ v293 = text("tools/verify_v29_3_demo_schedule.py")
 v31 = text("tools/verify_v31_ticket_wallet.py")
 
 check("booking status badge has a dedicated accessible label", 'aria-label={`Trạng thái booking: ${b.status}`}' in bookings or 'aria-label={`Trạng thái đặt vé: ${viLabel(b.status)}`}' in bookings)
-check("Playwright CONFIRMED assertion uses the dedicated booking-status label", 'getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()' in spec)
+legacy_confirmed_label = 'getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()' in spec
+current_confirmed_status = (
+    'confirmedCard.getByTestId("booking-status")' in spec
+    and 'toHaveAttribute("data-booking-status", "CONFIRMED")' in spec
+    and 'toHaveAccessibleName(/Trạng thái đặt vé:/)' in spec
+)
+check("Playwright CONFIRMED assertion uses the dedicated booking-status label", legacy_confirmed_label or current_confirmed_status)
 check("Playwright no longer uses ambiguous getByText CONFIRMED locator", 'getByText("CONFIRMED")' not in spec)
 check("admin bootstrap is not wrapped in one outer transaction", "@Transactional" not in bootstrap)
 check("admin bootstrap normalizes email deterministically", "toLowerCase(Locale.ROOT)" in bootstrap)

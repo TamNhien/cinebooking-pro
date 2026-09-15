@@ -154,6 +154,13 @@ if (-not $SkipVerify) {
     'tools/verify_v77_0_52_full_suite_transient_read_resilience.py',
     'tools/verify_v77_0_53_v29_2_playwright_contract_compatibility.py',
     'tools/verify_v77_0_54_v31_ticket_wallet_contract_compatibility.py',
+    'tools/verify_v77_0_55_v31_2_confirmed_status_contract_compatibility.py',
+    'tools/verify_v77_0_56_v48_inventory_bootstrap_read_resilience.py',
+    'tools/verify_v77_0_57_v49_smart_planner_language_assertion.py',
+    'tools/verify_v77_0_58_v41_notification_read_mutation_synchronization.py',
+    'tools/verify_v77_0_59_v41_notification_identity_stability.py',
+    'tools/verify_v77_0_60_v34_maintenance_load_ownership.py',
+    'tools/verify_v77_0_61_v34_maintenance_repeatability_cleanup.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'
   )

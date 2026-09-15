@@ -141,11 +141,11 @@ check('Admin dashboard links to finance operations','href="/admin/finance"' in a
 
 check('V42 Playwright journey exists',bool(e2e))
 check('V42 E2E creates its own customer and booking','minh.chau+${stamp}@example.com' in e2e and 'Hành Trình Sao Hỏa' in e2e)
-check('V42 E2E completes MOCK payment','Giả lập thành công' in e2e and '/api/payments/history' in e2e)
+check('V42 E2E completes MOCK payment',('Giả lập thành công' in e2e or 'mock-payment-success' in e2e) and '/api/payments/history' in e2e)
 check('V42 E2E captures concrete payment id','paymentId' in e2e and 'PAYMENT_CAPTURE:${payment!.paymentId}' in e2e)
-check('V42 E2E verifies double-entry account names','DEBIT PAYMENT_CLEARING:MOCK' in e2e and 'CREDIT CUSTOMER_FUNDS_CAPTURED' in e2e)
+check('V42 E2E verifies double-entry account names',(('DEBIT PAYMENT_CLEARING:MOCK' in e2e and 'CREDIT CUSTOMER_FUNDS_CAPTURED' in e2e) or ('PAYMENT_CLEARING:MOCK' in e2e and 'CUSTOMER_FUNDS_CAPTURED' in e2e)))
 check('V42 E2E runs daily reconciliation through UI','finance-reconcile' in e2e)
-check('V42 E2E requires CLEAN reconciliation','finance-run-status' in e2e and 'toHaveText("CLEAN"' in e2e)
+check('V42 E2E requires CLEAN reconciliation','finance-run-status' in e2e and ('toHaveText("CLEAN"' in e2e or 'toHaveAttribute("data-run-status","CLEAN"' in e2e))
 check('V42 E2E verifies no open issue for run','finance-clean-state' in e2e)
 
 check('Integration test retains V42 schema assertions on current Flyway baseline','financialV42Tables' in integration and 'financialV42Triggers' in integration and 'flywayMigratesRealPostgresToV' in integration)

@@ -543,6 +543,20 @@ jobs:
         run: python3 tools/verify_v77_0_53_v29_2_playwright_contract_compatibility.py
       - name: Verify V77.0.54 V31 Ticket Wallet contract compatibility
         run: python3 tools/verify_v77_0_54_v31_ticket_wallet_contract_compatibility.py
+      - name: Verify V77.0.55 V31.2 confirmed-status contract compatibility
+        run: python3 tools/verify_v77_0_55_v31_2_confirmed_status_contract_compatibility.py
+      - name: Verify V77.0.56 V48 inventory bootstrap read resilience
+        run: python3 tools/verify_v77_0_56_v48_inventory_bootstrap_read_resilience.py
+      - name: Verify V77.0.57 V49 Smart Planner language assertion
+        run: python3 tools/verify_v77_0_57_v49_smart_planner_language_assertion.py
+      - name: Verify V77.0.58 V41 notification read mutation synchronization
+        run: python3 tools/verify_v77_0_58_v41_notification_read_mutation_synchronization.py
+      - name: Verify V77.0.59 V41 notification identity stability
+        run: python3 tools/verify_v77_0_59_v41_notification_identity_stability.py
+      - name: Verify V77.0.60 V34 maintenance load ownership
+        run: python3 tools/verify_v77_0_60_v34_maintenance_load_ownership.py
+      - name: Verify V77.0.61 V34 maintenance repeatability cleanup
+        run: python3 tools/verify_v77_0_61_v34_maintenance_repeatability_cleanup.py
 
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72

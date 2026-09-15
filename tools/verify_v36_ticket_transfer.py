@@ -76,7 +76,7 @@ check('browser journey chooses next Vietnam date so transfer and check-in window
 check('browser journey no longer selects farthest date outside the default 48-hour check-in window', 'date.selectOption({ index: dateCount - 1 })' not in e2e and 'const dateCount = await date.locator("option").count()' not in e2e)
 check('browser journey proves ownership transfer through UI', 'Xác nhận chuyển vé' in e2e and 'Đã chuyển vé' in e2e)
 check('browser journey proves QR rotation', 'not.toEqual(oldQrUrl)' in e2e and 'CINEBOOKING%7CV2%7C' in e2e)
-check('browser journey proves stale QR rejection and new QR check-in', 'QR vé đã hết hiệu lực' in e2e and 'Check-in vé thành công.' in e2e)
+check('browser journey proves stale QR rejection and new QR check-in', 'QR vé đã hết hiệu lực' in e2e and ('Check-in vé thành công.' in e2e or 'Soát vé.*thành công' in e2e))
 check('Testcontainers expects Flyway V36 or newer', bool(re.search(r'isEqualTo\("(?:3[6-9]|[4-9][0-9])"\)', it)) and 'transferColumns' in it)
 check('Testcontainers covers transfer ownership and stale QR rejection', 'secureTicketTransferMovesOwnershipAndInvalidatesOldQr' in it and 'getPurchaserUserId()' in it and 'QR vé đã hết hiệu lực' in it)
 check('main CI runs V36 verifier in V36-or-newer source regression', 'python3 tools/verify_v36_ticket_transfer.py' in ci and bool(re.search(r'V26-V(?:3[6-9]|[4-9][0-9])(?:\.\d+)? source regression', ci)))

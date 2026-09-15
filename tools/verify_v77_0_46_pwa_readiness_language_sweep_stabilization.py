@@ -51,7 +51,7 @@ ok('if (route === "/admin/actions-runtime")' in language and 'name: /Dashboard/'
 ok('assertNoVietnameseInteractiveCopy' in language and 'expect(leaks' in language,
    'Language stabilization does not relax the Vietnamese leak assertion')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";','const VERSION = "v77-0-55";','const VERSION = "v77-0-56";','const VERSION = "v77-0-57";','const VERSION = "v77-0-59";','const VERSION = "v77-0-60";','const VERSION = "v77-0-61";']),
    'Service Worker cache generation is V77.0.46 or forward-compatible V77.0.47/V77.0.48')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',x.name).group(1)) for x in migrations if re.match(r'V(\d+)',x.name))
@@ -60,7 +60,7 @@ ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob
 name='verify_v77_0_46_pwa_readiness_language_sweep_stabilization.py'
 ok(name in release and name in ci and name in diag and 'verify-v77-0-46' in make and 'release-v77-0-46' in make,
    'Release, CI, diagnostics and Makefile include the V77.0.46 gate')
-ok(any(x in readme for x in ['Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in readme for x in ['`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`']) and 'V77.0.46 - PWA Readiness + Full-Suite Language Sweep Stabilization' in readme,
+ok(any(x in readme for x in ['Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in readme for x in ['`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']) and 'V77.0.46 - PWA Readiness + Full-Suite Language Sweep Stabilization' in readme,
    'README retains V77.0.46 history under the V77.0.50-or-newer stable target')
 ok('44/46' in readme and 'data-delivery-mode="LOADING"' in readme and '180-second timeout' in readme,
    'README records both concrete V77.0.45 full-suite failures and the stabilization strategy')

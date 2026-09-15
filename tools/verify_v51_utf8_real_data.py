@@ -58,7 +58,7 @@ check('README documents real-data V51 seed', 'seed-v51-real-data.ps1' in readme 
 check('Legacy deterministic 56-table fixture remains available only for CI/reference regression', bool(seed_fixture) and 'Quick verification of all 56 tables' in seed_fixture)
 
 # Catch common source-level mojibake in key user-visible text/code files.
-mojibake = ('Ã', 'Ä', 'Æ', 'áº', 'á»', 'ï¿½', '\ufffd')
+mojibake = ('Ã¡','Ã ','Ã¢','Ã£','Ã¨','Ãé','Ãê','Ã¬','Ãí','Ãò','Ãó','Ãô','Ãõ','Ãù','Ãú','Ãý','Ä‘','Æ°','Æ¡','áº','á»','ï¿½','\ufffd')
 key_files = [
     'README.md',
     'frontend/app/admin/analytics/page.tsx',

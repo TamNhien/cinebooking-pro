@@ -75,6 +75,9 @@ test("register -> login -> seat -> mock payment -> QR -> staff gate check-in", a
     await waitForHydratedRuntime(page, "/bookings");
     const confirmedCard = page.locator('[data-testid="booking-card"][data-booking-status="CONFIRMED"]').first();
     await expect(confirmedCard).toBeVisible();
+    const confirmedStatus = confirmedCard.getByTestId("booking-status");
+    await expect(confirmedStatus).toHaveAttribute("data-booking-status", "CONFIRMED");
+    await expect(confirmedStatus).toHaveAccessibleName(/Trạng thái đặt vé:/);
     bookingId = (await confirmedCard.getAttribute("data-booking-id")) || "";
     expect(bookingId).toMatch(/^[0-9a-f-]+$/i);
   });

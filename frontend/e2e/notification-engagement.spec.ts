@@ -76,8 +76,11 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   await expect(page.getByRole("heading", { name:"Trung tâm thông báo" })).toBeVisible();
   await expect(page.getByText("🏆 Điểm & thành viên", { exact:true })).toBeVisible();
   await expect(page.getByText("💺 Danh sách chờ", { exact:true })).toBeVisible();
-  let card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
+  const notificationCard=()=>page.locator(`[data-testid="notification-card"][data-notification-id="${id}"]`);
+  const notificationOpen=()=>page.locator(`[data-testid="notification-open"][data-notification-id="${id}"]`);
+  let card = notificationCard();
   await expect(card).toBeVisible();
+  await expect(card).toContainText("Xác nhận kênh thông báo đang hoạt động");
   await card.getByTestId("notification-archive-toggle").click();
   await expect(card).toHaveCount(0);
 
@@ -86,17 +89,36 @@ test("V41 notification inbox archives and restores a durable notification", asyn
   expect(archivedSummary.body!.archivedCount).toBeGreaterThanOrEqual(1);
 
   await page.getByTestId("notifications-archived-tab").click();
-  card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
+  card = notificationCard();
   await expect(card).toBeVisible();
   await expect(card.getByTestId("notification-archive-toggle")).toHaveText("Khôi phục");
   await card.getByTestId("notification-archive-toggle").click();
   await expect(card).toHaveCount(0);
 
   await page.getByTestId("notifications-active-tab").click();
-  card = page.getByTestId("notification-card").filter({ hasText:"Xác nhận kênh thông báo đang hoạt động" }).first();
+  card = notificationCard();
   await expect(card).toBeVisible();
-  await card.getByRole("button").first().click();
-  await expect(page).toHaveURL(/\/notifications$/);
+
+  const preRead = await authedJson<Array<{ id:string; read:boolean; archived:boolean }>>(context,page,auth.accessToken, "/api/notifications?view=ACTIVE");
+  expect(preRead.status).toBe(200);
+  const beforeRead = preRead.body!.find(n => n.id === id);
+  expect(beforeRead?.archived).toBe(false);
+  expect(beforeRead?.read).toBe(false);
+
+  const openAction=notificationOpen();
+  await expect(openAction).toBeVisible();
+  const [readResponse]=await Promise.all([
+    page.waitForResponse(response=>{
+      const url=new URL(response.url());
+      return url.pathname===`/api/notifications/${id}/read` && response.request().method()==="POST";
+    }),
+    openAction.click(),
+  ]);
+  expect(readResponse.status()).toBe(200);
+  const readMutation=await readResponse.json() as { id:string; read:boolean; archived:boolean };
+  expect(readMutation.id).toBe(id);
+  expect(readMutation.archived).toBe(false);
+  expect(readMutation.read).toBe(true);
 
   const active = await authedJson<Array<{ id:string; read:boolean; archived:boolean }>>(context,page,auth.accessToken, "/api/notifications?view=ACTIVE");
   expect(active.status).toBe(200);

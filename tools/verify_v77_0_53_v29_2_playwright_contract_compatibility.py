@@ -55,7 +55,7 @@ ok(legacy.count('check(')==32 and 'failed = [name for name, ok in checks if not 
    'Historical V29.2 gate remains fail-closed with its full 31-check matrix')
 ok('run: python3 tools/verify_v29_2_playwright_e2e.py' in ci,
    'Main CI still executes the historical V29.2 gate')
-ok(any(x in sw for x in ['const VERSION = "v77-0-53";','const VERSION = "v77-0-54";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-53";','const VERSION = "v77-0-54";','const VERSION = "v77-0-55";','const VERSION = "v77-0-56";','const VERSION = "v77-0-57";','const VERSION = "v77-0-59";','const VERSION = "v77-0-60";','const VERSION = "v77-0-61";']),
    'Service Worker release metadata is V77.0.53 or forward-compatible V77.0.54')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
@@ -67,15 +67,15 @@ ok(name in ci, 'Main CI runs the V77.0.53 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.53 verifier')
 ok('verify-v77-0-53' in make and 'release-v77-0-53' in make,
    'Makefile exposes V77.0.53 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in readme for x in ['`v77.0.53`','`v77.0.54`']),
+ok(any(x in readme for x in ['Current release:** V77.0.53','Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in readme for x in ['`v77.0.53`','`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
    'README retains V77.0.53 history under the V77.0.54-or-newer stable target')
 ok('25/31' in readme and 'verify_v29_2_playwright_e2e.py' in readme and '31/31' in readme,
    'README records the exact V29.2 CI blocker and compatibility fix')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    'Source keeps one consolidated root Markdown history document')
-ok(any(x in prev for x in ['v77-0-53','v77-0-54','V77.0.53','V77.0.54']),
+ok(any(x in prev for x in ['v77-0-53','v77-0-54','V77.0.53','V77.0.54','V77.0.55','V77.0.56','V77.0.57','V77.0.59','V77.0.60','V77.0.61']),
    'V77.0.52 verifier remains forward-compatible through V77.0.54')
-ok(any(x in v29 for x in ['Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in v29 for x in ['`v77.0.53`','`v77.0.54`']),
+ok(any(x in v29 for x in ['Current release:** V77.0.53','Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in v29 for x in ['`v77.0.53`','`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
    'V77.0.29 forward-compatibility chain accepts the V77.0.54 stable target')
 
 passed=sum(checks)

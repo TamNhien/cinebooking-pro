@@ -27,7 +27,7 @@ ok('v[0-9]+([-\\.][0-9]+)*' in v26,
    'Historical V26 parser accepts numeric patch-form Service Worker cache IDs')
 ok("grep -Eo 'v[0-9]+'" in v26 and "grep -Eo '[0-9]+'" in v26,
    'Historical V26 parser extracts the leading numeric major version')
-ok(any(x in sw for x in ['const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";','const VERSION = "v77-0-55";','const VERSION = "v77-0-56";','const VERSION = "v77-0-57";','const VERSION = "v77-0-59";','const VERSION = "v77-0-60";','const VERSION = "v77-0-61";']),
    'Service Worker release metadata is V77.0.50 or forward-compatible V77.0.52')
 
 proc=subprocess.run(['bash','tools/verify-v26-source.sh'],cwd=ROOT,text=True,capture_output=True)
@@ -55,15 +55,15 @@ ok(name in ci, 'Main CI runs the V77.0.50 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.50 verifier')
 ok('verify-v77-0-50' in make and 'release-v77-0-50' in make,
    'Makefile exposes V77.0.50 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in readme for x in ['`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`']),
+ok(any(x in readme for x in ['Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in readme for x in ['`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
    'README retains V77.0.50 history under the V77.0.52-or-newer stable target')
 ok('13/14' in readme and 'service worker cache version' in readme,
    'README records the exact GitHub CI blocker and missing V26 check')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    'Source keeps one consolidated root Markdown history document')
-ok(any(x in prev for x in ['v77-0-50','v77-0-52','v77-0-53','v77-0-54']) and 'V77.0.50' in prev,
+ok(any(x in prev for x in ['v77-0-50','v77-0-52','v77-0-53','v77-0-54','v77-0-55','v77-0-56']) and 'V77.0.50' in prev,
    'V77.0.49 verifier remains forward-compatible through V77.0.52')
-ok(any(x in v29 for x in ['Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in v29 for x in ['`v77.0.52`','`v77.0.53`','`v77.0.54`']),
+ok(any(x in v29 for x in ['Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54','Current release:** V77.0.55','Current release:** V77.0.56','Current release:** V77.0.57','Current release:** V77.0.59','Current release:** V77.0.60','Current release:** V77.0.61']) and any(x in v29 for x in ['`v77.0.52`','`v77.0.53`','`v77.0.54`','`v77.0.55`','`v77.0.56`','`v77.0.57`','`v77.0.59`','`v77.0.60`','`v77.0.61`']),
    'V77.0.29 forward-compatibility chain accepts the V77.0.52 stable target')
 
 passed=sum(checks)

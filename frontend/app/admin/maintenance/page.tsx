@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { withTransientReadRetry } from "@/lib/transient-read";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import { getAuth } from "@/lib/auth";
 import {
@@ -130,6 +131,7 @@ export default function MaintenancePage() {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const messageTimerRef = useRef<number | null>(null);
+  const loadGenerationRef = useRef(0);
 
   useEffect(() => {
     const auth = getAuth();
@@ -138,7 +140,7 @@ export default function MaintenancePage() {
       return;
     }
     setRole(auth.role);
-    api<MaintenanceCinema[]>("/admin/maintenance/cinemas")
+    withTransientReadRetry((signal) => api<MaintenanceCinema[]>("/admin/maintenance/cinemas", { signal }))
       .then((items) => {
         setCinemas(items);
         if (items[0]) setCinemaId(items[0].id);
@@ -148,24 +150,35 @@ export default function MaintenancePage() {
 
   async function load(id = cinemaId) {
     if (!id) return;
+    const generation = ++loadGenerationRef.current;
     const query = `?cinemaId=${encodeURIComponent(id)}`;
-    const requests = [
-      api<MaintenanceSummary>(`/admin/maintenance/summary${query}`),
-      api<MaintenanceAsset[]>(`/admin/maintenance/assets${query}`),
-      api<MaintenanceWorkOrder[]>(`/admin/maintenance/work-orders${query}`),
-      api<MaintenanceAuditorium[]>(`/admin/maintenance/auditoriums${query}`),
-      api<MaintenanceStaff[]>(`/admin/maintenance/staff-options${query}`),
-      api<MaintenanceIncident[]>(`/admin/maintenance/incident-options${query}`),
-    ] as const;
-    const [sum, assetItems, workOrders, rooms, people, incidentItems] = await Promise.all(requests);
-    setSummary(sum);
-    setAssets(assetItems);
-    setOrders(workOrders);
-    setAuditoriums(rooms);
-    setStaff(people);
-    setIncidents(incidentItems);
-    if (getAuth()?.role === "ADMIN") {
-      setBlackouts(await api<AuditoriumBlackout[]>("/admin/auditorium-blackouts"));
+    const read = <T,>(path: string) => withTransientReadRetry((signal) => api<T>(path, { signal }));
+    const canReadBlackouts = getAuth()?.role === "ADMIN";
+    try {
+      const [sum, assetItems, workOrders, rooms, people, incidentItems, blackoutItems] = await Promise.all([
+        read<MaintenanceSummary>(`/admin/maintenance/summary${query}`),
+        read<MaintenanceAsset[]>(`/admin/maintenance/assets${query}`),
+        read<MaintenanceWorkOrder[]>(`/admin/maintenance/work-orders${query}`),
+        read<MaintenanceAuditorium[]>(`/admin/maintenance/auditoriums${query}`),
+        read<MaintenanceStaff[]>(`/admin/maintenance/staff-options${query}`),
+        read<MaintenanceIncident[]>(`/admin/maintenance/incident-options${query}`),
+        canReadBlackouts ? read<AuditoriumBlackout[]>("/admin/auditorium-blackouts") : Promise.resolve<AuditoriumBlackout[]>([]),
+      ]);
+      // Cinema changes can overlap while the previous read batch is still in flight.
+      // Only the newest generation owns the rendered maintenance snapshot.
+      if (generation !== loadGenerationRef.current) return;
+      setSummary(sum);
+      setAssets(assetItems);
+      setOrders(workOrders);
+      setAuditoriums(rooms);
+      setStaff(people);
+      setIncidents(incidentItems);
+      if (canReadBlackouts) setBlackouts(blackoutItems);
+    } catch (cause) {
+      // A superseded cinema load is intentionally silent. Its data/error no longer
+      // owns the current page state and must not overwrite the latest selection.
+      if (generation !== loadGenerationRef.current) return;
+      throw cause;
     }
   }
 
@@ -602,7 +615,7 @@ export default function MaintenancePage() {
             </div>
             <div className="min-w-0 space-y-2">
               {selectedBlackouts.map((item) => (
-                <div key={item.id} aria-label={`${t("Khoảng bảo trì", "Maintenance window")}: ${item.reason}`} className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3">
+                <div key={item.id} data-testid="maintenance-blackout-card" data-blackout-id={item.id} data-auditorium-id={item.auditoriumId} data-blackout-start={item.startTime} data-blackout-end={item.endTime} aria-label={`${t("Khoảng bảo trì", "Maintenance window")}: ${item.reason}`} className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0"><b>{item.auditoriumName}</b><div className="break-words text-sm text-amber-200">{item.reason}</div><div className="text-xs text-slate-500">{formatDateTime(item.startTime)} → {formatDateTime(item.endTime)}</div></div>
                     <button className="btn btn-secondary shrink-0" aria-label={t("Mở lại phòng","Reopen auditorium")} onClick={() => removeBlackout(item.id)}>{t("Mở lại","Reopen")}</button>

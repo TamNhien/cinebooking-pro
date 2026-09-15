@@ -90,7 +90,7 @@ check('Admin dashboard links V58-or-newer Operations Control', '/admin/operation
 
 check('V58 Playwright journey exists', 'V58 admin sees centralized near-realtime payment booking equipment staff support inventory and incident control' in e2e)
 check('V58 Playwright checks summary domains alerts details and live marker', all(x in e2e for x in ['operations-control-summary-v58','operations-control-domains-v58','operations-control-alerts-v58','operations-control-detail-v58','operations-control-live-v58']))
-check('V58 Playwright checks all seven domain labels', all(x in e2e for x in ['"PAYMENT"','"BOOKING"','"EQUIPMENT"','"STAFF"','"SUPPORT"','"INVENTORY"','"INCIDENT"']))
+check('V58 Playwright checks all seven domain labels', all(x in e2e for x in ['"PAYMENT"','"BOOKING"','"EQUIPMENT"','"STAFF"','"SUPPORT"','"INVENTORY"','"INCIDENT"']) or all(x in e2e for x in ['payment:/Thanh toán|Payments/','booking:/Đặt vé|Bookings/','equipment:/Thiết bị|Equipment/','staff:/Nhân sự|Staff/','support:/Hỗ trợ|Support/','inventory:/Kho|Inventory/','incident:/Sự cố|Incidents/']))
 check('V58 Playwright exercises auto-refresh control', 'operations-control-auto-refresh-v58' in e2e and '.uncheck()' in e2e and '.check()' in e2e)
 check('V58 Playwright exercises cinema scope', 'operations-control-cinema-filter-v58' in e2e and 'selectOption({index:1})' in e2e)
 

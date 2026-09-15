@@ -43,7 +43,18 @@ export default function NotificationsPage(){
   const visible=useMemo(()=>items.filter(n=>filter==="ALL"?true:filter==="UNREAD"?!n.read:n.category===filter),[items,filter]);
 
   async function switchView(next:View){setView(next);setFilter("ALL");setError("");await load(next);}
-  async function openNotification(n:NotificationItem){if(!n.read){await api(`/notifications/${n.id}/read`,{method:"POST"});await load();}if(n.linkUrl)window.location.assign(n.linkUrl);}
+  async function openNotification(n:NotificationItem){
+    if(!n.read){
+      const updated=await api<NotificationItem>(`/notifications/${n.id}/read`,{method:"POST"});
+      setItems(current=>current.map(item=>item.id===updated.id?updated:item));
+    }
+    if(n.linkUrl){
+      const target=new URL(n.linkUrl,window.location.href);
+      const current=`${window.location.pathname}${window.location.search}`;
+      const next=`${target.pathname}${target.search}`;
+      if(next!==current)window.location.assign(n.linkUrl);
+    }
+  }
   async function all(){await api("/notifications/read-all",{method:"POST"});await load();}
   async function archive(n:NotificationItem){await api(`/notifications/${n.id}/${n.archived?"unarchive":"archive"}`,{method:"POST"});await load();setMsg(n.archived?"Đã đưa thông báo trở lại hộp thư.":"Đã lưu trữ thông báo.");}
   async function testNotification(){setBusy(true);setError("");setMsg("");try{await api<NotificationItem>("/notifications/test",{method:"POST"});await switchView("ACTIVE");setMsg("Đã tạo thông báo thử theo các kênh bạn đang bật.");}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
@@ -117,8 +128,8 @@ export default function NotificationsPage(){
         <span className="text-xs text-slate-500">{visible.length} thông báo</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">{([['ALL','Tất cả'],['UNREAD','Chưa đọc'],['BOOKING','Đặt vé'],['REMINDER','Nhắc phim'],['WAITLIST','Danh sách chờ'],['LOYALTY','Thành viên'],['REFUND','Hoàn vé'],['STAFF_SHIFT','Ca làm'],['PROMOTION','Ưu đãi']] as [Filter,string][]).map(([k,l])=><button key={k} onClick={()=>setFilter(k)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${filter===k?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>{l}</button>)}</div>
-      <div className="mt-4 space-y-3">{visible.map(n=><article key={n.id} data-testid="notification-card" className={`card p-5 transition ${!n.read&&!n.archived?"border-rose-500/40 bg-slate-900/90":"opacity-85"}`}>
-        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b>{n.title}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p className="mt-1 text-sm leading-6 text-slate-400">{n.message}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{viLabel(n.category)}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
+      <div className="mt-4 space-y-3">{visible.map(n=><article key={n.id} data-testid="notification-card" data-notification-id={n.id} className={`card p-5 transition ${!n.read&&!n.archived?"border-rose-500/40 bg-slate-900/90":"opacity-85"}`}>
+        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button data-testid="notification-open" data-notification-id={n.id} type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b>{n.title}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p className="mt-1 text-sm leading-6 text-slate-400">{n.message}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{viLabel(n.category)}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
         <div className="mt-3 flex justify-end"><button data-testid="notification-archive-toggle" type="button" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white" onClick={()=>archive(n)}>{n.archived?"Khôi phục":"Lưu trữ"}</button></div>
       </article>)}{!visible.length&&!error&&<div className="card p-8 text-center text-slate-400">Không có thông báo phù hợp bộ lọc.</div>}</div>
     </section>

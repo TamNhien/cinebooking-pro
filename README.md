@@ -2,11 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.54 - Historical V31 Ticket Wallet Contract Compatibility
+> **Current release:** V77.0.61 - V34 Maintenance Repeatability Cleanup
 
-> **Current language policy (V77.0.54):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
+> **Current language policy (V77.0.61):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.54` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.61` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -197,6 +197,13 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.52** | **Full-suite transient read resilience: after V77.0.51 made the V66 authority surface boot-safe, the next full 46-test run exposed four independent UI shells whose authenticated read APIs could transiently fail or stall under sustained suite load (Notifications V41, Observability V65, Command Center V53 and Operations Control V58/V59). A shared abortable read helper now retries only transient GET failures/timeouts within a bounded 12-second budget while preserving 401/403 fail-closed behavior and all real backend assertions.** | **Runtime read-resilience only; no fake summary/card data, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
 | **V77.0.53** | **Historical V29.2 Playwright contract compatibility: the V77.0.52 stable release reached GitHub CI, where `verify_v29_2_playwright_e2e.py` still recognized only the original V29.2 locator/navigation implementation. The verifier now accepts both legacy and current semantic contracts for unique registration, explicit login, mock payment, ticket QR, staff-gate check-in and Admin credentials while keeping all 31 browser-journey requirements enforced.** | **Verifier/release-gate compatibility only; booking-flow behavior is unchanged, no E2E assertion is removed, no schema change (Flyway V72), Admin remains sourced from the test/root environment** |
 | **V77.0.54** | **Historical V31 Ticket Wallet contract compatibility: after V77.0.53 restored the V29.2 CI gate, GitHub CI advanced to `verify_v31_ticket_wallet.py` and stopped at 36/38 because the historical verifier hard-coded the original calendar movie summary and literal ticket-action copy. The V31 gate now accepts the current dynamic seeded-movie calendar summary plus stable ticket action test IDs while retaining all 38 semantic checks.** | **Verifier/release-gate compatibility only; ticket wallet, ICS download, QR and print behavior are unchanged, no E2E assertion is removed, no schema change (Flyway V72)** |
+| **V77.0.55** | **Historical V31.2 confirmed-status contract compatibility: after V77.0.54 restored the V31 gate, GitHub CI advanced to `verify_v31_2_rc_determinism.py` and stopped at 17/18 because it recognized only the original literal `getByLabel("Trạng thái booking: CONFIRMED")` assertion. The current booking E2E now explicitly validates the dedicated `booking-status` node, raw `data-booking-status="CONFIRMED"`, and its accessible name; the historical V31.2 gate accepts either the legacy label assertion or this stronger current semantic contract while retaining all 18 checks.** | **E2E/verifier contract alignment only; payment/booking behavior is unchanged, ambiguous `getByText("CONFIRMED")` remains forbidden, no schema change (Flyway V72)** |
+| **V77.0.56** | **V48 inventory bootstrap read resilience + historical CI compatibility sweep: V77.0.55 restored the V31.2 CI gate and its focused booking flow passed twice, but the full 46-test suite finished 45/46 because `/admin/inventory` could render with `inventory-cinema-select` empty after one transient authenticated GET failure. Inventory branch/summary/movement bootstrap now uses the existing bounded abortable read-resilience helper while POST/PUT mutations remain direct and non-retried.** | **Runtime read-resilience only; V48 still requires real branch/product data plus restock, waste, price and transfer mutations; 401/403 stay fail-closed, no schema change (Flyway V72)** |
+| **V77.0.57** | **V49 Smart Planner language assertion stability: V77.0.56 restored Inventory and all source gates, then focused V49 exposed one over-strict presentation assertion: `/THÔNG MINH|SMART/` rejected the valid Vietnamese UI copy `Lập lịch thông minh`. The browser contract now keeps the semantic Smart Planner check but makes casing presentation-neutral with `/THÔNG MINH|SMART/i`; deterministic real cinema/movie selection, preview, commit, provenance and cleanup remain unchanged.** | **E2E assertion-only runtime compatibility; no timeout increase, no retry, no fake data, no schema change (Flyway V72)** |
+| **V77.0.58** | **V41 notification read-mutation synchronization: V77.0.57 passed focused V49 and combined V48+V49, then full Browser E2E reached 45/46 because the V41 journey used an already-satisfied `/notifications` URL assertion as a surrogate for completion of `POST /api/notifications/{id}/read`. The journey now clicks a stable `notification-open` surface, waits for the exact read mutation response, requires HTTP 200 plus `read=true`/`archived=false`, and only then re-reads ACTIVE notifications to prove durable persistence.** | **E2E synchronization hardening only; no backend business-rule change, no mutation retry, no timeout increase, no schema change (Flyway V72)** |
+| **V77.0.59** | **V41 notification identity + same-route stability: focused V41 on V77.0.58 exposed that the restored card could still become ambiguous across list re-renders and that opening a notification whose `linkUrl` is already `/notifications` needlessly triggers a same-route navigation. Notification cards/open actions now carry the exact notification UUID, the E2E selects that UUID through archive/restore/read, and the UI skips redundant same-route navigation after a successful read while updating the exact item from the mutation response.** | **Runtime/E2E identity hardening only; the read POST remains direct and non-retried, archive/restore semantics stay durable, no timeout increase, no schema change (Flyway V72)** |
+| **V77.0.60** | **V34 maintenance load ownership stability: V77.0.59 reached focused V41 1/1 and V41+V48+V49 3/3, then full Browser E2E stopped at 45/46 because the cleanup navigation could let an older default-cinema maintenance read batch overwrite the later CineHub Quận 1 auditorium snapshot. Maintenance reads now use bounded transient GET resilience plus a latest-generation ownership guard; the blackout list is committed atomically with the selected cinema snapshot, and the V34 E2E captures the exact created blackout UUID for cleanup.** | **Runtime/E2E stale-read hardening only; maintenance POST/DELETE mutations remain direct and non-retried, no timeout increase, no schema change (Flyway V72)** |
+| **V77.0.61** | **V34 maintenance repeatability cleanup: focused V77.0.60 could receive HTTP 409 when an interrupted earlier V34 journey left its deterministic blackout in the persistent test database. The journey now identifies only the exact test-owned leftover by auditorium UUID, Vietnam-time window and reason, removes it through the real Reopen UI/DELETE 204 path, then still requires a fresh POST 201 and exact-UUID planner/cleanup assertions.** | **E2E repeatability hardening only; real overlap 409 remains strict, no direct test mutation, no timeout increase, no schema change (Flyway V72)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -7939,3 +7946,112 @@ python -X utf8 .\tools\verify_v77_0_54_v31_ticket_wallet_contract_compatibility.
 ```
 
 Expected: historical V31 returns 38/38 and the V77.0.54 dedicated verifier passes before rerunning the stable release flow.
+
+## V77.0.55 - Historical V31.2 Confirmed-Status Contract Compatibility
+
+V77.0.54 reached GitHub CI and passed the repaired V31 Ticket Wallet gate, but `tools/verify_v31_2_rc_determinism.py` then stopped at 17/18. The remaining failure was historical implementation drift: the verifier only recognized the original `getByLabel("Trạng thái booking: CONFIRMED")` locator even though the current bookings UI exposes a dedicated `booking-status` node with `data-booking-status` plus an accessible Vietnamese label, and the current browser journey already identifies the confirmed booking card without using the ambiguous `getByText("CONFIRMED")` locator.
+
+V77.0.55 strengthens the current browser journey rather than weakening the gate. After mock payment it now asserts the dedicated `booking-status` node, verifies its raw machine status is exactly `CONFIRMED`, and verifies that the node retains an accessible booking-status name. The historical V31.2 verifier accepts either the original dedicated-label assertion or this current semantic contract, remains 18 checks, and still forbids ambiguous `getByText("CONFIRMED")`. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-55`.
+
+### Verify V77.0.55
+
+```powershell
+python -X utf8 .\tools\verify_v31_2_rc_determinism.py
+python -X utf8 .\tools\verify_v77_0_55_v31_2_confirmed_status_contract_compatibility.py
+```
+
+Expected: historical V31.2 returns 18/18 and the V77.0.55 dedicated verifier passes before rerunning the stable release flow.
+
+## V77.0.56 - V48 Inventory Bootstrap Read Resilience
+
+V77.0.55 restored the historical V31.2 source gate and the updated `booking-flow.spec.ts` passed focused execution twice. The next full 46-test browser run reached 45/46 and failed only in V48 Inventory: `inventory-cinema-select` remained at zero options for 15 seconds even though the same test had just called `/api/admin/inventory/branches` directly and received a successful real response. This isolates the failure to the browser-side Inventory bootstrap path rather than missing cinema seed data or the backend inventory endpoint.
+
+V77.0.56 also replays the complete GitHub source-regression chain instead of waiting for stale historical gates to surface one-by-one. Eleven legacy verifiers (V36, V37, V38, V40, V41, V42, V47, V49, V51, V52 and V58) are made forward-compatible with the current stable test IDs/data attributes and bilingual copy while retaining their original fail-closed check counts. The resulting GitHub source matrix is 137/137 PASS.
+
+V77.0.56 reuses the bounded abortable read-resilience contract introduced in V77.0.52. Inventory branch bootstrap, summary/movement bootstrap and history-scope reads retry only transient network/timeout/408/425/429/5xx failures within the shared 12-second deadline and 3.5-second per-attempt budget. Authentication/authorization failures remain fail-closed, and inventory `POST`/`PUT` mutations are not retried. The V48 E2E remains unchanged and still requires more than one real cinema option, at least one real product, then real restock, waste, branch-price and transfer operations. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-56`.
+
+### Verify V77.0.56
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_56_v48_inventory_bootstrap_read_resilience.py
+python -X utf8 .\tools\verify_v48_concession_inventory_2.py
+```
+
+Expected: the V77.0.56 dedicated verifier passes and the historical V48 source gate remains green before rerunning focused Inventory and the full stable release flow.
+## V77.0.57 - V49 Smart Planner Language Assertion Stability
+
+V77.0.56 fixed the V48 Inventory bootstrap and completed a 137/137 historical CI source-gate sweep. On Windows the focused V48 journey then passed 1/1, while the focused V49 Smart Planner journey failed before preview because the newly added presentation assertion used the case-sensitive regex `/THÔNG MINH|SMART/`. The rendered Vietnamese surface correctly contains `Lập lịch thông minh`, so the failure was in the E2E assertion rather than in planner functionality.
+
+V77.0.57 changes that assertion to the case-insensitive regex `/THÔNG MINH|SMART/i`. The check remains semantic and still requires Smart Planner presentation copy, but it no longer requires uppercase localization. It does not increase timeouts, add retries, bypass hydration, or remove planner coverage. The journey still pins `CineHub Quận 1`, selects the seeded `Hành Trình Sao Hỏa`, performs real preview and commit calls, verifies the durable planning run, and removes only the generated showtimes to preserve repeatability. Historical V49 and the full source-regression chain remain fail-closed. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-57`.
+
+### Verify V77.0.57
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_57_v49_smart_planner_language_assertion.py
+```
+
+Expected: the V77.0.57 dedicated verifier passes, historical V49 remains green, focused V49 reaches preview/commit instead of failing on localized casing, and the stable release flow proceeds to the full 46-test browser gate.
+## V77.0.58 - V41 Notification Read Mutation Synchronization
+
+V77.0.57 fixed the V49 Smart Planner language assertion. On Windows, focused V49 passed 1/1 and the combined V48 + V49 run passed 2/2, but the full 46-test suite finished 45/46 at the V41 notification journey. The final backend read showed the restored notification with `archived=false` but intermittently `read=false`.
+
+The notification backend already persists `read=true` transactionally. The race was in the browser test: after restoring the notification, the test clicked a notification whose `linkUrl` is `/notifications` and then waited on `toHaveURL(/\/notifications$/)`. Because the page was already on `/notifications`, that URL assertion could succeed before `POST /api/notifications/{id}/read` completed, allowing the final GET assertion to race the mutation.
+
+V77.0.58 adds the stable `notification-open` test surface and makes the E2E wait for the exact read POST. The response must be HTTP 200 and must identify the same notification with `read=true` and `archived=false`; only after that does the journey query `/api/notifications?view=ACTIVE` and require the durable row to remain restored and read. No retry is added to the mutation, no timeout is increased, and archive/unarchive semantics are unchanged. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-58`.
+
+### Verify V77.0.58
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_58_v41_notification_read_mutation_synchronization.py
+python -X utf8 .\tools\verify_v41_notification_engagement.py
+```
+
+Expected: the dedicated V77.0.58 verifier passes, historical V41 remains green, focused notification E2E proves the read mutation response before the final durable ACTIVE-inbox assertion, and the stable release flow proceeds to the full 46-test browser gate.
+## V77.0.59 - V41 Notification Identity & Same-Route Stability
+
+V77.0.58 correctly replaced the already-satisfied URL assertion with an exact read-mutation response wait. On Windows, all source gates stayed green but the focused V41 journey still timed out while locating/clicking `notification-open` after restore. The notification had already been created with a known UUID, yet the browser journey continued to identify cards by repeated title text and `.first()` while the ACTIVE/ARCHIVED lists were being replaced asynchronously. In addition, the notification test link points back to `/notifications`, so a successful read could still be followed by a redundant full navigation to the route already open.
+
+V77.0.59 makes notification identity explicit end-to-end. Each `notification-card` and `notification-open` surface exposes `data-notification-id`, and the E2E uses the UUID returned by `/api/notifications/test` for every archive, restore and read step. Before opening, it proves the exact restored row is ACTIVE and unread; the click and exact `POST /api/notifications/{id}/read` response are synchronized with `Promise.all`, and the response plus final ACTIVE feed must both report `read=true` and `archived=false`. The UI applies the returned notification to the matching item in state and skips `window.location.assign` when the notification target is already the current path/query, avoiding an unnecessary same-route reload. Mutations remain direct and non-retried, no test timeout is increased, and no Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-59`.
+
+### Verify V77.0.59
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_59_v41_notification_identity_stability.py
+python -X utf8 .\tools\verify_v41_notification_engagement.py
+```
+
+Expected: the dedicated V77.0.59 verifier passes, historical V41 remains green, focused V41 manipulates exactly the notification UUID created by the test, and the stable release flow proceeds to the full 46-test browser gate.
+## V77.0.60 - V34 Maintenance Load Ownership Stability
+
+V77.0.59 repaired V41 notification identity and same-route behavior. On Windows, the dedicated V77.0.59 verifier, historical V41, V26, lint/build and healthy Docker stack all passed; focused V41 passed 1/1 and the combined V41 + V48 + V49 regression passed 3/3. The full 46-test browser suite then reached **45/46** with one failure in `maintenance-blackout.spec.ts`: after proving that the V34 blackout blocked showtime planning, the journey returned to `/admin/maintenance`, re-selected **CineHub Quận 1**, and could not find the just-created maintenance window during cleanup.
+
+The maintenance page previously allowed overlapping `load(cinemaId)` batches to commit in whichever order their GET requests completed. Navigation first starts a default-cinema batch; the browser journey then selects CineHub Quận 1 and starts another batch. If the older default-cinema request finishes last, it can overwrite `auditoriums` with the wrong cinema. Because `selectedBlackouts` filters the global blackout feed through the current auditorium list, the blackout remains durable in the backend but disappears from the rendered cleanup list.
+
+V77.0.60 makes maintenance reads latest-generation-owned. Every cinema load increments `loadGenerationRef`; summary, assets, work orders, auditoriums, staff, incidents and the Admin blackout feed are read through the shared bounded transient-read helper and committed as one snapshot only when that generation is still current. Superseded successful results and superseded errors are ignored, so an older cinema batch cannot overwrite the latest selection. Authentication/authorization failures remain fail-closed and maintenance create/delete/transition mutations are still direct and non-retried.
+
+The V34 browser journey is also identity-stable: it synchronizes the real blackout `POST`, requires HTTP 201, captures the returned blackout UUID/reason, verifies the exact `maintenance-blackout-card[data-blackout-id=...]`, then uses that exact UUID again after re-navigation before deleting through the existing UI. The planner conflict assertions remain unchanged. No timeout is increased, no synthetic blackout is created, and no Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-60`.
+
+### Verify V77.0.60
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_60_v34_maintenance_load_ownership.py
+python -X utf8 .\tools\verify_v34_auditorium_blackouts.py
+```
+
+Expected: the dedicated V77.0.60 verifier passes, historical V34 remains green, focused maintenance-blackout reaches exact-UUID cleanup, and the stable release flow proceeds to the full 46-test browser gate.
+
+## V77.0.61 - V34 Maintenance Repeatability Cleanup
+
+V77.0.60 fixed stale maintenance snapshot ownership, but a focused rerun can legitimately begin with a leftover blackout if an earlier V34 execution was interrupted after creation and before final cleanup. In that state the backend correctly returns HTTP 409 for the deterministic `2026-10-01 10:00-13:00` window; treating 409 as success would weaken the business rule, so V77.0.61 makes the browser journey repeatable instead.
+
+Maintenance blackout cards now expose durable auditorium and start/end identity attributes in addition to the existing blackout UUID. Before creating the V34 test window, Playwright pins CineHub Quận 1 / Phòng 02, captures the exact auditorium UUID, and searches only for a leftover with the same natural maintenance reason and the exact Asia/Ho_Chi_Minh instant boundaries. If present, it is deleted through the existing **Mở lại phòng** UI, with the real DELETE response required to be HTTP 204 and the card required to disappear. Unrelated maintenance windows are never deleted.
+
+Fresh creation remains strict: the journey still requires the real POST `/api/admin/auditorium-blackouts` to return HTTP 201, captures the new durable UUID, proves the planner conflict (`Có thể tạo: 0`, `Trùng lịch: 1`), and removes that exact UUID through the UI at the end. HTTP 409 is not accepted as a successful create, no mutation is retried, no timeout is increased, and no Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-61`.
+
+### Verify V77.0.61
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_61_v34_maintenance_repeatability_cleanup.py
+```
+
+Expected: the dedicated V77.0.61 verifier passes, historical V34 remains green, a rerun can clean only its own stale blackout through the UI, fresh creation still returns 201, and the full browser suite can continue beyond the V34 journey.

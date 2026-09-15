@@ -1360,3 +1360,45 @@ verify-v77-0-54:
 
 release-v77-0-54:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.54
+
+verify-v77-0-55:
+	python tools/verify_v77_0_55_v31_2_confirmed_status_contract_compatibility.py
+
+release-v77-0-55:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.55
+
+verify-v77-0-56:
+	python tools/verify_v77_0_56_v48_inventory_bootstrap_read_resilience.py
+
+release-v77-0-56:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.56
+
+verify-v77-0-57:
+	python tools/verify_v77_0_57_v49_smart_planner_language_assertion.py
+
+release-v77-0-57:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.57
+
+verify-v77-0-58:
+	python tools/verify_v77_0_58_v41_notification_read_mutation_synchronization.py
+
+release-v77-0-58:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.58
+
+verify-v77-0-59:
+	python tools/verify_v77_0_59_v41_notification_identity_stability.py
+
+release-v77-0-59:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.59
+
+verify-v77-0-60:
+	python tools/verify_v77_0_60_v34_maintenance_load_ownership.py
+
+release-v77-0-60:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.60
+
+verify-v77-0-61:
+	python tools/verify_v77_0_61_v34_maintenance_repeatability_cleanup.py
+
+release-v77-0-61:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.61
