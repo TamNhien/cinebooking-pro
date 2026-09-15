@@ -59,8 +59,8 @@ check("e-ticket exposes copy and print actions", 'copyBookingCode(bookingId)' in
 check("print stylesheet exists", 'V31 printable e-ticket' in css and '@media print' in css and '.ticket-print-card' in css)
 
 check("browser E2E downloads calendar file", 'waitForEvent("download")' in e2e and 'suggestedFilename()' in e2e and 'BEGIN:VCALENDAR' in e2e)
-check("browser E2E validates calendar summary", 'SUMMARY:CineBooking - Hành Trình Sao Hỏa' in e2e and 'STATUS:CONFIRMED' in e2e)
-check("browser E2E checks V31 ticket actions", 'Ví vé của tôi' in e2e and 'Mã booking' in e2e and 'In vé' in e2e)
+check("browser E2E validates calendar summary", ('SUMMARY:CineBooking - Hành Trình Sao Hỏa' in e2e or 'SUMMARY:CineBooking - ${selectedMovie}' in e2e) and 'STATUS:CONFIRMED' in e2e)
+check("browser E2E checks V31 ticket actions", 'Ví vé của tôi' in e2e and (('Mã booking' in e2e and 'In vé' in e2e) or ('ticket-add-calendar' in e2e and 'ticket-copy-booking-code' in e2e and 'ticket-print' in e2e)))
 check("CI runs V31 verifier", 'python3 tools/verify_v31_ticket_wallet.py' in ci)
 check("RC default remains V31-compatible or newer", re.search(r'default: "v(?:31|3[2-9]|[4-9][0-9])(?:\.\d+)*-rc(?:\.\d+|\d+)"', rc) is not None)
 check("RC browser step includes V31", 'V29.2 + V30 + V31' in rc and 'bash tools/e2e-v29.2.sh' in rc)

@@ -2,11 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.53 - Historical V29.2 Playwright Contract Compatibility
+> **Current release:** V77.0.54 - Historical V31 Ticket Wallet Contract Compatibility
 
-> **Current language policy (V77.0.53):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
+> **Current language policy (V77.0.54):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.53` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.54` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -196,6 +196,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.51** | **V66 booking authority boot-surface stability: after V77.0.50 restored the V26 Linux CI gate, the stable release full-browser run still exposed a timing window where `/booking/{showtimeId}` rendered only its loading/unavailable early-return before the V66 authority marker existed. The authority marker is now a boot-safe render invariant present during loading, unavailable/error and normal booking states, while the API race still proves the authoritative value `POSTGRESQL_WITH_REDIS_MIRROR`.** | **Runtime-contract stabilization only; no seat-lock algorithm change, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
 | **V77.0.52** | **Full-suite transient read resilience: after V77.0.51 made the V66 authority surface boot-safe, the next full 46-test run exposed four independent UI shells whose authenticated read APIs could transiently fail or stall under sustained suite load (Notifications V41, Observability V65, Command Center V53 and Operations Control V58/V59). A shared abortable read helper now retries only transient GET failures/timeouts within a bounded 12-second budget while preserving 401/403 fail-closed behavior and all real backend assertions.** | **Runtime read-resilience only; no fake summary/card data, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
 | **V77.0.53** | **Historical V29.2 Playwright contract compatibility: the V77.0.52 stable release reached GitHub CI, where `verify_v29_2_playwright_e2e.py` still recognized only the original V29.2 locator/navigation implementation. The verifier now accepts both legacy and current semantic contracts for unique registration, explicit login, mock payment, ticket QR, staff-gate check-in and Admin credentials while keeping all 31 browser-journey requirements enforced.** | **Verifier/release-gate compatibility only; booking-flow behavior is unchanged, no E2E assertion is removed, no schema change (Flyway V72), Admin remains sourced from the test/root environment** |
+| **V77.0.54** | **Historical V31 Ticket Wallet contract compatibility: after V77.0.53 restored the V29.2 CI gate, GitHub CI advanced to `verify_v31_ticket_wallet.py` and stopped at 36/38 because the historical verifier hard-coded the original calendar movie summary and literal ticket-action copy. The V31 gate now accepts the current dynamic seeded-movie calendar summary plus stable ticket action test IDs while retaining all 38 semantic checks.** | **Verifier/release-gate compatibility only; ticket wallet, ICS download, QR and print behavior are unchanged, no E2E assertion is removed, no schema change (Flyway V72)** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -7924,3 +7925,17 @@ python -X utf8 .\tools\verify_v29_2_playwright_e2e.py
 ```
 
 Expected: V77.0.53 dedicated verifier passes and historical V29.2 returns 31/31 before rerunning the stable release flow.
+## V77.0.54 - Historical V31 Ticket Wallet Contract Compatibility
+
+V77.0.53 reached GitHub CI and passed the repaired V29.2 structure gate, but the `V26-V77 source regression` job then stopped at `tools/verify_v31_ticket_wallet.py` with 36/38 checks. The two failures were verifier drift rather than missing browser behavior: the current booking journey still downloads the authenticated `.ics` file and validates `STATUS:CONFIRMED`, but the summary is intentionally derived from the actually selected seeded movie via `${selectedMovie}` instead of hard-coding `Hành Trình Sao Hỏa`; the current ticket page also exposes the V31 actions through stable test IDs `ticket-add-calendar`, `ticket-copy-booking-code` and `ticket-print` rather than relying on legacy literal copy.
+
+V77.0.54 updates the historical V31 verifier to accept either the original V31 literals or the current equivalent semantic contracts. The gate remains 38 checks and still fails closed if calendar download/summary/status or the V31 ticket action surfaces disappear. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-54`.
+
+### Verify V77.0.54
+
+```powershell
+python -X utf8 .\tools\verify_v31_ticket_wallet.py
+python -X utf8 .\tools\verify_v77_0_54_v31_ticket_wallet_contract_compatibility.py
+```
+
+Expected: historical V31 returns 38/38 and the V77.0.54 dedicated verifier passes before rerunning the stable release flow.

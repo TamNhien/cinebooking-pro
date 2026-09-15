@@ -1354,3 +1354,9 @@ verify-v77-0-53:
 
 release-v77-0-53:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.53
+
+verify-v77-0-54:
+	python tools/verify_v77_0_54_v31_ticket_wallet_contract_compatibility.py
+
+release-v77-0-54:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.54

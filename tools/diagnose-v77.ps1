@@ -59,6 +59,7 @@ $checks = @(
   'tools/verify_v77_0_51_v66_booking_authority_boot_surface.py',
   'tools/verify_v77_0_52_full_suite_transient_read_resilience.py',
   'tools/verify_v77_0_53_v29_2_playwright_contract_compatibility.py',
+  'tools/verify_v77_0_54_v31_ticket_wallet_contract_compatibility.py',
   'tools/verify_realistic_data_57.py',
   'tools/verify_seed_demo_57.py'
 )

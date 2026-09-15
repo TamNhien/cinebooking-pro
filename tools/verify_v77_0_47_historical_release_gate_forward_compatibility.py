@@ -36,7 +36,7 @@ ok('import { localizedLabel } from "@/lib/vi-labels";' in support and 'localized
    'Admin Support still localizes rendered case status and category through the active language')
 ok('export function localizedLabel' in labels and 'language: "vi" | "en"' in labels,
    'Canonical localizedLabel helper remains explicitly VI/EN-aware')
-ok(any(x in sw for x in ['const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";']),
    'Service Worker release metadata is V77.0.47 or forward-compatible V77.0.48')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -50,7 +50,7 @@ ok(name in ci, 'Main CI runs the V77.0.47 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.47 verifier')
 ok('verify-v77-0-47' in make and 'release-v77-0-47' in make,
    'Makefile exposes V77.0.47 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']),
+ok(any(x in readme for x in ['Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in readme for x in ['`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`']),
    'README retains V77.0.47 history under the V77.0.50-or-newer stable target')
 ok('46/46' in readme and '64/66' in readme and 'verify_v77_0_9_vietnamese_ui_maintenance_completion.py' in readme,
    'README records the green V77.0.46 runtime gate and exact historical release-preflight blocker')

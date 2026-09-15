@@ -67,7 +67,7 @@ legacy=['admin-v29@cine.local','V29SmokeOnly-ChangeMe','Admin@123']
 ok(all(x not in lang_spec for x in legacy),
    'Touched language E2E contains no legacy hard-coded Admin account')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";','const VERSION = "v77-0-54";']),
    'Service Worker generation is V77.0.41 or a forward-compatible V77.0.42/V77.0.43/V77.0.44 cache generation')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -80,7 +80,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and diagnostics run the V77.0.41 verifier')
 ok('verify-v77-0-41' in make and 'release-v77-0-41' in make,
    'Makefile exposes V77.0.41 verify/release targets')
-ok(any(x in readme for x in ['Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']),
+ok(any(x in readme for x in ['Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53','Current release:** V77.0.54']) and any(x in readme for x in ['`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`','`v77.0.54`']),
    'README retains V77.0.41 history under the V77.0.45-or-newer stable target')
 ok('V77.0.41 - Movies Presentation-Language Runtime Fix' in readme and '/movies' in readme and 'root `.env`' in readme,
    'README records the runtime root cause, fix scope and existing Admin credential policy')
