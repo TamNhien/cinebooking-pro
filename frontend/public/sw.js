@@ -1,4 +1,4 @@
-const VERSION = "v77-0-52";
+const VERSION = "v77-0-53";
 const SHELL_CACHE = `cinebooking-shell-${VERSION}`;
 const RUNTIME_CACHE = `cinebooking-runtime-${VERSION}`;
 const IMAGE_CACHE = `cinebooking-images-${VERSION}`;

@@ -40,7 +40,7 @@ ok('localStorage.getItem("cinebooking_auth_v3")' in smart and 'Authorization:`Be
 ok('smart-suggested-metric' in smart and 'toBeGreaterThan(0)' in smart and 'smart-planning-run' in smart,
    'Smart Planner still proves non-zero suggestions and committed provenance before cleanup')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
    'Service Worker cache generation is V77.0.45 or forward-compatible V77.0.46/V77.0.47/V77.0.48')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',x.name).group(1)) for x in migrations if re.match(r'V(\d+)',x.name))
@@ -49,7 +49,7 @@ ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob
 name='verify_v77_0_45_full_suite_repeatability_accessibility_fix.py'
 ok(name in release and name in ci and name in diag and 'verify-v77-0-45' in make and 'release-v77-0-45' in make,
    'Release, CI, diagnostics and Makefile include the V77.0.45 gate')
-ok(any(x in readme for x in ['Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']) and 'V77.0.45 - Full-Suite Repeatability + Accessibility Contract Fix' in readme,
+ok(any(x in readme for x in ['Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']) and 'V77.0.45 - Full-Suite Repeatability + Accessibility Contract Fix' in readme,
    'README retains V77.0.45 history under the V77.0.50-or-newer stable target')
 ok('44/46' in readme and 'Xem chi tiết Hành Trình Sao Hỏa' in readme and 'suggested=0' in readme,
    'README records both concrete full-suite failures and their fixes')

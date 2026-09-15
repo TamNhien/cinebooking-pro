@@ -56,7 +56,7 @@ ok('Default discount: 10%' in lang_spec,
 ok('process.env.E2E_ADMIN_EMAIL' in lang_spec and 'process.env.E2E_ADMIN_PASSWORD' in lang_spec and 'admin@' not in lang_spec,
    'Touched language E2E continues to use only Admin credentials resolved from root .env')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
    'Service Worker cache generation is V77.0.44 or forward-compatible V77.0.45')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',x.name).group(1)) for x in migrations if re.match(r'V(\d+)',x.name))
@@ -65,7 +65,7 @@ ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob
 name='verify_v77_0_44_crm_payload_v66_authority_fix.py'
 ok(name in release and name in ci and name in diag and 'verify-v77-0-44' in make and 'release-v77-0-44' in make,
    'Release, CI, diagnostics and Makefile include the V77.0.44 gate')
-ok(any(x in readme for x in ['Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']) and 'V77.0.44 - CRM Payload Localization + V66 Authority Visibility Fix' in readme and [p.name for p in ROOT.glob('*.md')]==['README.md'],
+ok(any(x in readme for x in ['Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']) and 'V77.0.44 - CRM Payload Localization + V66 Authority Visibility Fix' in readme and [p.name for p in ROOT.glob('*.md')]==['README.md'],
    'README retains V77.0.44 history under the V77.0.45-or-newer stable target')
 
 passed=sum(checks)

@@ -87,7 +87,7 @@ ok(len(audited) >= 900 and not uncovered,
    f'Full-source interactive/heading language audit is covered ({len(audited)} literals; uncovered={len(uncovered)})')
 ok('type Page' not in crm_spec and 'eslint-disable' not in crm_spec,
    'Zero-warning CRM import fix remains intact without lint suppression')
-ok(any(x in sw for x in ['const VERSION = "v77-0-40";','const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-40";','const VERSION = "v77-0-41";','const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
    'Service Worker generation is V77.0.40 or the forward-compatible V77.0.41 cache generation')
 
 legacy=['admin-v29@cine.local','V29SmokeOnly-ChangeMe','Admin@123']
@@ -105,7 +105,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and diagnostics run the V77.0.40 verifier')
 ok('verify-v77-0-40' in make and 'release-v77-0-40' in make,
    'Makefile exposes V77.0.40 verify/release targets')
-ok(any(x in readme for x in ['Current release:** V77.0.40','Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.40`','`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']),
+ok(any(x in readme for x in ['Current release:** V77.0.40','Current release:** V77.0.41','Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.40`','`v77.0.41`','`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']),
    'README retains V77.0.40 history under the V77.0.45-or-newer stable target')
 ok('V77.0.40' in readme and 'business data' in readme.lower() and 'operations-control-center-v58' in readme,
    'README records the runtime language false-positive root cause and business-data boundary')

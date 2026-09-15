@@ -1349,3 +1349,8 @@ verify-v77-0-52:
 
 release-v77-0-52:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.52
+verify-v77-0-53:
+	python tools/verify_v77_0_53_v29_2_playwright_contract_compatibility.py
+
+release-v77-0-53:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.53

@@ -48,7 +48,7 @@ ok('adminPage.getByTestId("seat-hold-authority-v66")' in v66 and 'active-seat-ho
 ok('method:"DELETE",body:{seatIds:pair.seatIds}' in v66,
    'V66 browser journey still releases the winning hold after verification')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-51";','const VERSION = "v77-0-52";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-51";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
    'Service Worker release metadata is V77.0.51 or forward-compatible V77.0.52')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
@@ -61,15 +61,15 @@ ok(name in ci, 'Main CI runs the V77.0.51 verifier')
 ok(name in diag, 'V77 diagnostics chain the V77.0.51 verifier')
 ok('verify-v77-0-51' in make and 'release-v77-0-51' in make,
    'Makefile exposes V77.0.51 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V77.0.51','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.51`','`v77.0.52`']),
+ok(any(x in readme for x in ['Current release:** V77.0.51','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.51`','`v77.0.52`','`v77.0.53`']),
    'README retains V77.0.51 history under the V77.0.52-or-newer stable target')
 ok('45/46' in readme and 'seat-hold-authority-v66' in readme and 'boot-safe render invariant' in readme,
    'README records the exact V77.0.50 release blocker and boot-surface fix')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    'Source keeps one consolidated root Markdown history document')
-ok(any(x in prev for x in ['v77-0-51','v77-0-52']) and 'V77.0.50' in prev,
+ok(any(x in prev for x in ['v77-0-51','v77-0-52','v77-0-53']) and 'V77.0.50' in prev,
    'V77.0.50 verifier remains forward-compatible through V77.0.52')
-ok('Current release:** V77.0.52' in v29 and '`v77.0.52`' in v29,
+ok(any(x in v29 for x in ['Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in v29 for x in ['`v77.0.52`','`v77.0.53`']),
    'V77.0.29 forward-compatibility chain accepts the V77.0.52 stable target')
 
 passed=sum(checks)

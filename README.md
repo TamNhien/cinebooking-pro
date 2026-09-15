@@ -2,11 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.52 - Full-Suite Transient Read Resilience
+> **Current release:** V77.0.53 - Historical V29.2 Playwright Contract Compatibility
 
-> **Current language policy (V77.0.52):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
+> **Current language policy (V77.0.53):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.52` (stable-only patch release flow).
+> **V77 stable target:** `v77.0.53` (stable-only patch release flow).
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -195,6 +195,7 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.50** | **V26 CI Service-Worker version parser compatibility: after V77.0.49 passed local release gates and was pushed to `main`, GitHub CI stopped at `bash tools/verify-v26-source.sh` with 13/14 because the historical parser only recognized `const VERSION = "v26"`-style cache IDs and could not parse the current patch-form `v77-0-49`. The V26 gate now accepts numeric patch-form cache generations while preserving the major-version >=26 requirement.** | **CI/verifier-only compatibility fix; PWA behavior and cache-safety checks remain intact, no schema change (Flyway V72), Admin still comes from root `.env`** |
 | **V77.0.51** | **V66 booking authority boot-surface stability: after V77.0.50 restored the V26 Linux CI gate, the stable release full-browser run still exposed a timing window where `/booking/{showtimeId}` rendered only its loading/unavailable early-return before the V66 authority marker existed. The authority marker is now a boot-safe render invariant present during loading, unavailable/error and normal booking states, while the API race still proves the authoritative value `POSTGRESQL_WITH_REDIS_MIRROR`.** | **Runtime-contract stabilization only; no seat-lock algorithm change, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
 | **V77.0.52** | **Full-suite transient read resilience: after V77.0.51 made the V66 authority surface boot-safe, the next full 46-test run exposed four independent UI shells whose authenticated read APIs could transiently fail or stall under sustained suite load (Notifications V41, Observability V65, Command Center V53 and Operations Control V58/V59). A shared abortable read helper now retries only transient GET failures/timeouts within a bounded 12-second budget while preserving 401/403 fail-closed behavior and all real backend assertions.** | **Runtime read-resilience only; no fake summary/card data, no relaxed Playwright assertion, no schema change (Flyway V72), Admin still comes from root `.env`** |
+| **V77.0.53** | **Historical V29.2 Playwright contract compatibility: the V77.0.52 stable release reached GitHub CI, where `verify_v29_2_playwright_e2e.py` still recognized only the original V29.2 locator/navigation implementation. The verifier now accepts both legacy and current semantic contracts for unique registration, explicit login, mock payment, ticket QR, staff-gate check-in and Admin credentials while keeping all 31 browser-journey requirements enforced.** | **Verifier/release-gate compatibility only; booking-flow behavior is unchanged, no E2E assertion is removed, no schema change (Flyway V72), Admin remains sourced from the test/root environment** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -7909,3 +7910,17 @@ python -X utf8 .\tools\verify_v77_0_52_full_suite_transient_read_resilience.py
 ```
 
 Expected: V77.0.52 verifier passes. Then run the four focused browser journeys, the full 46-test suite, and finally `./scripts/release.ps1 v77.0.52`.
+## V77.0.53 - Historical V29.2 Playwright Contract Compatibility
+
+V77.0.52 reached GitHub CI on exact commit `dc8e98af490fbe15d1008b8394515bc1c595f6ae`, but the `V26-V77 source regression` job stopped at the historical V29.2 structure verifier with 25/31 checks. The six failures were not missing runtime behavior: the current `booking-flow.spec.ts` still registers a unique customer, performs an explicit fresh login, completes MOCK payment to a confirmed booking, opens the signed ticket QR, checks in through the staff gate and sources Admin credentials from the test environment. The historical verifier was still searching only for the original V29.2 literal locator/navigation shapes.
+
+V77.0.53 updates `tools/verify_v29_2_playwright_e2e.py` to accept the original contract or the current equivalent implementation: `register-submit`/`login-submit` test IDs, `gotoSurface()` navigation, `mock-payment-success`, `ticket-qr-v33` plus `/api/tickets/${id}`, `staff-check-in-submit` plus the successful check-in message, and `loginExistingAdmin()` backed by `E2E_ADMIN_EMAIL`/`E2E_ADMIN_PASSWORD` in `runtime-guards.ts`. The verifier remains 31 checks and continues to fail if any semantic browser-journey requirement disappears. No Flyway migration is added; latest remains V72. Service Worker generation advances to `v77-0-53`.
+
+### Verify V77.0.53
+
+```powershell
+python -X utf8 .\tools\verify_v77_0_53_v29_2_playwright_contract_compatibility.py
+python -X utf8 .\tools\verify_v29_2_playwright_e2e.py
+```
+
+Expected: V77.0.53 dedicated verifier passes and historical V29.2 returns 31/31 before rerunning the stable release flow.

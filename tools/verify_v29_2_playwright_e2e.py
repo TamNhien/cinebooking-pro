@@ -21,6 +21,7 @@ pkg_text = text("frontend/package.json")
 pkg = json.loads(pkg_text) if pkg_text else {}
 config = text("frontend/playwright.config.ts")
 spec = text("frontend/e2e/booking-flow.spec.ts")
+runtime_guards = text("frontend/e2e/runtime-guards.ts")
 script = text("tools/e2e-v29.2.sh")
 rc = text(".github/workflows/release-candidate.yml")
 ci = text(".github/workflows/ci.yml")
@@ -42,14 +43,72 @@ gitignore = text(".gitignore")
 check("Playwright evidence is Git-ignored", "frontend/playwright-report/" in gitignore and "frontend/test-results/" in gitignore)
 
 check("E2E browser journey exists", bool(spec) and "register -> login -> seat -> mock payment -> QR -> staff gate check-in" in spec)
-check("E2E registers a unique customer", "gia.huy+${stamp}@example.com" in spec and "Nguyễn Gia Huy" in spec and 'getByRole("button", { name: "Đăng ký" })' in spec)
-check("E2E performs explicit customer login", 'page.goto("/login")' in spec and 'getByRole("button", { name: "Đăng nhập" })' in spec)
+check(
+    "E2E registers a unique customer",
+    "gia.huy+${stamp}@example.com" in spec
+    and "Nguyễn Gia Huy" in spec
+    and (
+        'getByRole("button", { name: "Đăng ký" })' in spec
+        or 'getByTestId("register-submit")' in spec
+    ),
+)
+check(
+    "E2E performs explicit customer login",
+    (
+        'page.goto("/login")' in spec
+        or 'gotoSurface(page, "/login", "login-email")' in spec
+        or 'gotoHydrated(page, "/login")' in spec
+    )
+    and (
+        'getByRole("button", { name: "Đăng nhập" })' in spec
+        or 'getByTestId("login-submit")' in spec
+    )
+    and "customerEmail" in spec
+    and "CUSTOMER_PASSWORD" in spec,
+)
 check("E2E uses seeded Quick Booking movie", "Hành Trình Sao Hỏa" in spec and 'getByLabel("1. Phim")' in spec)
 check("E2E selects and holds an available seat", ('title*="AVAILABLE"' in spec or 'data-seat-status="AVAILABLE"' in spec) and "Giữ ghế 5 phút" in spec)
-check("E2E completes mock payment", "Giả lập thành công" in spec and "CONFIRMED" in spec)
-check("E2E verifies ticket QR", "QR URL vé CineBooking" in spec and "/api/tickets/${id}" in spec)
-check("E2E checks in QR through staff gate UI", "/staff/check-in" in spec and "Kiểm tra & xác nhận check-in" in spec and "Check-in vé thành công." in spec)
-check("E2E admin credentials come from test environment", "E2E_ADMIN_EMAIL" in spec and "E2E_ADMIN_PASSWORD" in spec)
+check(
+    "E2E completes mock payment",
+    (
+        "Giả lập thành công" in spec
+        or 'getByTestId("mock-payment-success")' in spec
+    )
+    and 'data-booking-status="CONFIRMED"' in spec,
+)
+check(
+    "E2E verifies ticket QR",
+    (
+        "QR URL vé CineBooking" in spec
+        or 'getByTestId("ticket-qr-v33")' in spec
+    )
+    and "/api/tickets/${id}" in spec
+    and "qrUrl" in spec,
+)
+check(
+    "E2E checks in QR through staff gate UI",
+    "/staff/check-in" in spec
+    and (
+        "Kiểm tra & xác nhận check-in" in spec
+        or 'getByTestId("staff-check-in-submit")' in spec
+    )
+    and (
+        "Check-in vé thành công." in spec
+        or "Soát vé.*thành công" in spec
+    ),
+)
+check(
+    "E2E admin credentials come from test environment",
+    (
+        "E2E_ADMIN_EMAIL" in spec and "E2E_ADMIN_PASSWORD" in spec
+    )
+    or (
+        "loginExistingAdmin" in spec
+        and "existingAdminCredentials" in runtime_guards
+        and "process.env.E2E_ADMIN_EMAIL" in runtime_guards
+        and "process.env.E2E_ADMIN_PASSWORD" in runtime_guards
+    ),
+)
 
 check("E2E shell uses strict mode", script.startswith("#!/usr/bin/env bash") and "set -Eeuo pipefail" in script)
 check("E2E shell isolates Compose project", "cinebooking_v292_e2e_" in script and "COMPOSE_PROJECT_NAME" in script)

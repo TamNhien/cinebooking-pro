@@ -101,11 +101,11 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and diagnostics run the V77.0.42 verifier')
 ok('verify-v77-0-42' in make and 'release-v77-0-42' in make,
    'Makefile exposes V77.0.42 verify/release targets')
-ok(any(x in readme for x in ['Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52']) and any(x in readme for x in ['`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`']),
+ok(any(x in readme for x in ['Current release:** V77.0.42','Current release:** V77.0.43','Current release:** V77.0.44','Current release:** V77.0.45','Current release:** V77.0.46','Current release:** V77.0.47','Current release:** V77.0.48','Current release:** V77.0.49','Current release:** V77.0.50','Current release:** V77.0.52','Current release:** V77.0.53']) and any(x in readme for x in ['`v77.0.42`','`v77.0.43`','`v77.0.44`','`v77.0.45`','`v77.0.46`','`v77.0.47`','`v77.0.48`','`v77.0.49`','`v77.0.50`','`v77.0.52`','`v77.0.53`']),
    'README retains V77.0.42 history under the V77.0.45-or-newer stable target')
 ok('V77.0.42 - Full-UI Language Completion' in readme and 'Cinema experience' in readme and '307' in readme,
    'README records the concrete runtime leak and broad language-completion scope')
-ok(any(x in sw for x in ['const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";']),
+ok(any(x in sw for x in ['const VERSION = "v77-0-42";','const VERSION = "v77-0-43";','const VERSION = "v77-0-44";','const VERSION = "v77-0-45";','const VERSION = "v77-0-46";','const VERSION = "v77-0-47";','const VERSION = "v77-0-48";','const VERSION = "v77-0-49";','const VERSION = "v77-0-50";','const VERSION = "v77-0-52";','const VERSION = "v77-0-53";']),
    'Service Worker cache generation is V77.0.42 or forward-compatible V77.0.43')
 root_markdown=[p.name for p in ROOT.glob('*.md')]
 ok(root_markdown==['README.md'],'Source keeps one consolidated root Markdown history document')
