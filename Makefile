@@ -1402,3 +1402,109 @@ verify-v77-0-61:
 
 release-v77-0-61:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v77.0.61
+
+verify-v78:
+	python tools/verify_v78_ux_accessibility_pwa_5.py
+
+diagnose-v78:
+	powershell -ExecutionPolicy Bypass -File ./tools/diagnose-v78.ps1
+
+release-v78:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.0
+
+verify-v78-0-1:
+	python tools/verify_v78_0_1_runtime_language_business_data_boundaries.py
+
+release-v78-0-1:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.1
+
+verify-v78-0-2:
+	python tools/verify_v78_0_2_recommendation_presentation_language_ownership.py
+
+release-v78-0-2:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.2
+
+verify-v78-0-3:
+	python tools/verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+
+release-v78-0-3:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.3
+
+verify-v78-0-4:
+	python tools/verify_v78_0_4_notification_presentation_language_business_boundaries.py
+
+release-v78-0-4:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.4
+
+verify-v78-0-5:
+	python tools/verify_v78_0_5_admin_audit_presentation_language_ownership.py
+
+release-v78-0-5:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.5
+
+verify-v78-0-6:
+	python tools/verify_v78_0_6_inventory_presentation_language_business_boundaries.py
+
+release-v78-0-6:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.6
+
+verify-v78-0-7:
+	python tools/verify_v78_0_7_admin_v78_entry_inventory_product_boundaries.py
+
+release-v78-0-7:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.7
+verify-v78-0-8:
+	python tools/verify_v78_0_8_favorites_movie_business_data_boundaries.py
+
+release-v78-0-8:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.8
+verify-v78-0-9:
+	python tools/verify_v78_0_9_command_center_cinema_business_data_boundaries.py
+
+release-v78-0-9:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.9
+verify-v78-0-10:
+	python tools/verify_v78_0_10_customer_intelligence_cinema_business_data_boundaries.py
+
+release-v78-0-10:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.10
+verify-v78-0-11:
+	python tools/verify_v78_0_11_finance_event_key_presentation_ownership.py
+
+release-v78-0-11:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.11
+verify-v78-0-12:
+	python tools/verify_v78_0_12_maintenance_asset_business_data_boundaries.py
+
+release-v78-0-12:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.12
+verify-v78-0-13:
+	python tools/verify_v78_0_13_comprehensive_language_ownership.py
+
+release-v78-0-13:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.13
+verify-v78-0-14:
+	python tools/verify_v78_0_14_pwa_live_region_stability.py
+
+release-v78-0-14:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.14
+verify-v78-0-15:
+	python tools/verify_v78_0_15_full_suite_runtime_business_data_hardening.py
+
+release-v78-0-15:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.15
+verify-v78-0-16:
+	python tools/verify_v78_0_16_pricing_rule_business_data_boundary.py
+
+release-v78-0-16:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.16
+verify-v78-0-17:
+	python tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py
+
+release-v78-0-17:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.17
+verify-v78-0-18:
+	python tools/verify_v78_0_18_full_suite_operational_read_stability.py
+
+release-v78-0-18:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.18

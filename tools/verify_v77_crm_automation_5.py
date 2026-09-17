@@ -134,7 +134,7 @@ check('V77 build guard predeclares Next dev generated types','.next/dev/types/**
 # E2E/lifecycle wiring
 check('V77 E2E logs in real admin env',('E2E_ADMIN_EMAIL' in e2e and 'E2E_ADMIN_PASSWORD' in e2e) or ('loginExistingAdmin' in e2e and 'runtime-guards' in e2e))
 check('V77 E2E verifies dashboard tile','admin-crm-automation-v77' in e2e)
-check('V77 E2E verifies version order through 77','sort((a,b)=>a-b)' in e2e and 'toBe(77)' in e2e and 'toContain(76)' in e2e)
+check('V77 E2E verifies version order through 77 or later','sort((a,b)=>a-b)' in e2e and ('toBe(77)' in e2e or 'toBeGreaterThanOrEqual(77)' in e2e) and 'toContain(76)' in e2e)
 check('V77 E2E verifies strategy','V77-CRM-AUTOMATION-5' in e2e)
 policy_contracts={
     'REAL_OPERATIONAL_DATA_ONLY':'data-policy-real-operational',
@@ -160,8 +160,8 @@ check('Diagnose V77 keeps real-data gates','verify_realistic_data_57.py' in diag
 # Schema/data/README
 check('V77 is no-schema release',not any((ROOT/'backend/src/main/resources/db/migration').glob('V77__*.sql')))
 check('V77 adds no synthetic seed content','PROMOTION_V77' not in seed and 'V77-CRM-AUTOMATION-5' not in seed)
-check('README title V77',re.search(r'^# CineBooking Pro V77(?:\.0\.[0-9]+)?$',readme,re.M) is not None)
-check('README current release V77',re.search(r'Current release:\*\* V77(?:\.0\.[0-9]+)? - ',readme) is not None)
+check('README title V77',re.search(r'^# CineBooking Pro V(?:77(?:\.0\.[0-9]+)?|78(?:\.0\.[0-9]+)?)$',readme,re.M) is not None)
+check('README current release V77',re.search(r'Current release:\*\* V(?:77(?:\.0\.[0-9]+)?|78(?:\.0\.[0-9]+)?) - ',readme) is not None)
 check('README history has V77 after V76','| **V76** |' in readme and '| **V77** |' in readme and readme.index('| **V76** |')<readme.index('| **V77** |'))
 check('README detailed V77 section','## V77 - CRM Automation 5.0' in readme)
 for token in ['V77-CRM-AUTOMATION-5','FREQUENCY_CAP_2_PER_7D','PROMOTION_COOLDOWN_72H','MAX_RECIPIENTS_BLAST_RADIUS_GUARD','CRM_ASSISTED_BOOKING_IS_CORRELATION_NOT_CAUSATION','New V77 tables: 0','Stable only: v77.0.']:

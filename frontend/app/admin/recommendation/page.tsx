@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { RecommendationAdminSummaryV76, UserProfile } from "@/lib/types";
+import { presentationLocale } from "@/lib/presentation-locale";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 const WINDOWS=[7,30,90,180] as const;
 
@@ -26,6 +28,7 @@ async function withTransientRecommendationAdminReadRetry<T>(read:()=>Promise<T>)
 }
 
 export default function RecommendationV76AdminPage(){
+  usePresentationLanguage();
   const [days,setDays]=useState<number>(30);
   const [data,setData]=useState<RecommendationAdminSummaryV76|null>(null);
   const [error,setError]=useState("");
@@ -186,7 +189,7 @@ function Metric({label,value,compact=false}:{label:string;value:string;compact?:
 function Mini({label,value,detail}:{label:string;value:string;detail?:string}){return <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 text-lg font-black">{value}</div>{detail&&<div className="mt-1 text-xs text-cyan-300">{detail}</div>}</div>}
 function Table({headers,rows}:{headers:string[];rows:string[][]}){return <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-slate-500"><tr>{headers.map(x=><th key={x} className="p-3">{x}</th>)}</tr></thead><tbody className="divide-y divide-slate-800">{rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j} className="p-3">{cell}</td>)}</tr>)}{rows.length===0&&<tr><td colSpan={headers.length} className="p-4 text-slate-500">Chưa có dữ liệu gợi ý trong cửa sổ này.</td></tr>}</tbody></table></div>}
 function pct(value:number){return `${Number(value||0).toFixed(2)}%`}
-function num(value:number){return new Intl.NumberFormat("vi-VN").format(Number(value||0))}
+function num(value:number){return new Intl.NumberFormat(presentationLocale()).format(Number(value||0))}
 /* V77.0.9 historical verifier aliases (not rendered):
 V76 · RECOMMENDATION 5.0 | V76-RECOMMENDATION-5 | correlation | không phải causal attribution
 */

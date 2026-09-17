@@ -635,6 +635,19 @@ label > span + select.input { margin-top:.12rem; }
   color:#94a3b8;
   font-size:1.1rem;
 }
+/* V78.0.14: keep the polite live region mounted even when no visual PWA banner is active. */
+.pwa-manager-idle {
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  clip-path:inset(50%) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
 @media(max-width:520px){
   .pwa-manager { left:10px; right:10px; bottom:max(10px,calc(env(safe-area-inset-bottom) + 6px)); width:auto; gap:.55rem; }
   .pwa-manager-copy span { display:none; }
@@ -668,3 +681,9 @@ label > span + select.input { margin-top:.12rem; }
 @supports (padding:max(0px)){
   .pwa-manager{padding-bottom:max(.55rem,env(safe-area-inset-bottom));}
 }
+
+/* V78 UX / Accessibility 5.0 */
+.skip-link{position:fixed;left:1rem;top:.75rem;z-index:1000;transform:translateY(-180%);border-radius:.75rem;background:#fff;color:#020617;padding:.65rem 1rem;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.35);transition:transform .15s ease}
+.skip-link:focus{transform:translateY(0)}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #fb7185;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}

@@ -55,7 +55,7 @@ ok('V77.0.26' in readme and 'post-launch' in readme.lower() and 'Đã phát hàn
    'README documents the exact V77.0.26 post-publish feedback regression and fix')
 m_current=re.search(r'Current release:\*\* V77\.0\.(\d+)', readme)
 m_target=re.search(r'V77 stable target:\*\* `v77\.0\.(\d+)`', readme)
-ok(bool(m_current) and bool(m_target) and int(m_current.group(1)) >= 26 and int(m_target.group(1)) >= 26,
+ok((bool(m_current) and bool(m_target) and int(m_current.group(1)) >= 26 and int(m_target.group(1)) >= 26) or (any(x in readme for x in ['Current release:** V78.0.0','Current release:** V78.0.1','Current release:** V78.0.2']) and any(x in readme for x in ['V78 stable target:** `v78.0.0`','V78 stable target:** `v78.0.1`','V78 stable target:** `v78.0.2`'])),
    'README current release and stable target are V77.0.26 or newer')
 
 passed=sum(checks)

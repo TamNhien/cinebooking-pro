@@ -17,6 +17,7 @@ test("V58 admin sees centralized near-realtime payment booking equipment staff s
   await page.goto("/admin/operations-control");
 
   await expect(page.getByTestId("operations-control-center-v58")).toContainText("Trung tâm điều khiển vận hành · V58");
+  await expect(page.getByTestId("operations-control-center-v59")).toHaveAttribute("data-runtime-state","READY",{timeout:45_000});
   await expect(page.getByTestId("operations-control-summary-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-domains-v58")).toBeVisible();
   await expect(page.getByTestId("operations-control-alerts-v58")).toBeVisible();

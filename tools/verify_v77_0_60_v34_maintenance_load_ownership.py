@@ -52,7 +52,7 @@ ok('test.setTimeout' not in e2e and 'timeout:30_000' not in e2e,'V34 fix does no
 run=subprocess.run([sys.executable,str(ROOT/'tools/verify_v34_auditorium_blackouts.py')],cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
 ok(run.returncode==0,'Historical V34 blackout source gate remains green')
 
-ok(any(x in sw for x in ['const VERSION = "v77-0-60";','const VERSION = "v77-0-61";']),'Service Worker release metadata advances to V77.0.60 or a forward-compatible patch')
+ok(any(x in sw for x in ['const VERSION = "v77-0-60";','const VERSION = "v77-0-61";','const VERSION = "v78-0-0";','const VERSION = "v78-0-1";','const VERSION = "v78-0-2";','const VERSION = "v78-0-3";','const VERSION = "v78-0-4";','const VERSION = "v78-0-5";','const VERSION = "v78-0-6";','const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),'Service Worker release metadata advances to V77.0.60 or a forward-compatible patch')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
 ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob('V73*.sql')),'V77.0.60 remains no-schema on Flyway V72')

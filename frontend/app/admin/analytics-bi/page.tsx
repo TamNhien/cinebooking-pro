@@ -8,6 +8,7 @@ import { clearAuth, getAuth } from "@/lib/auth";
 import { localizedLabel } from "@/lib/vi-labels";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 import type { AnalyticsBiSummaryV75, UserProfile } from "@/lib/types";
+import { presentationLocale } from "@/lib/presentation-locale";
 
 const WINDOWS=[30,90,180,365] as const;
 
@@ -134,8 +135,8 @@ export default function AnalyticsBiV75Page(){
 function Metric({label,value,compact=false}:{label:string;value:string;compact?:boolean}){return <div className="card p-5"><div className="text-xs uppercase tracking-wider text-slate-500">{label}</div><div className={`mt-2 font-black ${compact?"break-all text-sm":"text-2xl"}`}>{value}</div></div>}
 function Table({headers,rows}:{headers:string[];rows:(string|number)[][]}){return <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-slate-900/70 text-xs uppercase text-slate-500"><tr>{headers.map(x=><th key={x} className="p-3">{x}</th>)}</tr></thead><tbody className="divide-y divide-slate-800">{rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j} className="p-3">{cell}</td>)}</tr>)}{rows.length===0&&<tr><td colSpan={headers.length} className="p-4 text-slate-500">Chưa có dữ liệu phù hợp.</td></tr>}</tbody></table></div>}
 function pct(value:number){return `${Number(value||0).toFixed(2)}%`}
-function number(value:number){return new Intl.NumberFormat("vi-VN").format(Number(value||0))}
-function month(value:string){return new Intl.DateTimeFormat("vi-VN",{month:"2-digit",year:"numeric",timeZone:"Asia/Ho_Chi_Minh"}).format(new Date(`${value}T00:00:00+07:00`))}
+function number(value:number){return new Intl.NumberFormat(presentationLocale()).format(Number(value||0))}
+function month(value:string){return new Intl.DateTimeFormat(presentationLocale(),{month:"2-digit",year:"numeric",timeZone:"Asia/Ho_Chi_Minh"}).format(new Date(`${value}T00:00:00+07:00`))}
 /* V77.0.9 historical verifier aliases (not rendered):
 /admin/analytics | Analytics V51
 không có durable page-view/visitor event

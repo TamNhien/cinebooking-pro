@@ -1,12 +1,19 @@
-# CineBooking Pro V77
+# CineBooking Pro V78
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V77.0.61 - V34 Maintenance Repeatability Cleanup
+> **Current release:** V78.0.18 - UX / Accessibility / PWA 5.0 - Full-Suite Operational Read Stability
 
-> **Current language policy (V77.0.61):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; menu, nút, liên kết, nhãn biểu mẫu, option, placeholder/aria/title/alt và tiêu đề giao diện đã được audit toàn source để đổi theo lựa chọn. Surface mới tiếp tục dùng presentation-owned copy; surface legacy được phủ bằng catalog VI→EN có kiểm soát, chỉ dịch copy UI đã audit và không dịch enum/status machine, payload backend, tên phim, dữ liệu khách hàng hay ID nghiệp vụ. Root layout vẫn khôi phục preference trước hydration/full navigation.
-> **Previous stable incorporated:** `v76.0.0` - Recommendation 5.0 + Assisted Bookings UI polish.
-> **V77 stable target:** `v77.0.61` (stable-only patch release flow).
+> **Current language policy (V78.0.18):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; toàn bộ presentation copy trong `frontend/app` + `frontend/components` được audit literal-level thay vì chỉ một nhóm trang đại diện. Static UI dùng catalog VI→EN nguồn sở hữu, feedback động dùng semantic pattern/direct language ownership, native `alert/confirm/prompt` cũng đi qua cùng language bridge. `data-i18n-skip="true"` tiếp tục bảo vệ tên phim/rạp, payload backend, ID và dữ liệu nghiệp vụ khỏi bị dịch nhầm. Root layout vẫn khôi phục preference trước hydration/full navigation.
+> **Previous stable incorporated:** `v77.0.61` - CRM Automation 5.0 + language/runtime stabilization.
+> **V78 stable target:** `v78.0.18` (stable-only release flow).
+> **Historical verifier baseline — former Current release:** V77.0.61 - V34 Maintenance Repeatability Cleanup.
+> **Historical verifier baseline — former V77 stable target:** `v77.0.61` (immutable historical release; not the current target).
+
+
+V78 delivers **UX / Accessibility / PWA 5.0**. The VI↔EN contract is expanded from representative-route coverage to a full-source presentation audit: 486+ audited static VI→EN entries plus semantic dynamic patterns cover customer, staff, admin, PWA/offline and operational surfaces. Native browser dialogs now follow the active language too, while business data remains source-owned and excluded through explicit boundaries.
+
+Accessibility upgrades add a keyboard **Skip to main content** link, a focusable main landmark, global `:focus-visible` treatment and a broad reduced-motion policy. PWA install/offline/update feedback remains an `aria-live` status surface, and the new V78 browser regression sweeps more than 35 authenticated routes in one persisted EN session before switching back to VI. V78 is deliberately **no-schema**: Flyway remains V72.
 
 V77 adds **CRM Automation 5.0** after V76 Recommendation 5.0. The new Admin surface `/admin/crm-automation` introduces lifecycle playbooks for first-booking activation, engaged cross-sell, VIP reward, at-risk win-back and lapsed reactivation, all derived from existing operational user/booking/payment data.
 
@@ -204,6 +211,19 @@ Bảng này là chỉ mục cập nhật chính thức theo source hiện tại.
 | **V77.0.59** | **V41 notification identity + same-route stability: focused V41 on V77.0.58 exposed that the restored card could still become ambiguous across list re-renders and that opening a notification whose `linkUrl` is already `/notifications` needlessly triggers a same-route navigation. Notification cards/open actions now carry the exact notification UUID, the E2E selects that UUID through archive/restore/read, and the UI skips redundant same-route navigation after a successful read while updating the exact item from the mutation response.** | **Runtime/E2E identity hardening only; the read POST remains direct and non-retried, archive/restore semantics stay durable, no timeout increase, no schema change (Flyway V72)** |
 | **V77.0.60** | **V34 maintenance load ownership stability: V77.0.59 reached focused V41 1/1 and V41+V48+V49 3/3, then full Browser E2E stopped at 45/46 because the cleanup navigation could let an older default-cinema maintenance read batch overwrite the later CineHub Quận 1 auditorium snapshot. Maintenance reads now use bounded transient GET resilience plus a latest-generation ownership guard; the blackout list is committed atomically with the selected cinema snapshot, and the V34 E2E captures the exact created blackout UUID for cleanup.** | **Runtime/E2E stale-read hardening only; maintenance POST/DELETE mutations remain direct and non-retried, no timeout increase, no schema change (Flyway V72)** |
 | **V77.0.61** | **V34 maintenance repeatability cleanup: focused V77.0.60 could receive HTTP 409 when an interrupted earlier V34 journey left its deterministic blackout in the persistent test database. The journey now identifies only the exact test-owned leftover by auditorium UUID, Vietnam-time window and reason, removes it through the real Reopen UI/DELETE 204 path, then still requires a fresh POST 201 and exact-UUID planner/cleanup assertions.** | **E2E repeatability hardening only; real overlap 409 remains strict, no direct test mutation, no timeout increase, no schema change (Flyway V72)** |
+| **V78.0.0** | **UX / Accessibility / PWA 5.0: full-source VI↔EN presentation audit, 486+-entry V78 catalog, dynamic-copy semantic translation, native dialog language ownership, keyboard skip-link/main landmark, universal focus-visible treatment, reduced-motion hardening and a 35+ route language/PWA browser sweep.** | **No schema change (Flyway V72); business data remains source-owned, PWA/offline contracts preserved** |
+| **V78.0.1** | **Runtime language boundary fix: translate system-owned seeded loyalty/reward labels on Profile in EN, preserve arbitrary movie/cinema/product/user business data through explicit `data-i18n-skip` boundaries across the 56-route sweep, and advance the Service Worker cache generation.** | **No schema change (Flyway V72); V78.0.0 UX/Accessibility/PWA contracts preserved** |
+| **V78.0.2** | **Recommendation presentation-language ownership: localize explainable recommendation score labels/tooltips, reason wrappers, signal chips, profile summary/daypart/weekday/duration, feedback messages, and NEW TO YOU badge from stable machine keys while preserving movie/cinema/genre/language business values.** | **No schema change (Flyway V72); V78.0.1 runtime language/business-data boundary contracts preserved** |
+| **V78.0.3** | **Staff Schedule Admin runtime-sweep stability: align the `/staff/schedule` client role gate with the existing backend `/api/staff/**` ADMIN authority so the V78 authenticated 56-route language sweep renders the real staff schedule instead of hard-redirecting Admin to login and leaving the hydration marker pending during navigation. The E2E now explicitly proves the route does not auth-detour.** | **Runtime/auth-surface alignment only; unauthorized users remain fail-closed, no browser assertion is relaxed, no schema change (Flyway V72)** |
+| **V78.0.4** | **Notification presentation-language ownership: render known CineBooking-generated notification templates from stable `notification_type` contracts in the active VI/EN language while isolating only true business payloads (movie/cinema names, support reply/status notes, campaign copy, IDs and recipient values) behind exact `data-i18n-skip` segments. This closes the runtime `/notifications` EN leak without exempting the whole notification card/button.** | **Presentation/runtime boundary fix only; unknown notification producers remain fail-closed as source-owned backend payloads, no timeout/assertion relaxation, no schema change (Flyway V72)** |
+| **V78.0.5** | **Admin Audit presentation-language ownership: `/admin/audit` now owns its static heading, search, navigation, column-header and helper copy directly through the active VI/EN presentation language instead of depending on bridge fallback. Exact audit payload fields (actor, action, entity/id, details, IP) remain source-owned forensic/business data behind narrow `data-i18n-skip` cells, and the V78 browser journey explicitly asserts `SECURITY & AUDIT` plus `Entity` in EN.** | **Presentation/runtime boundary fix only; raw audit evidence is not translated or rewritten, the page/root is not exempted from the fail-closed sweep, no timeout/assertion relaxation, no schema change (Flyway V72)** |
+| **V78.0.12** | **Maintenance asset business-data boundaries: preserve source-owned equipment names such as `Máy chiếu Barco SP4K ...` through exact card/table boundaries while keeping the Maintenance page, controls, statuses and all presentation copy inside the fail-closed V78 EN sweep.** | **No schema change (Flyway V72); no whole-card/page exemption, source equipment names are not machine-translated** |
+| **V78.0.13** | **Comprehensive Presentation-Language Ownership: strict literal-level audit of all frontend TSX text, placeholders, titles, aria-labels and alt copy; 515 previously implicit/raw VI literals now have exact EN ownership, including version headings and version-labeled buttons.** | **No schema change (Flyway V72); business/user data remains protected only by narrow explicit boundaries, fail-closed browser sweep preserved** |
+| **V78.0.14** | **Persistent PWA Live-Region Stability: keeps the PWA status live region mounted in idle/online states so accessibility assertions and assistive technologies have a stable announcement target after the full VI↔EN route sweep.** | **No schema change (Flyway V72); visual PWA banner remains conditional while the idle live region is visually clipped, not removed from the accessibility tree** |
+| **V78.0.15** | **Full-Suite Runtime Business-Data Hardening: makes historical V77/V48 browser contracts forward-compatible with V78, scopes inventory status assertions away from the persistent PWA live region, and adds narrow runtime data boundaries for populated staff/movie/cinema selectors and dynamic headings.** | **No schema change (Flyway V72); 67-route fail-closed VI↔EN sweep and V53-V78 version-title assertions remain intact** |
+| **V78.0.16** | **Pricing Rule Business-Data Boundary: marks only persisted/admin-authored pricing rule names as source-owned runtime data so Vietnamese rule names no longer trigger the EN presentation leak scanner on `/admin/pricing`; all surrounding pricing UI remains language-owned and fail-closed.** | **No schema change (Flyway V72); 67-route VI↔EN sweep, V53-V78 title assertions and V78.0.15 full-suite hardening remain intact** |
+| **V78.0.17** | **Admin Booking Cinema Business-Data Boundary: isolates persisted cinema names inside the `/admin/bookings` cinema filter so real names such as `CineHub Nguyễn Huệ`, `CineHub Thảo Điền` and `CineHub Aeon Bình Tân` remain source-owned in EN mode; also hardens source-owned movie-title headings in the booking modal and V57 responsive showtime cards.** | **No schema change (Flyway V72); whole selectors/cards/pages remain fail-closed, 67-route VI↔EN sweep and V53-V78 version-title assertions remain intact** |
+| **V78.0.18** | **Full-Suite Operational Read Stability: hardens the three real-data Admin surfaces that regressed only under sustained 47-test load (Observability V65, Command Center V53, Operations Control V58/V59) with an explicit 24s/8s bounded read profile, authoritative READY/ERROR/LOADING markers, and overlap suppression for V65 interval refresh plus V58/V59 quiet realtime/poll snapshots.** | **No fake summaries, no 401/403 retry, historical generic 12s/3.5s retry defaults preserved, no schema change (Flyway V72), E2E still requires real SLO/dependency/summary/domain/alert payloads** |
 
 # Cập nhật chi tiết theo phiên bản (tăng dần)
 
@@ -8055,3 +8075,322 @@ python -X utf8 .\tools\verify_v77_0_61_v34_maintenance_repeatability_cleanup.py
 ```
 
 Expected: the dedicated V77.0.61 verifier passes, historical V34 remains green, a rerun can clean only its own stale blackout through the UI, fresh creation still returns 201, and the full browser suite can continue beyond the V34 journey.
+
+
+## V78.0.0 - UX / Accessibility / PWA 5.0
+
+V78 expands the language contract beyond the representative V77 sweep. A full-source audit now walks every TSX presentation literal under `frontend/app` and `frontend/components`; 486+ static presentation strings are owned by the V78 VI→EN catalog, while dynamic feedback uses audited semantic patterns or direct language ownership. Native `alert`, `confirm` and `prompt` are also localized through the same bridge, so switching **VN / EN** no longer leaves browser-native prompts in Vietnamese. Explicit `data-i18n-skip="true"` boundaries continue to protect movie/cinema names, identifiers, backend payloads and other business data from accidental translation.
+
+Accessibility 5.0 adds a keyboard skip link to `#main-content`, a focusable main landmark, consistent `:focus-visible` outlines and a global reduced-motion contract. PWA install/offline/update feedback remains an accessible `role="status"` / `aria-live="polite"` surface. The V78 Playwright journey keeps one authenticated EN session while sweeping more than 50 customer/staff/admin routes, fails closed on Vietnamese presentation leaks, checks skip-link/main-landmark/PWA live-region behavior, and finally switches back to VI.
+
+V78.0.0 is no-schema: Flyway stays V72. Service Worker generation advances to `v78-0-0`.
+
+V78 also extends language ownership into UI-facing frontend libraries: shared authentication/offline/PWA error copy is catalog-owned, and shared currency/date-time formatters derive from the active presentation locale instead of hard-coding `vi-VN`. The historical V26 Python Service Worker diagnostic now accepts the generic V26-or-newer patch-form generation used by V78 while preserving all offline/cache-safety assertions.
+
+
+### Verify V78.0.0
+
+```powershell
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+Expected: the V78 verifier passes, full-source static presentation audit has zero uncovered literals, the V78 browser language/accessibility/PWA journey remains wired into CI/release, and historical V77 language/runtime gates remain forward-compatible.
+## V78.0.1 - Runtime Language / Business-Data Boundary Fix
+
+The V78 browser sweep exposed a runtime-only gap that static literal auditing could not see: `/profile` rendered system-seeded loyalty reward names such as `Mã ưu đãi thành viên 10.000đ` and `Bắp Caramel miễn phí` after the shell had switched to EN. V78.0.1 gives those system-owned seed labels explicit English presentation mappings and uses them directly in Profile reward/catalog/wallet surfaces.
+
+The same browser sweep also distinguishes presentation copy from real business data more explicitly. Movie titles, cinema/auditorium names, user-entered support subjects, product names and other source-owned domain values receive `data-i18n-skip="true"` only at the exact dynamic node/option that owns the business value; surrounding labels remain VI/EN-owned. This prevents accidental machine translation of real data while keeping the fail-closed 56-route presentation leak check meaningful.
+
+V78.0.1 is no-schema (Flyway V72). Service Worker generation advances to `v78-0-1` so clients receive the corrected language catalog/boundaries.
+
+### Verify V78.0.1
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+```
+## V78.0.2 - Recommendation Presentation Language Ownership
+
+The V78 browser sweep exposed the next runtime-only language gap on `/for-you`: recommendation score breakdown labels and evidence tooltips were returned by the backend in Vietnamese (`Gu thể loại`, `Xu hướng`, `Phim neo`, `Tín hiệu cộng đồng 30 ngày`, `Khớp ngôn ngữ phim thường xem`, and related descriptors) even after the shell switched to EN. These strings are presentation/explanation copy owned by the recommendation experience, not arbitrary business data.
+
+V78.0.2 introduces `frontend/lib/recommendation-presentation.ts` and localizes recommendation explanation copy from stable machine keys (`GENRE_TASTE`, `LANGUAGE_FIT`, `DURATION_FIT`, `ANCHOR`, `POPULARITY`, and the remaining score components). The `/for-you` page now also localizes reason wrappers, recommendation signal chips, structured profile summary/daypart/weekday/duration labels, feedback messages, and the `NEW TO YOU` badge. Movie titles, cinema names, genre labels, and movie-language metadata remain source-owned business values and are preserved. The V78 bridge catalog keeps matching fallback translations for legacy/dynamic surfaces.
+
+The V78.0.1 verifier is made Windows-safe when chaining the base V78 verifier by explicitly launching Python with `-X utf8` and UTF-8 subprocess decoding. V78.0.2 is no-schema (Flyway V72). Service Worker generation advances to `v78-0-2`.
+
+### Verify V78.0.2
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_2_recommendation_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.3 - Staff Schedule Admin Runtime Sweep Stability
+
+The focused V78 browser regression reached `/staff/schedule` while authenticated with the existing root Admin account. The backend already authorizes `ADMIN` for `/api/staff/**`, but the client page gate allowed only `STAFF` and `MANAGER`. That mismatch forced a hard navigation to `/login?reason=required&returnTo=%2Fstaff%2Fschedule` during the language sweep. Because the navigation occurred while the hydrated-runtime guard was proving the route, the root marker could be observed as `pending` instead of `true`, and the focused V78 test failed before checking the actual staff presentation surface.
+
+V78.0.3 aligns the client role gate with the existing backend authority by allowing `ADMIN` to render `/staff/schedule`. Unauthorized users still redirect to Login, staff APIs keep their existing Spring Security role checks, and the runtime-ready marker remains a real client-hydration signal rather than a test bypass. The V78 E2E adds an explicit URL assertion for `/staff/schedule`, so future client/backend role drift fails with a direct surface-ownership signal.
+
+V78.0.3 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-3`.
+
+### Verify V78.0.3
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+python -X utf8 .\tools\verify_v78_0_2_recommendation_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.4 - Notification Presentation-Language / Business-Data Boundaries
+
+The focused V78 browser sweep on V78.0.3 progressed past `/staff/schedule` and exposed the next runtime-only language gap on `/notifications`. Persisted notification rows are returned as backend payloads, so the static V78 catalog cannot safely translate the whole `title`/`message` field: some fragments are CineBooking-owned templates while other fragments are real business data such as movie/cinema names, support staff replies and resolution notes, campaign-authored copy, booking/case IDs, voucher codes, and recipient values. The EN sweep therefore still saw system copy such as `CineBooking đã phản hồi`, `Cập nhật yêu cầu`, `Trạng thái mới`, and `Sắp đến giờ chiếu`.
+
+V78.0.4 introduces `frontend/lib/notification-presentation.ts`. Known system-generated notification types are reconstructed in EN from their stable `notification_type` contract. Dynamic business values are emitted as exact presentation segments marked `data-i18n-skip="true"`; surrounding system copy remains language-owned and continues to be checked by the fail-closed V78 sweep. Support reply bodies/status notes remain staff-authored business content, showtime reminders translate the template while preserving the real movie title, promotion campaign copy remains administrator-authored, and known booking/payment/refund/loyalty/staff/security templates receive explicit EN ownership. Unknown future notification producers are preserved as backend-owned payloads rather than guessed by the UI.
+
+The notification card/button itself is **not** exempted from language regression. Only the exact business-data spans receive a skip boundary, so a future Vietnamese system template still fails the V78 browser gate until presentation ownership is added. V78.0.4 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-4`.
+
+### Verify V78.0.4
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_4_notification_presentation_language_business_boundaries.py
+python -X utf8 .\tools\verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+python -X utf8 .\tools\verify_v78_0_2_recommendation_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.5 - Admin Audit Presentation-Language Ownership
+
+The focused V78 browser sweep on V78.0.4 progressed through `/notifications` and exposed the next runtime language gap on `/admin/audit`. The page still relied on the legacy bridge for most static copy, and two literals were not owned at runtime in EN: `BẢO MẬT & KIỂM TOÁN` and the table header `Đối tượng`. The browser therefore reported Vietnamese presentation leakage even though the static source audit and all earlier V78 verifiers were green.
+
+V78.0.5 moves the Admin Audit surface to direct `usePresentationLanguage()` ownership. The section kicker, page title, helper text, Admin back-link, search placeholder and all audit table headers now resolve through explicit VI/EN pairs. The V78 E2E keeps `/admin/audit` inside the normal fail-closed presentation sweep and adds direct EN assertions for `SECURITY & AUDIT` and `Entity`, so this exact regression cannot silently return behind a catalog fallback.
+
+Raw audit evidence remains source-owned. Actor email, action code, entity type/id, details and IP address are forensic/business payloads and receive narrow `data-i18n-skip="true"` boundaries only on their dynamic cells. The page/root itself is not skipped, the timestamp still uses the shared presentation-locale formatter, and no audit record is translated or mutated. V78.0.5 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-5`.
+
+### Verify V78.0.5
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_5_admin_audit_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_4_notification_presentation_language_business_boundaries.py
+python -X utf8 .\tools\verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+python -X utf8 .\tools\verify_v78_0_2_recommendation_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+## V78.0.6 - Inventory Presentation-Language / Business-Data Boundaries
+
+The focused V78 browser sweep on V78.0.5 progressed through `/admin/audit` and exposed the next runtime language boundary gap on `/admin/inventory`. The inventory page already translated the surrounding `Managed branch` label, but branch `<option>` values still contained real Vietnamese cinema names such as `CineHub Bình Thạnh`, `CineHub Cộng Hòa`, and `CineHub Thảo Điền`. Because those source-owned cinema names were not marked as narrow business-data boundaries, the fail-closed browser sweep correctly reported them as Vietnamese presentation leakage. Two remaining static labels, `Ngưỡng cảnh báo` and `Tồn mục tiêu`, also lacked direct EN ownership.
+
+V78.0.6 gives the inventory threshold labels explicit VI/EN ownership (`Alert threshold`, `Target stock`) and marks only the dynamic cinema-name option values as `data-i18n-skip="true"`. The branch selector keeps its system-owned `available` / `alert` wrapper language, while the transfer selector preserves the real cinema name without translating it. Product names keep their existing exact business-data boundary. No inventory page, form, label group, or selector is globally exempted from the V78 sweep.
+
+The focused E2E journey now asserts the two EN inventory labels and proves the managed-branch option uses the exact narrow boundary before running the normal Vietnamese-leak scan. This fixes the runtime false-positive without weakening the regression gate or machine-translating real branch names. V78.0.6 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-6`.
+
+### Verify V78.0.6
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_6_inventory_presentation_language_business_boundaries.py
+python -X utf8 .\tools\verify_v78_0_5_admin_audit_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_4_notification_presentation_language_business_boundaries.py
+python -X utf8 .\tools\verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+python -X utf8 .\tools\verify_v78_0_2_recommendation_presentation_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_1_runtime_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.7 - V78 Visibility / Inventory Product Business-Data Boundaries
+
+The Admin Dashboard previously ended its versioned feature row at V77 even though V78 UX / Accessibility / PWA 5.0 was already the active release. V78.0.7 adds a visible `♿ UX & PWA V78` tile immediately after V77, wires the same destination into both Admin navigation menus, and adds a dedicated `/admin/ux-accessibility-pwa` surface that explains the V78 language, accessibility, PWA, and real-business-data boundary contracts. The page remains Admin-authorized and is included in the V78 fail-closed browser sweep.
+
+The same focused browser run also exposed product names such as `Bắp Caramel Vừa`, `Bắp Phô Mai Lớn`, and `Nước Suối Dasani` as false-positive Vietnamese presentation leaks on `/admin/inventory`. Those values are persisted concession product names and therefore business data, not system presentation copy. V78.0.7 adds `data-i18n-skip="true"` only to the exact product-name `<h3>` nodes used by inventory cards and mobile movement history; the surrounding card/status/action copy and the inventory root remain inside the fail-closed sweep. No whole-card or whole-page bypass is added.
+
+V78.0.7 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-7`.
+
+### Verify V78.0.7
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_7_admin_v78_entry_inventory_product_boundaries.py
+python -X utf8 .\tools\verify_v78_0_6_inventory_presentation_language_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.8 - Favorites Movie Business-Data Boundaries
+
+The focused V78 browser sweep on V78.0.7 progressed through the visible V78 Admin entry and the inventory product boundary fix, then exposed the next runtime business-data boundary gap on `/favorites`. The shared `MovieCard` renders persisted movie titles and genres such as `Hồ Sơ Bóng Tối` and `Tội phạm, Trinh thám`. Those values come from the movie catalog and are real business data, not system presentation copy, so they must remain unchanged when the interface switches to EN.
+
+V78.0.8 adds `data-i18n-skip="true"` only to the exact visible movie-title and genre nodes inside `MovieCard`, with dedicated `movie-card-title-v7808` and `movie-card-genre-v7808` test IDs. The surrounding card remains fully inside the fail-closed V78 presentation sweep: `Details`, `Buy tickets`, review copy, duration units and date formatting still follow the active presentation language. The existing poster accessibility label keeps its narrow movie-title boundary. No MovieCard, Favorites grid, or Favorites page is globally exempted.
+
+The focused V78 journey now explicitly verifies the Favorites title/genre boundaries before running the normal Vietnamese-leak scan. This removes false positives from real Vietnamese movie metadata without translating or mutating database values and without weakening presentation-language regression coverage. V78.0.8 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-8`.
+
+### Verify V78.0.8
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_8_favorites_movie_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_0_7_admin_v78_entry_inventory_product_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+## V78.0.9 - Command Center Cinema Business-Data Boundaries
+
+The focused V78 browser sweep on V78.0.8 progressed through Favorites and then exposed the next exact business-data boundary gap on `/admin/command-center`. The Command Center `Scope` selector renders persisted cinema names such as `CineHub Bình Thạnh`, `CineHub Cộng Hòa`, and `CineHub Thảo Điền`. Those values are source-owned cinema business data and must remain unchanged when the interface switches to EN, but the native `<option>` nodes were not yet marked with the narrow V78 boundary, so the fail-closed browser sweep reported them as Vietnamese presentation leakage.
+
+V78.0.9 adds `data-i18n-skip="true"` only to the dynamic cinema `<option>` values in the Command Center selector, with the dedicated `command-center-cinema-option-v7809` test ID. The surrounding `Scope` label, `System-wide` option, Command Center root, operational metrics, action copy and all other presentation remain inside the normal fail-closed V78 language sweep. No selector, label, card, section, or page is globally exempted, and cinema names are neither translated nor mutated.
+
+The focused V78 journey now explicitly proves that a real Command Center cinema option uses the exact narrow boundary before the normal Vietnamese-leak scan runs. V78.0.9 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-9`, and the visible V78 Admin surface reports patch generation V78.0.9.
+
+### Verify V78.0.9
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_9_command_center_cinema_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_0_8_favorites_movie_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+## V78.0.10 - Customer Intelligence Cinema Business-Data Boundaries
+
+V78.0.10 fixes the focused V78 English-language browser blocker on `/admin/customer-value`: dynamic cinema names such as `CineHub Bình Thạnh`, `CineHub Cộng Hòa`, and `CineHub Nguyễn Huệ` are real source-owned business data, not presentation copy. The V56 cinema `<option>` values now use a narrow `data-i18n-skip="true"` boundary while the surrounding `Scope`, `Entire system`, active-cohort controls, metrics, RFM copy, buttons, and all other presentation remain inside the fail-closed V78 sweep.
+
+The same exact boundary is applied proactively to the equivalent V54 `/admin/performance` and V55 `/admin/retention` cinema selectors because they use the same backend-owned cinema-name contract and appear later in the same V78 route sweep. No label, selector, card, section, or page is globally exempted, and no cinema name is machine-translated or mutated.
+
+The focused V78 journey now explicitly proves all three narrow cinema-option boundaries before the normal Vietnamese-leak scan runs. V78.0.10 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-10`, and the visible V78 Admin surface reports patch generation V78.0.10.
+
+### Verify V78.0.10
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_10_customer_intelligence_cinema_business_data_boundaries.py
+```
+
+## V78.0.11 - Finance Event-Key Presentation Ownership
+
+The focused V78 English-language browser sweep on V78.0.10 progressed through the customer-intelligence cinema boundaries and exposed the next presentation-language gap on `/admin/finance`. The financial ledger header used the standalone Vietnamese literal `Khóa`. Unlike a generic lock/unlock action, this column contains `eventKey`, so a global translation for `Khóa` would be ambiguous and could translate unrelated security actions incorrectly.
+
+V78.0.11 gives only that finance ledger header direct VI/EN ownership through `usePresentationLanguage()`: `Khóa` remains the Vietnamese presentation while EN renders `Event key`. The underlying `eventKey` value is a machine/source-owned identifier and receives an exact `data-i18n-skip="true"` boundary. The finance page, ledger table, reconciliation controls, status copy and all other presentation remain inside the normal fail-closed V78 language sweep; no page, table, row or column group is globally exempted.
+
+The focused V78 journey now explicitly asserts `finance-event-key-header-v7811` renders `Event key` in EN and, when ledger rows exist, proves only the dynamic event-key value uses the narrow source-data boundary before the normal Vietnamese-leak scan runs. V78.0.11 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-11`, and the visible V78 Admin surface reports patch generation V78.0.11.
+
+### Verify V78.0.11
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_11_finance_event_key_presentation_ownership.py
+python -X utf8 .\tools\verify_v78_0_10_customer_intelligence_cinema_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+
+## V78.0.12 - Maintenance Asset Business-Data Boundaries
+
+The focused V78 English-language browser sweep on V78.0.11 progressed through Finance and exposed the next source-data boundary gap on `/admin/maintenance`. Real persisted equipment names such as `Máy chiếu Barco SP4K 01136397` are business/source-owned asset names, not presentation copy, but the responsive Maintenance asset card rendered `asset.name` inside an `<h3>` without the exact V78 boundary. The fail-closed browser scan therefore reported every Vietnamese equipment name as presentation leakage.
+
+V78.0.12 adds narrow `data-i18n-skip="true"` boundaries only to the dynamic asset-name nodes in the responsive card and desktop equipment table, using `maintenance-asset-name-card-v7812` and `maintenance-asset-name-table-v7812`. The Maintenance page root, asset card, equipment status/category labels, edit controls, dates, work-order copy, auditorium blocking UI and all other presentation remain inside the normal fail-closed V78 language sweep. Persisted equipment names are neither translated nor rewritten.
+
+The focused V78 journey now explicitly proves those asset-name boundaries before the normal Vietnamese-leak scan runs. V78.0.12 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-12`, and the visible V78 Admin surface reports patch generation V78.0.12.
+
+### Verify V78.0.12
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_12_maintenance_asset_business_data_boundaries.py
+```
+
+## V78.0.13 - Comprehensive Presentation-Language Ownership
+
+V78.0.13 closes the remaining mixed VN/EN presentation gaps across the full frontend instead of waiting for the browser sweep to discover one route at a time. A new highest-priority exact catalog, `frontend/lib/presentation-ui-translations-v78-0-13.ts`, owns 515 previously raw Vietnamese UI literals spanning text nodes, placeholders, titles, `aria-label` values and `alt` copy. This includes version headings and version-labelled navigation/buttons as well as the V40 Loyalty surface that was still leaking `V40 · VẬN HÀNH KHÁCH HÀNG THÂN THIẾT`, `Số dư`, `Trọn đời`, `Sắp hết hạn` and `Điều chỉnh` in EN mode.
+
+The audit is intentionally strict: a `t(...)` call elsewhere on the same source line no longer exempts neighboring raw Vietnamese literals. `tools/verify_v78_0_13_comprehensive_language_ownership.py` independently scans every TSX file under `frontend/app` and `frontend/components`, including visible text plus `placeholder`, `title`, `aria-label` and `alt`, and fails if any Vietnamese presentation literal lacks either direct `t(vi,en)` ownership or an exact audited catalog mapping. Version-bearing labels/titles/buttons are checked explicitly. Business and user-authored data are still never machine-translated and continue to require narrow `data-i18n-skip="true"` boundaries.
+
+V78.0.13 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-13`, the visible V78 Admin surface reports `V78.0.13`, and release/CI/diagnostics now execute the comprehensive verifier.
+
+### Verify V78.0.13
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_13_comprehensive_language_ownership.py
+python -X utf8 .\tools\verify_v78_0_12_maintenance_asset_business_data_boundaries.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+Stable tag: `v78.0.13`.
+
+## V78.0.14 - Persistent PWA Live-Region Stability
+
+V78.0.14 fixes the final focused V78 browser blocker reached after the comprehensive V78.0.13 language sweep completed all static routes: `.pwa-manager` was conditionally returned as `null` whenever the browser was online, had no waiting service-worker update, had no install prompt and was not in the iOS install-hint state. That behavior made the PWA accessibility target disappear entirely, so the final `aria-live="polite"` assertion could not find an element even though the language sweep itself had already passed.
+
+`PwaManager` now keeps one persistent `role="status"`, `aria-live="polite"`, `aria-atomic="true"` live region mounted for the lifetime of the application. When no visual PWA notice is active, the same element uses the `pwa-manager-idle` visually-hidden treatment instead of `display:none` or conditional unmounting. Offline, update-ready, install-prompt and iOS-install-hint modes still render the existing visible banner and actions. The focused V78 E2E now targets `data-testid="pwa-live-region-v7814"` and verifies the stable live-region accessibility contract without assuming any environment-dependent install/update state.
+
+The V78.0.13 comprehensive language ownership remains intact: all 67 static page routes stay in the fail-closed VI↔EN sweep, version actions V53-V78 retain explicit English assertions, and business-data boundaries remain narrow. V78.0.14 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-14`, the visible V78 Admin surface reports `V78.0.14`, and release/CI/diagnostics execute the dedicated live-region verifier.
+
+### Verify V78.0.14
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_14_pwa_live_region_stability.py
+```
+
+Stable tag: `v78.0.14`.
+## V78.0.15 - Full-Suite Runtime Business-Data Hardening
+
+V78.0.15 is the full-suite compatibility and runtime-data follow-up to the comprehensive V78 language rollout. The Windows full browser suite proved that three remaining failures were not ordinary static translation misses: the historical V77 CRM test still assumed V77 must be the final Admin version, the V48 inventory test used an unscoped `getByRole("status")` locator that became ambiguous after the persistent PWA live region was introduced, and populated `/admin/shifts` staff options exposed real employee/cinema names to the fail-closed Vietnamese presentation scan.
+
+The V77 test now remains strict about ordering and the presence of V77 while allowing forward versions (`>= 77`). Inventory feedback assertions are scoped to the inventory operation status card rather than the global PWA status region. Admin Shift staff options use an exact `data-i18n-skip="true"` boundary, and the focused V78 journey explicitly proves that boundary when staff data exists. The same audit proactively hardens other source-owned runtime values that can carry Vietnamese names inside scanned controls/headings: Quick Booking movie/cinema options, Admin Showtime movie options, Pricing showtime options, Maintenance assignee options, Staff Operations handover recipients/live cinema names, staff check-in movie titles, movie-detail title/cinema headings, and seat-layout auditorium names. Whole pages, cards, forms, labels and selectors remain inside the fail-closed presentation sweep.
+
+V78.0.13 comprehensive language ownership remains unchanged: all 67 static page routes stay covered and Admin version actions V53-V78 retain explicit English assertions. V78.0.14 persistent PWA live-region semantics also remain intact. V78.0.15 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-15`, and the visible V78 Admin surface reports `V78.0.15`.
+
+**Release-preflight correction:** after the Windows runtime suite reached **47/47 PASS**, the stable release preflight exposed one stale historical V77 source assertion that still required the V77 browser spec to end exactly at version 77. The V77 browser spec is intentionally forward-compatible (`>=77`) now that V78 exists; its verifier now accepts either the historical exact-V77 contract or the forward-compatible `toBeGreaterThanOrEqual(77)` contract. This is a release-gate-only correction: no application runtime, schema, PWA generation, or user-visible V78.0.15 behavior changes.
+
+**Release-preflight correction 2:** the next Windows preflight then reached the V78 lineage and exposed stale README-current-release whitelists in the historical V78.0.5 and V78.0.6 verifiers. Both now accept the current `V78.0.15` metadata while still requiring their original V78.0.5/V78.0.6 documentation sections. The malformed tuple-style README predicate in the V78.0.12 verifier is also replaced with explicit boolean membership so forward compatibility is fail-closed rather than accidentally truthy. The V78.0.15 verifier now guards all three historical contracts. Runtime code, Service Worker generation, schema, and browser behavior remain unchanged.
+
+### Verify V78.0.15
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_15_full_suite_runtime_business_data_hardening.py
+```
+
+Stable tag: `v78.0.15`.
+## V78.0.16 - Pricing Rule Business-Data Boundary
+
+V78.0.16 closes the next real Windows release-gate blocker after the V78 lineage preflight fixes. The stable release reached the full 47-test browser gate and failed only on `/admin/pricing`: persisted `pricing_rule.name` values such as `Cuối tuần +15.000đ`, `Ưu đãi đặt vé trực tuyến`, `Khung giờ tối +15%` and other seeded/admin-authored rule names were rendered in an H3 that the fail-closed presentation scanner correctly inspected. Those names are source-owned business data from the pricing-rule table, not system presentation copy, so translating them in the EN UI would rewrite administrator data semantics.
+
+The rule-name H3 now carries the exact `pricing-rule-name-v7816` + `data-i18n-skip="true"` boundary. The pricing rule card itself, its state/action copy, filters, form labels and the entire `/admin/pricing` route remain inside the fail-closed VI↔EN sweep. The focused V78 E2E explicitly proves the populated rule-name boundary before running the unchanged presentation leak assertion. Historical verifiers that explicitly whitelisted the V78.0.15 Service Worker/current-release metadata are advanced for V78.0.16 so stable release preflight cannot regress on metadata churn.
+
+V78.0.16 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-16`, and the visible V78 Admin surface reports `V78.0.16`.
+
+### Verify V78.0.16
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_16_pricing_rule_business_data_boundary.py
+```
+
+Stable tag: `v78.0.16`.
+
+## V78.0.17 - Admin Booking Cinema Business-Data Boundary
+
+V78.0.17 closes the next real Windows focused-language blocker reached after V78.0.16 built cleanly and the full Docker stack became healthy. The V78 browser journey reached `/admin/bookings` and reported real persisted cinema names such as `CineHub Aeon Bình Tân`, `CineHub Cộng Hòa`, `CineHub Củ Chi`, `CineHub Nguyễn Huệ`, `CineHub Nguyễn Trãi`, `CineHub Quận 1`, `CineHub Thảo Điền` and `CineHub Vạn Hạnh` as Vietnamese presentation leakage because the cinema filter rendered `cinemaName` inside scanned `<option>` nodes without an explicit source-data boundary.
+
+Those cinema names are database/business values and must not be machine-translated when the presentation language switches to EN. The `/admin/bookings` cinema options now carry the exact `admin-bookings-cinema-option-v7817` + `data-i18n-skip="true"` boundary. The select itself, its `TẤT CẢ`/presentation option, search input, status/payment filters, table headers, buttons and the entire page remain inside the normal fail-closed VI↔EN scan. The focused V78 E2E explicitly proves the populated cinema option boundary before running the unchanged `presentationLeaks()` assertion.
+
+The same source-data audit also hardens two real movie-title headings that can carry Vietnamese catalog data: `selected.movieTitle` in the Admin Booking detail modal uses `admin-booking-modal-movie-title-v7817`, and the responsive V57 Booking & Seat Intelligence movie heading uses `booking-seat-intelligence-movie-title-v7817`. Both boundaries are exact leaf nodes; no card, form, table, selector or route is globally exempted. Historical Service Worker/current-release verifier allowlists are advanced to V78.0.17 so release preflight remains forward-compatible.
+
+V78.0.17 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-17`, and the visible V78 Admin surface reports `V78.0.17`.
+
+### Verify V78.0.17
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_17_admin_booking_cinema_business_data_boundary.py
+python -X utf8 .\tools\verify_v78_0_16_pricing_rule_business_data_boundary.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+Stable tag target: `v78.0.17`.
+## V78.0.18 - Full-Suite Operational Read Stability
+
+V78.0.17 closed the `/admin/bookings` language boundary and then passed the focused V78 browser journey `1/1` in 4.3 minutes on Windows. The following full 47-test run finished `44/47`: Observability V65 stayed on `Đang tải SLO...` instead of receiving the real SLO payload, while Command Center V53 and Operations Control V58/V59 never reached their real summary/snapshot surfaces within the historical 15-second locator window. These are the same authenticated read-heavy surfaces first protected in V77.0.52, but sustained V78 full-route language work now makes the old generic 12-second deadline / 3.5-second attempt budget too aggressive for their aggregate database reads.
+
+V78.0.18 keeps the generic transient-read contract unchanged for normal pages and adds an explicit `SUSTAINED_OPERATIONAL_READ_OPTIONS` profile only for the three heavy read-only aggregates: 24-second total deadline, 8-second attempt timeout, bounded backoff, and the same transient-only retry classes. HTTP 401/403 still fail closed. Observability V65 also owns one in-flight load so its 10-second refresh interval cannot pile a second summary request on top of a slow first one; Operations Control similarly suppresses only quiet WebSocket/poll refreshes while a snapshot is already in flight. No fake SLO, command-center or operations-control data is rendered.
+
+Each affected page now exposes `data-runtime-state=LOADING|READY|ERROR` derived from the real API payload/error. Historical E2E requirements are preserved, but the three journeys first wait up to 45 seconds for `READY` and then continue asserting the real V65 Availability/API P95/PostgreSQL/Redis payload, V53 summary + attention surfaces, and V58 summary + domains + alerts + detail surfaces. This synchronizes the tests to the actual bounded runtime contract instead of assuming every heavy aggregate must finish within the default 15-second locator timeout.
+
+V78.0.18 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-18`, the visible V78 Admin surface reports `V78.0.18`, and historical Service Worker/current-release verifier allowlists are advanced so release preflight stays forward-compatible. The stable release target is `v78.0.18`.
+
+### Verify V78.0.18
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_18_full_suite_operational_read_stability.py
+python -X utf8 .\tools\verify_v78_0_17_admin_booking_cinema_business_data_boundary.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+Expected source gates: V78.0.18 dedicated verifier, V78.0.17 lineage, and base V78 all pass before Docker/focused/full browser release gates.

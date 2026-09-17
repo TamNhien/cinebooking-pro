@@ -33,7 +33,7 @@ ok("Focused unit test preserves alerts outside 24h window", "braveSyncDoesNotRew
 ok("Login submit has stable E2E test id", 'data-testid=\"login-submit\"' in login and 'type=\"submit\"' in login)
 ok("Security E2E uses stable login selector", 'getByTestId(\"login-submit\")' in e2e)
 ok("Security E2E waits for explicit login URL", "toHaveURL(/\\/login" in e2e)
-ok("README retains V77.0.2 and current release is V77.0.2 or later", "| **V77.0.2** |" in readme and "Current release:** V77.0." in readme)
+ok("README retains V77.0.2 and current release is V77.0.2 or later", "| **V77.0.2** |" in readme and ("Current release:** V77.0." in readme or "Current release:** V78." in readme))
 ok("README documents bounded legacy Brave alert reconciliation", "bounded legacy Brave alert reconciliation" in readme)
 ok("Patch remains no-schema", not any((ROOT/"backend/src/main/resources/db/migration").glob("V77*0*2*.sql")))
 ok("CI runs V77.0.2 verifier", has(".github/workflows/ci.yml","verify_v77_0_2_brave_alert_reconciliation.py"))

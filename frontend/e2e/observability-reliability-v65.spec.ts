@@ -20,7 +20,9 @@ test("V65 exposes admin SLO, dependency probes and trace correlation",async({pag
   await tile.click();
 
   await expect(page).toHaveURL(/\/admin\/observability$/);
-  await expect(page.getByTestId("observability-v65")).toContainText("V65 · KHẢ NĂNG QUAN SÁT & ĐỘ TIN CẬY 4.0");
+  const root=page.getByTestId("observability-v65");
+  await expect(root).toContainText("V65 · KHẢ NĂNG QUAN SÁT & ĐỘ TIN CẬY 4.0");
+  await expect(root).toHaveAttribute("data-runtime-state","READY",{timeout:45_000});
   await expect(page.getByTestId("observability-summary-v65")).toContainText("V65-OBSERVABILITY-RELIABILITY-4");
   await expect(page.getByTestId("slo-v65")).toContainText("Availability");
   await expect(page.getByTestId("slo-v65")).toContainText("API P95 latency");

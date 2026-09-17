@@ -2,6 +2,7 @@
 import { clearAuth, getAuth, setAuth, token } from "./auth";
 import type { AuthResponse } from "./types";
 import { stepUpToken } from "./step-up";
+import { presentationLocale } from "./presentation-locale";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 let refreshPromise: Promise<AuthResponse | null> | null = null;
@@ -177,5 +178,7 @@ export async function logoutSession() {
 }
 
 
-export const currency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
-export const dateTime = (v: string) => new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(new Date(v));
+export const currency = (v: number, locale = presentationLocale()) =>
+  new Intl.NumberFormat(locale, { style: "currency", currency: "VND" }).format(v);
+export const dateTime = (v: string, locale = presentationLocale()) =>
+  new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(v));

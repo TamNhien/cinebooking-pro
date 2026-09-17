@@ -55,29 +55,29 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await page.getByRole("spinbutton",{name:"Số lượng nhập thêm"}).fill("5");
   await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Bổ sung tồn kho cho ca tối");
   await page.getByRole("button",{name:"Ghi sổ kho"}).click();
-  await expect(page.getByRole("status")).toContainText("Đã nhập kho cho chi nhánh");
+  await expect(page.locator('[role="status"].card')).toContainText("Đã nhập kho cho chi nhánh");
 
   await page.getByRole("button",{name:"Hao hụt"}).click();
   await page.getByRole("spinbutton",{name:"Số lượng hao hụt"}).fill("1");
   await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Hao hụt ghi nhận khi kiểm kê cuối ca");
   await page.getByRole("button",{name:"Ghi sổ kho"}).click();
-  await expect(page.getByRole("status")).toContainText("Đã ghi nhận hao hụt");
+  await expect(page.locator('[role="status"].card')).toContainText("Đã ghi nhận hao hụt");
   await expect(page.getByText("WASTE",{exact:true}).first()).toBeVisible();
 
   const priceInput=page.getByTestId("branch-price-input");
   const current=Number(await priceInput.inputValue());
   await priceInput.fill(String(current+1000));
   await page.getByTestId("branch-price-save").click();
-  await expect(page.getByRole("status")).toContainText("Đã cập nhật giá bán tại rạp");
+  await expect(page.locator('[role="status"].card')).toContainText("Đã cập nhật giá bán tại rạp");
 
   await page.getByRole("button",{name:"+ Nhập"}).click();
   await page.getByRole("spinbutton",{name:"Số lượng nhập thêm"}).fill("3");
   await page.getByRole("button",{name:"Ghi sổ kho"}).click();
-  await expect(page.getByRole("status")).toContainText("Đã nhập kho cho chi nhánh");
+  await expect(page.locator('[role="status"].card')).toContainText("Đã nhập kho cho chi nhánh");
   const transferCard=page.getByRole("heading",{name:"Điều chuyển giữa rạp"}).locator("..");
   await transferCard.locator('input[type="number"]').fill("1");
   await page.getByTestId("inventory-transfer-button").click();
-  await expect(page.getByRole("status")).toContainText("Đã điều chuyển 1");
+  await expect(page.locator('[role="status"].card')).toContainText("Đã điều chuyển 1");
   await expect(page.getByText("TRANSFER_OUT",{exact:true}).first()).toBeVisible();
 
   const scopeToggle=page.getByTestId("inventory-history-scope-toggle");

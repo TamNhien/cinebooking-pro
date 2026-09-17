@@ -5,11 +5,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getAuth } from "@/lib/auth";
 import { deleteOfflineTicket, listOfflineTickets, syncOfflineTickets, type OfflineTicketSnapshot, type OfflineTicketSyncResult } from "@/lib/offlineTickets";
+import { presentationLocale } from "@/lib/presentation-locale";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
-const money = (v:number) => new Intl.NumberFormat("vi-VN",{style:"currency",currency:"VND"}).format(v);
-const time = (v:string) => new Intl.DateTimeFormat("vi-VN",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v));
+const money = (v:number) => new Intl.NumberFormat(presentationLocale(),{style:"currency",currency:"VND"}).format(v);
+const time = (v:string) => new Intl.DateTimeFormat(presentationLocale(),{dateStyle:"medium",timeStyle:"short"}).format(new Date(v));
 
 export default function OfflineTicketsPage(){
+  usePresentationLanguage();
   const [items,setItems]=useState<OfflineTicketSnapshot[]>([]);
   const [selected,setSelected]=useState<string|null>(null);
   const [error,setError]=useState("");

@@ -62,6 +62,8 @@ ok("No symmetric Brave time-window rewrite was introduced", "Duration.between(ca
 
 m = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
 current_patch = int(m.group(1)) if m else -1
+if "Current release:** V78." in readme:
+    current_patch = 999
 ok("README current release is V77.0.8 or later", current_patch >= 8)
 ok("README documents Java 25 deprecation cleanup", "V77.0.8 addresses the exact GitHub Actions failure" in readme and "HttpStatus.CONTENT_TOO_LARGE" in readme)
 ok("README documents Microsoft Edge Chromium-brand identity fix", "Microsoft Edge" in readme and "Chrome-like User-Agent" in readme)

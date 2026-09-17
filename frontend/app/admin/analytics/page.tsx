@@ -7,6 +7,7 @@ import { ApiError, api, apiBlob, currency } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { localizedLabel } from "@/lib/vi-labels";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
+import { presentationLocale } from "@/lib/presentation-locale";
 import type {
   AnalyticsConcessionCostBasis,
   AnalyticsDashboard,
@@ -18,12 +19,12 @@ import type {
   Cinema,
 } from "@/lib/types";
 
-const pct = (value:number|null|undefined) => `${Number(value || 0).toLocaleString("vi-VN", {maximumFractionDigits:1})}%`;
-const number = (value:number|null|undefined) => Number(value || 0).toLocaleString("vi-VN");
-const dateTime = (value:string) => new Date(value).toLocaleString("vi-VN", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
-const shortDate = (value:string) => new Date(`${value}T00:00:00`).toLocaleDateString("vi-VN", {day:"2-digit",month:"2-digit"});
-const signedPct = (value:number) => `${value > 0 ? "+" : ""}${Number(value || 0).toLocaleString("vi-VN", {maximumFractionDigits:1})}%`;
-const signedPoints = (value:number,language:Language) => `${value > 0 ? "+" : ""}${Number(value || 0).toLocaleString(language==="vi"?"vi-VN":"en-US", {maximumFractionDigits:1})} ${language==="vi"?"điểm":"points"}`;
+const pct = (value:number|null|undefined) => `${Number(value || 0).toLocaleString(presentationLocale(), {maximumFractionDigits:1})}%`;
+const number = (value:number|null|undefined) => Number(value || 0).toLocaleString(presentationLocale());
+const dateTime = (value:string) => new Date(value).toLocaleString(presentationLocale(), {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const shortDate = (value:string) => new Date(`${value}T00:00:00`).toLocaleDateString(presentationLocale(), {day:"2-digit",month:"2-digit"});
+const signedPct = (value:number) => `${value > 0 ? "+" : ""}${Number(value || 0).toLocaleString(presentationLocale(), {maximumFractionDigits:1})}%`;
+const signedPoints = (value:number,language:Language) => `${value > 0 ? "+" : ""}${Number(value || 0).toLocaleString(language==="vi"?presentationLocale():"en-US", {maximumFractionDigits:1})} ${language==="vi"?"điểm":"points"}`;
 const moneyOrUnknown = (value:number|null|undefined) => value === null || value === undefined ? "Chưa biết" : currency(value);
 
 async function readAnalyticsWithTransientRetry(query:string){
@@ -226,7 +227,7 @@ export default function AnalyticsPage(){
         </select>
         <select data-testid="analytics-cinema-filter" className="input !w-auto min-w-52" value={cinemaId} onChange={e=>setCinemaId(e.target.value)}>
           <option value="">Tất cả rạp</option>
-          {cinemas.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          {cinemas.map(c=><option key={c.id} value={c.id} data-i18n-skip="true">{c.name}</option>)}
         </select>
         <button className="btn btn-secondary" type="button" title="Tải ZIP gồm một file CSV UTF-8 riêng cho từng bảng phân tích dữ liệu" disabled={loading||!!exporting} onClick={()=>downloadExport("csvzip")}>{exporting==="csvzip"?"Đang xuất...":"Xuất CSV theo từng bảng"}</button>
         <button className="btn btn-primary" type="button" title="Mỗi bảng phân tích dữ liệu được xuất thành một trang tính riêng" disabled={loading||!!exporting} onClick={()=>downloadExport("xlsx")}>{exporting==="xlsx"?"Đang xuất...":"Xuất Excel chi tiết"}</button>

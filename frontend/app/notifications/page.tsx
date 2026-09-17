@@ -8,6 +8,8 @@ import { getAuth } from "@/lib/auth";
 import { disableCurrentDevicePush, registerCurrentPwaDevice } from "@/lib/pwa";
 import { withTransientReadRetry } from "@/lib/transient-read";
 import type { NotificationItem, NotificationPreference } from "@/lib/types";
+import { notificationPresentation, type NotificationPresentationPart } from "@/lib/notification-presentation";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 type Filter = "ALL"|"UNREAD"|"BOOKING"|"REMINDER"|"REFUND"|"STAFF_SHIFT"|"PROMOTION"|"LOYALTY"|"WAITLIST";
 type View = "ACTIVE"|"ARCHIVED";
@@ -15,7 +17,10 @@ type PrefToggleKey = Exclude<keyof NotificationPreference,"updatedAt">;
 
 const EMPTY_PREF:NotificationPreference={inAppEnabled:true,emailEnabled:false,browserEnabled:false,bookingEnabled:true,reminderEnabled:true,refundEnabled:true,staffShiftEnabled:true,promotionEnabled:true,loyaltyEnabled:true,waitlistEnabled:true,updatedAt:""};
 
+const renderNotificationParts=(parts:readonly NotificationPresentationPart[])=>parts.map((part,index)=><span key={`${index}-${part.text}`} data-i18n-skip={part.businessData?"true":undefined}>{part.text}</span>);
+
 export default function NotificationsPage(){
+  const {language}=usePresentationLanguage();
   const [items,setItems]=useState<NotificationItem[]>([]);
   const [prefs,setPrefs]=useState<NotificationPreference>(EMPTY_PREF);
   const [filter,setFilter]=useState<Filter>("ALL");
@@ -128,10 +133,10 @@ export default function NotificationsPage(){
         <span className="text-xs text-slate-500">{visible.length} thông báo</span>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">{([['ALL','Tất cả'],['UNREAD','Chưa đọc'],['BOOKING','Đặt vé'],['REMINDER','Nhắc phim'],['WAITLIST','Danh sách chờ'],['LOYALTY','Thành viên'],['REFUND','Hoàn vé'],['STAFF_SHIFT','Ca làm'],['PROMOTION','Ưu đãi']] as [Filter,string][]).map(([k,l])=><button key={k} onClick={()=>setFilter(k)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${filter===k?"border-rose-500 bg-rose-500/15 text-rose-200":"border-slate-700 bg-slate-900/70 text-slate-400"}`}>{l}</button>)}</div>
-      <div className="mt-4 space-y-3">{visible.map(n=><article key={n.id} data-testid="notification-card" data-notification-id={n.id} className={`card p-5 transition ${!n.read&&!n.archived?"border-rose-500/40 bg-slate-900/90":"opacity-85"}`}>
-        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button data-testid="notification-open" data-notification-id={n.id} type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b>{n.title}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p className="mt-1 text-sm leading-6 text-slate-400">{n.message}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{viLabel(n.category)}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
+      <div className="mt-4 space-y-3">{visible.map(n=>{const presentation=notificationPresentation(n,language);return <article key={n.id} data-testid="notification-card" data-notification-id={n.id} className={`card p-5 transition ${!n.read&&!n.archived?"border-rose-500/40 bg-slate-900/90":"opacity-85"}`}>
+        <div className="flex items-start gap-4"><div className="text-2xl">{icon(n)}</div><button data-testid="notification-open" data-notification-id={n.id} type="button" onClick={()=>openNotification(n)} className="min-w-0 flex-1 text-left"><div className="flex flex-wrap items-center justify-between gap-2"><b data-testid="notification-title">{renderNotificationParts(presentation.title)}</b><span className="text-xs text-slate-500">{dateTime(n.createdAt)}</span></div><p data-testid="notification-message" className="mt-1 text-sm leading-6 text-slate-400">{renderNotificationParts(presentation.message)}</p><div className="mt-2 flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-800 px-2 py-1 text-[10px] font-black tracking-wide text-slate-400">{viLabel(n.category)}</span>{n.priority==="HIGH"&&<span className="rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-black text-amber-300">ƯU TIÊN</span>}{emailBadge(n)&&<span className={`rounded-full px-2 py-1 text-[10px] font-bold ${n.emailStatus==="FAILED"?"bg-red-500/10 text-red-300":"bg-emerald-500/10 text-emerald-300"}`}>{emailBadge(n)}</span>}{n.linkUrl&&<span className="text-xs font-bold text-rose-400">Xem chi tiết →</span>}</div></button>{!n.read&&!n.archived&&<i className="mt-2 h-2.5 w-2.5 rounded-full bg-rose-500"/>}</div>
         <div className="mt-3 flex justify-end"><button data-testid="notification-archive-toggle" type="button" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white" onClick={()=>archive(n)}>{n.archived?"Khôi phục":"Lưu trữ"}</button></div>
-      </article>)}{!visible.length&&!error&&<div className="card p-8 text-center text-slate-400">Không có thông báo phù hợp bộ lọc.</div>}</div>
+      </article>})}{!visible.length&&!error&&<div className="card p-8 text-center text-slate-400">Không có thông báo phù hợp bộ lọc.</div>}</div>
     </section>
   </div>;
 }

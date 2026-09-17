@@ -9,6 +9,17 @@ type TransientReadOptions = {
 
 const sleep=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 
+// V78.0.18: heavy read-only operational aggregates can legitimately outlive the
+// generic 3.5s attempt budget under sustained browser-suite load. Keep the
+// generic defaults unchanged; only explicitly opted-in read surfaces use this
+// bounded profile.
+export const SUSTAINED_OPERATIONAL_READ_OPTIONS = {
+  deadlineMs: 24_000,
+  attemptTimeoutMs: 8_000,
+  baseDelayMs: 350,
+  maxDelayMs: 2_000,
+} as const;
+
 function isRetryableTransientReadError(error:unknown){
   if(error instanceof DOMException && error.name==="AbortError")return true;
   if(error instanceof Error && error.name==="AbortError")return true;

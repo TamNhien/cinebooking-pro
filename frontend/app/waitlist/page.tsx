@@ -28,7 +28,7 @@ export default function WaitlistPage(){
   const card=(x:WaitlistItem)=><article key={x.id} className="card p-5">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold">{x.movieTitle}</h3><span className={`rounded-full px-2 py-1 text-[11px] font-black ${x.status==="ACTIVE"?"bg-amber-500/15 text-amber-300":x.status==="NOTIFIED"?"bg-emerald-500/15 text-emerald-300":"bg-slate-800 text-slate-400"}`}>{viLabel(x.status)}</span></div>
+        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold" data-i18n-skip="true">{x.movieTitle}</h3><span className={`rounded-full px-2 py-1 text-[11px] font-black ${x.status==="ACTIVE"?"bg-amber-500/15 text-amber-300":x.status==="NOTIFIED"?"bg-emerald-500/15 text-emerald-300":"bg-slate-800 text-slate-400"}`}>{viLabel(x.status)}</span></div>
         <p className="mt-2 text-sm text-slate-300">{x.cinemaName} · {x.auditoriumName}</p>
         <p className="mt-1 text-sm text-slate-500">{dateTime(x.showtimeStart)}</p>
         {x.status==="NOTIFIED"&&<p className="mt-2 text-sm text-emerald-300">Đã phát hiện {x.lastAvailableCount} ghế trống{x.notifiedAt?` · ${dateTime(x.notifiedAt)}`:""}.</p>}

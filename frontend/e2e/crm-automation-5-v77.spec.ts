@@ -13,7 +13,7 @@ test("V77 CRM Automation 5.0 exposes lifecycle safety and preview",async({page})
   const versions=versionLabels.map(label=>label.match(/\bV(\d+)\b/)).filter((m):m is RegExpMatchArray=>Boolean(m)).map(m=>Number(m[1]));
   expect(versions).toEqual([...versions].sort((a,b)=>a-b));
   expect(versions).toContain(76);
-  expect(versions.at(-1)).toBe(77);
+  expect(versions.at(-1)).toBeGreaterThanOrEqual(77);
 
   await tile.click();
   await expect(page).toHaveURL(/\/admin\/crm-automation$/);

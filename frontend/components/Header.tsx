@@ -200,6 +200,7 @@ export default function Header(){
               <Link onClick={close} href="/admin/analytics-bi">📊 {t("Phân tích dữ liệu & BI V75","Analytics & BI V75")}</Link>
               <Link onClick={close} href="/admin/recommendation">🧠 {t("Gợi ý phim V76","Recommendation V76")}</Link>
               <Link onClick={close} href="/admin/crm-automation">📣 {t("Tự động hóa CRM V77","CRM automation V77")}</Link>
+              <Link onClick={close} href="/admin/ux-accessibility-pwa">♿ {t("UX & PWA V78","UX & PWA V78")}</Link>
               <Link onClick={close} href="/admin/refunds">↩ {t("Hoàn vé","Refunds")}</Link>
               <Link onClick={close} href="/admin/audit">🛡 {t("Nhật ký kiểm toán","Audit log")}</Link>
             </div>}
@@ -269,6 +270,7 @@ export default function Header(){
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/analytics-bi">{t("Phân tích dữ liệu & BI V75","Analytics & BI V75")}</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/recommendation">{t("Gợi ý phim V76","Recommendation V76")}</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/crm-automation">{t("Tự động hóa CRM V77","CRM automation V77")}</Link>
+                <Link onClick={()=>setDesktopMenu(null)} href="/admin/ux-accessibility-pwa">{t("UX & PWA V78","UX & PWA V78")}</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/refunds">{t("Hoàn vé","Refunds")}</Link>
                 <Link onClick={()=>setDesktopMenu(null)} href="/admin/audit">{t("Nhật ký kiểm toán","Audit log")}</Link>
               </div>}
@@ -287,6 +289,6 @@ export default function Header(){
   </>;
 }
 /* V77.0.9 historical verifier aliases (not rendered):
-Dynamic Pricing V62 | Realtime Operations V59 | Payment Production V60 | Fraud & Risk V61 | Payment Resilience V67 | Security & Identity V68 | Backup & DR V69 | Privacy Governance V70 | Key Governance V71 | Supply Chain V72 | Actions Runtime V73 | Reliability V74 | Analytics & BI V75 | Recommendation V76 | CRM Automation V77
-/admin/payment-resilience | /admin/disaster-recovery | /admin/privacy-governance | /admin/key-governance | /admin/supply-chain | /admin/actions-runtime | /admin/reliability | /admin/analytics-bi | /admin/recommendation | /admin/crm-automation
+Dynamic Pricing V62 | Realtime Operations V59 | Payment Production V60 | Fraud & Risk V61 | Payment Resilience V67 | Security & Identity V68 | Backup & DR V69 | Privacy Governance V70 | Key Governance V71 | Supply Chain V72 | Actions Runtime V73 | Reliability V74 | Analytics & BI V75 | Recommendation V76 | CRM Automation V77 | UX / Accessibility / PWA V78
+/admin/payment-resilience | /admin/disaster-recovery | /admin/privacy-governance | /admin/key-governance | /admin/supply-chain | /admin/actions-runtime | /admin/reliability | /admin/analytics-bi | /admin/recommendation | /admin/crm-automation | /admin/ux-accessibility-pwa
 */

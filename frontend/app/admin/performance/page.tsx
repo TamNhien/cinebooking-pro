@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { PerformanceCinemaV54, PerformanceScorecardV54, UserProfile } from "@/lib/types";
+import { presentationLocale } from "@/lib/presentation-locale";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
-const number=(v:number)=>new Intl.NumberFormat("vi-VN").format(v||0);
+const number=(v:number)=>new Intl.NumberFormat(presentationLocale()).format(v||0);
 const pct=(v:number|null)=>v===null?"Mới":`${v>=0?"+":""}${v.toFixed(1)}%`;
 
 function Delta({value}:{value:number|null}){
@@ -14,6 +16,7 @@ function Delta({value}:{value:number|null}){
 }
 
 export default function PerformanceBenchmarkingV54(){
+  usePresentationLanguage();
   const [me,setMe]=useState<UserProfile|null>(null);
   const [cinemas,setCinemas]=useState<PerformanceCinemaV54[]>([]);
   const [cinemaId,setCinemaId]=useState("");
@@ -68,7 +71,7 @@ export default function PerformanceBenchmarkingV54(){
         {me?.role==="ADMIN"?<label className="text-sm text-slate-300">Phạm vi
           <select data-testid="performance-cinema-filter-v54" className="input ml-2 !w-auto min-w-56" value={cinemaId} onChange={async e=>{const next=e.target.value;setCinemaId(next);await load(next,periodDays)}}>
             <option value="">Toàn hệ thống</option>
-            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId}>{c.cinemaName}</option>)}
+            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId} data-testid="performance-cinema-option-v7810" data-i18n-skip="true">{c.cinemaName}</option>)}
           </select>
         </label>:data&&<div className="rounded-xl border border-slate-700 px-3 py-2 text-sm">Rạp: <b>{data.cinemaName}</b></div>}
         <label className="text-sm text-slate-300">Cửa sổ

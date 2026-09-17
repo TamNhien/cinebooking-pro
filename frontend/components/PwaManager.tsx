@@ -90,23 +90,37 @@ export default function PwaManager() {
   }
 
   const showIosHint = isIos && !standalone;
-  if (dismissed && online && !updateReady) return null;
-  if (standalone && online && !updateReady) return null;
-  if (online && !updateReady && !installPrompt && !showIosHint) return null;
+  const mode = !online
+    ? "offline"
+    : updateReady
+      ? "update"
+      : !dismissed && !standalone && installPrompt
+        ? "install"
+        : !dismissed && !standalone && showIosHint
+          ? "ios"
+          : "idle";
+  const active = mode !== "idle";
 
   return (
-    <div className="pwa-manager" role="status" aria-live="polite">
-      {!online ? <>
+    <div
+      className={`pwa-manager${active ? "" : " pwa-manager-idle"}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="pwa-live-region-v7814"
+      data-active={active ? "true" : "false"}
+    >
+      {mode === "offline" ? <>
         <div className="pwa-manager-copy"><b>📴 {t("Đang ngoại tuyến","Offline")}</b><span>{t("V52 vẫn mở được vé đã lưu và không lưu đệm API/tài khoản.","V52 can still open saved tickets and does not cache APIs or account data.")}</span></div>
         <Link className="pwa-manager-action" href="/offline-tickets">{t("Mở vé ngoại tuyến","Open offline tickets")}</Link>
-      </> : updateReady ? <>
+      </> : mode === "update" ? <>
         <div className="pwa-manager-copy"><b>✨ {t("Có bản CineBooking mới","A new CineBooking version is available")}</b><span>{t("Bộ xử lý nền V52 sẵn sàng cập nhật.","The V52 service worker is ready to update.")}</span></div>
         <button className="pwa-manager-action" type="button" onClick={update}>{t("Cập nhật","Update")}</button>
-      </> : installPrompt ? <>
+      </> : mode === "install" ? <>
         <div className="pwa-manager-copy"><b>📲 {t("Cài CineBooking","Install CineBooking")}</b><span>{t("Mở nhanh như ứng dụng, vé ngoại tuyến và Web Push khi được bật.","Launch it like an app, keep offline tickets, and use Web Push when enabled.")}</span></div>
         <button className="pwa-manager-action" type="button" onClick={install}>{t("Cài ứng dụng","Install app")}</button>
         <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label={t("Đóng","Close")}>×</button>
-      </> : showIosHint ? <>
+      </> : mode === "ios" ? <>
         <div className="pwa-manager-copy"><b>📲 {t("Cài trên iPhone/iPad","Install on iPhone/iPad")}</b><span>{t("Safari → Chia sẻ → Thêm vào Màn hình chính.","Safari → Share → Add to Home Screen.")}</span></div>
         <button className="pwa-manager-close" type="button" onClick={() => setDismissed(true)} aria-label={t("Đóng","Close")}>×</button>
       </> : null}

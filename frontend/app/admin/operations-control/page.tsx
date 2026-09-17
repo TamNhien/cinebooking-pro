@@ -5,7 +5,7 @@ import { Client } from "@stomp/stompjs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, currency } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
-import { withTransientReadRetry } from "@/lib/transient-read";
+import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import type {
   OperationsControlCinemaV58,
@@ -120,16 +120,20 @@ export default function OperationsControlCenterV59(){
   const [acting,setActing]=useState("");
   const selectedRef=useRef("");
   const debounceRef=useRef<number|null>(null);
+  const snapshotInFlight=useRef(false);
 
   async function load(selected=selectedRef.current,quiet=false){
+    if(quiet&&snapshotInFlight.current)return;
+    snapshotInFlight.current=true;
     if(!quiet)setLoading(true);if(!quiet)setMessage("");
     try{
       const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";
       const snapshot=await withTransientReadRetry(signal=>
-        api<OperationsControlSnapshotV59>(`/admin/operations-control/snapshot${qs}`,{signal})
+        api<OperationsControlSnapshotV59>(`/admin/operations-control/snapshot${qs}`,{signal}),
+        SUSTAINED_OPERATIONAL_READ_OPTIONS
       );
       setData(snapshot);
-    }catch(e){setMessage((e as Error).message)}finally{if(!quiet)setLoading(false)}
+    }catch(e){setMessage((e as Error).message)}finally{snapshotInFlight.current=false;if(!quiet)setLoading(false)}
   }
   async function loadHistory(selected=selectedRef.current){
     try{const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";setHistory(await api<OperationsControlHistoryV59[]>(`/admin/operations-control/alerts/history${qs}`));}catch{}
@@ -173,7 +177,7 @@ export default function OperationsControlCenterV59(){
     [t("Sự cố đang mở","Open incidents"),data.openIncidents],[t("Sự cố nghiêm trọng","Critical incidents"),data.criticalIncidents],
   ] as const:[];
 
-  return <main className="space-y-6" data-testid="operations-control-center-v59">
+  return <main className="space-y-6" data-testid="operations-control-center-v59" data-runtime-state={data?"READY":message?"ERROR":"LOADING"}>
     <section className="card p-5 sm:p-6">
       <div data-testid="operations-control-center-v58" className="sr-only">{t("Trung tâm điều khiển vận hành · V58","Operations Control Center · V58")}</div>
       <div className="flex flex-wrap items-end justify-between gap-4"><div>

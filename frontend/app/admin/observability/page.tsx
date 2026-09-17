@@ -2,10 +2,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
-import { withTransientReadRetry } from "@/lib/transient-read";
+import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import type { ObservabilitySummaryV65, ObservabilitySloV65, UserProfile } from "@/lib/types";
 
 const REFRESH_MS=10_000;
@@ -14,14 +14,17 @@ export default function ObservabilityV65Page(){
   const [summary,setSummary]=useState<ObservabilitySummaryV65|null>(null);
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
+  const loadInFlight=useRef(false);
 
-  const load=useCallback(async()=>{
-    setBusy(true);
+  const load=useCallback(async(quiet=false)=>{
+    if(loadInFlight.current)return;
+    loadInFlight.current=true;
+    if(!quiet)setBusy(true);
     try{
       const [me,nextSummary]=await withTransientReadRetry(signal=>Promise.all([
         api<UserProfile>("/me",{signal}),
         api<ObservabilitySummaryV65>("/admin/observability/summary",{signal}),
-      ]));
+      ]),SUSTAINED_OPERATIONAL_READ_OPTIONS);
       if(me.role!=="ADMIN"){
         clearAuth();window.location.assign("/login?returnTo=/admin/observability&reason=admin");return;
       }
@@ -29,19 +32,19 @@ export default function ObservabilityV65Page(){
       setMsg("");
     }catch(e){
       setMsg((e as Error).message);
-    }finally{setBusy(false)}
+    }finally{loadInFlight.current=false;if(!quiet)setBusy(false)}
   },[]);
 
   useEffect(()=>{
     if(!getAuth()){window.location.assign("/login?returnTo=/admin/observability&reason=required");return;}
     void load();
-    const timer=window.setInterval(()=>void load(),REFRESH_MS);
+    const timer=window.setInterval(()=>void load(true),REFRESH_MS);
     return()=>window.clearInterval(timer);
   },[load]);
 
   const heapPercent=useMemo(()=>summary&&summary.runtime.heapMaxBytes>0?summary.runtime.heapUsedBytes*100/summary.runtime.heapMaxBytes:0,[summary]);
 
-  return <div className="space-y-7" data-testid="observability-v65">
+  return <div className="space-y-7" data-testid="observability-v65" data-runtime-state={summary?"READY":msg?"ERROR":"LOADING"}>
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
         <div className="mb-2 text-sm text-slate-400"><Link href="/admin" className="hover:text-white">Quản trị viên</Link> / Khả năng quan sát & độ tin cậy</div>

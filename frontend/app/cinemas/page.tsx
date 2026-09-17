@@ -50,7 +50,7 @@ export default function CinemasPage(){
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
       <aside className="card h-fit p-3">{cinemas.map(c=><button key={c.id} data-i18n-skip="true" className={`cinema-option ${cinemaId===c.id?"active":""}`} onClick={()=>setCinemaId(c.id)}><b>{c.name}</b><span>{c.address}</span></button>)}</aside>
       <section>
-        {selected&&<div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-2xl font-bold">{selected.name}</h2><p className="mt-1 text-sm text-slate-400">{selected.address}</p></div>{dates.length>0&&<div className="text-sm text-slate-400">Lịch từ <b className="text-white">{day(dates[0],locale)}</b> đến <b className="text-white">{day(dates[dates.length-1],locale)}</b></div>}</div>}
+        {selected&&<div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-2xl font-bold" data-i18n-skip="true">{selected.name}</h2><p className="mt-1 text-sm text-slate-400">{selected.address}</p></div>{dates.length>0&&<div className="text-sm text-slate-400">Lịch từ <b className="text-white">{day(dates[0],locale)}</b> đến <b className="text-white">{day(dates[dates.length-1],locale)}</b></div>}</div>}
 
         {dates.length>0&&<div className="card mb-5 space-y-4 p-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -61,7 +61,7 @@ export default function CinemasPage(){
           <div className="text-xs text-slate-400">{date?<>Ngày đã chọn có <b className="text-white">{selectedCount}</b> suất của <b className="text-white">{grouped.length}</b> phim.</>:"Chọn một ngày để xem suất chiếu."}</div>
         </div>}
 
-        <div className="space-y-4">{grouped.map(([movie,items])=><div className="card p-5" key={movie}><h3 className="text-lg font-bold">{movie}</h3><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link key={s.id} href={`/booking/${s.id}`} className="showtime-chip"><b>{time(s.startTime,locale)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>)}</div>
+        <div className="space-y-4">{grouped.map(([movie,items])=><div className="card p-5" key={movie}><h3 className="text-lg font-bold" data-i18n-skip="true">{movie}</h3><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link key={s.id} href={`/booking/${s.id}`} className="showtime-chip"><b>{time(s.startTime,locale)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>)}</div>
         {!grouped.length&&!error&&<div className="empty-state">Chưa có suất chiếu cho ngày đã chọn.</div>}
       </section>
     </div>

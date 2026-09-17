@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 import type { FinancialDashboard, FinancialReconciliationIssue } from "@/lib/types";
 import { viLabel } from "@/lib/vi-labels";
 
@@ -11,6 +12,7 @@ function amount(entry: FinancialDashboard["ledgerEntries"][number]) {
 }
 
 export default function AdminFinancePage(){
+  const { t } = usePresentationLanguage();
   const [data,setData]=useState<FinancialDashboard|null>(null);
   const [date,setDate]=useState("");
   const [busy,setBusy]=useState(false);
@@ -50,7 +52,7 @@ export default function AdminFinancePage(){
 
     <section className="card p-5 space-y-3" data-testid="finance-ledger-section">
       <div><h2 className="text-xl font-black">Sổ cái bất biến</h2><p className="text-sm text-slate-400">Mỗi sự kiện có ghi nợ = ghi có. V42 chặn CẬP NHẬT/XÓA trong cơ sở dữ liệu.</p></div>
-      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-slate-400"><th className="p-2">Thời gian</th><th className="p-2">Sự kiện</th><th className="p-2">Số tiền</th><th className="p-2">Tài khoản</th><th className="p-2">Khóa</th></tr></thead><tbody>{data.ledgerEntries.map(e=><tr key={e.id} className="border-t border-slate-800" data-testid="finance-ledger-entry" data-event-type={e.eventType} data-event-key={e.eventKey}><td className="p-2 whitespace-nowrap">{dateTime(e.occurredAt)}</td><td className="p-2 font-bold">{viLabel(e.eventType)}</td><td className="p-2">{currency(amount(e))}</td><td className="p-2 text-xs">{e.lines.map(l=>`${viLabel(l.direction)} ${l.accountCode}`).join(" · ")||"Không phát sinh"}</td><td className="p-2 font-mono text-xs">{e.eventKey}</td></tr>)}{data.ledgerEntries.length===0&&<tr><td className="p-4 text-slate-500" colSpan={5}>Chưa có sự kiện tài chính trong ngày này.</td></tr>}</tbody></table></div>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-slate-400"><th className="p-2">Thời gian</th><th className="p-2">Sự kiện</th><th className="p-2">Số tiền</th><th className="p-2">Tài khoản</th><th data-testid="finance-event-key-header-v7811" className="p-2">{t("Khóa","Event key")}</th></tr></thead><tbody>{data.ledgerEntries.map(e=><tr key={e.id} className="border-t border-slate-800" data-testid="finance-ledger-entry" data-event-type={e.eventType} data-event-key={e.eventKey}><td className="p-2 whitespace-nowrap">{dateTime(e.occurredAt)}</td><td className="p-2 font-bold">{viLabel(e.eventType)}</td><td className="p-2">{currency(amount(e))}</td><td className="p-2 text-xs">{e.lines.map(l=>`${viLabel(l.direction)} ${l.accountCode}`).join(" · ")||"Không phát sinh"}</td><td data-testid="finance-event-key-value-v7811" data-i18n-skip="true" className="p-2 font-mono text-xs">{e.eventKey}</td></tr>)}{data.ledgerEntries.length===0&&<tr><td className="p-4 text-slate-500" colSpan={5}>Chưa có sự kiện tài chính trong ngày này.</td></tr>}</tbody></table></div>
     </section>
 
     <section className="card p-5 space-y-3" data-testid="finance-issues-section">

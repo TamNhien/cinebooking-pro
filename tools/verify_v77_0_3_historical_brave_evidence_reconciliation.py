@@ -42,6 +42,8 @@ ok("Unit test prevents reverse-time evidence rewrite", "historicalBraveEvidenceD
 ok("Unit test requires exact IP match", "historicalBraveEvidenceRequiresExactIpMatch" in unit)
 m = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
 current_patch = int(m.group(1)) if m else -1
+if "Current release:** V78." in readme:
+    current_patch = 999
 ok("README current release is V77.0.3 or later", current_patch >= 3)
 ok("README documents positive Brave fingerprint evidence", "POSITIVE_BRAVE_FINGERPRINT_EVIDENCE" in readme and "EXACT_USER_AGENT_MATCH" in readme)
 ok("Patch remains no-schema", not any((ROOT/"backend/src/main/resources/db/migration").glob("V77*0*3*.sql")))

@@ -92,7 +92,7 @@ export default function CustomerValueV56(){
         {me?.role==="ADMIN"?<label className="text-sm text-slate-300">{t("Phạm vi","Scope")}
           <select data-testid="customer-value-cinema-filter-v56" className="input ml-2 !w-auto min-w-56" value={cinemaId} onChange={async e=>{const next=e.target.value;setCinemaId(next);await load(next,periodDays)}}>
             <option value="">{t("Toàn hệ thống","Entire system")}</option>
-            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId}>{c.cinemaName}</option>)}
+            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId} data-testid="customer-value-cinema-option-v7810" data-i18n-skip="true">{c.cinemaName}</option>)}
           </select>
         </label>:data&&<div className="rounded-xl border border-slate-700 px-3 py-2 text-sm">{t("Rạp","Cinema")}: <b>{data.cinemaName}</b></div>}
         <label className="text-sm text-slate-300">{t("Tập khách đang hoạt động","Active customer cohort")}

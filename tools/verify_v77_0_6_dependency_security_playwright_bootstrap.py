@@ -53,6 +53,8 @@ ok("Historical V30.1 verifier accepts reviewed Next 16.3 patch line", "reviewed 
 ok("Historical V77.0.5 verifier is forward-compatible", "V77.0.5 or later" in v775)
 m = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
 current_patch = int(m.group(1)) if m else -1
+if "Current release:** V78." in readme:
+    current_patch = 999
 ok("README current release is V77.0.6 or later", current_patch >= 6)
 ok("README documents Next 16.3.4 security patch", "Next.js 16.3.4" in readme and "August 2026" in readme)
 ok("README documents explicit unrs-resolver install-script approval", "unrs-resolver@1.12.2" in readme and "allowScripts" in readme)

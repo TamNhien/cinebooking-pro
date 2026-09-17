@@ -8,6 +8,7 @@ import { getAuth } from "@/lib/auth";
 import type { RecommendationFeedbackResponse, RecommendationHome, RecommendationItem, RecommendationMode, RecommendationTasteProfile } from "@/lib/types";
 import MovieCard from "@/components/MovieCard";
 import { useLanguage } from "@/components/LanguageProvider";
+import { recommendationDaypartLabel, recommendationDurationLabel, recommendationFeedbackMessage, recommendationProfileSummary, recommendationReason, recommendationScoreCopy, recommendationSignal, recommendationWeekdayLabel } from "@/lib/recommendation-presentation";
 
 type FeedbackType="MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE";
 
@@ -66,7 +67,7 @@ export default function ForYouPage(){
     setBusy(item.movie.id+type); setMessage(""); setError("");
     try{
       const r=await api<RecommendationFeedbackResponse>("/recommendations/feedback",{method:"PUT",body:JSON.stringify({movieId:item.movie.id,feedbackType:type,source:"FOR_YOU_V76"})});
-      setMessage(r.message); await load(mode);
+      setMessage(recommendationFeedbackMessage(r.message, language)); await load(mode);
     }catch(e){setError((e as Error).message)}finally{setBusy(null)}
   }
 
@@ -87,7 +88,7 @@ export default function ForYouPage(){
         <p className="section-kicker">V76 · GỢI Ý PHIM 5.0</p>
         <div className="mt-2 text-xs text-slate-500">Nền tảng tương thích: <span>V63 · GỢI Ý PHIM 4.0</span></div>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div><h1 className="text-3xl font-black">{en?"Deeply personalized movie picks":"Gợi ý phim cá nhân hóa sâu"}</h1><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">{profile?.summary||home?.profileSummary||(en?"Building your deep taste profile...":"Đang xây dựng hồ sơ gu phim sâu hơn...")}</p></div>
+          <div><h1 className="text-3xl font-black">{en?"Deeply personalized movie picks":"Gợi ý phim cá nhân hóa sâu"}</h1><p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300">{recommendationProfileSummary(profile, home?.profileSummary||(en?"Building your deep taste profile...":"Đang xây dựng hồ sơ gu phim sâu hơn..."), language)}</p></div>
           <Link href="/favorites" className="btn btn-secondary">❤️ {en?"Favorites":"Phim yêu thích"}</Link>
         </div>
 
@@ -101,8 +102,8 @@ export default function ForYouPage(){
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Profile strength":"Độ mạnh hồ sơ"}</div><b className="mt-1 block text-xl">{profile.profileStrength}%</b><div className="mt-2 h-1.5 rounded-full bg-slate-800"><div className="h-1.5 rounded-full bg-violet-500" style={{width:`${profile.profileStrength}%`}}/></div></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Top genres":"Thể loại nổi bật"}</div><b className="mt-1 block">{profile.topGenres.slice(0,3).map(x=>x.name).join(" · ")||(en?"Learning":"Đang học")}</b></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Languages":"Ngôn ngữ hợp gu"}</div><b className="mt-1 block">{profile.topLanguages?.slice(0,2).map(x=>x.name).join(" · ")||"—"}</b></div>
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Typical duration":"Thời lượng thường xem"}</div><b className="mt-1 block">{profile.preferredDurationLabel||"—"}</b></div>
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Schedule fit":"Lịch xem quen thuộc"}</div><b className="mt-1 block">{[profile.preferredWeekdayLabel,profile.preferredDaypartLabel].filter(Boolean).join(" · ")||"—"}</b><span className="mt-1 block text-[11px] text-slate-500">{profile.preferredCinemaName||""}</span></div>
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Typical duration":"Thời lượng thường xem"}</div><b className="mt-1 block">{recommendationDurationLabel(profile.preferredDurationBand, profile.preferredDurationLabel, language)}</b></div>
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Schedule fit":"Lịch xem quen thuộc"}</div><b className="mt-1 block">{[recommendationWeekdayLabel(profile.preferredWeekday, profile.preferredWeekdayLabel, language), recommendationDaypartLabel(profile.preferredDaypart, profile.preferredDaypartLabel, language)].filter(x=>x&&x!=="—").join(" · ")||"—"}</b><span className="mt-1 block text-[11px] text-slate-500">{profile.preferredCinemaName||""}</span></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Taste signals":"Tín hiệu cá nhân"}</div><b className="mt-1 block">{profile.signalCount} · {profile.feedbackCount} {en?"feedback":"phản hồi"}</b><span className="mt-1 block text-[11px] text-slate-500">{profile.hiddenCount} {en?"hidden":"đã ẩn"}</span></div>
         </div>}
       </section>
@@ -116,9 +117,9 @@ export default function ForYouPage(){
           {items.map(item=><div key={item.movie.id} className="space-y-2" data-testid="recommendation-item-v50" data-v63-item="true">
             <MovieCard movie={item.movie} trackingSource={`FOR_YOU_V76_${mode}`}/>
             <div className="rounded-2xl border border-violet-700/35 bg-violet-950/20 p-3 text-xs leading-5">
-              <div className="flex items-start justify-between gap-3"><div><b className="text-violet-100">✨ {item.reason}</b>{item.newToYou&&<span className="ml-2 rounded-full border border-cyan-700/60 bg-cyan-950/40 px-2 py-0.5 text-[10px] text-cyan-200" data-testid="new-to-you-v63">MỚI VỚI BẠN</span>}</div><span className="whitespace-nowrap text-emerald-300">{item.confidence}%</span></div>
-              {!!item.signals?.length&&<div className="mt-2 flex flex-wrap gap-1">{item.signals.map(s=><span key={s} className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-300">{s}</span>)}</div>}
-              {!!item.scoreBreakdown?.length&&<div className="mt-3 border-t border-slate-800 pt-2" data-testid="score-breakdown-v63"><div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{en?"Ranking contributions":"Đóng góp xếp hạng"}</div><div className="flex flex-wrap gap-1">{item.scoreBreakdown.slice(0,4).map(part=><span key={part.key} title={part.evidence} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-slate-300">{part.label} <b className={part.contribution>=0?"text-emerald-300":"text-amber-300"}>{part.contribution>=0?"+":""}{part.contribution.toFixed(1)}</b></span>)}</div></div>}
+              <div className="flex items-start justify-between gap-3"><div><b className="text-violet-100">✨ {recommendationReason(item.reason, language)}</b>{item.newToYou&&<span className="ml-2 rounded-full border border-cyan-700/60 bg-cyan-950/40 px-2 py-0.5 text-[10px] text-cyan-200" data-testid="new-to-you-v63">{en?"NEW TO YOU":"MỚI VỚI BẠN"}</span>}</div><span className="whitespace-nowrap text-emerald-300">{item.confidence}%</span></div>
+              {!!item.signals?.length&&<div className="mt-2 flex flex-wrap gap-1">{item.signals.map(s=><span key={s} className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-300">{recommendationSignal(s, language)}</span>)}</div>}
+              {!!item.scoreBreakdown?.length&&<div className="mt-3 border-t border-slate-800 pt-2" data-testid="score-breakdown-v63"><div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">{en?"Ranking contributions":"Đóng góp xếp hạng"}</div><div className="flex flex-wrap gap-1">{item.scoreBreakdown.slice(0,4).map(part=>{const copy=recommendationScoreCopy(part, language);return <span key={part.key} title={copy.evidence} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-slate-300">{copy.label} <b className={part.contribution>=0?"text-emerald-300":"text-amber-300"}>{part.contribution>=0?"+":""}{part.contribution.toFixed(1)}</b></span>})}</div></div>}
               <div className="mt-3 grid grid-cols-3 gap-1.5">
                 <button type="button" data-testid="more-like-this" className={`rounded-lg border px-2 py-2 ${item.feedback==="MORE_LIKE_THIS"?"border-emerald-500 bg-emerald-950/50 text-emerald-200":"border-slate-700 bg-slate-900"}`} disabled={!!busy} onClick={()=>sendFeedback(item,"MORE_LIKE_THIS")}>👍 {en?"More like this":"Thêm tương tự"}</button>
                 <button type="button" data-testid="less-like-this" className={`rounded-lg border px-2 py-2 ${item.feedback==="LESS_LIKE_THIS"?"border-amber-500 bg-amber-950/40 text-amber-200":"border-slate-700 bg-slate-900"}`} disabled={!!busy} onClick={()=>sendFeedback(item,"LESS_LIKE_THIS")}>👎 {en?"Less like this":"Ít tương tự"}</button>

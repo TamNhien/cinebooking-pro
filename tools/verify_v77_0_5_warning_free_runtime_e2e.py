@@ -53,6 +53,8 @@ ok("Historical V29.2 verifier accepts validated Playwright 1.63 line", r'1\.63\.
 ok("V30.2 pin policy accepts validated Playwright 1.63 line", r'1\.63\.\d+' in v30 and "validated 1.63 patch line" in v30)
 current_match = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
 current_patch = int(current_match.group(1)) if current_match else -1
+if "Current release:** V78." in readme:
+    current_patch = 999
 ok("README current release is V77.0.5 or later", current_patch >= 5)
 ok("README documents Java warning cleanup", "Jackson 3" in readme and "Mockito" in readme and "-javaagent" in readme)
 ok("README documents Playwright DEP0205 cleanup", "DEP0205" in readme and "Playwright 1.63" in readme)

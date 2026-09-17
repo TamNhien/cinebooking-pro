@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
 import { viLabel } from "@/lib/vi-labels";
 import { clearAuth, getAuth } from "@/lib/auth";
-import { withTransientReadRetry } from "@/lib/transient-read";
+import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import type { CommandCenterCinemaV53, CommandCenterSummaryV53, UserProfile } from "@/lib/types";
+import { presentationLocale } from "@/lib/presentation-locale";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
-const number=(v:number)=>new Intl.NumberFormat("vi-VN").format(v||0);
+const number=(v:number)=>new Intl.NumberFormat(presentationLocale()).format(v||0);
 
 function StatusBadge({status}:{status:CommandCenterSummaryV53["status"]}){
   const label=status==="ACTION_REQUIRED"?"Cần xử lý":status==="WATCH"?"Theo dõi":"Ổn định";
@@ -16,6 +18,7 @@ function StatusBadge({status}:{status:CommandCenterSummaryV53["status"]}){
 }
 
 export default function OperationsCommandCenterV53(){
+  usePresentationLanguage();
   const [me,setMe]=useState<UserProfile|null>(null);
   const [cinemas,setCinemas]=useState<CommandCenterCinemaV53[]>([]);
   const [cinemaId,setCinemaId]=useState("");
@@ -28,7 +31,8 @@ export default function OperationsCommandCenterV53(){
     try{
       const qs=selected?`?cinemaId=${encodeURIComponent(selected)}`:"";
       const summary=await withTransientReadRetry(signal=>
-        api<CommandCenterSummaryV53>(`/admin/command-center/summary${qs}`,{signal})
+        api<CommandCenterSummaryV53>(`/admin/command-center/summary${qs}`,{signal}),
+        SUSTAINED_OPERATIONAL_READ_OPTIONS
       );
       setData(summary);
     }catch(e){setMessage((e as Error).message)}finally{setLoading(false)}
@@ -58,7 +62,7 @@ export default function OperationsCommandCenterV53(){
 
   const criticalCount=useMemo(()=>data?.attention.filter(x=>x.severity==="CRITICAL").reduce((a,b)=>a+b.count,0)||0,[data]);
 
-  return <main className="space-y-6" data-testid="operations-command-center-v53">
+  return <main className="space-y-6" data-testid="operations-command-center-v53" data-runtime-state={data?"READY":message?"ERROR":"LOADING"}>
     <section className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -75,7 +79,7 @@ export default function OperationsCommandCenterV53(){
         {me?.role==="ADMIN"?<label className="text-sm text-slate-300">Phạm vi
           <select data-testid="command-center-cinema-filter" className="input ml-2 !w-auto min-w-56" value={cinemaId} onChange={async e=>{const next=e.target.value;setCinemaId(next);await load(next)}}>
             <option value="">Toàn hệ thống</option>
-            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId}>{c.cinemaName}</option>)}
+            {cinemas.map(c=><option key={c.cinemaId} value={c.cinemaId} data-testid="command-center-cinema-option-v7809" data-i18n-skip="true">{c.cinemaName}</option>)}
           </select>
         </label>:data&&<div className="rounded-xl border border-slate-700 px-3 py-2 text-sm">Rạp: <b>{data.cinemaName}</b></div>}
         {data&&<span className="text-xs text-slate-500">Cập nhật {dateTime(data.generatedAt)}</span>}

@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
+import { presentationLocale } from "@/lib/presentation-locale";
 import type {
   CrmAutomationExecutionV77,
   CrmAutomationPreviewV77,
@@ -267,7 +268,7 @@ function Mini({label,value,detail}:{label:string;value:string;detail?:string}){r
 function Tiny({label,value}:{label:string;value:number}){return <div className="rounded-lg bg-slate-950/50 p-2"><div className="text-[10px] uppercase tracking-wide text-slate-600">{label}</div><div className="mt-1 font-black">{num(value)}</div></div>}
 function suppressionLabel(reason:string|null|undefined,language:Language){if(!reason)return language==="vi"?"Không có lý do loại trừ":"No suppression reason";const vi={PROMOTION_OPT_OUT:"Đã tắt nhận khuyến mãi",NO_ENABLED_CHANNEL:"Không có kênh gửi đang bật",FREQUENCY_CAP_7D:"Đã đạt giới hạn tần suất 7 ngày",COOLDOWN_72H:"Đang trong thời gian chờ khuyến mãi 72 giờ"} as Record<string,string>;const en={PROMOTION_OPT_OUT:"Marketing opt-out",NO_ENABLED_CHANNEL:"No delivery channel enabled",FREQUENCY_CAP_7D:"7-day frequency cap reached",COOLDOWN_72H:"Within 72-hour marketing cooldown"} as Record<string,string>;return (language==="vi"?vi:en)[reason]??reason}
 function pct(value:number){return `${Number(value||0).toFixed(2)}%`}
-function num(value:number){return new Intl.NumberFormat("vi-VN").format(Number(value||0))}
+function num(value:number){return new Intl.NumberFormat(presentationLocale()).format(Number(value||0))}
 /* V77.0.9 historical verifier aliases (not rendered):
 Hãy chạy Xem trước trước khi Thực thi | phạm vi tác động | CHỈ LÀ TƯƠNG QUAN | không phải quy kết quan hệ nhân quả
 */

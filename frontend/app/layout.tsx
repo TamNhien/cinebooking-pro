@@ -38,13 +38,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body>
+        <a href="#main-content" className="skip-link">Bỏ qua đến nội dung chính</a>
         <LanguageProvider>
           <RuntimeReadyMarker />
           <LegacyUiLocalizationBridge />
           <BackgroundTheme />
           <ServiceWorkerRegistration />
           <Header />
-          <main className="app-main relative z-10 mx-auto min-h-[70vh] w-full max-w-7xl px-4 py-7 md:px-6">
+          <main id="main-content" tabIndex={-1} className="app-main relative z-10 mx-auto min-h-[70vh] w-full max-w-7xl px-4 py-7 md:px-6">
             {children}
           </main>
           <SiteFooter />

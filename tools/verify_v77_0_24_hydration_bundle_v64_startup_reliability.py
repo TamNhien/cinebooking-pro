@@ -33,7 +33,8 @@ ok('button[title="English"]' in lang_e2e and 'aria-pressed' in lang_e2e and 'Reg
 ok('Preview schedule' in lang_e2e, 'Language E2E still continues through the second full-navigation English surface')
 
 m_sw=re.search(r'const VERSION = "v77-0-(\d+)"', sw)
-ok(bool(m_sw) and int(m_sw.group(1)) >= 24, 'Service Worker cache generation is V77.0.24 or newer')
+v78_sw = any(x in sw for x in ['const VERSION = "v78-0-0";','const VERSION = "v78-0-1";','const VERSION = "v78-0-2";','const VERSION = "v78-0-3";','const VERSION = "v78-0-4";','const VERSION = "v78-0-5";','const VERSION = "v78-0-6";','const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";'])
+ok((bool(m_sw) and int(m_sw.group(1)) >= 24) or v78_sw, 'Service Worker cache generation is V77.0.24 or newer')
 ok('async function staticAssetNetworkFirst(request)' in sw, 'Service Worker defines network-first current-build static asset hydration')
 ok('fetch(request, { cache: "no-cache" })' in sw, 'Next static asset path revalidates against the network while online')
 ok('url.pathname.startsWith("/_next/static/")' in sw and 'staticAssetNetworkFirst(request)' in sw, 'Next static assets use the network-first hydration strategy')

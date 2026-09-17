@@ -557,6 +557,44 @@ jobs:
         run: python3 tools/verify_v77_0_60_v34_maintenance_load_ownership.py
       - name: Verify V77.0.61 V34 maintenance repeatability cleanup
         run: python3 tools/verify_v77_0_61_v34_maintenance_repeatability_cleanup.py
+      - name: Verify V78 UX / Accessibility / PWA 5.0
+        run: python3 tools/verify_v78_ux_accessibility_pwa_5.py
+      - name: Verify V78.0.1 runtime language business-data boundaries
+        run: python3 tools/verify_v78_0_1_runtime_language_business_data_boundaries.py
+      - name: Verify V78.0.2 recommendation presentation language ownership
+        run: python3 tools/verify_v78_0_2_recommendation_presentation_language_ownership.py
+      - name: Verify V78.0.3 staff schedule Admin runtime sweep stability
+        run: python3 tools/verify_v78_0_3_staff_schedule_admin_runtime_sweep_stability.py
+      - name: Verify V78.0.4 notification presentation language business-data boundaries
+        run: python3 tools/verify_v78_0_4_notification_presentation_language_business_boundaries.py
+      - name: Verify V78.0.5 admin audit presentation language ownership
+        run: python3 tools/verify_v78_0_5_admin_audit_presentation_language_ownership.py
+      - name: Verify V78.0.6 inventory presentation language business-data boundaries
+        run: python3 tools/verify_v78_0_6_inventory_presentation_language_business_boundaries.py
+      - name: Verify V78.0.7 V78 Admin entry and inventory product business-data boundaries
+        run: python3 tools/verify_v78_0_7_admin_v78_entry_inventory_product_boundaries.py
+      - name: Verify V78.0.8 Favorites movie business-data boundaries
+        run: python3 tools/verify_v78_0_8_favorites_movie_business_data_boundaries.py
+      - name: Verify V78.0.9 Command Center cinema business-data boundaries
+        run: python3 tools/verify_v78_0_9_command_center_cinema_business_data_boundaries.py
+      - name: Verify V78.0.10 customer intelligence cinema business-data boundaries
+        run: python3 tools/verify_v78_0_10_customer_intelligence_cinema_business_data_boundaries.py
+      - name: Verify V78.0.11 finance event-key presentation ownership
+        run: python3 tools/verify_v78_0_11_finance_event_key_presentation_ownership.py
+      - name: Verify V78.0.12 maintenance asset business-data boundaries
+        run: python3 tools/verify_v78_0_12_maintenance_asset_business_data_boundaries.py
+      - name: Verify V78.0.13 comprehensive presentation-language ownership
+        run: python3 tools/verify_v78_0_13_comprehensive_language_ownership.py
+      - name: Verify V78.0.14 persistent PWA live-region stability
+        run: python3 tools/verify_v78_0_14_pwa_live_region_stability.py
+      - name: Verify V78.0.15 full-suite runtime business-data hardening
+        run: python3 tools/verify_v78_0_15_full_suite_runtime_business_data_hardening.py
+      - name: Verify V78.0.16 Pricing rule business-data boundary
+        run: python3 tools/verify_v78_0_16_pricing_rule_business_data_boundary.py
+      - name: Verify V78.0.17 Admin Booking cinema business-data boundary
+        run: python3 tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py
+      - name: Verify V78.0.18 full-suite operational read stability
+        run: python3 tools/verify_v78_0_18_full_suite_operational_read_stability.py
 
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72

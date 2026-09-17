@@ -43,7 +43,8 @@ ok('window.localStorage.getItem(STORAGE_KEY)' in provider and 'document.document
 ok('window.addEventListener("storage"' in provider and 'window.addEventListener("pageshow"' in provider and 'addEventListener(CHANGE_EVENT' in provider, 'Language store reacts to click/cross-tab/full-navigation signals')
 
 m_sw=re.search(r'const VERSION = "v77-0-(\d+)"', sw)
-ok(bool(m_sw) and int(m_sw.group(1)) >= 20, 'Service Worker cache generation is V77.0.20 or newer')
+v78_sw = any(x in sw for x in ['const VERSION = "v78-0-0";','const VERSION = "v78-0-1";','const VERSION = "v78-0-2";','const VERSION = "v78-0-3";','const VERSION = "v78-0-4";','const VERSION = "v78-0-5";','const VERSION = "v78-0-6";','const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";'])
+ok((bool(m_sw) and int(m_sw.group(1)) >= 20) or v78_sw, 'Service Worker cache generation is V77.0.20 or newer')
 ok(all(x in sw for x in ['"/login"','"/register"','"/payment"','"/forgot-password"','"/reset-password"']), 'Auth and payment navigations are network-only')
 ok('await self.skipWaiting()' in sw and 'self.clients.claim()' in sw, 'New critical navigation policy activates without waiting for a manual SW update')
 ok('if (url.pathname.startsWith("/api/")) return;' in sw, 'API responses remain outside the Service Worker cache')

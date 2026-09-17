@@ -34,6 +34,8 @@ ok("Security E2E still validates stable login submit selector", 'getByTestId("lo
 ok("V77.0.6 verifier is forward-compatible with later V77 patch", 'V77.0.6 or later' in v776 and '>= 6' in v776)
 m = re.search(r"Current release:\*\* V77\.0\.(\d+)", readme)
 current_patch = int(m.group(1)) if m else -1
+if "Current release:** V78." in readme:
+    current_patch = 999
 ok("README current release is V77.0.7 or later", current_patch >= 7)
 ok("README documents Playwright strict-mode locator collision fix", "strict-mode locator collision" in readme.lower())
 ok("V77.0.7 remains no-schema", "V77.0.7" in readme and "no-schema" in readme.lower())
