@@ -13,6 +13,28 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
+
+function Get-GhReleaseJsonAllowMissing([string]$Tag) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # A not-yet-created GitHub Release is an expected polling state. On
+    # Windows PowerShell 5.1, gh writes that 404 to native stderr and
+    # $ErrorActionPreference='Stop' can promote it to NativeCommandError.
+    # Keep only this probe non-terminating and use $LASTEXITCODE as authority.
+    $ErrorActionPreference = 'Continue'
+    $output = & gh release view $Tag --json url,tagName,isDraft,isPrerelease 2>$null
+    $exitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  if ($exitCode -ne 0 -or -not $output) {
+    return $null
+  }
+  return ($output -join "`n")
+}
+
 function Assert-Command([string]$Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
     throw "Required command was not found: $Name"
@@ -346,8 +368,8 @@ Write-Host "Tag $Version was pushed. .github/workflows/v77-auto-release.yml will
 $releaseUrl = $null
 for ($i=0; $i -lt 90 -and -not $releaseUrl; $i++) {
   Start-Sleep -Seconds 4
-  $releaseJson = & gh release view $Version --json url,tagName,isDraft,isPrerelease 2>$null
-  if ($LASTEXITCODE -eq 0 -and $releaseJson) {
+  $releaseJson = Get-GhReleaseJsonAllowMissing -Tag $Version
+  if ($releaseJson) {
     $release = $releaseJson | ConvertFrom-Json
     if ($release.tagName -eq $Version -and -not $release.isDraft -and -not $release.isPrerelease) {
       $releaseUrl = $release.url
@@ -361,8 +383,8 @@ if (-not $releaseUrl) {
   if ($LASTEXITCODE -eq 0) {
     for ($i=0; $i -lt 90 -and -not $releaseUrl; $i++) {
       Start-Sleep -Seconds 4
-      $releaseJson = & gh release view $Version --json url,tagName,isDraft,isPrerelease 2>$null
-      if ($LASTEXITCODE -eq 0 -and $releaseJson) {
+      $releaseJson = Get-GhReleaseJsonAllowMissing -Tag $Version
+      if ($releaseJson) {
         $release = $releaseJson | ConvertFrom-Json
         if ($release.tagName -eq $Version -and -not $release.isDraft -and -not $release.isPrerelease) {
           $releaseUrl = $release.url

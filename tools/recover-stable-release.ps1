@@ -7,6 +7,33 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
+
+function Get-GhReleaseJsonAllowMissing([string]$Tag, [switch]$IncludeAssets) {
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # Windows PowerShell 5.1 can promote native stderr from `gh release view`
+    # to NativeCommandError when the release does not exist yet. That 404 is an
+    # expected recovery state, so temporarily keep native stderr non-terminating
+    # and decide from $LASTEXITCODE instead.
+    $ErrorActionPreference = 'Continue'
+    if ($IncludeAssets) {
+      $output = & gh release view $Tag --json url,tagName,isDraft,isPrerelease,assets 2>$null
+    } else {
+      $output = & gh release view $Tag --json url,tagName,isDraft,isPrerelease 2>$null
+    }
+    $exitCode = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+
+  if ($exitCode -ne 0 -or -not $output) {
+    return $null
+  }
+  return ($output -join "`n")
+}
+
+
 if ($Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
   throw "Version must be an existing immutable stable tag such as v78.0.18."
 }
@@ -25,8 +52,8 @@ if ([string]::IsNullOrWhiteSpace($remoteTag)) {
   throw "Remote immutable tag $Version does not exist. This recovery tool never creates or moves tags."
 }
 
-$existing = & gh release view $Version --json url,tagName,isDraft,isPrerelease,assets 2>$null
-if ($LASTEXITCODE -eq 0 -and $existing) {
+$existing = Get-GhReleaseJsonAllowMissing -Tag $Version -IncludeAssets
+if ($existing) {
   $release = $existing | ConvertFrom-Json
   if ($release.tagName -eq $Version -and -not $release.isDraft -and -not $release.isPrerelease) {
     Write-Host "Release already exists: $($release.url)" -ForegroundColor Green
@@ -44,8 +71,8 @@ $deadline = (Get-Date).AddSeconds([Math]::Max(60, $TimeoutSeconds))
 $releaseUrl = $null
 while ((Get-Date) -lt $deadline -and -not $releaseUrl) {
   Start-Sleep -Seconds 4
-  $json = & gh release view $Version --json url,tagName,isDraft,isPrerelease,assets 2>$null
-  if ($LASTEXITCODE -eq 0 -and $json) {
+  $json = Get-GhReleaseJsonAllowMissing -Tag $Version -IncludeAssets
+  if ($json) {
     $release = $json | ConvertFrom-Json
     if ($release.tagName -eq $Version -and -not $release.isDraft -and -not $release.isPrerelease) {
       $assetNames = @($release.assets | ForEach-Object { $_.name })

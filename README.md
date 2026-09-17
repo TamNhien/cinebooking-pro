@@ -8414,3 +8414,17 @@ powershell -ExecutionPolicy Bypass -File .\tools\recover-stable-release.ps1 v78.
 ```
 
 Do **not** rerun `scripts/release.ps1 v78.0.18`: the immutable tag already exists by design. The recovery path publishes from the exact existing tag and verifies that the resulting release contains `cinebooking-pro-78.0.18-full-source.zip` plus its SHA-256 sidecar. Future stable releases retain the normal `scripts/release.ps1` flow; if automatic publication is delayed, that script now dispatches the same tag-safe recovery workflow before failing.
+
+### V78.0.18 recovery correction - Windows PowerShell 5.1 native stderr handling
+
+The first post-tag recovery attempt correctly reached `tools/recover-stable-release.ps1`, but Windows PowerShell 5.1 promoted the expected `gh release view v78.0.18` "release not found" stderr into a terminating `NativeCommandError` because the script runs with `$ErrorActionPreference = 'Stop'`. A missing GitHub Release is the normal state before recovery dispatch, so it must be interpreted from the native process exit code instead of terminating the script.
+
+`tools/recover-stable-release.ps1` now probes GitHub Releases through `Get-GhReleaseJsonAllowMissing`: only that native probe temporarily uses non-terminating error handling, captures `$LASTEXITCODE`, restores the previous error policy in `finally`, and returns `$null` when the Release does not exist. All other recovery failures remain fail-closed. The same compatibility helper is applied to `scripts/release.ps1` publication polling so future stable releases cannot hit the same Windows PowerShell 5.1 `NativeCommandError` while waiting for an automatic Release.
+
+The immutable `v78.0.18` tag remains unchanged. Apply this correction on `main`, verify the post-tag recovery gate, commit/push the correction, then rerun only:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\recover-stable-release.ps1 v78.0.18
+```
+
+Do not recreate, move, delete, or force-push `v78.0.18`, and do not rerun the stable release command for the already-created tag.
