@@ -1508,3 +1508,9 @@ verify-v78-0-18:
 
 release-v78-0-18:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.18
+
+verify-release-workflow-recovery:
+	python tools/verify_v78_0_18_post_tag_release_workflow_recovery.py
+
+recover-v78-0-18-release:
+	powershell -ExecutionPolicy Bypass -File ./tools/recover-stable-release.ps1 v78.0.18

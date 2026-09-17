@@ -595,6 +595,8 @@ jobs:
         run: python3 tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py
       - name: Verify V78.0.18 full-suite operational read stability
         run: python3 tools/verify_v78_0_18_full_suite_operational_read_stability.py
+      - name: Verify stable release workflow recovery
+        run: python3 tools/verify_v78_0_18_post_tag_release_workflow_recovery.py
 
       - name: Generate V72 dependency inventory
         run: python3 tools/generate_supply_chain_inventory_v72.py --output-dir build/supply-chain-v72

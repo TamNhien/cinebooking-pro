@@ -156,7 +156,8 @@ ok('Browser E2E release gate: FULL e2e suite' in release and 'npx playwright tes
 ok('PLAYWRIGHT_BASE_URL' in release and 'PLAYWRIGHT_BROWSER_CHANNEL' in release and 'msedge' in release,"Stable release defaults Browser E2E to local HTTPS and Microsoft Edge")
 ok(release.index('Browser E2E release gate') < release.index('Push main to GitHub'),"Browser E2E gate executes before git push")
 ok('gh run watch $runId --exit-status' in release and 'Stable tag/release were NOT created' in release,"Stable release waits for exact-commit CI before tagging")
-ok("tags:" in release_workflow and "'v77.*.*'" in release_workflow and 'permissions:' in release_workflow and 'contents: write' in release_workflow,"GitHub tag workflow has write permission and stable-tag trigger")
+genericStableTrigger = "'v*.*.*'" in release_workflow or "'v77.*.*'" in release_workflow
+ok("tags:" in release_workflow and genericStableTrigger and 'permissions:' in release_workflow and 'contents: write' in release_workflow,"GitHub tag workflow has write permission and stable-tag trigger")
 ok('git archive --format=zip' in release_workflow and 'sha256sum' in release_workflow,"GitHub release workflow builds clean Full Source ZIP and SHA-256")
 ok('gh release create' in release_workflow and '--generate-notes' in release_workflow and '--latest' in release_workflow,"GitHub release workflow automatically creates the Latest stable release")
 ok('release-v77-0-14:' in make and 'scripts/release.ps1 v77.0.14' in make,"Makefile exposes the one-command V77.0.14 stable release target")

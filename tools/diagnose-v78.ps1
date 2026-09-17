@@ -96,5 +96,6 @@ Invoke-Checked 'V78.0.15 full-suite runtime business-data hardening' { python -X
 Invoke-Checked 'V78.0.16 Pricing rule business-data boundary' { python -X utf8 tools/verify_v78_0_16_pricing_rule_business_data_boundary.py }
 Invoke-Checked 'V78.0.17 Admin Booking cinema business-data boundary' { python -X utf8 tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py }
 Invoke-Checked 'V78.0.18 full-suite operational read stability' { python -X utf8 tools/verify_v78_0_18_full_suite_operational_read_stability.py }
+Invoke-Checked 'V78.0.18 post-tag stable-release workflow recovery' { python -X utf8 tools/verify_v78_0_18_post_tag_release_workflow_recovery.py }
 
 Write-Host 'PASS: CineBooking V78 UX / Accessibility / PWA 5.0 source diagnostics completed.' -ForegroundColor Green

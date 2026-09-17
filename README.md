@@ -8394,3 +8394,23 @@ python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
 ```
 
 Expected source gates: V78.0.18 dedicated verifier, V78.0.17 lineage, and base V78 all pass before Docker/focused/full browser release gates.
+
+## V78.0.18 post-tag GitHub Release workflow recovery
+
+The Windows stable release reached every application/runtime gate for V78.0.18, pushed `main`, passed exact-commit CI, and pushed the immutable `v78.0.18` tag. Publication then stopped because `.github/workflows/v77-auto-release.yml` still listened only for `v77.*.*`, so a V78 tag could never start the automatic release job. The immutable tag must **not** be moved or recreated.
+
+The workflow is now stable-version generic: push tags matching `v*.*.*` are validated by a strict stable-semver guard, and `workflow_dispatch` accepts an existing immutable tag for post-tag recovery. Manual recovery checks out that tag, verifies `HEAD` equals the tag commit, builds the Full Source archive with `git archive` from the tag commit, generates SHA-256, and creates or repairs the GitHub Release. `tools/recover-stable-release.ps1` never creates, deletes, moves, or force-pushes a tag.
+
+For the already-created V78.0.18 tag, first commit and push this workflow correction to `main`, then run:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v78_0_18_post_tag_release_workflow_recovery.py
+git add -A
+git diff --cached --check
+git commit -m "Fix stable release workflow for V78 tags"
+git push origin main
+powershell -ExecutionPolicy Bypass -File .\tools\recover-stable-release.ps1 v78.0.18
+```
+
+Do **not** rerun `scripts/release.ps1 v78.0.18`: the immutable tag already exists by design. The recovery path publishes from the exact existing tag and verifies that the resulting release contains `cinebooking-pro-78.0.18-full-source.zip` plus its SHA-256 sidecar. Future stable releases retain the normal `scripts/release.ps1` flow; if automatic publication is delayed, that script now dispatches the same tag-safe recovery workflow before failing.

@@ -180,6 +180,7 @@ if (-not $SkipVerify) {
     'tools/verify_v78_0_16_pricing_rule_business_data_boundary.py',
     'tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py',
     'tools/verify_v78_0_18_full_suite_operational_read_stability.py',
+    'tools/verify_v78_0_18_post_tag_release_workflow_recovery.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'
   )
@@ -355,9 +356,26 @@ for ($i=0; $i -lt 90 -and -not $releaseUrl; $i++) {
 }
 
 if (-not $releaseUrl) {
-  Write-Host "GitHub Release was not visible within 6 minutes. Recent release workflow runs:" -ForegroundColor Red
+  Write-Host "GitHub Release was not visible within 6 minutes. Dispatching the stable-release recovery path for the existing immutable tag." -ForegroundColor Yellow
+  & gh workflow run v77-auto-release.yml -f "tag=$Version"
+  if ($LASTEXITCODE -eq 0) {
+    for ($i=0; $i -lt 90 -and -not $releaseUrl; $i++) {
+      Start-Sleep -Seconds 4
+      $releaseJson = & gh release view $Version --json url,tagName,isDraft,isPrerelease 2>$null
+      if ($LASTEXITCODE -eq 0 -and $releaseJson) {
+        $release = $releaseJson | ConvertFrom-Json
+        if ($release.tagName -eq $Version -and -not $release.isDraft -and -not $release.isPrerelease) {
+          $releaseUrl = $release.url
+        }
+      }
+    }
+  }
+}
+
+if (-not $releaseUrl) {
+  Write-Host "Automatic and recovery publication did not complete. Recent stable-release workflow runs:" -ForegroundColor Red
   gh run list --workflow v77-auto-release.yml --limit 5 | Out-Host
-  throw "Automatic GitHub Release creation did not complete for $Version. Inspect v77-auto-release.yml in GitHub Actions."
+  throw "GitHub Release creation did not complete for $Version. For an already-tagged version use tools/recover-stable-release.ps1 after inspecting v77-auto-release.yml."
 }
 
 Write-Host "`nPASS: $Version local gates, Browser E2E, main push, CI, immutable tag and automatic GitHub Release all completed." -ForegroundColor Green

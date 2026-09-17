@@ -1,55 +1,76 @@
-name: CineBooking V77 Automatic Stable Release
+name: CineBooking Automatic Stable Release
 
 on:
   push:
     tags:
-      - 'v77.*.*'
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing immutable stable tag to publish/recover (for example v78.0.18)
+        required: true
+        type: string
 
 permissions:
   contents: write
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
 jobs:
   publish:
-    name: Publish V77 immutable stable release
+    name: Publish immutable stable release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tagged source
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
-      - name: Validate V77 stable tag
+      - name: Validate immutable stable tag checkout
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          if [[ ! "$TAG" =~ ^v77\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid V77 stable tag: $TAG" >&2
+          TAG="${RELEASE_TAG}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid stable tag: $TAG" >&2
             exit 1
           fi
+          if ! git show-ref --verify --quiet "refs/tags/$TAG"; then
+            echo "Stable tag does not exist in the fetched repository: $TAG" >&2
+            exit 1
+          fi
+          TAG_SHA="$(git rev-list -n 1 "$TAG")"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [[ "$HEAD_SHA" != "$TAG_SHA" ]]; then
+            echo "Checkout mismatch: HEAD=$HEAD_SHA tag=$TAG_SHA" >&2
+            exit 1
+          fi
+          echo "Publishing immutable tag $TAG at $TAG_SHA"
 
-      - name: Package clean Full Source and SHA-256
+      - name: Package clean Full Source and SHA-256 from immutable tag
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${RELEASE_TAG}"
           VERSION="${TAG#v}"
           ZIP="cinebooking-pro-${VERSION}-full-source.zip"
           SHA="cinebooking-pro-${VERSION}-full-source.sha256.txt"
-          git archive --format=zip --output="$ZIP" HEAD
+          git archive --format=zip --output="$ZIP" "$TAG^{commit}"
           sha256sum "$ZIP" | tee "$SHA"
           echo "RELEASE_ZIP=$ZIP" >> "$GITHUB_ENV"
           echo "RELEASE_SHA=$SHA" >> "$GITHUB_ENV"
 
-      - name: Create GitHub stable release
+      - name: Create or repair GitHub stable release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${RELEASE_TAG}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; uploading canonical assets with --clobber."
+            echo "Release $TAG already exists; uploading canonical tag-built assets with --clobber."
             gh release upload "$TAG" "$RELEASE_ZIP" "$RELEASE_SHA" --clobber
           else
             gh release create "$TAG" \
@@ -67,5 +88,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+          TAG="${RELEASE_TAG}"
           gh release view "$TAG" --json tagName,isDraft,isPrerelease,url,assets
