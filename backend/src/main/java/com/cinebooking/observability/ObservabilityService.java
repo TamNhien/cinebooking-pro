@@ -6,17 +6,25 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.cinebooking.observability.ObservabilityDtos.*;
 
 @Service
 public class ObservabilityService {
     public static final String STRATEGY_VERSION = "V65-OBSERVABILITY-RELIABILITY-4";
+    private static final long DEPENDENCY_PROBE_TIMEOUT_MS = 2_000L;
 
     private final RequestObservabilityService requests;
     private final JdbcTemplate jdbc;
@@ -25,6 +33,7 @@ public class ObservabilityService {
     private final double maxErrorRatePercent;
     private final long p95LatencyTargetMs;
     private final String instanceId;
+    private final ExecutorService dependencyProbeExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     public ObservabilityService(
             RequestObservabilityService requests,
@@ -46,7 +55,12 @@ public class ObservabilityService {
 
     public ObservabilitySummary summary() {
         RequestObservabilityService.WindowSnapshot window = requests.snapshot();
-        List<DependencyStatus> dependencies = List.of(databaseStatus(), redisStatus());
+        Future<DependencyStatus> databaseProbe = dependencyProbeExecutor.submit(this::databaseStatus);
+        Future<DependencyStatus> redisProbe = dependencyProbeExecutor.submit(this::redisStatus);
+        List<DependencyStatus> dependencies = List.of(
+                awaitDependencyProbe("PostgreSQL", databaseProbe),
+                awaitDependencyProbe("Redis", redisProbe)
+        );
         List<SloStatus> slos = sloStatus(window);
         String overall = overallStatus(dependencies, slos);
 
@@ -79,6 +93,27 @@ public class ObservabilityService {
                 TraceAndMetricsFilter.TRACE_HEADER,
                 "docker compose --profile observability up -d prometheus grafana · Grafana http://localhost:3001"
         );
+    }
+
+    private DependencyStatus awaitDependencyProbe(String name, Future<DependencyStatus> probe) {
+        long started = System.nanoTime();
+        try {
+            return probe.get(DEPENDENCY_PROBE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException ex) {
+            probe.cancel(true);
+            return new DependencyStatus(name, "FAIL", elapsedMs(started), "ProbeTimeout");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            probe.cancel(true);
+            return new DependencyStatus(name, "FAIL", elapsedMs(started), "InterruptedException");
+        } catch (ExecutionException ex) {
+            return new DependencyStatus(name, "FAIL", elapsedMs(started), safeFailure(ex));
+        }
+    }
+
+    @PreDestroy
+    void shutdownDependencyProbeExecutor() {
+        dependencyProbeExecutor.shutdownNow();
     }
 
     private List<SloStatus> sloStatus(RequestObservabilityService.WindowSnapshot window) {

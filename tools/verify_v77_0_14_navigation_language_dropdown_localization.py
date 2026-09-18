@@ -188,7 +188,7 @@ ok('sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5' in v23 and 'xl:grid-cols-2 2x
 ok('staff-operations-cinema-selector-v43' in v43 and 'Chọn rạp để theo dõi dữ liệu vận hành trực tiếp.' in v43, "V43 tracked-cinema control has dedicated spacing/helper text")
 ok('inventory-history-scope-toggle' in v48 and '"/admin/inventory/movements"' in v48 and 'Chỉ rạp hiện tại' in v48, "V48 all-branches history really removes the cinema filter and can toggle back")
 ok('min-w-[1080px]' not in v48 and 'xl:hidden' in v48, "V48 inventory history no longer requires horizontal scrolling on normal screens")
-ok('CineHub Bình Thạnh ${Date.now()}' not in v48_e2e and 'const branchName="CineHub Bình Thạnh"' in v48_e2e, "V48 E2E no longer creates timestamp-suffixed cinema names")
+ok('CineHub Bình Thạnh ${Date.now()}' not in v48_e2e and ('const branchName="CineHub Bình Thạnh"' in v48_e2e or ('requiredBranches=[' in v48_e2e and 'name:"CineHub Bình Thạnh"' in v48_e2e)), "V48 E2E no longer creates timestamp-suffixed cinema names")
 ok("!~ '[^0-9]'" in cleanup48 and '{10,' not in cleanup48, "V48 cleanup helper identifies numeric timestamp suffixes without PostgreSQL bounded-regex incompatibility")
 ok('down -v' not in cleanup48.lower() and 'docker compose down' not in cleanup48.lower(), "V48 cleanup remains targeted and never resets the database volume")
 ok('ON_ERROR_STOP=1' in cleanup48 and 'throw "V48 cinema cleanup failed' in cleanup48, "V48 cleanup fails closed when PostgreSQL returns an error")

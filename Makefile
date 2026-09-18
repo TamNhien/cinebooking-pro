@@ -1514,3 +1514,39 @@ verify-release-workflow-recovery:
 
 recover-v78-0-18-release:
 	powershell -ExecutionPolicy Bypass -File ./tools/recover-stable-release.ps1 v78.0.18
+
+verify-v78-0-19:
+	python tools/verify_v78_0_19_language_focus_currency_closure.py
+
+release-v78-0-19:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r2:
+	python tools/verify_v78_0_19_r2_table_language_release_closure.py
+
+release-v78-0-19-r2:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r3:
+	python tools/verify_v78_0_19_r3_table_center_language_inventory_closure.py
+
+release-v78-0-19-r3:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r4:
+	python tools/verify_v78_0_19_r4_language_table_release_closure.py
+
+release-v78-0-19-r4:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r5:
+	python tools/verify_v78_0_19_r5_full_en_presentation_inventory_closure.py
+
+release-v78-0-19-r5:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r6:
+	python tools/verify_v78_0_19_r6_lint_observability_full_suite_closure.py
+
+release-v78-0-19-r6:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19

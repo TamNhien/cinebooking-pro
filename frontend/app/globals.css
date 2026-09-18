@@ -112,7 +112,7 @@ select.input { min-height:52px; padding:.82rem 2.6rem .82rem .95rem; line-height
 select.input option { min-height:2.25rem; padding:.5rem .7rem; line-height:1.5; }
 textarea.input { resize:vertical; line-height:1.55; }
 label > span + select.input { margin-top:.12rem; }
-.input:focus { border-color:#f43f5e; box-shadow:0 0 0 3px rgba(244,63,94,.12); }
+.input:focus-visible { border-color:#f43f5e; box-shadow:0 0 0 3px rgba(244,63,94,.12); }
 .input:disabled { opacity:.55; cursor:not-allowed; }
 .admin-form-grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; align-items:stretch; }
 .admin-form-grid-2 > * { min-width:0; }
@@ -687,3 +687,64 @@ label > span + select.input { margin-top:.12rem; }
 .skip-link:focus{transform:translateY(0)}
 :where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:2px solid #fb7185;outline-offset:3px}
 @media (prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* V78.0.19-R2: source-wide table readability + pointer/keyboard focus separation. */
+.app-main table {
+  width:100%;
+  table-layout:auto !important;
+  border-collapse:collapse;
+}
+.app-main table th,
+.app-main table td {
+  min-width:0;
+  padding-left:.75rem;
+  padding-right:.75rem;
+  vertical-align:middle;
+  text-align:center !important;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.app-main table thead th {
+  text-align:center !important;
+  white-space:normal;
+  line-height:1.35;
+}
+.app-main table tbody td { line-height:1.45; }
+.app-main table th *,
+.app-main table td * {
+  text-align:center !important;
+}
+.app-main table td :where(.flex,.inline-flex) {
+  justify-content:center !important;
+}
+.app-main table .cb-table-period {
+  width:1%;
+  min-width:max-content;
+  white-space:nowrap;
+  padding-left:.5rem;
+  padding-right:.5rem;
+}
+.app-main table .cb-table-cinema { min-width:10.5rem; }
+.app-main table .cb-table-range {
+  min-width:13rem;
+  white-space:nowrap;
+}
+
+/* Chromium can keep :focus-visible on native selects after a mouse click.
+   Pointer focus stays quiet; keyboard navigation keeps the accessible ring. */
+html[data-input-modality="pointer"] .input:focus-visible {
+  border-color:#334155;
+  box-shadow:none;
+  outline:none;
+}
+html[data-input-modality="pointer"] :where(a,button,input,select,textarea,[tabindex]):focus-visible {
+  outline:none;
+}
+html[data-input-modality="keyboard"] .input:focus-visible {
+  border-color:#f43f5e;
+  box-shadow:0 0 0 3px rgba(244,63,94,.12);
+}
+html[data-input-modality="keyboard"] :where(a,button,input,select,textarea,[tabindex]):focus-visible {
+  outline:2px solid #fb7185;
+  outline-offset:3px;
+}

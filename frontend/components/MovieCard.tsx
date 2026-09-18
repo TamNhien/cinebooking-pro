@@ -6,11 +6,12 @@ import type { Movie } from "@/lib/types";
 import { api } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { movieGenreLabel } from "@/lib/movie-presentation";
 
 const formatDate=(value:string|undefined, locale:string)=> value ? new Intl.DateTimeFormat(locale,{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(`${value}T00:00:00`)) : "";
 
 export default function MovieCard({movie,showBuy=true,trackingSource}:{movie:Movie;showBuy?:boolean;trackingSource?:string}){
-  const { t, locale } = usePresentationLanguage();
+  const { t, locale, language } = usePresentationLanguage();
   const track=()=>{if(!trackingSource||!getAuth())return;void api("/recommendations/events",{method:"POST",body:JSON.stringify({movieId:movie.id,eventType:"CLICK",source:trackingSource})}).catch(()=>{});};
   return <article className="movie-card group">
     <Link href={`/movies/${movie.id}`} onClick={track} className="movie-poster-wrap" data-i18n-skip="true" aria-label={`${t("Xem chi tiết","View details")} ${movie.title}`}>
@@ -28,7 +29,7 @@ export default function MovieCard({movie,showBuy=true,trackingSource}:{movie:Mov
         <span className="text-amber-400">★</span><b>{movie.averageRating?.toFixed(1) || "0.0"}</b><span className="text-slate-500">({movie.reviewCount||0} {t("đánh giá","reviews")})</span>
       </div>
       <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-400">
-        {movie.genre && <span data-testid="movie-card-genre-v7808" data-i18n-skip="true">{movie.genre}</span>}
+        {movie.genre && <span data-testid="movie-card-genre-v7808">{movieGenreLabel(movie.genre,language)}</span>}
         <span>{movie.durationMinutes} {t("phút","min")}</span>
         {movie.releaseDate && <span>{formatDate(movie.releaseDate,locale)}</span>}
       </div>

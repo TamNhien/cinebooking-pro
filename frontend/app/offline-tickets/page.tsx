@@ -6,9 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { getAuth } from "@/lib/auth";
 import { deleteOfflineTicket, listOfflineTickets, syncOfflineTickets, type OfflineTicketSnapshot, type OfflineTicketSyncResult } from "@/lib/offlineTickets";
 import { presentationLocale } from "@/lib/presentation-locale";
+import { currency } from "@/lib/api";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
-const money = (v:number) => new Intl.NumberFormat(presentationLocale(),{style:"currency",currency:"VND"}).format(v);
+const money = (v:number) => currency(v, presentationLocale());
 const time = (v:string) => new Intl.DateTimeFormat(presentationLocale(),{dateStyle:"medium",timeStyle:"short"}).format(new Date(v));
 
 export default function OfflineTicketsPage(){

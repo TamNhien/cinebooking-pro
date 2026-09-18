@@ -87,8 +87,8 @@ ok(route_count==67, f'Focused V78 browser sweep still covers every static page r
 ok(all(x in v78e2e for x in ['Command center V53','CRM automation V77','UX & PWA V78']),
    'Admin version-title EN assertions remain intact through V78')
 
-ok(any(x in sw for x in ['const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']), 'Service Worker generation is V78.0.15 or forward-compatible V78.0.16')
-ok(any(x in v78page for x in ['>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>']), 'Visible V78 Admin surface reports V78.0.15 or forward-compatible V78.0.16')
+ok(any(x in sw for x in ['const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']), 'Service Worker generation is V78.0.15 or forward-compatible V78.0.16')
+ok(any(x in v78page for x in ['>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']), 'Visible V78 Admin surface reports V78.0.15 or forward-compatible V78.0.16')
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
 ok(latest==72 and not list((ROOT/'backend/src/main/resources/db/migration').glob('V78*.sql')),
@@ -98,7 +98,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and V78 diagnostics execute the V78.0.15 verifier')
 ok('verify-v78-0-15' in make and 'release-v78-0-15' in make,
    'Makefile exposes V78.0.15 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18']) and '`v78.0.15`' in readme and 'Full-Suite Runtime Business-Data Hardening' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and '`v78.0.15`' in readme and 'Full-Suite Runtime Business-Data Hardening' in readme,
    'README preserves the V78.0.15 full-suite/runtime-data hardening release under forward metadata')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'], 'Source keeps one consolidated root README.md')
 

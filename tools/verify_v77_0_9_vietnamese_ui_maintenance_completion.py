@@ -114,20 +114,20 @@ bilingual_version_pairs = all(
 )
 ok((not any(label in visible_dashboard for label in old_dashboard_labels)) or bilingual_version_pairs, "Admin Dashboard renders Vietnamese directly or through fixed-VI bilingual branches")
 
-ok("viLabel(b.status)" in bookings or "viLabel(x.status)" in bookings, "Booking status is translated at render time")
+ok("viLabel(b.status)" in bookings or "viLabel(x.status)" in bookings or "localizedLabel(b.status,language)" in bookings or "localizedLabel(x.status,language)" in bookings, "Booking status is translated at render time")
 payment_localized = (
     ("viLabel(payment.status)" in payments or "viLabel(p.status)" in payments)
     or ("localizedLabel" in payments and "localizedLabel(value,language)" in payments and ("{label(p.status)}" in payments or "{label(payment.status)}" in payments))
 )
 ok(payment_localized, "Payment status is translated at render time")
-ok("viLabel(a.severity)" in security or "viLabel(alert.severity)" in security, "Security severity is translated at render time")
+ok("viLabel(a.severity)" in security or "viLabel(alert.severity)" in security or "localizedLabel(a.severity,language)" in security or "localizedLabel(alert.severity,language)" in security, "Security severity is translated at render time")
 support_localized = (
     ("viLabel(c.status)" in support and "viLabel(c.category)" in support)
     or ("localizedLabel" in support and "localizedLabel(value,language)" in support and "{label(c.status)}" in support and "{label(c.category)}" in support)
 )
 ok(support_localized, "Support case status/category are translated at render time")
 ok("viLabel(x.state)" in seat_ops, "Seat-hold state is translated at render time")
-ok("viLabel(x.status)" in waitlist or "viLabel(item.status)" in waitlist, "Waitlist status is translated at render time")
+ok("viLabel(x.status)" in waitlist or "viLabel(item.status)" in waitlist or "localizedLabel(x.status,language)" in waitlist or "localizedLabel(item.status,language)" in waitlist, "Waitlist status is translated at render time")
 
 # Existing/reference database display data localization.
 ok(re.search(r"(?im)^\s*BEGIN\s*;", localize_sql) is not None and re.search(r"(?im)^\s*COMMIT\s*;", localize_sql) is not None, "Database display localization is transactional")

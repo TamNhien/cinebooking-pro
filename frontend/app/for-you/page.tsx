@@ -136,7 +136,7 @@ export default function ForYouPage(){
         <b className="text-slate-200">{en?"V76 evidence policy":"Chính sách bằng chứng V76"}</b>
         <p className="mt-2">{en?"V76 reuses only real data already present in CineBooking: favorites, ratings, confirmed bookings, click/view recency, explicit MORE/LESS/HIDE feedback, movie metadata and future OPEN showtimes. No synthetic movie or fake taste history is created.":"V76 chỉ tái sử dụng dữ liệu thật đã có trong CineBooking: yêu thích, đánh giá, lượt đặt vé ĐÃ XÁC NHẬN, lượt nhấp/xem có suy giảm theo thời gian, THÊM/ÍT HƠN/ẨN, siêu dữ liệu phim và suất ĐANG MỞ trong tương lai. Không tạo phim giả hay lịch sử gu giả."}</p>
         <div className="mt-3 flex flex-wrap gap-2">{(home?.evidencePolicy||["REAL_OPERATIONAL_DATA_ONLY","NO_SYNTHETIC_MOVIE_DATA","EXPLAINABLE_RECOMMENDATIONS"]).map(x=><code key={x} className="rounded-lg bg-slate-900 px-2 py-1 text-[11px] text-cyan-300">{x}</code>)}</div>
-        <div className="mt-3 text-xs">Thuật toán: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · Chế độ: <code>{home?.mode||mode}</code></div>
+        <div className="mt-3 text-xs">{en?"Algorithm":"Thuật toán"}: <code>{profile?.algorithmVersion||home?.algorithmVersion||"V76-EVIDENCE-AWARE-5"}</code> · {en?"Mode":"Chế độ"}: <code>{home?.mode||mode}</code></div>
       </section>
     </div>
     </div>

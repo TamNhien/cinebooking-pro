@@ -194,7 +194,7 @@ public class PerformanceBenchmarkService {
 
         return jdbc.query(sql, (rs, rowNum) -> new BranchRaw(
                 rs.getObject("cinema_id", UUID.class),
-                rs.getString("cinema_name"),
+                Cinema.cleanDisplayName(rs.getString("cinema_name")),
                 money(rs.getBigDecimal("revenue")),
                 money(rs.getBigDecimal("previous_revenue")),
                 rs.getLong("bookings"),

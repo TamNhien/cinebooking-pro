@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { localizedLabel } from "@/lib/vi-labels";
 import { getAuth } from "@/lib/auth";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { auditoriumDisplayName } from "@/lib/system-presentation";
 import type { StaffHandover, StaffIncident, StaffOperationsCinema, StaffOperationsLive, StaffOperationsStaff } from "@/lib/types";
 
 const incidentCategories=["CUSTOMER","EQUIPMENT","SAFETY","SECURITY","PAYMENT","OTHER"] as const;
@@ -65,8 +66,8 @@ export default function StaffOperationsPage(){
 
     {live&&<><section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{metrics.map(([labels,value])=><div key={labels[0]} className="card p-5"><div className="text-sm text-slate-400">{t(labels[0],labels[1])}</div><div className="mt-2 text-3xl font-bold">{value}</div></div>)}</section>
     <section className="card p-5"><div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">{t("Lượt soát vé theo thời gian thực","Realtime check-ins")} · <span data-testid="staff-operations-live-cinema-v7815" data-i18n-skip="true">{live.cinemaName}</span></h2><p className="text-xs text-slate-500">{t("WebSocket tự làm mới; dự phòng kiểm tra mỗi 15 giây.","WebSocket refreshes automatically with a 15-second polling fallback.")}</p></div><span className="text-xs text-slate-500">{formatDate(live.generatedAt)}</span></div>
-      <div className="mt-4 hidden lg:block"><table className="w-full table-fixed text-sm"><thead className="text-left text-slate-500"><tr><th className="pb-2">{t("Thời gian","Time")}</th><th>{t("Phim","Movie")}</th><th>{t("Phòng","Auditorium")}</th><th>{t("Nhân viên","Staff")}</th><th>{t("Nguồn","Source")}</th></tr></thead><tbody>{live.recentCheckIns.map(x=><tr key={`${x.bookingId}-${x.checkedInAt}`} className="border-t border-slate-800"><td className="py-3">{formatDate(x.checkedInAt)}</td><td className="break-words">{x.movieTitle}</td><td>{x.auditoriumName}</td><td className="break-words">{x.staffName}</td><td>{x.source}</td></tr>)}</tbody></table></div>
-      <div className="mt-4 grid gap-2 lg:hidden">{live.recentCheckIns.map(x=><article key={`${x.bookingId}-${x.checkedInAt}`} className="rounded-xl border border-slate-800 p-3"><b>{x.movieTitle}</b><div className="mt-1 text-sm text-slate-400">{x.auditoriumName} · {x.staffName}</div><div className="mt-1 text-xs text-slate-500">{formatDate(x.checkedInAt)} · {x.source}</div></article>)}</div>
+      <div className="mt-4 hidden lg:block"><table className="w-full table-fixed text-sm"><thead className="text-slate-500"><tr><th className="pb-2">{t("Thời gian","Time")}</th><th>{t("Phim","Movie")}</th><th>{t("Phòng","Auditorium")}</th><th>{t("Nhân viên","Staff")}</th><th>{t("Nguồn","Source")}</th></tr></thead><tbody>{live.recentCheckIns.map(x=><tr key={`${x.bookingId}-${x.checkedInAt}`} className="border-t border-slate-800"><td className="py-3">{formatDate(x.checkedInAt)}</td><td className="break-words">{x.movieTitle}</td><td>{auditoriumDisplayName(x.auditoriumName,language)}</td><td className="break-words">{x.staffName}</td><td>{x.source}</td></tr>)}</tbody></table></div>
+      <div className="mt-4 grid gap-2 lg:hidden">{live.recentCheckIns.map(x=><article key={`${x.bookingId}-${x.checkedInAt}`} className="rounded-xl border border-slate-800 p-3"><b>{x.movieTitle}</b><div className="mt-1 text-sm text-slate-400">{auditoriumDisplayName(x.auditoriumName,language)} · {x.staffName}</div><div className="mt-1 text-xs text-slate-500">{formatDate(x.checkedInAt)} · {x.source}</div></article>)}</div>
       {live.recentCheckIns.length===0&&<p className="py-6 text-slate-500">{t("Chưa có lượt soát vé tại rạp này.","No check-ins at this cinema yet.")}</p>}
     </section></>}
 

@@ -37,9 +37,9 @@ ok('route === "/admin/command-center"' in e2e and 'command-center-cinema-option-
    "Focused V78 journey explicitly proves the Command Center cinema boundary")
 ok('clone.querySelectorAll(\'[data-i18n-skip="true"]\')' in e2e and 'closest(\'[data-i18n-skip="true"]\')' in e2e,
    "Browser leak scan still removes only explicit narrow business-data boundaries")
-ok(any(x in sw for x in ['const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
    "Service Worker generation is V78.0.9 or forward-compatible V78.0.10")
-ok(any(x in v78page for x in ['>V78.0.9</span>','>V78.0.10</span>','>V78.0.11</span>','>V78.0.12</span>','>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>']),
+ok(any(x in v78page for x in ['>V78.0.9</span>','>V78.0.10</span>','>V78.0.11</span>','>V78.0.12</span>','>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']),
    "Visible V78 Admin surface reports V78.0.9 or a forward patch generation")
 
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))
@@ -51,7 +51,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.9 verifier")
 ok("verify-v78-0-9" in make and "release-v78-0-9" in make,
    "Makefile exposes V78.0.9 verify/release lifecycle")
-ok(any(x in readme for x in ['Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18']) and any(x in readme for x in ['`v78.0.9`','`v78.0.10`','`v78.0.11`','`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Command Center Cinema Business-Data Boundaries' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and any(x in readme for x in ['`v78.0.9`','`v78.0.10`','`v78.0.11`','`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Command Center Cinema Business-Data Boundaries' in readme,
    "README preserves V78.0.9 Command Center cinema boundary fix under forward release metadata")
 ok([p.name for p in ROOT.glob("*.md")] == ["README.md"],
    "Source keeps one consolidated root README.md")

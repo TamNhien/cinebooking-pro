@@ -25,7 +25,7 @@ makefile = text('Makefile')
 old = text('tools/verify_v77_0_11_docker_windows_node_modules_hygiene.py')
 
 ok('import { viLabel } from "@/lib/vi-labels";' in bookings, 'Admin bookings imports viLabel used for translated status display')
-ok('import { viLabel } from "@/lib/vi-labels";' in booking, 'Booking page imports viLabel used for seat/status display')
+ok('from "@/lib/vi-labels";' in booking and ('viLabel' in booking or 'localizedLabel' in booking), 'Booking page imports a language-aware label renderer used for seat/status display')
 ok('membershipHạng' not in crm, 'CRM page no longer contains accidentally translated TypeScript property membershipHạng')
 ok('a.membershipTier' in crm, 'CRM page uses machine-contract membershipTier property')
 ok('"Chưa đặt vé"' in crm, 'CRM empty-booking display text is Vietnamese')
@@ -57,7 +57,7 @@ ok(not bad_props, 'Frontend property identifiers remain machine-safe ASCII while
 for token in ['membershipHạng', 'liveLuồng', 'planningĐiểm']:
     ok(token not in '\n'.join([bookings, booking, crm, observability, showtimes]), f'Observed broken identifier {token} is absent from affected pages')
 ok('viLabel(selected.status)' in bookings and 'viLabel(p.status)' in bookings, 'Admin booking status/payment display still uses Vietnamese label mapping')
-ok('viLabel(s.seatType)' in booking and 'viLabel(s.status)' in booking, 'Booking seat tooltip still uses Vietnamese label mapping')
+ok((('viLabel(s.seatType)' in booking and 'viLabel(s.status)' in booking) or ('localizedLabel(s.seatType,language)' in booking and 'localizedLabel(s.status,language)' in booking)), 'Booking seat tooltip still uses a language-aware label mapping')
 ok('V77.0.12' in readme and 'TypeScript' in readme, 'README documents V77.0.12 TypeScript localization-contract repair')
 ok('verify_v77_0_12_typescript_localization_contract_hygiene.py' in ci, 'CI runs V77.0.12 TypeScript localization verifier')
 ok('verify_v77_0_12_typescript_localization_contract_hygiene.py' in release, 'Stable release preflight runs V77.0.12 verifier')

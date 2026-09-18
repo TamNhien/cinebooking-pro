@@ -23,25 +23,25 @@ make = text("Makefile")
 diag = text("tools/diagnose-v78.ps1")
 v78page = text("frontend/app/admin/ux-accessibility-pwa/page.tsx")
 
-ok('data-testid="maintenance-asset-name-card-v7812" data-i18n-skip="true"' in maintenance and '{asset.name}</h3>' in maintenance,
-   "Maintenance mobile asset-card name uses an exact business-data boundary")
-ok('data-testid="maintenance-asset-name-table-v7812" data-i18n-skip="true"' in maintenance and '>{asset.name}</b>' in maintenance,
-   "Maintenance desktop asset-table name uses the same exact business-data boundary")
-ok(maintenance.count('{asset.name}') >= 3,
-   "Maintenance asset names remain source-owned instead of machine-translated")
+ok('data-testid="maintenance-asset-name-card-v7812" data-i18n-skip="true"' in maintenance and 'maintenanceAssetName(asset.name,language)}</h3>' in maintenance,
+   "Maintenance mobile asset-card keeps a narrow boundary with deterministic render-time labels")
+ok('data-testid="maintenance-asset-name-table-v7812" data-i18n-skip="true"' in maintenance and 'maintenanceAssetName(asset.name,language)}</b>' in maintenance,
+   "Maintenance desktop asset-table uses the same narrow render-time boundary")
+ok('maintenanceAssetName' in maintenance and 'name: asset.name' in maintenance,
+   "Maintenance editor preserves raw asset business data while presentation is language-aware")
 ok(not re.search(r'data-testid="maintenance-asset-card"[^>]*data-i18n-skip="true"', maintenance),
    "Maintenance asset card is not globally exempted from the language sweep")
 ok(not re.search(r'data-testid="maintenance-page"[^>]*data-i18n-skip="true"', maintenance),
    "Maintenance page root remains inside the fail-closed presentation sweep")
-ok('data-i18n-skip="true">{asset.assetCode} · {asset.name}</option>' in maintenance,
-   "Existing work-order equipment option keeps its exact asset business-data boundary")
+ok('data-i18n-skip="true">{asset.assetCode} · {maintenanceAssetName(asset.name,language)}</option>' in maintenance,
+   "Existing work-order equipment option keeps a narrow boundary with deterministic render-time labels")
 ok('route === "/admin/maintenance"' in e2e and 'maintenance-asset-name-card-v7812' in e2e and 'maintenance-asset-name-table-v7812' in e2e,
    "Focused V78 journey explicitly proves Maintenance asset-name boundaries")
 ok('clone.querySelectorAll(\'[data-i18n-skip="true"]\')' in e2e and 'closest(\'[data-i18n-skip="true"]\')' in e2e,
    "Browser leak scan still removes only explicit narrow source-data boundaries")
-ok(any(v in sw for v in ['const VERSION = "v78-0-12";', 'const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),
+ok(any(v in sw for v in ['const VERSION = "v78-0-12";', 'const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
    "Service Worker generation is V78.0.12 or forward-compatible V78.0.13")
-ok(any(v in v78page for v in ['>V78.0.12</span>', '>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>']),
+ok(any(v in v78page for v in ['>V78.0.12</span>', '>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']),
    "Visible V78 Admin surface reports V78.0.12 or forward patch generation")
 
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))
@@ -53,7 +53,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.12 verifier")
 ok("verify-v78-0-12" in make and "release-v78-0-12" in make,
    "Makefile exposes V78.0.12 verify/release lifecycle")
-ok(any(x in readme for x in ['Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18']) and any(x in readme for x in ['`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Maintenance Asset Business-Data Boundaries' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and any(x in readme for x in ['`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Maintenance Asset Business-Data Boundaries' in readme,
    "README preserves V78.0.12 Maintenance fix under forward release metadata")
 ok([p.name for p in ROOT.glob("*.md")] == ["README.md"],
    "Source keeps one consolidated root README.md")

@@ -54,7 +54,7 @@ ok('admin-audit-kicker-v7805' in e2e and 'toHaveText("SECURITY & AUDIT")' in e2e
    "V78 browser journey explicitly proves Admin Audit EN section ownership")
 ok('admin-audit-entity-header-v7805' in e2e and 'toHaveText("Entity")' in e2e,
    "V78 browser journey explicitly proves Admin Audit EN entity header")
-ok(any(x in sw for x in ['const VERSION = "v78-0-5";', 'const VERSION = "v78-0-6";','const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-5";', 'const VERSION = "v78-0-6";','const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
    "Service Worker generation is V78.0.5 or a forward-compatible V78 patch")
 
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))
@@ -66,7 +66,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.5 verifier")
 ok("verify-v78-0-5" in make and "release-v78-0-5" in make,
    "Makefile exposes V78.0.5 verify/release lifecycle")
-ok(any(x in readme for x in ["Current release:** V78.0.5", "Current release:** V78.0.6", "Current release:** V78.0.7", "Current release:** V78.0.8", "Current release:** V78.0.9", "Current release:** V78.0.10","Current release:** V78.0.11", "Current release:** V78.0.12", "Current release:** V78.0.13", "Current release:** V78.0.14", "Current release:** V78.0.15","Current release:** V78.0.16", "Current release:** V78.0.17", "Current release:** V78.0.18"]) and "V78.0.5" in readme and "Admin Audit Presentation-Language Ownership" in readme,
+ok(any(x in readme for x in ["Current release:** V78.0.5", "Current release:** V78.0.6", "Current release:** V78.0.7", "Current release:** V78.0.8", "Current release:** V78.0.9", "Current release:** V78.0.10","Current release:** V78.0.11", "Current release:** V78.0.12", "Current release:** V78.0.13", "Current release:** V78.0.14", "Current release:** V78.0.15","Current release:** V78.0.16", "Current release:** V78.0.17", "Current release:** V78.0.18", "Current release:** V78.0.19"]) and "V78.0.5" in readme and "Admin Audit Presentation-Language Ownership" in readme,
    "README preserves V78.0.5 Admin Audit fix under forward release metadata")
 ok([p.name for p in ROOT.glob("*.md")] == ["README.md"],
    "Source keeps one consolidated root README.md")

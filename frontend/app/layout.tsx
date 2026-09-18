@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/components/LanguageProvider";
 import BackgroundTheme from "@/components/BackgroundTheme";
 import RuntimeReadyMarker from "@/components/RuntimeReadyMarker";
 import LegacyUiLocalizationBridge from "@/components/LegacyUiLocalizationBridge";
+import InputModalityManager from "@/components/InputModalityManager";
 
 export const metadata: Metadata = {
   title: "CineBooking Pro",
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a href="#main-content" className="skip-link">Bỏ qua đến nội dung chính</a>
         <LanguageProvider>
           <RuntimeReadyMarker />
+          <InputModalityManager />
           <LegacyUiLocalizationBridge />
           <BackgroundTheme />
           <ServiceWorkerRegistration />

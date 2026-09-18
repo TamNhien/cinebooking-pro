@@ -1,5 +1,6 @@
 package com.cinebooking.analytics;
 
+import com.cinebooking.domain.Cinema;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -200,7 +201,7 @@ public class AdminAnalyticsService {
                     return new ShowtimePerformance(
                             rs.getObject("id", UUID.class),
                             rs.getString("movie"),
-                            rs.getString("cinema"),
+                            Cinema.cleanDisplayName(rs.getString("cinema")),
                             rs.getString("auditorium"),
                             rs.getTimestamp("start_time").toInstant(),
                             money(rs.getBigDecimal("revenue")),
@@ -249,7 +250,7 @@ public class AdminAnalyticsService {
                         rs.getObject("staff_user_id", UUID.class),
                         rs.getString("employee_code"),
                         rs.getString("full_name"),
-                        rs.getString("cinema"),
+                        Cinema.cleanDisplayName(rs.getString("cinema")),
                         rs.getLong("checked_tickets")
                 ), args(days, cinemaId));
 

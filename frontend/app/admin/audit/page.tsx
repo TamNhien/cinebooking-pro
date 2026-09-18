@@ -59,7 +59,7 @@ export default function AuditPage() {
       {error && <div className="text-red-300">{error}</div>}
 
       <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/60">
-        <table className="w-full min-w-[900px] text-left text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-slate-900 text-slate-400">
             <tr>
               <th className="p-3">{t("Thời gian", "Time")}</th>

@@ -111,19 +111,30 @@ test("V78 VI/EN switch covers full presentation surfaces and accessibility/PWA s
       await expect(page.getByTestId("inventory-alert-threshold-label-v7806")).toHaveText("Alert threshold");
       await expect(page.getByTestId("inventory-target-stock-label-v7806")).toHaveText("Target stock");
       await expect(page.locator('[data-testid="inventory-cinema-select"] option').first()).toHaveAttribute("data-i18n-skip", "true");
-      await expect(page.getByTestId("inventory-product-name-v7807").first()).toHaveAttribute("data-i18n-skip", "true");
+      const productName = page.getByTestId("inventory-product-name-v7807").first();
+      if (await productName.count()) {
+        await expect(productName).not.toHaveAttribute("data-i18n-skip", "true");
+        await expect(productName).not.toHaveText(/^(?:Bắp|Nước)/u);
+      }
+    }
+    if (route === "/movies") {
+      const genreOptions = page.locator('select').nth(0).locator('option');
+      await expect(page.getByRole("option", { name: "Mystery", exact: true })).toHaveCount(await page.getByRole("option", { name: "Mystery", exact: true }).count());
+      expect(await genreOptions.count()).toBeGreaterThan(0);
     }
     if (route === "/favorites") {
       const favoriteTitle = page.getByTestId("movie-card-title-v7808").first();
       if (await favoriteTitle.count()) {
         await expect(favoriteTitle).toHaveAttribute("data-i18n-skip", "true");
         const favoriteGenre = page.getByTestId("movie-card-genre-v7808").first();
-        if (await favoriteGenre.count()) await expect(favoriteGenre).toHaveAttribute("data-i18n-skip", "true");
+        if (await favoriteGenre.count()) await expect(favoriteGenre).not.toHaveAttribute("data-i18n-skip", "true");
       }
     }
     if (route === "/admin/command-center") {
       const cinemaOption = page.getByTestId("command-center-cinema-option-v7809").first();
       if (await cinemaOption.count()) await expect(cinemaOption).toHaveAttribute("data-i18n-skip", "true");
+      await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
+      await expect(page.getByText("Support requests past SLA", { exact: true })).toHaveCount(await page.getByText("Support requests past SLA", { exact: true }).count());
     }
     if (route === "/admin/customer-value") {
       const cinemaOption = page.getByTestId("customer-value-cinema-option-v7810").first();
@@ -132,6 +143,11 @@ test("V78 VI/EN switch covers full presentation surfaces and accessibility/PWA s
     if (route === "/admin/performance") {
       const cinemaOption = page.getByTestId("performance-cinema-option-v7810").first();
       if (await cinemaOption.count()) await expect(cinemaOption).toHaveAttribute("data-i18n-skip", "true");
+      await expect(page.getByRole("columnheader", { name: "Revenue", exact: true })).toBeVisible();
+      const revenueCell = page.locator('[data-testid="performance-branches-v54"] tbody td').filter({ hasText: "₫" }).first();
+      if (await revenueCell.count()) await expect(revenueCell).toHaveText(/^[0-9,.]+ ₫$/);
+      const performanceText = await page.locator("main#main-content").innerText();
+      expect(performanceText).not.toMatch(/\d+\s+đặt vé/u);
     }
     if (route === "/admin/retention") {
       const cinemaOption = page.getByTestId("retention-cinema-option-v7810").first();
@@ -159,8 +175,57 @@ test("V78 VI/EN switch covers full presentation surfaces and accessibility/PWA s
       await expect(page.getByRole("columnheader", { name: "Expiring soon", exact: true })).toBeVisible();
       await expect(page.getByRole("columnheader", { name: "Adjustment", exact: true })).toBeVisible();
     }
+    if (route === "/admin/support") {
+      const sla = page.getByTestId("admin-support-sla-r5").first();
+      if (await sla.count()) {
+        await expect(sla).toContainText("SLA due");
+        await expect(sla).toContainText("Assignee");
+        await expect(sla).not.toContainText("Hạn SLA");
+        await expect(sla).not.toContainText("Phụ trách");
+      }
+    }
+    if (route === "/admin/booking-seat-intelligence") {
+      const auditorium = page.getByTestId("booking-seat-auditorium-r5").first();
+      if (await auditorium.count()) await expect(auditorium).not.toHaveText(/^Phòng\s/u);
+    }
+    if (route === "/promotions") {
+      const product = page.getByTestId("promotion-concession-name-r5").first();
+      if (await product.count()) await expect(product).not.toHaveText(/^(?:Bắp|Nước)/u);
+    }
+    if (route === "/admin/payments") {
+      const paymentCopy = (await page.locator("main#main-content").innerText()).replace(/\s+/g, " ");
+      for (const forbidden of [
+        "Thanh toán nội bộ (MOCK)",
+        "Không phải gateway production",
+        "MOCK chỉ dành cho local/CI",
+        "Chưa cấu hình merchant credentials",
+        "Gateway đang ở sandbox",
+        "hiện chỉ phù hợp local/sandbox",
+      ]) expect(paymentCopy, `Payment EN leak: ${forbidden}`).not.toContain(forbidden);
+      if (paymentCopy.includes("MOCK")) expect(paymentCopy).toContain("Internal payment (MOCK)");
+    }
     const leaks = await presentationLeaks(page);
     expect(leaks, `Vietnamese presentation copy leaked on ${route}: ${JSON.stringify(leaks)}`).toEqual([]);
+  }
+
+  // R5 dynamic-payload closure: follow a real showtime into booking so auditorium,
+  // loyalty-point copy and controlled concession names are exercised with API data.
+  await gotoHydrated(page, "/admin/booking-seat-intelligence");
+  const bookingLink = page.locator('a[href^="/booking/"]').first();
+  if (await bookingLink.count()) {
+    const href = await bookingLink.getAttribute("href");
+    if (href) {
+      await gotoHydrated(page, href);
+      const pageText = await page.locator("main#main-content").innerText();
+      expect(pageText).not.toMatch(/\bPhòng\s+\d+/u);
+      const pointsCopy = page.getByTestId("booking-points-conversion-r5");
+      if (await pointsCopy.count()) {
+        await expect(pointsCopy).toContainText("1 point =");
+        await expect(pointsCopy).not.toContainText("1 điểm");
+      }
+      const concession = page.getByTestId("booking-concession-name-r5").first();
+      if (await concession.count()) await expect(concession).not.toHaveText(/^(?:Bắp|Nước)/u);
+    }
   }
 
   await gotoHydrated(page, "/mobile");

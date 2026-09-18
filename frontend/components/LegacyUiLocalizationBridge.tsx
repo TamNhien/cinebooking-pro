@@ -23,6 +23,9 @@ function preserveOuterWhitespace(original: string, translatedCore: string) {
 function patternTranslation(core: string): string | null {
   const rules: Array<[RegExp, (...parts: string[]) => string]> = [
     [/^Mã đặt vé #(.*)$/u, rest => `Booking code #${rest}`],
+    [/^MÃ ĐẶT VÉ #(.*)$/u, rest => `BOOKING CODE #${rest}`],
+    [/^Mã giao dịch:\s*(.*)$/u, rest => `Transaction ID: ${rest}`],
+    [/^Bởi\s+(.+)$/u, rest => `By ${rest}`],
     [/^Mã (.+) đã tồn tại$/u, code => `Code ${code} already exists`],
     [/^Trạng thái đặt vé:\s*(.*)$/u, rest => `Booking status: ${rest}`],
     [/^Ghế\s+(.+)$/u, rest => `Seats ${rest}`],

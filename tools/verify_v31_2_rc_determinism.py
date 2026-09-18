@@ -26,7 +26,7 @@ makefile = text("Makefile")
 v293 = text("tools/verify_v29_3_demo_schedule.py")
 v31 = text("tools/verify_v31_ticket_wallet.py")
 
-check("booking status badge has a dedicated accessible label", 'aria-label={`Trạng thái booking: ${b.status}`}' in bookings or 'aria-label={`Trạng thái đặt vé: ${viLabel(b.status)}`}' in bookings)
+check("booking status badge has a dedicated accessible label", 'aria-label={`Trạng thái booking: ${b.status}`}' in bookings or 'aria-label={`Trạng thái đặt vé: ${viLabel(b.status)}`}' in bookings or ('aria-label={t(`Trạng thái đặt vé: ${localizedLabel(b.status,"vi")}`' in bookings and 'Booking status: ${localizedLabel(b.status,"en")}' in bookings))
 legacy_confirmed_label = 'getByLabel("Trạng thái booking: CONFIRMED", { exact: true }).first()' in spec
 current_confirmed_status = (
     'confirmedCard.getByTestId("booking-status")' in spec

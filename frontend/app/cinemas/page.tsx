@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, currency } from "@/lib/api";
 import type { Cinema, Showtime } from "@/lib/types";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { auditoriumDisplayName } from "@/lib/system-presentation";
 
 const dayKey=(v:string)=>{const d=new Date(v);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const time=(v:string,locale:string)=>new Intl.DateTimeFormat(locale,{hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(v));
@@ -13,7 +14,7 @@ const day=(v:string,locale:string)=>new Intl.DateTimeFormat(locale,{weekday:"sho
 const monthLabel=(v:string,locale:string)=>new Intl.DateTimeFormat(locale,{month:"long",year:"numeric"}).format(new Date(`${v}-01T00:00:00`));
 
 export default function CinemasPage(){
-  const { locale } = usePresentationLanguage();
+  const { locale, language } = usePresentationLanguage();
   const [cinemas,setCinemas]=useState<Cinema[]>([]);
   const [shows,setShows]=useState<Showtime[]>([]);
   const [cinemaId,setCinemaId]=useState("");
@@ -61,7 +62,7 @@ export default function CinemasPage(){
           <div className="text-xs text-slate-400">{date?<>Ngày đã chọn có <b className="text-white">{selectedCount}</b> suất của <b className="text-white">{grouped.length}</b> phim.</>:"Chọn một ngày để xem suất chiếu."}</div>
         </div>}
 
-        <div className="space-y-4">{grouped.map(([movie,items])=><div className="card p-5" key={movie}><h3 className="text-lg font-bold" data-i18n-skip="true">{movie}</h3><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link key={s.id} href={`/booking/${s.id}`} className="showtime-chip"><b>{time(s.startTime,locale)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>)}</div>
+        <div className="space-y-4">{grouped.map(([movie,items])=><div className="card p-5" key={movie}><h3 className="text-lg font-bold" data-i18n-skip="true">{movie}</h3><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link key={s.id} href={`/booking/${s.id}`} className="showtime-chip"><b>{time(s.startTime,locale)}</b><small>{auditoriumDisplayName(s.auditoriumName, language)}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>)}</div>
         {!grouped.length&&!error&&<div className="empty-state">Chưa có suất chiếu cho ngày đã chọn.</div>}
       </section>
     </div>

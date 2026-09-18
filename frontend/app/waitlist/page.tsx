@@ -4,11 +4,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { auditoriumDisplayName } from "@/lib/system-presentation";
 import { getAuth } from "@/lib/auth";
 import type { WaitlistItem } from "@/lib/types";
 
 export default function WaitlistPage(){
+  const { language, t } = usePresentationLanguage();
   const [items,setItems]=useState<WaitlistItem[]>([]);
   const [error,setError]=useState("");
   const [busy,setBusy]=useState("");
@@ -28,10 +31,10 @@ export default function WaitlistPage(){
   const card=(x:WaitlistItem)=><article key={x.id} className="card p-5">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold" data-i18n-skip="true">{x.movieTitle}</h3><span className={`rounded-full px-2 py-1 text-[11px] font-black ${x.status==="ACTIVE"?"bg-amber-500/15 text-amber-300":x.status==="NOTIFIED"?"bg-emerald-500/15 text-emerald-300":"bg-slate-800 text-slate-400"}`}>{viLabel(x.status)}</span></div>
-        <p className="mt-2 text-sm text-slate-300">{x.cinemaName} · {x.auditoriumName}</p>
+        <div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-bold" data-i18n-skip="true">{x.movieTitle}</h3><span className={`rounded-full px-2 py-1 text-[11px] font-black ${x.status==="ACTIVE"?"bg-amber-500/15 text-amber-300":x.status==="NOTIFIED"?"bg-emerald-500/15 text-emerald-300":"bg-slate-800 text-slate-400"}`}>{localizedLabel(x.status,language)}</span></div>
+        <p className="mt-2 text-sm text-slate-300">{x.cinemaName} · {auditoriumDisplayName(x.auditoriumName, language)}</p>
         <p className="mt-1 text-sm text-slate-500">{dateTime(x.showtimeStart)}</p>
-        {x.status==="NOTIFIED"&&<p className="mt-2 text-sm text-emerald-300">Đã phát hiện {x.lastAvailableCount} ghế trống{x.notifiedAt?` · ${dateTime(x.notifiedAt)}`:""}.</p>}
+        {x.status==="NOTIFIED"&&<p className="mt-2 text-sm text-emerald-300">{t("Đã phát hiện","Detected")} {x.lastAvailableCount} {t("ghế trống","available seats")}{x.notifiedAt?` · ${dateTime(x.notifiedAt)}`:""}.</p>}
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
         <Link href={`/booking/${x.showtimeId}`} className="btn btn-primary">Mở sơ đồ ghế</Link>

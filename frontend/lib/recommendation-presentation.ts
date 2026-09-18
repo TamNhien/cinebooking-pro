@@ -1,5 +1,6 @@
 import type { Language } from "@/components/LanguageProvider";
 import type { RecommendationScoreComponent, RecommendationTasteProfile } from "@/lib/types";
+import { movieGenreLabel, movieLanguageLabel } from "@/lib/movie-presentation";
 
 const SCORE_COPY: Record<string, { label: string; evidence: string }> = {
   GENRE_TASTE: {
@@ -107,14 +108,21 @@ export function recommendationProfileSummary(profile: RecommendationTasteProfile
     return "Not enough personal signals yet; CineBooking is using trends to help you discover new movies.";
   }
   const parts: string[] = [];
-  const genres = profile.topGenres.slice(0, 3).map(x => x.name).filter(Boolean);
+  const genres = profile.topGenres.slice(0, 3).map(x => movieGenreLabel(x.name, "en")).filter(Boolean);
   if (genres.length) parts.push(`prioritizes ${genres.join(", ")}`);
-  if (profile.topLanguages?.length) parts.push(`often watches ${profile.topLanguages[0].name}`);
+  if (profile.topLanguages?.length) parts.push(`often watches ${movieLanguageLabel(profile.topLanguages[0].name, "en")}`);
   if (profile.preferredDurationBand) parts.push(`prefers ${recommendationDurationLabel(profile.preferredDurationBand, profile.preferredDurationLabel, "en").toLowerCase()}`);
   if (profile.preferredCinemaName) parts.push(`often watches at ${profile.preferredCinemaName}`);
   if (profile.preferredDaypart) parts.push(`often chooses ${recommendationDaypartLabel(profile.preferredDaypart, profile.preferredDaypartLabel, "en").toLowerCase()}`);
   if (profile.preferredWeekday) parts.push(`often goes on ${recommendationWeekdayLabel(profile.preferredWeekday, profile.preferredWeekdayLabel, "en").toLowerCase()}`);
   return parts.length ? `CineBooking ${parts.join(" · ")}.` : "Your movie taste is being refined from your activity and feedback.";
+}
+
+function recommendationGenreListLabel(value: string, language: Language) {
+  return value
+    .split(/\s*,\s*/u)
+    .map(part => movieGenreLabel(part.trim(), language))
+    .join(", ");
 }
 
 export function recommendationReason(reason: string, language: Language) {
@@ -130,18 +138,18 @@ export function recommendationReason(reason: string, language: Language) {
   let match = reason.match(/^Vì bạn muốn xem thêm phim giống (.+)$/u);
   if (match) return `Because you asked for more movies like ${match[1]}`;
   match = reason.match(/^Khám phá mới nhưng vẫn hợp gu (.+)$/u);
-  if (match) return `A new discovery that still matches your taste in ${match[1]}`;
+  if (match) return `A new discovery that still matches your taste in ${recommendationGenreListLabel(match[1], "en")}`;
   match = reason.match(/^Hợp gu (.+?) và có suất tại rạp bạn thường xem$/u);
-  if (match) return `Matches your taste in ${match[1]} and has showtimes at your usual cinema`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")} and has showtimes at your usual cinema`;
   match = reason.match(/^Hợp gu (.+?) và có suất đúng khung giờ bạn thường chọn$/u);
-  if (match) return `Matches your taste in ${match[1]} and has showtimes in your usual time slot`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")} and has showtimes in your usual time slot`;
   match = reason.match(/^Hợp gu (.+?) và ngôn ngữ (.+)$/u);
-  if (match) return `Matches your taste in ${match[1]} and your usual movie language ${match[2]}`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")} and your usual movie language ${movieLanguageLabel(match[2], "en")}`;
   match = reason.match(/^Hợp gu (.+?) và (gọn|vừa|dài) \((.+)\)$/iu);
-  if (match) return `Matches your taste in ${match[1]} and your usual movie duration`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")} and your usual movie duration`;
   match = reason.match(/^Hợp gu (.+?) · có suất đúng (.+)$/u);
-  if (match) return `Matches your taste in ${match[1]} · available on your usual viewing day`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")} · available on your usual viewing day`;
   match = reason.match(/^Hợp gu (.+)$/u);
-  if (match) return `Matches your taste in ${match[1]}`;
+  if (match) return `Matches your taste in ${recommendationGenreListLabel(match[1], "en")}`;
   return reason;
 }

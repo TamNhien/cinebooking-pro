@@ -26,8 +26,8 @@ v78page = text("frontend/app/admin/ux-accessibility-pwa/page.tsx")
 
 ok('data-testid="movie-card-title-v7808" data-i18n-skip="true">{movie.title}</Link>' in card,
    "MovieCard title uses an exact business-data boundary")
-ok('data-testid="movie-card-genre-v7808" data-i18n-skip="true">{movie.genre}</span>' in card,
-   "MovieCard genre uses an exact business-data boundary")
+ok('data-testid="movie-card-genre-v7808">{movieGenreLabel(movie.genre,language)}</span>' in card and 'movie-presentation' in card,
+   "MovieCard controlled genre vocabulary is localized while movie title stays business data")
 ok('aria-label={`${t("Xem chi tiết","View details")} ${movie.title}`}' in card and 'movie-poster-wrap" data-i18n-skip="true"' in card,
    "Poster accessibility label keeps its existing exact movie-title boundary")
 ok(not re.search(r'<article[^>]*className="movie-card[^>]*data-i18n-skip="true"', card),
@@ -36,13 +36,13 @@ ok('MovieCard' in favorites and 'movie={m}' in favorites,
    "Favorites continues to render the shared MovieCard instead of a bypass copy")
 ok('"/favorites"' in e2e,
    "V78 browser sweep still covers Favorites")
-ok('route === "/favorites"' in e2e and 'movie-card-title-v7808' in e2e and 'movie-card-genre-v7808' in e2e,
-   "Focused V78 journey proves Favorites movie metadata boundaries")
+ok('route === "/favorites"' in e2e and 'movie-card-title-v7808' in e2e and 'movie-card-genre-v7808' in e2e and 'not.toHaveAttribute("data-i18n-skip", "true")' in e2e,
+   "Focused V78 journey proves title business-data and localized genre boundaries")
 ok('clone.querySelectorAll(\'[data-i18n-skip="true"]\')' in e2e and 'closest(\'[data-i18n-skip="true"]\')' in e2e,
    "Browser leak scan still removes only explicit narrow business-data boundaries")
-ok(any(x in sw for x in ['const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
    "Service Worker generation is V78.0.8 or forward-compatible V78.0.9")
-ok(any(x in v78page for x in ['>V78.0.8</span>','>V78.0.9</span>','>V78.0.10</span>','>V78.0.11</span>','>V78.0.12</span>','>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>']),
+ok(any(x in v78page for x in ['>V78.0.8</span>','>V78.0.9</span>','>V78.0.10</span>','>V78.0.11</span>','>V78.0.12</span>','>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']),
    "Visible V78 Admin surface reports V78.0.8 or a forward patch generation")
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -54,7 +54,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.8 verifier")
 ok('verify-v78-0-8' in make and 'release-v78-0-8' in make,
    "Makefile exposes V78.0.8 verify/release lifecycle")
-ok(any(x in readme for x in ['Current release:** V78.0.8','Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18']) and any(x in readme for x in ['`v78.0.8`','`v78.0.9`','`v78.0.10`','`v78.0.11`','`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Favorites Movie Business-Data Boundaries' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.8','Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and any(x in readme for x in ['`v78.0.8`','`v78.0.9`','`v78.0.10`','`v78.0.11`','`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Favorites Movie Business-Data Boundaries' in readme,
    "README records V78.0.8 Favorites movie business-data boundary fix")
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    "Source keeps one consolidated root README.md")

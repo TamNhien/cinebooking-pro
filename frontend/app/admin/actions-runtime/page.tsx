@@ -43,7 +43,7 @@ export default function ActionsRuntimeV73Page(){
         <p className="mt-1 text-sm text-slate-500">Các phiên bản chính dưới đây là chuẩn nền V73. Bộ xác minh hồi quy sẽ thất bại nếu tác vụ thời Node 20 quay trở lại.</p>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] text-left text-sm">
+        <table className="w-full min-w-[680px] text-sm">
           <thead className="bg-slate-900/70 text-xs uppercase text-slate-500"><tr><th className="p-3">Mục đích</th><th className="p-3">Thao tác</th><th className="p-3">Môi trường chạy</th></tr></thead>
           <tbody>{ACTIONS.map(([purpose,action,runtime])=><tr key={action} className="border-t border-slate-800"><td className="p-3 font-semibold">{purpose}</td><td className="p-3"><code className="text-cyan-300">{action}</code></td><td className="p-3 text-slate-300">{runtime}</td></tr>)}</tbody>
         </table>

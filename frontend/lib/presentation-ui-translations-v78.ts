@@ -1,4 +1,11 @@
 export const V78_FULL_SOURCE_UI_EN: Record<string, string> = {
+  "Mã giao dịch": "Transaction ID",
+  "Mã giao dịch:": "Transaction ID:",
+  "Mã giao dịch cổng": "Gateway transaction ID",
+  "Mã đơn tại cổng": "Gateway order ID",
+  "Bởi": "By",
+  "MÃ ĐẶT VÉ": "BOOKING CODE",
+  "Thao tác nhạy cảm yêu cầu xác thực tăng cường V68. Hãy mở Security & Identity, nhập lại mật khẩu Admin rồi thử lại.": "This sensitive action requires V68 step-up authentication. Open Security & Identity, re-enter the Admin password, then try again.",
   "Trình duyệt không hỗ trợ lưu vé offline.": "This browser does not support offline ticket storage.",
   "Không mở được bộ nhớ offline.": "Could not open offline storage.",
   "Lỗi IndexedDB.": "IndexedDB error.",

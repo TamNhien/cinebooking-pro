@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect,useMemo,useState} from "react";
-import {api} from "@/lib/api";
+import {api, currency} from "@/lib/api";
 import {clearAuth,getAuth} from "@/lib/auth";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 import type {CustomerValueBandV56,CustomerValueCinemaV56,CustomerValueRfmSegmentV56,CustomerValueScorecardV56,UserProfile} from "@/lib/types";
@@ -34,7 +34,7 @@ export default function CustomerValueV56(){
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState("");
 
-  const money=(value:number)=>new Intl.NumberFormat(locale,{style:"currency",currency:"VND",currencyDisplay:language==="en"?"code":"symbol",maximumFractionDigits:0}).format(value||0);
+  const money=(value:number)=>currency(value||0,locale);
   const number=(value:number)=>new Intl.NumberFormat(locale).format(value||0);
   const dateTime=(iso:string)=>new Intl.DateTimeFormat(locale,{dateStyle:"short",timeStyle:"short"}).format(new Date(iso));
   const segmentLabel=(code:CustomerValueRfmSegmentV56["code"])=>language==="en"?segmentCopy[code].en:segmentCopy[code].vi;
@@ -118,8 +118,8 @@ export default function CustomerValueV56(){
       <section className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
         <div className="card overflow-hidden" data-testid="customer-value-rfm-v56">
           <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">{t("Phân khúc RFM","RFM segments")}</h2><p className="mt-1 text-sm text-slate-500">{t("R/F/M chấm 1-5 theo nhóm 20% tương đối của tập khách đang hoạt động hiện tại. Nhóm loại trừ nhau theo thứ tự quy tắc minh bạch; không dùng mô hình dự đoán.","R/F/M scores range from 1-5 by relative 20% bands of the current active cohort. Segments are mutually exclusive in a transparent rule order; no predictive model is used.")}</p></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">{t("Nhóm","Segment")}</th><th className="p-3">{t("Quy tắc","Rule")}</th><th className="p-3 text-right">{t("Khách","Customers")}</th><th className="p-3 text-right">{t("Giá trị trọn đời","Lifetime value")}</th><th className="p-3 text-right">{t("Tỷ trọng doanh thu","Revenue share")}</th></tr></thead><tbody>
-            {data.rfmSegments.map(s=><tr key={s.code} className="border-t border-slate-800"><td className={`p-3 font-bold ${segmentTone[s.code]||"text-slate-200"}`}>{segmentLabel(s.code)}</td><td className="p-3 text-xs text-slate-500">{segmentDefinition(s.code)}</td><td className="p-3 text-right">{number(s.customers)}</td><td className="p-3 text-right">{money(s.realizedLifetimeRevenue)}</td><td className="p-3 text-right font-bold">{s.revenueShare.toFixed(1)}%</td></tr>)}
+          <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-sm"><thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">{t("Nhóm","Segment")}</th><th className="p-3">{t("Quy tắc","Rule")}</th><th className="p-3">{t("Khách","Customers")}</th><th className="p-3">{t("Giá trị trọn đời","Lifetime value")}</th><th className="p-3">{t("Tỷ trọng doanh thu","Revenue share")}</th></tr></thead><tbody>
+            {data.rfmSegments.map(s=><tr key={s.code} className="border-t border-slate-800"><td className={`p-3 font-bold ${segmentTone[s.code]||"text-slate-200"}`}>{segmentLabel(s.code)}</td><td className="p-3 text-xs text-slate-500">{segmentDefinition(s.code)}</td><td className="p-3">{number(s.customers)}</td><td className="p-3">{money(s.realizedLifetimeRevenue)}</td><td className="p-3 font-bold">{s.revenueShare.toFixed(1)}%</td></tr>)}
           </tbody></table></div>
         </div>
 
@@ -136,8 +136,8 @@ export default function CustomerValueV56(){
 
       <section className="card overflow-hidden" data-testid="customer-value-top-v56">
         <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">{t("Khách hàng giá trị cao · tham chiếu bảo vệ riêng tư","High-value customers · privacy-safe reference")}</h2><p className="mt-1 text-sm text-slate-500">{t("Chỉ hiển thị mã KH rút gọn, không thư điện tử/số điện thoại. Độ gần đây lấy từ lượt đặt vé ĐÃ XÁC NHẬN gần nhất; Giá trị tiền tệ lấy từ thanh toán THÀNH CÔNG; việc chuyển vé vẫn quy về người mua gốc.","Only a shortened customer reference is shown, never email or phone. Recency comes from the latest CONFIRMED booking; Monetary comes from SUCCESS payments; transferred tickets remain attributed to the original purchaser.")}</p></div>
-        <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">{t("Khách","Customer")}</th><th className="p-3">{t("Đầu / Cuối","First / Last")}</th><th className="p-3 text-right">{t("Độ gần đây","Recency")}</th><th className="p-3 text-right">{t("Tần suất","Frequency")}</th><th className="p-3 text-right">{t("Giá trị tiền tệ","Monetary value")}</th><th className="p-3 text-center">R/F/M</th><th className="p-3 text-right">{t("Tổng","Total")}</th><th className="p-3">{t("Phân khúc","Segment")}</th></tr></thead><tbody>
-          {data.topCustomers.map(c=><tr key={c.customerRef} className="border-t border-slate-800"><td className="p-3 font-mono font-bold">{c.customerRef}</td><td className="p-3 text-xs text-slate-500">{c.firstBookingDate}<br/>{c.lastBookingDate}</td><td className="p-3 text-right">{number(c.recencyDays)} {t("ngày","days")}</td><td className="p-3 text-right">{number(c.lifetimeBookings)} {t("đặt vé","bookings")}</td><td className="p-3 text-right font-semibold">{money(c.realizedLifetimeRevenue)}</td><td className="p-3 text-center font-mono">{c.recencyScore}/{c.frequencyScore}/{c.monetaryScore}</td><td className="p-3 text-right font-black">{c.rfmTotal}</td><td className={`p-3 font-bold ${segmentTone[c.segment]||"text-slate-300"}`}>{segmentLabel(c.segment)}</td></tr>)}
+        <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">{t("Khách","Customer")}</th><th className="p-3">{t("Đầu / Cuối","First / Last")}</th><th className="p-3">{t("Độ gần đây","Recency")}</th><th className="p-3">{t("Tần suất","Frequency")}</th><th className="p-3">{t("Giá trị tiền tệ","Monetary value")}</th><th className="p-3 text-center">R/F/M</th><th className="p-3">{t("Tổng","Total")}</th><th className="p-3">{t("Phân khúc","Segment")}</th></tr></thead><tbody>
+          {data.topCustomers.map(c=><tr key={c.customerRef} className="border-t border-slate-800"><td className="p-3 font-mono font-bold">{c.customerRef}</td><td className="p-3 text-xs text-slate-500">{c.firstBookingDate}<br/>{c.lastBookingDate}</td><td className="p-3">{number(c.recencyDays)} {t("ngày","days")}</td><td className="p-3">{number(c.lifetimeBookings)} {t("đặt vé","bookings")}</td><td className="p-3 font-semibold">{money(c.realizedLifetimeRevenue)}</td><td className="p-3 text-center font-mono">{c.recencyScore}/{c.frequencyScore}/{c.monetaryScore}</td><td className="p-3 font-black">{c.rfmTotal}</td><td className={`p-3 font-bold ${segmentTone[c.segment]||"text-slate-300"}`}>{segmentLabel(c.segment)}</td></tr>)}
           {!data.topCustomers.length&&<tr><td colSpan={8} className="p-8 text-center text-slate-500">{t("Chưa có khách hàng có lượt đặt vé ĐÃ XÁC NHẬN trong cửa sổ đã chọn.","No customer has a CONFIRMED booking in the selected window.")}</td></tr>}
         </tbody></table></div>
       </section>

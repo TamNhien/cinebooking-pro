@@ -1,5 +1,6 @@
 package com.cinebooking.analytics;
 
+import com.cinebooking.domain.Cinema;
 import com.cinebooking.common.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -112,7 +113,7 @@ public class AnalyticsForecastingService {
                         filter + " order by c.name,p.sort_order,p.name",
                 (rs, i) -> new ConcessionCostBasis(
                         rs.getObject("cinema_id", UUID.class),
-                        rs.getString("cinema_name"),
+                        Cinema.cleanDisplayName(rs.getString("cinema_name")),
                         rs.getObject("product_id", UUID.class),
                         rs.getString("product_name"),
                         money(rs.getBigDecimal("selling_price")),
@@ -176,7 +177,7 @@ public class AnalyticsForecastingService {
                     UUID productId = rs.getObject("product_id", UUID.class);
                     return new MissingCostBasisItem(
                             rs.getObject("cinema_id", UUID.class),
-                            rs.getString("cinema_name"),
+                            Cinema.cleanDisplayName(rs.getString("cinema_name")),
                             productId,
                             rs.getString("product_name"),
                             rs.getLong("missing_units"),
@@ -226,7 +227,7 @@ public class AnalyticsForecastingService {
                     long capacity = rs.getLong("capacity");
                     return new AuditoriumPerformance(
                             rs.getObject("id", UUID.class), rs.getString("name"),
-                            rs.getObject("cinema_id", UUID.class), rs.getString("cinema_name"),
+                            rs.getObject("cinema_id", UUID.class), Cinema.cleanDisplayName(rs.getString("cinema_name")),
                             money(rs.getBigDecimal("revenue")), rs.getLong("bookings"), tickets, capacity,
                             percentage(tickets, capacity)
                     );
@@ -244,7 +245,7 @@ public class AnalyticsForecastingService {
                 "select s.*,c.name cinema_name from analytics_snapshot s join cinema c on c.id=s.cinema_id" + filter +
                         " order by s.period_start desc,s.period_kind,s.cinema_id limit ?",
                 (rs, i) -> new AnalyticsSnapshot(
-                        rs.getObject("id", UUID.class), rs.getObject("cinema_id", UUID.class), rs.getString("cinema_name"),
+                        rs.getObject("id", UUID.class), rs.getObject("cinema_id", UUID.class), Cinema.cleanDisplayName(rs.getString("cinema_name")),
                         rs.getString("period_kind"), rs.getObject("period_start", LocalDate.class), rs.getObject("period_end", LocalDate.class),
                         money(rs.getBigDecimal("revenue")), money(rs.getBigDecimal("ticket_revenue")), money(rs.getBigDecimal("concession_revenue")),
                         moneyNullable(rs.getBigDecimal("concession_cost")), moneyNullable(rs.getBigDecimal("gross_margin")),

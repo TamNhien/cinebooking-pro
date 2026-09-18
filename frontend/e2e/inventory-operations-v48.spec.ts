@@ -30,27 +30,47 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await page.getByPlaceholder("Mật khẩu").fill(adminPassword);
   await Promise.all([page.waitForURL(/\/admin$/,{timeout:15000}),page.getByRole("button",{name:"Đăng nhập"}).click()]);
 
-  // Reuse one stable transfer branch so serial E2E runs never pollute the persistent DB
-  // with timestamp-suffixed cinema names. Create it only when it does not exist yet.
+  // V78.0.19-R5: make the inventory precondition deterministic. The V48 journey
+  // exercises a transfer, so it needs at least two provisioned cinema branches.
+  // Do not assume a persistent/seeded database already contains them.
   const auth=await adminAuth(context,page);
-  const branchName="CineHub Bình Thạnh";
-  const existingBranches=await context.request.get(new URL("/api/admin/inventory/branches",page.url()).toString(),{headers:{Authorization:`Bearer ${auth.accessToken}`}});
-  expect(existingBranches.ok()).toBeTruthy();
-  const existing=await existingBranches.json() as Array<{cinemaName:string}>;
-  if(!existing.some(item=>item.cinemaName===branchName)){
-    const createCinema=await context.request.post(new URL("/api/admin/cinemas",page.url()).toString(),{
-      headers:{Authorization:`Bearer ${auth.accessToken}`},
-      data:{name:branchName,address:"88 Nguyễn Gia Trí, Phường Thạnh Mỹ Tây, TP.HCM"}
+  const apiUrl=(path:string)=>new URL(path,page.url()).toString();
+  const headers={Authorization:`Bearer ${auth.accessToken}`};
+  const requiredBranches=[
+    {name:"CineHub Quận 1",address:"72 Nguyễn Huệ, Phường Sài Gòn, TP.HCM"},
+    {name:"CineHub Bình Thạnh",address:"88 Nguyễn Gia Trí, Phường Thạnh Mỹ Tây, TP.HCM"},
+  ];
+
+  async function branchSnapshot(){
+    const response=await context.request.get(apiUrl("/api/admin/inventory/branches"),{headers});
+    expect(response.ok()).toBeTruthy();
+    return await response.json() as Array<{cinemaName:string}>;
+  }
+
+  let branches=await branchSnapshot();
+  for(const branch of requiredBranches){
+    if(branches.some(item=>item.cinemaName===branch.name))continue;
+    const createCinema=await context.request.post(apiUrl("/api/admin/cinemas"),{
+      headers,
+      data:branch,
     });
     expect(createCinema.status()).toBe(201);
+    branches=await branchSnapshot();
   }
+
+  // Cinema creation provisions branch inventory transactionally. Wait on the API
+  // contract itself before navigating, instead of masking missing setup with a UI timeout.
+  await expect.poll(async()=>{
+    const snapshot=await branchSnapshot();
+    return requiredBranches.every(branch=>snapshot.some(item=>item.cinemaName===branch.name));
+  },{timeout:30000}).toBe(true);
 
   await page.goto("/admin/inventory");
   await expect(page.getByRole("heading",{name:"Kho bắp nước theo rạp"})).toBeVisible();
   const cinema=page.getByTestId("inventory-cinema-select");
   const product=page.getByTestId("inventory-product-select");
-  await expect.poll(async()=>cinema.locator("option").count()).toBeGreaterThan(1);
-  await expect.poll(async()=>product.locator("option").count()).toBeGreaterThan(0);
+  await expect.poll(async()=>cinema.locator("option").count(),{timeout:30000}).toBeGreaterThan(1);
+  await expect.poll(async()=>product.locator("option").count(),{timeout:30000}).toBeGreaterThan(0);
 
   await page.getByRole("spinbutton",{name:"Số lượng nhập thêm"}).fill("5");
   await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Bổ sung tồn kho cho ca tối");

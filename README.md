@@ -2,11 +2,11 @@
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
-> **Current release:** V78.0.18 - UX / Accessibility / PWA 5.0 - Full-Suite Operational Read Stability
+> **Current release:** V78.0.19 (R3 candidate) - UX / Accessibility / PWA 5.0 - Table Center / EN Dynamic Copy / Inventory E2E Closure
 
 > **Current language policy (V78.0.18):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; toàn bộ presentation copy trong `frontend/app` + `frontend/components` được audit literal-level thay vì chỉ một nhóm trang đại diện. Static UI dùng catalog VI→EN nguồn sở hữu, feedback động dùng semantic pattern/direct language ownership, native `alert/confirm/prompt` cũng đi qua cùng language bridge. `data-i18n-skip="true"` tiếp tục bảo vệ tên phim/rạp, payload backend, ID và dữ liệu nghiệp vụ khỏi bị dịch nhầm. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v77.0.61` - CRM Automation 5.0 + language/runtime stabilization.
-> **V78 stable target:** `v78.0.18` (stable-only release flow).
+> **V78 stable target:** `v78.0.19` (stable-only release flow).
 > **Historical verifier baseline — former Current release:** V77.0.61 - V34 Maintenance Repeatability Cleanup.
 > **Historical verifier baseline — former V77 stable target:** `v77.0.61` (immutable historical release; not the current target).
 
@@ -8375,6 +8375,46 @@ python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
 ```
 
 Stable tag target: `v78.0.17`.
+
+## V78.0.19-R2 - Table / Presentation / Release Closure
+
+V78.0.19-R2 is a rebuilt release candidate for the same stable target `v78.0.19`; it does **not** create a new semver tag. The first V78.0.19 stable-release attempt stopped in source preflight before any V78.0.19 tag/release was created because the historical V77.0.9 verifier only recognized the old `viLabel(...)` security-severity renderer. The verifier is now forward-compatible with the current `localizedLabel(..., language)` implementation while preserving the original assertion.
+A full release-chain audit also found three later stale historical gates that the first attempt had not reached yet: V77.0.41 still required the old all-business-data movie filter contract, while V78.0.5 and V78.0.6 stopped their Current-release allowlists at V78.0.18. R2 makes those historical verifiers forward-compatible with the V78.0.19 controlled-vocabulary and release-metadata contracts instead of waiting for the next failed release attempt.
+
+The table contract is now source-wide. Every table below `.app-main` uses content-driven `table-layout:auto`, readable horizontal cell gutters and centered header cells. The Analytics periodic-snapshot table gives `PERIOD` only its content width, reserves readable width for `RANGE`, and falls back to horizontal scrolling instead of crushing dates and adjacent data. The source inventory currently covers 32 TSX table files / 45 table instances.
+
+Pointer focus is separated from keyboard focus with a root input-modality manager because Chromium native `<select>` controls may continue matching `:focus-visible` after a mouse click. Pointer-clicked inputs/selects therefore remain visually quiet, while Tab/keyboard navigation keeps the V78 rose accessibility focus indicator.
+
+Historical browser-test cinema names carrying a long timestamp suffix, for example `CineHub Bình Thạnh 1789224302149`, are normalized at the domain/JDBC presentation boundary. Only a standalone suffix of ten or more digits is removed, so legitimate names such as `CGV Vincom Center Landmark 81`, `CineHub Quận 1` and `Cinema 2026` remain intact. No Flyway data rewrite is required.
+
+The reported EN presentation leaks are also closed without translating arbitrary customer/business payloads: known seeded Support subjects/descriptions are translated with transparent fallback, known maintenance-equipment prefixes such as `Máy chiếu` render as `Projector`, the Command Center explanatory sentence is source-localized, backend manual check-in success is catalog-owned, and Staff Check-in removes the duplicated `vé` typo. Raw support text and editable asset names still fall through unchanged when they are not one of the deterministic system/seed templates.
+
+### Verify V78.0.19-R2
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_19_r2_table_language_release_closure.py
+python -X utf8 .\tools\verify_v78_0_19_language_focus_currency_closure.py
+python -X utf8 .\tools\verify_v77_0_9_vietnamese_ui_maintenance_completion.py
+```
+
+Stable tag target remains `v78.0.19`. Run the normal Windows lint/build, Docker and Browser E2E gates again on this rebuilt source before running `scripts\release.ps1 v78.0.19`.
+
+## V78.0.19 - Language / Focus / Currency Closure
+
+V78.0.19 closes the user-visible regressions found after V78.0.18 without changing the database schema. Pointer clicks no longer receive the rose keyboard-focus ring: `.input` uses `:focus-visible`, while the global keyboard focus indicator remains intact for accessibility. VND presentation is normalized so the currency unit is always rendered after the number in both VI and EN sessions.
+
+The VI↔EN contract is tightened around controlled system vocabulary that had previously been protected too broadly as business data. Movie genre and language reference values now keep their raw API/filter values while rendering localized labels, including movie cards and movie details. Security alerts generated by CineBooking-owned templates and Command Center attention titles are localized semantically in EN. User-authored/support/incident text, cinema names, movie titles, asset names, locations, IDs, and other true business payloads remain untranslated by design.
+
+The patch also adds the missing standalone `Doanh thu` → `Revenue` catalog entry, removes remaining direct VND `Intl.NumberFormat(...currency...)` presentation formatters in favor of the shared suffix formatter, and adds a dedicated verifier covering the reported screenshots, controlled-vocabulary boundaries, focus behavior, currency placement, and forward-compatible V78 lineage.
+
+### Verify V78.0.19
+
+```powershell
+python -X utf8 .\tools\verify_v78_0_19_language_focus_currency_closure.py
+```
+
+V78.0.19 remains no-schema on Flyway V72. Service Worker generation advances to `v78-0-19`; the visible V78 Admin surface reports `V78.0.19`.
+
 ## V78.0.18 - Full-Suite Operational Read Stability
 
 V78.0.17 closed the `/admin/bookings` language boundary and then passed the focused V78 browser journey `1/1` in 4.3 minutes on Windows. The following full 47-test run finished `44/47`: Observability V65 stayed on `Đang tải SLO...` instead of receiving the real SLO payload, while Command Center V53 and Operations Control V58/V59 never reached their real summary/snapshot surfaces within the historical 15-second locator window. These are the same authenticated read-heavy surfaces first protected in V77.0.52, but sustained V78 full-route language work now makes the old generic 12-second deadline / 3.5-second attempt budget too aggressive for their aggregate database reads.
@@ -8428,3 +8468,90 @@ powershell -ExecutionPolicy Bypass -File .\tools\recover-stable-release.ps1 v78.
 ```
 
 Do not recreate, move, delete, or force-push `v78.0.18`, and do not rerun the stable release command for the already-created tag.
+
+
+## V78.0.19-R3 - Table Center / EN Dynamic Copy / Inventory E2E Closure
+
+V78.0.19-R3 is a rebuilt release candidate for the same stable target `v78.0.19`; no new Flyway migration or semver tag is introduced. R3 closes the remaining screenshot/runtime issues reported after R2.
+
+- Centers both headers and body content for every application table through the shared `.app-main table th/td` contract.
+- Localizes dynamic recommendation profile summaries, reasons, matched genres, and movie-language vocabulary on the Home personalized surface while preserving movie titles as business data.
+- Localizes known CineBooking-owned maintenance work-order templates (`Cân chỉnh máy chiếu ...` and its deterministic description) without machine-translating arbitrary staff-authored work orders.
+- Localizes the controlled `Phòng NN` auditorium prefix as `Room NN` on Admin Bookings, Showtimes, and Maintenance while preserving cinema/movie/customer names.
+- Fixes the mixed `139 đặt vé · 139 tickets` Performance row by giving dynamic booking/ticket nouns explicit VI/EN ownership.
+- Hardens V48 inventory bootstrap with the sustained operational-read profile, retries transient empty branch snapshots, and aligns the E2E poll timeout with that bounded retry window. This addresses the attached full-suite failure where `inventory-cinema-select` reported 0 options after 15 seconds.
+- Keeps Flyway at V72 and preserves the R2/V78.0.19/V78.0.18 verifier lineage.
+
+### Verify V78.0.19-R3
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v78_0_19_r3_table_center_language_inventory_closure.py
+```
+
+After source verification, rerun Windows lint/build, Docker health, the focused V78 language journey, and the full Chromium suite before invoking `scripts/release.ps1 v78.0.19`.
+
+## V78.0.19-R4 - Language / Table Center / Release Whitespace Closure
+
+V78.0.19-R4 is another rebuilt release candidate for the same stable target `v78.0.19`; it adds no Flyway migration and does not create a new immutable semver tag. It closes the remaining runtime EN/table-alignment screenshots and the staged-whitespace release blocker reported after R3.
+
+- Removes the Home personalized profile sentence beginning `CineBooking ưu tiên ...` entirely, as requested.
+- Translates comma-separated dynamic recommendation genres and the controlled movie-language value in EN recommendation reasons. Movie titles remain business data.
+- Centers both table headers and all nested table-cell content source-wide; table-local `text-left`/`text-right` overrides are removed from every TSX table.
+- Adds explicit EN ownership for `Mã giao dịch` / gateway transaction IDs, `Bởi` -> `By`, and the Admin Booking modal booking-code label.
+- Localizes the backend-owned V68 step-up blocked-action message before it reaches the DOM, while retaining the full-source catalog/legacy bridge fallback.
+- Fixes the attached stable-release failure by normalizing `frontend/lib/system-presentation.ts` to exactly one LF at EOF; the release continues to enforce `git diff --cached --check`.
+- Keeps Flyway V72 and preserves the R3/R2/V78.0.19 historical verifier lineage.
+
+### Verify V78.0.19-R4
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v78_0_19_r4_language_table_release_closure.py
+```
+
+Then rerun lint/build, Docker health, the focused V78 language journey and the full Chromium suite before `scripts/release.ps1 v78.0.19`.
+
+## V78.0.19-R5 - Full EN Presentation / Inventory E2E Closure
+
+V78.0.19-R5 is a rebuilt release candidate for the same stable target `v78.0.19`; it adds no Flyway migration and does not create a new semver tag. R5 closes the remaining runtime English-presentation leaks reported after R4 and replaces the flaky V48 inventory assumption with a deterministic real-API precondition.
+
+- Admin Support owns the dynamic `Hạn SLA` / `Phụ trách` metadata explicitly as `SLA due` / `Assignee` in EN.
+- Auditorium business values remain unchanged in storage, while every audited rendered `Phòng ...` value goes through the controlled `Room ...` presentation helper.
+- Loyalty copy uses `1 point` / plural `points` in EN while preserving `điểm` in VI.
+- Known CineBooking concession seed/catalog names and descriptions have bounded EN presentation copy; unknown/admin-authored product data still falls through unchanged.
+- Payment Production V60 localizes CineBooking-owned MOCK/provider readiness names, blockers, warnings and configuration reasons, including API error-boundary messages, while leaving gateway hosts, IDs and arbitrary provider payloads untouched.
+- The focused V78 browser journey now asserts Support SLA metadata, auditorium prefixes, points, concession names, Payment readiness text and the previous Performance `đặt vé` dynamic leak so these payload categories cannot silently bypass the generic static-literal sweep.
+- The V48 Inventory E2E now provisions two deterministic cinema branches through the real Admin Cinema API when they are missing, waits for `/api/admin/inventory/branches` to expose both branches, and only then exercises the transfer UI. The original `> 1` cinema-option assertion remains intact.
+- Source-wide static VI↔EN ownership and the R4 32-file / 45-table centering contract remain release gates.
+
+### Verify V78.0.19-R5
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v78_0_19_r5_full_en_presentation_inventory_closure.py
+python -X utf8 .\tools\verify_v78_ux_accessibility_pwa_5.py
+```
+
+Then rerun Windows lint/build, Docker health, the focused V78 language journey, the V48 inventory journey and the full Chromium suite. Only after the exact R5 source reaches `47 passed / 0 failed` should `scripts\release.ps1 v78.0.19` publish the stable release.
+
+## V78.0.19-R6 - Lint / Observability Full-Suite Closure
+
+V78.0.19-R6 is a rebuilt release candidate for the same stable target `v78.0.19`; it adds no Flyway migration and does not create a new semver tag. R6 closes the two blockers reported by the exact R5 Windows run: the zero-warning lint gate and the V65 Observability full-suite readiness race.
+
+- Removes the stale `viLabel` import from `frontend/app/booking/[showtimeId]/page.tsx`, so the zero-warning ESLint gate no longer fails on an unused import.
+- Bounds the V65 PostgreSQL/Redis dependency probes with cancellable virtual-thread futures so `/api/admin/observability/summary` cannot remain blocked indefinitely behind a saturated dependency probe during a long browser suite.
+- Preserves the original read-only `SELECT 1` and Redis `PING` dependency checks, existing SLO semantics, and the historical V65 source contract.
+- Adds a deterministic V65 browser precondition that authenticates through the real ADMIN session, polls the real `/api/admin/observability/summary` endpoint until the expected V65 strategy is available, and only then validates the UI `READY` state. The original UI readiness assertion remains intact.
+- Keeps the R5 Inventory real-API bootstrap unchanged; the attached R5 run already proved that focused V48 Inventory and focused V78 language journeys pass.
+- Forward-compatibility audit fixes stale historical source gates that still expected pre-V78 `viLabel` renderers or pre-R5 Inventory setup: V77.0.9, V77.0.12, V77.0.14, V77.0.40, V31.2/V77.0.55, and V77.0.56. Their runtime/business assertions remain fail-closed.
+- Keeps Flyway at V72 and preserves the R5/R4/V78 historical verifier lineage.
+
+### Verify V78.0.19-R6
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+python -X utf8 .\tools\verify_v78_0_19_r6_lint_observability_full_suite_closure.py
+```
+
+Then rerun Windows `npm run lint`, production build, Docker health, the focused V65 Observability journey and the full Chromium suite. Only after the exact R6 source reaches zero lint warnings and `47 passed / 0 failed` should `scripts\release.ps1 v78.0.19` publish the stable release.

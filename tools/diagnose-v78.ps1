@@ -96,6 +96,12 @@ Invoke-Checked 'V78.0.15 full-suite runtime business-data hardening' { python -X
 Invoke-Checked 'V78.0.16 Pricing rule business-data boundary' { python -X utf8 tools/verify_v78_0_16_pricing_rule_business_data_boundary.py }
 Invoke-Checked 'V78.0.17 Admin Booking cinema business-data boundary' { python -X utf8 tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py }
 Invoke-Checked 'V78.0.18 full-suite operational read stability' { python -X utf8 tools/verify_v78_0_18_full_suite_operational_read_stability.py }
+Invoke-Checked 'V78.0.19 language / focus / currency closure' { python -X utf8 tools/verify_v78_0_19_language_focus_currency_closure.py }
+Invoke-Checked 'V78.0.19-R2 table / presentation / release closure' { python -X utf8 tools/verify_v78_0_19_r2_table_language_release_closure.py }
+Invoke-Checked 'V78.0.19-R3 table center / EN dynamic copy / inventory E2E closure' { python -X utf8 tools/verify_v78_0_19_r3_table_center_language_inventory_closure.py }
+Invoke-Checked 'V78.0.19-R4 language / table center / release whitespace closure' { python -X utf8 tools/verify_v78_0_19_r4_language_table_release_closure.py }
+Invoke-Checked 'V78.0.19-R5 full EN presentation / inventory E2E closure' { python -X utf8 tools/verify_v78_0_19_r5_full_en_presentation_inventory_closure.py }
+Invoke-Checked 'V78.0.19-R6 lint / observability full-suite closure' { python -X utf8 tools/verify_v78_0_19_r6_lint_observability_full_suite_closure.py }
 Invoke-Checked 'V78.0.18 post-tag stable-release workflow recovery' { python -X utf8 tools/verify_v78_0_18_post_tag_release_workflow_recovery.py }
 
 Write-Host 'PASS: CineBooking V78 UX / Accessibility / PWA 5.0 source diagnostics completed.' -ForegroundColor Green

@@ -1,5 +1,6 @@
 package com.cinebooking.analyticsbi;
 
+import com.cinebooking.domain.Cinema;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -178,7 +179,7 @@ public class AnalyticsBiService {
                         " coalesce(sum(ss.seat_capacity),0) seat_capacity,coalesce(sum(ss.realized_revenue),0) realized_revenue" +
                         " from show_stats ss join auditorium a on a.id=ss.auditorium_id join cinema c on c.id=a.cinema_id" +
                         " group by c.id,c.name order by realized_revenue desc,tickets_sold desc,c.name",
-                (rs, rowNum) -> cinemaRow(rs.getString("cinema_name"), rs.getLong("completed_showtimes"), rs.getLong("tickets_sold"), rs.getLong("seat_capacity"), money(rs.getBigDecimal("realized_revenue"))),
+                (rs, rowNum) -> cinemaRow(Cinema.cleanDisplayName(rs.getString("cinema_name")), rs.getLong("completed_showtimes"), rs.getLong("tickets_sold"), rs.getLong("seat_capacity"), money(rs.getBigDecimal("realized_revenue"))),
                 Timestamp.from(start), Timestamp.from(end)
         );
     }

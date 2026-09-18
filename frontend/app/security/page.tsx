@@ -2,10 +2,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api, dateTime } from "@/lib/api";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { securityAlertPresentation } from "@/lib/system-presentation";
 import type { SecurityAlertV46, SecurityOverviewV46, TrustedDeviceV46 } from "@/lib/types";
 
 export default function SecurityCenter(){
+  const { language } = usePresentationLanguage();
   const [overview,setOverview]=useState<SecurityOverviewV46|null>(null);
   const [devices,setDevices]=useState<TrustedDeviceV46[]>([]);
   const [alerts,setAlerts]=useState<SecurityAlertV46[]>([]);
@@ -29,7 +32,7 @@ export default function SecurityCenter(){
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div><h2 className="text-xl font-black">Thiết bị tin cậy</h2><p className="mt-1 text-sm text-slate-400">Đánh dấu thiết bị cá nhân để phân biệt với lần đăng nhập từ thiết bị mới.</p></div><div className="flex gap-2"><input aria-label="Nhãn thiết bị tin cậy" className="input" value={label} onChange={e=>setLabel(e.target.value)} placeholder="VD: Laptop cá nhân"/><button disabled={busy} onClick={trust} className="btn btn-primary">Tin cậy thiết bị hiện tại</button></div></div>
       <div className="mt-5 space-y-3">{devices.map(d=><div data-testid="trusted-device" key={d.id} className="rounded-2xl border border-slate-800 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="font-bold">{d.label}</div><div className="mt-1 text-sm text-slate-400">{d.deviceName} · IP gần nhất {d.lastIp||'—'}</div><div className="mt-1 text-xs text-slate-500">Tin cậy {dateTime(d.trustedAt)} · thấy gần nhất {dateTime(d.lastSeenAt)}</div>{!d.active&&<div className="mt-2 text-xs font-bold text-rose-300">Đã thu hồi</div>}</div>{d.active&&<button disabled={busy} className="btn btn-secondary" onClick={()=>revoke(d.id)}>Thu hồi tin cậy</button>}</div></div>)}{!devices.length&&<div className="text-sm text-slate-500">Chưa có thiết bị tin cậy.</div>}</div>
     </section>
-    <section className="card p-6"><h2 className="text-xl font-black">Cảnh báo bảo mật</h2><div className="mt-4 space-y-3">{alerts.map(a=><article data-testid="security-alert" key={a.id} className="rounded-2xl border border-slate-800 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-[10px] font-black ${sev(a.severity)}`}>{viLabel(a.severity)} · RỦI RO {a.riskScore}</span><b>{a.title}</b></div><p className="mt-2 text-sm text-slate-300">{a.details}</p><div className="mt-2 text-xs text-slate-500">{a.deviceName||'—'} · IP {a.ipAddress||'—'} · {dateTime(a.createdAt)}</div>{a.acknowledgedAt&&<div className="mt-2 text-xs font-bold text-emerald-300">Đã xác nhận {dateTime(a.acknowledgedAt)}</div>}</div>{!a.acknowledgedAt&&<button disabled={busy} onClick={()=>ack(a.id)} className="btn btn-secondary">Tôi đã kiểm tra</button>}</div></article>)}{!alerts.length&&<div className="text-sm text-slate-500">Chưa có cảnh báo bảo mật.</div>}</div></section>
+    <section className="card p-6"><h2 className="text-xl font-black">Cảnh báo bảo mật</h2><div className="mt-4 space-y-3">{alerts.map(a=>{const copy=securityAlertPresentation(a.title,a.details||"",language);return <article data-testid="security-alert" key={a.id} className="rounded-2xl border border-slate-800 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className={`rounded-full px-2 py-1 text-[10px] font-black ${sev(a.severity)}`}>{localizedLabel(a.severity,language)} · {language==="en"?"RISK":"RỦI RO"} {a.riskScore}</span><b>{copy.title}</b></div><p className="mt-2 text-sm text-slate-300">{copy.details}</p><div className="mt-2 text-xs text-slate-500">{a.deviceName||'—'} · IP {a.ipAddress||'—'} · {dateTime(a.createdAt)}</div>{a.acknowledgedAt&&<div className="mt-2 text-xs font-bold text-emerald-300">Đã xác nhận {dateTime(a.acknowledgedAt)}</div>}</div>{!a.acknowledgedAt&&<button disabled={busy} onClick={()=>ack(a.id)} className="btn btn-secondary">Tôi đã kiểm tra</button>}</div></article>})}{!alerts.length&&<div className="text-sm text-slate-500">Chưa có cảnh báo bảo mật.</div>}</div></section>
     {msg&&<div className="card p-4 text-sm">{msg}</div>}
   </div>;
 }

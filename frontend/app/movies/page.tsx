@@ -5,6 +5,7 @@ import MovieCard from "@/components/MovieCard";
 import { api } from "@/lib/api";
 import type { Movie } from "@/lib/types";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { movieGenreLabel, movieLanguageLabel } from "@/lib/movie-presentation";
 
 type MovieTab = "now"|"soon"|"all";
 type SortMode = "featured"|"rating"|"release"|"duration"|"title";
@@ -12,7 +13,7 @@ type SortMode = "featured"|"rating"|"release"|"duration"|"title";
 const genreTokens=(value?:string)=>value?.split(/[,/|]/).map(x=>x.trim()).filter(Boolean)??[];
 
 export default function MoviesPage(){
-  const {t}=usePresentationLanguage();
+  const {t,language:uiLanguage}=usePresentationLanguage();
   const [movies,setMovies]=useState<Movie[]>([]);
   const [q,setQ]=useState("");
   const [tab,setTab]=useState<MovieTab>("now");
@@ -62,8 +63,8 @@ export default function MoviesPage(){
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
         <label className="xl:col-span-2"><span data-testid="movies-search-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Tìm phim","Search movies")}</span><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder={t("Tên phim, mô tả, thể loại...","Movie title, description, genre...")}/></label>
-        <label><span data-testid="movies-genre-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Thể loại","Genre")}</span><select className="input" value={genre} onChange={e=>setGenre(e.target.value)}><option value="all">{t("Tất cả thể loại","All genres")}</option>{genres.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
-        <label><span data-testid="movies-language-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Ngôn ngữ","Language")}</span><select className="input" value={language} onChange={e=>setLanguage(e.target.value)}><option value="all">{t("Tất cả ngôn ngữ","All languages")}</option>{languages.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
+        <label><span data-testid="movies-genre-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Thể loại","Genre")}</span><select className="input" value={genre} onChange={e=>setGenre(e.target.value)}><option value="all">{t("Tất cả thể loại","All genres")}</option>{genres.map(x=><option key={x} value={x}>{movieGenreLabel(x,uiLanguage)}</option>)}</select></label>
+        <label><span data-testid="movies-language-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Ngôn ngữ","Language")}</span><select className="input" value={language} onChange={e=>setLanguage(e.target.value)}><option value="all">{t("Tất cả ngôn ngữ","All languages")}</option>{languages.map(x=><option key={x} value={x}>{movieLanguageLabel(x,uiLanguage)}</option>)}</select></label>
         <label><span data-testid="movies-rating-label" className="mb-1 block text-xs font-semibold text-slate-400">{t("Phân loại","Rating")}</span><select className="input" value={rating} onChange={e=>setRating(e.target.value)}><option value="all">{t("Tất cả phân loại","All ratings")}</option>{ratings.map(x=><option key={x} value={x} data-i18n-skip="true">{x}</option>)}</select></label>
       </div>
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-slate-800 pt-4">

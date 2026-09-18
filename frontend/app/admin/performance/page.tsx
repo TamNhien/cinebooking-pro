@@ -16,7 +16,7 @@ function Delta({value}:{value:number|null}){
 }
 
 export default function PerformanceBenchmarkingV54(){
-  usePresentationLanguage();
+  const { t } = usePresentationLanguage();
   const [me,setMe]=useState<UserProfile|null>(null);
   const [cinemas,setCinemas]=useState<PerformanceCinemaV54[]>([]);
   const [cinemaId,setCinemaId]=useState("");
@@ -96,15 +96,15 @@ export default function PerformanceBenchmarkingV54(){
       <section className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
         <div className="card overflow-hidden" data-testid="performance-branches-v54">
           <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Xếp hạng rạp theo doanh thu</h2><p className="mt-1 text-sm text-slate-500">Thứ hạng là thứ tự doanh thu trong đúng cửa sổ đang chọn; tỷ trọng và chênh lệch đều được tính từ giao dịch THÀNH CÔNG thực tế.</p></div>
-          <div className="overflow-x-auto"><table className="w-full min-w-[780px] text-sm"><thead className="bg-slate-950/60 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">#</th><th className="p-3">Rạp</th><th className="p-3 text-right">Doanh thu</th><th className="p-3 text-right">Δ kỳ trước</th><th className="p-3 text-right">Tỷ trọng</th><th className="p-3 text-right">Tỷ lệ lấp đầy</th><th className="p-3 text-right">Dự báo 7 ngày</th></tr></thead><tbody>
-            {data.branches.map(b=><tr key={b.cinemaId} className="border-t border-slate-800"><td className="p-3 font-black">{b.revenueRank}</td><td className="p-3"><div className="font-semibold">{b.cinemaName}</div><div className="text-xs text-slate-500">{number(b.bookings)} đặt vé · {number(b.tickets)} vé</div></td><td className="p-3 text-right font-semibold">{currency(b.revenue)}</td><td className="p-3 text-right"><Delta value={b.revenueDeltaPct}/></td><td className="p-3 text-right">{b.revenueSharePct.toFixed(1)}%</td><td className="p-3 text-right">{b.occupancyRate.toFixed(1)}%</td><td className="p-3 text-right">{currency(b.forecastNext7d)}</td></tr>)}
+          <div className="overflow-x-auto"><table className="w-full min-w-[780px] text-sm"><thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-500"><tr><th className="p-3">#</th><th className="p-3">Rạp</th><th className="p-3">Doanh thu</th><th className="p-3">Δ kỳ trước</th><th className="p-3">Tỷ trọng</th><th className="p-3">Tỷ lệ lấp đầy</th><th className="p-3">Dự báo 7 ngày</th></tr></thead><tbody>
+            {data.branches.map(b=><tr key={b.cinemaId} className="border-t border-slate-800"><td className="p-3 font-black">{b.revenueRank}</td><td className="p-3"><div className="font-semibold">{b.cinemaName}</div><div className="text-xs text-slate-500">{number(b.bookings)} {t("đặt vé","bookings")} · {number(b.tickets)} {t("vé","tickets")}</div></td><td className="p-3 font-semibold">{currency(b.revenue)}</td><td className="p-3"><Delta value={b.revenueDeltaPct}/></td><td className="p-3">{b.revenueSharePct.toFixed(1)}%</td><td className="p-3">{b.occupancyRate.toFixed(1)}%</td><td className="p-3">{currency(b.forecastNext7d)}</td></tr>)}
           </tbody></table></div>
         </div>
 
         <div className="card p-5 sm:p-6">
           <h2 className="text-xl font-bold">Hàng đầu phim theo doanh thu</h2>
           <div className="mt-4 space-y-3" data-testid="performance-top-movies-v54">
-            {data.topMovies.length?data.topMovies.map((m,i)=><div key={m.movieId} className="rounded-xl border border-slate-800 p-3"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{i+1}. {m.movieTitle}</div><div className="text-xs text-slate-500">{number(m.tickets)} vé</div></div><div className="shrink-0 text-sm font-bold">{currency(m.revenue)}</div></div></div>):<div className="rounded-xl border border-slate-800 p-4 text-sm text-slate-500">Chưa có doanh thu SUCCESS trong kỳ.</div>}
+            {data.topMovies.length?data.topMovies.map((m,i)=><div key={m.movieId} className="rounded-xl border border-slate-800 p-3"><div className="flex items-center justify-between gap-3"><div className="min-w-0"><div className="truncate font-semibold">{i+1}. {m.movieTitle}</div><div className="text-xs text-slate-500">{number(m.tickets)} {t("vé","tickets")}</div></div><div className="shrink-0 text-sm font-bold">{currency(m.revenue)}</div></div></div>):<div className="rounded-xl border border-slate-800 p-4 text-sm text-slate-500">Chưa có doanh thu SUCCESS trong kỳ.</div>}
           </div>
           <div className="mt-5 rounded-xl border border-sky-500/20 bg-sky-500/5 p-4"><div className="text-xs uppercase tracking-wider text-sky-300">Dự báo 7 ngày</div><div className="mt-1 text-2xl font-black">{currency(data.forecastNext7d)}</div><div className="mt-1 text-xs text-slate-500">Tổng dự báo V51 có trọng số theo thứ trong tuần của các rạp trong phạm vi.</div></div>
         </div>

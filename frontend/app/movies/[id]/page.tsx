@@ -8,13 +8,15 @@ import StarRating from "@/components/StarRating";
 import MovieCard from "@/components/MovieCard";
 import type { Movie, MovieReview, RecommendationItem, Showtime } from "@/lib/types";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { movieGenreLabel, movieLanguageLabel } from "@/lib/movie-presentation";
+import { auditoriumDisplayName } from "@/lib/system-presentation";
 
 const dateLabel=(v:string,locale:string)=>new Intl.DateTimeFormat(locale,{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(v));
 const localDateKey=(v:string)=>{const d=new Date(v);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const timeLabel=(v:string,locale:string)=>new Intl.DateTimeFormat(locale,{hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(v));
 
 export default function MoviePage({params}:{params:Promise<{id:string}>}){
-  const { locale } = usePresentationLanguage();
+  const { locale, language } = usePresentationLanguage();
   const {id}=use(params); const [movie,setMovie]=useState<Movie|null>(null); const [showtimes,setShowtimes]=useState<Showtime[]>([]); const [reviews,setReviews]=useState<MovieReview[]>([]); const [similar,setSimilar]=useState<RecommendationItem[]>([]); const [favorite,setFavorite]=useState(false); const [error,setError]=useState("");
   const [stars,setStars]=useState(5); const [comment,setComment]=useState(""); const [saving,setSaving]=useState(false); const [selectedDate,setSelectedDate]=useState(""); const auth=getAuth();
   async function loadCoreMovie(){
@@ -70,7 +72,7 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
     <section className="movie-detail-hero">
       <img src={movie.posterUrl || "/icon.svg"} alt={movie.title} className="movie-detail-poster"/>
       <div className="min-w-0">
-        <div className="flex flex-wrap gap-2"><span className="rating-badge static">{movie.rating||"P"}</span>{movie.genre&&<span className="meta-badge">{movie.genre}</span>}{movie.language&&<span className="meta-badge">{movie.language}</span>}</div>
+        <div className="flex flex-wrap gap-2"><span className="rating-badge static">{movie.rating||"P"}</span>{movie.genre&&<span className="meta-badge">{movieGenreLabel(movie.genre,language)}</span>}{movie.language&&<span className="meta-badge">{movieLanguageLabel(movie.language,language)}</span>}</div>
         <h1 className="mt-4 text-3xl font-bold md:text-5xl" data-testid="movie-detail-title-v7815" data-i18n-skip="true">{movie.title}</h1>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-400"><span>⏱ {movie.durationMinutes} phút</span>{movie.releaseDate&&<span>📅 Khởi chiếu {new Intl.DateTimeFormat(locale).format(new Date(`${movie.releaseDate}T00:00:00`))}</span>}<span className="flex items-center gap-2"><span className="text-amber-400">★</span><b className="text-white">{movie.averageRating.toFixed(1)}</b> / 5 · {movie.reviewCount} đánh giá</span></div>
         <p className="mt-6 max-w-3xl leading-7 text-slate-300">{movie.description||"Thông tin phim đang được cập nhật."}</p>
@@ -80,7 +82,7 @@ export default function MoviePage({params}:{params:Promise<{id:string}>}){
 
     <section><div className="section-heading"><div><p className="section-kicker">LỊCH CHIẾU</p><h2>Chọn ngày, rạp và suất chiếu</h2><p className="mt-2 text-sm text-slate-400">Lịch được gom theo ngày để bạn không phải cuộn qua hàng chục ngày suất chiếu.</p></div></div>
       {showtimeDates.length>0&&<div className="card mb-5 space-y-4 p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div className="text-sm text-slate-400">{selectedDate&&<>Đang xem <b className="capitalize text-white">{dateLabel(`${selectedDate}T00:00:00`,locale)}</b> · <b className="text-white">{selectedShows.length}</b> suất</>}</div><label className="w-full sm:w-auto sm:min-w-52"><span className="mb-1 block text-xs font-semibold text-slate-400">Chọn ngày</span><input type="date" className="input" min={showtimeDates[0]} max={showtimeDates[showtimeDates.length-1]} value={selectedDate} onChange={e=>showtimeDates.includes(e.target.value)&&setSelectedDate(e.target.value)}/></label></div><div className="flex gap-2 overflow-x-auto pb-2">{showtimeDates.map(d=><button key={d} type="button" onClick={()=>setSelectedDate(d)} className={`date-chip shrink-0 ${selectedDate===d?"active":""}`}>{new Intl.DateTimeFormat(locale,{weekday:"short",day:"2-digit",month:"2-digit"}).format(new Date(`${d}T00:00:00`))}</button>)}</div></div>}
-      <div className="space-y-4">{grouped.map(items=>{const first=items[0];return <div className="card p-5" key={first.cinemaId}><div><h3 className="text-lg font-bold" data-testid="movie-detail-cinema-v7815" data-i18n-skip="true">{first.cinemaName}</h3><p className="text-sm text-slate-400">{first.cinemaAddress}</p></div><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link href={`/booking/${s.id}`} key={s.id} className="showtime-chip"><b>{timeLabel(s.startTime,locale)}</b><small>{s.auditoriumName}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>})}</div>
+      <div className="space-y-4">{grouped.map(items=>{const first=items[0];return <div className="card p-5" key={first.cinemaId}><div><h3 className="text-lg font-bold" data-testid="movie-detail-cinema-v7815" data-i18n-skip="true">{first.cinemaName}</h3><p className="text-sm text-slate-400">{first.cinemaAddress}</p></div><div className="mt-4 flex flex-wrap gap-3">{items.sort((a,b)=>a.startTime.localeCompare(b.startTime)).map(s=><Link href={`/booking/${s.id}`} key={s.id} className="showtime-chip"><b>{timeLabel(s.startTime,locale)}</b><small>{auditoriumDisplayName(s.auditoriumName, language)}</small><small>{currency(s.basePrice)}</small></Link>)}</div></div>})}</div>
       {!showtimes.length&&<div className="empty-state">Chưa có suất chiếu sắp tới.</div>}
       {showtimes.length>0&&!grouped.length&&<div className="empty-state">Chưa có suất chiếu cho ngày đã chọn.</div>}
     </section>

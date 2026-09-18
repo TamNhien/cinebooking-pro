@@ -7,6 +7,7 @@
  * data-i18n-skip boundaries and is never machine-translated.
  */
 export const V78_0_13_PRESENTATION_UI_EN: Record<string, string> = {
+  "Doanh thu": "Revenue",
   "Tiếng Việt": "Vietnamese",
   "Trung tâm hỗ trợ khách hàng": "Customer Support Center",
   "Tạo yêu cầu mới": "Create new request",
@@ -523,4 +524,8 @@ export const V78_0_13_PRESENTATION_UI_EN: Record<string, string> = {
   "THÀNH VIÊN": "MEMBER",
   "Xoá đánh giá": "Delete review",
   "Chia sẻ cảm nhận của bạn về bộ phim...": "Share your thoughts about the movie...",
+  "Check-in thủ công thành công.": "Manual check-in completed successfully.",
+  "Soát vé thành công.": "Check-in completed successfully.",
+  "Soát vé vé thành công.": "Check-in completed successfully.",
+  "Chỉ hiển thị tín hiệu có số lượng > 0; không tạo cảnh báo giả.": "Only signals with a count above 0 are shown; no synthetic alerts are created.",
 };

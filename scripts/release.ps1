@@ -202,6 +202,12 @@ if (-not $SkipVerify) {
     'tools/verify_v78_0_16_pricing_rule_business_data_boundary.py',
     'tools/verify_v78_0_17_admin_booking_cinema_business_data_boundary.py',
     'tools/verify_v78_0_18_full_suite_operational_read_stability.py',
+    'tools/verify_v78_0_19_language_focus_currency_closure.py',
+    'tools/verify_v78_0_19_r2_table_language_release_closure.py',
+    'tools/verify_v78_0_19_r3_table_center_language_inventory_closure.py',
+    'tools/verify_v78_0_19_r4_language_table_release_closure.py',
+    'tools/verify_v78_0_19_r5_full_en_presentation_inventory_closure.py',
+    'tools/verify_v78_0_19_r6_lint_observability_full_suite_closure.py',
     'tools/verify_v78_0_18_post_tag_release_workflow_recovery.py',
     'tools/verify_realistic_data_57.py',
     'tools/verify_seed_demo_57.py'

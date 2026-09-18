@@ -39,17 +39,17 @@ ok('"/admin/ux-accessibility-pwa"' in e2e,
    "V78 browser sweep covers the visible V78 Admin surface")
 ok('admin-ux-accessibility-pwa-v78' in e2e and 'toHaveAttribute("href", "/admin/ux-accessibility-pwa")' in e2e,
    "Focused V78 journey proves the dashboard V78 entry")
-ok('data-testid="inventory-product-name-v7807" data-i18n-skip="true">{p.name}</h3>' in inventory,
-   "Inventory product-card names use an exact business-data boundary")
-ok('data-testid="inventory-movement-product-name-v7807" data-i18n-skip="true">{m.productName}</h3>' in inventory,
-   "Inventory mobile movement product names use an exact business-data boundary")
+ok(('data-testid="inventory-product-name-v7807" data-i18n-skip="true">{p.name}</h3>' in inventory) or ('data-testid="inventory-product-name-v7807">{concessionProductName(p.name,language)}</h3>' in inventory),
+   "Inventory product-card names preserve business data or localize only controlled concession vocabulary")
+ok(('data-testid="inventory-movement-product-name-v7807" data-i18n-skip="true">{m.productName}</h3>' in inventory) or ('data-testid="inventory-movement-product-name-v7807" data-i18n-skip="true">{concessionProductName(m.productName,language)}</h3>' in inventory),
+   "Inventory mobile movement names preserve raw business data or controlled concession localization")
 ok(not re.search(r'data-testid="inventory-product-card"[^>]*data-i18n-skip="true"', inventory),
    "Inventory product cards are not globally exempted from the language sweep")
-ok('inventory-product-name-v7807' in e2e and 'toHaveAttribute("data-i18n-skip", "true")' in e2e,
-   "Focused V78 journey proves the product-name business boundary")
+ok('inventory-product-name-v7807' in e2e and (('toHaveAttribute("data-i18n-skip", "true")' in e2e) or ('not.toHaveAttribute("data-i18n-skip", "true")' in e2e and 'concessionProductName' in inventory)),
+   "Focused V78 journey proves either raw product boundaries or controlled concession localization")
 ok('data-testid="inventory-v48"' in inventory and not re.search(r'data-testid="inventory-v48"[^>]*data-i18n-skip="true"', inventory),
    "Inventory root remains fail-closed")
-ok(any(x in sw for x in ['const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
    "Service Worker generation is V78.0.7 or forward-compatible V78.0.8")
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -61,7 +61,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.7 verifier")
 ok('verify-v78-0-7' in make and 'release-v78-0-7' in make,
    "Makefile exposes V78.0.7 verify/release lifecycle")
-ok(any(x in readme for x in ['Current release:** V78.0.7','Current release:** V78.0.8','Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18']) and 'V78.0.7' in readme and 'V78 Visibility / Inventory Product Business-Data Boundaries' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.7','Current release:** V78.0.8','Current release:** V78.0.9','Current release:** V78.0.10','Current release:** V78.0.11','Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and 'V78.0.7' in readme and 'V78 Visibility / Inventory Product Business-Data Boundaries' in readme,
    "README preserves V78.0.7 visibility and inventory product-boundary fix under forward release metadata")
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],
    "Source keeps one consolidated root README.md")

@@ -3,6 +3,7 @@ import { clearAuth, getAuth, setAuth, token } from "./auth";
 import type { AuthResponse } from "./types";
 import { stepUpToken } from "./step-up";
 import { presentationLocale } from "./presentation-locale";
+import { paymentPresentationCopy } from "./payment-presentation";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 let refreshPromise: Promise<AuthResponse | null> | null = null;
@@ -66,6 +67,20 @@ async function parseError(res: Response) {
   return msg;
 }
 
+const API_MESSAGE_EN: Record<string, string> = {
+  "Thao tác nhạy cảm yêu cầu xác thực tăng cường V68. Hãy mở Security & Identity, nhập lại mật khẩu Admin rồi thử lại.":
+    "This sensitive action requires V68 step-up authentication. Open Security & Identity, re-enter the Admin password, then try again.",
+  "Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại.":
+    "Your session has expired or been revoked. Please sign in again.",
+  "Bạn không có quyền thực hiện thao tác này.":
+    "You do not have permission to perform this action.",
+};
+
+function localizedApiMessage(message: string): string {
+  if (typeof document === "undefined" || document.documentElement.lang !== "en") return message;
+  return API_MESSAGE_EN[message] ?? paymentPresentationCopy(message, "en");
+}
+
 async function refreshAccessToken(): Promise<AuthResponse | null> {
   if (!getAuth()) return null;
   if (refreshPromise) return refreshPromise;
@@ -106,7 +121,7 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });
   if (!res.ok) {
-    const msg = await parseError(res);
+    const msg = localizedApiMessage(await parseError(res));
     const isAuthEndpoint = path.startsWith("/auth/login") || path.startsWith("/auth/register") || path.startsWith("/auth/refresh") || path.startsWith("/auth/forgot-password") || path.startsWith("/auth/reset-password");
     if (res.status === 401 && retry && !isAuthEndpoint && getAuth()) {
       const refreshed = await refreshAccessToken();
@@ -114,9 +129,9 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
     }
     if (res.status === 401 && !isAuthEndpoint) {
       clearAuth();
-      throw new ApiError(res.status, "Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại.");
+      throw new ApiError(res.status, localizedApiMessage("Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại."));
     }
-    if (res.status === 403) throw new ApiError(res.status, msg || "Bạn không có quyền thực hiện thao tác này.");
+    if (res.status === 403) throw new ApiError(res.status, msg || localizedApiMessage("Bạn không có quyền thực hiện thao tác này."));
     throw new ApiError(res.status, msg);
   }
 
@@ -135,16 +150,16 @@ export async function apiBlob(path: string, init: RequestInit = {}, retry = true
   await addClientIdentity(headers);
   const res = await fetch(`${BASE}${path}`, { ...init, headers, credentials: "include", cache: "no-store" });
   if (!res.ok) {
-    const msg = await parseError(res);
+    const msg = localizedApiMessage(await parseError(res));
     if (res.status === 401 && retry && getAuth()) {
       const refreshed = await refreshAccessToken();
       if (refreshed) return apiBlob(path, init, false);
     }
     if (res.status === 401) {
       clearAuth();
-      throw new ApiError(res.status, "Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại.");
+      throw new ApiError(res.status, localizedApiMessage("Phiên đăng nhập đã hết hạn hoặc đã bị thu hồi. Vui lòng đăng nhập lại."));
     }
-    if (res.status === 403) throw new ApiError(res.status, msg || "Bạn không có quyền thực hiện thao tác này.");
+    if (res.status === 403) throw new ApiError(res.status, msg || localizedApiMessage("Bạn không có quyền thực hiện thao tác này."));
     throw new ApiError(res.status, msg);
   }
   return res.blob();
@@ -178,7 +193,7 @@ export async function logoutSession() {
 }
 
 
-export const currency = (v: number, locale = presentationLocale()) =>
-  new Intl.NumberFormat(locale, { style: "currency", currency: "VND" }).format(v);
+export const currency = (v: number, locale: string = presentationLocale()) =>
+  `${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(v)} ₫`;
 export const dateTime = (v: string, locale = presentationLocale()) =>
   new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(v));

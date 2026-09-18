@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api, currency, dateTime } from "@/lib/api";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
 import { clearAuth, getAuth } from "@/lib/auth";
 import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import type { CommandCenterCinemaV53, CommandCenterSummaryV53, UserProfile } from "@/lib/types";
 import { presentationLocale } from "@/lib/presentation-locale";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { commandCenterAttentionTitle } from "@/lib/system-presentation";
 
 const number=(v:number)=>new Intl.NumberFormat(presentationLocale()).format(v||0);
 
@@ -18,7 +19,7 @@ function StatusBadge({status}:{status:CommandCenterSummaryV53["status"]}){
 }
 
 export default function OperationsCommandCenterV53(){
-  usePresentationLanguage();
+  const { language, t } = usePresentationLanguage();
   const [me,setMe]=useState<UserProfile|null>(null);
   const [cinemas,setCinemas]=useState<CommandCenterCinemaV53[]>([]);
   const [cinemaId,setCinemaId]=useState("");
@@ -98,10 +99,10 @@ export default function OperationsCommandCenterV53(){
 
       <section className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
         <div className="card p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Cần chú ý</h2><p className="mt-1 text-sm text-slate-500">Chỉ hiển thị tín hiệu có số lượng &gt; 0; không tạo cảnh báo giả.</p></div><span className="text-sm text-slate-400">{data.cinemaName}</span></div>
+          <div className="flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Cần chú ý</h2><p className="mt-1 text-sm text-slate-500">{t("Chỉ hiển thị tín hiệu có số lượng > 0; không tạo cảnh báo giả.","Only signals with a count above 0 are shown; no synthetic alerts are created.")}</p></div><span className="text-sm text-slate-400">{data.cinemaName}</span></div>
           <div className="mt-5 space-y-3" data-testid="command-center-attention-v53">
             {data.attention.length?data.attention.map(item=><a key={`${item.domain}-${item.title}`} href={item.href} className="block rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600">
-              <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{viLabel(item.severity)} · {viLabel(item.domain)}</div><div className="mt-1 font-semibold">{item.title}</div></div><div className="rounded-xl bg-slate-800 px-3 py-1 text-lg font-black">{number(item.count)}</div></div>
+              <div className="flex items-start justify-between gap-4"><div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{localizedLabel(item.severity,language)} · {localizedLabel(item.domain,language)}</div><div className="mt-1 font-semibold">{commandCenterAttentionTitle(item.title,language)}</div></div><div className="rounded-xl bg-slate-800 px-3 py-1 text-lg font-black">{number(item.count)}</div></div>
             </a>):<div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm text-emerald-200">Không có tín hiệu cần xử lý trong các miền nghiệp vụ V53 đang tổng hợp.</div>}
           </div>
         </div>

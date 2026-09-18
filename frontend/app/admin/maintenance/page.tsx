@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { withTransientReadRetry } from "@/lib/transient-read";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import { getAuth } from "@/lib/auth";
+import { auditoriumDisplayName, maintenanceAssetName, maintenanceWorkOrderPresentation } from "@/lib/system-presentation";
 import {
   maintenanceAssetStatusOptions,
   maintenanceCategoryOptions,
@@ -487,16 +488,16 @@ export default function MaintenancePage() {
           </div>
           <div className="mt-4 hidden 2xl:block">
             <table className="w-full table-fixed text-sm">
-              <thead className="text-left text-slate-400"><tr><th className="w-[15%] p-2">{t("Mã", "Code")}</th><th className="w-[25%] p-2">{t("Thiết bị", "Equipment")}</th><th className="w-[20%] p-2">{t("Vị trí", "Location")}</th><th className="w-[16%] p-2">{t("Trạng thái", "Status")}</th><th className="w-[16%] p-2">{t("Bảo trì kế tiếp", "Next maintenance")}</th><th className="w-[8%]" /></tr></thead>
+              <thead className="text-slate-400"><tr><th className="w-[15%] p-2">{t("Mã", "Code")}</th><th className="w-[25%] p-2">{t("Thiết bị", "Equipment")}</th><th className="w-[20%] p-2">{t("Vị trí", "Location")}</th><th className="w-[16%] p-2">{t("Trạng thái", "Status")}</th><th className="w-[16%] p-2">{t("Bảo trì kế tiếp", "Next maintenance")}</th><th className="w-[8%]" /></tr></thead>
               <tbody>
                 {selectedAssets.map((asset) => (
                   <tr key={asset.id} data-testid="maintenance-asset-row" className="border-t border-slate-800 align-top">
                     <td className="break-all p-2 font-mono">{asset.assetCode}</td>
-                    <td className="p-2"><b data-testid="maintenance-asset-name-table-v7812" data-i18n-skip="true" className="break-words">{asset.name}</b><div className="break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</div></td>
-                    <td className="break-words p-2">{asset.auditoriumName || t("Dùng chung rạp", "Shared by cinema")}</td>
+                    <td className="p-2"><b data-testid="maintenance-asset-name-table-v7812" data-i18n-skip="true" className="break-words">{maintenanceAssetName(asset.name,language)}</b><div className="break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</div></td>
+                    <td className="break-words p-2">{asset.auditoriumName ? auditoriumDisplayName(asset.auditoriumName, language) : t("Dùng chung rạp", "Shared by cinema")}</td>
                     <td className="p-2"><span className={`inline-block rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{localizedLabel(asset.status, language)}</span></td>
                     <td className="p-2">{asset.nextServiceDue || "-"}</td>
-                    <td className="p-2 text-right"><button className="btn btn-secondary !px-3" onClick={() => editAsset(asset)}>{t("Sửa", "Edit")}</button></td>
+                    <td className="p-2"><button className="btn btn-secondary !px-3" onClick={() => editAsset(asset)}>{t("Sửa", "Edit")}</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -505,8 +506,8 @@ export default function MaintenancePage() {
           <div className="mt-4 grid gap-3 2xl:hidden" data-testid="maintenance-asset-cards">
             {selectedAssets.map((asset) => (
               <article key={asset.id} data-testid="maintenance-asset-card" className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="break-all font-mono text-xs text-slate-400">{asset.assetCode}</div><h3 data-testid="maintenance-asset-name-card-v7812" data-i18n-skip="true" className="mt-1 break-words font-bold">{asset.name}</h3><p className="mt-1 break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</p></div><span className={`rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{localizedLabel(asset.status, language)}</span></div>
-                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><div><span className="text-slate-500">{t("Vị trí", "Location")}: </span><span className="break-words">{asset.auditoriumName || t("Dùng chung rạp", "Shared by cinema")}</span></div><div><span className="text-slate-500">{t("Bảo trì kế tiếp", "Next maintenance")}: </span>{asset.nextServiceDue || "-"}</div></div>
+                <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><div className="break-all font-mono text-xs text-slate-400">{asset.assetCode}</div><h3 data-testid="maintenance-asset-name-card-v7812" data-i18n-skip="true" className="mt-1 break-words font-bold">{maintenanceAssetName(asset.name,language)}</h3><p className="mt-1 break-words text-xs text-slate-500">{localizedLabel(asset.category, language)}{asset.serialNumber ? ` · ${asset.serialNumber}` : ""}</p></div><span className={`rounded px-2 py-1 text-xs ${asset.status === "OPERATIONAL" ? "bg-emerald-950 text-emerald-200" : asset.status === "OUT_OF_SERVICE" ? "bg-red-950 text-red-200" : "bg-amber-950 text-amber-200"}`}>{localizedLabel(asset.status, language)}</span></div>
+                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2"><div><span className="text-slate-500">{t("Vị trí", "Location")}: </span><span className="break-words">{asset.auditoriumName ? auditoriumDisplayName(asset.auditoriumName, language) : t("Dùng chung rạp", "Shared by cinema")}</span></div><div><span className="text-slate-500">{t("Bảo trì kế tiếp", "Next maintenance")}: </span>{asset.nextServiceDue || "-"}</div></div>
                 <button className="btn btn-secondary mt-3 w-full sm:w-auto" onClick={() => editAsset(asset)}>{t("Sửa", "Edit")}</button>
               </article>
             ))}
@@ -531,7 +532,7 @@ export default function MaintenancePage() {
           </div>
           <select aria-label={t("Thiết bị của phiếu bảo trì", "Work-order equipment")} className="input" value={orderForm.assetId} onChange={(event) => { const asset = assets.find((item) => item.id === event.target.value); setOrderForm({ ...orderForm, assetId: event.target.value, auditoriumId: asset?.auditoriumId || orderForm.auditoriumId }); }}>
             <option value="">{t("Không gắn thiết bị", "No equipment assigned")}</option>
-            {assets.map((asset) => <option key={asset.id} value={asset.id} data-i18n-skip="true">{asset.assetCode} · {asset.name}</option>)}
+            {assets.map((asset) => <option key={asset.id} value={asset.id} data-i18n-skip="true">{asset.assetCode} · {maintenanceAssetName(asset.name,language)}</option>)}
           </select>
           <select aria-label={t("Phòng của phiếu bảo trì", "Work-order auditorium")} className="input" value={orderForm.auditoriumId} onChange={(event) => setOrderForm({ ...orderForm, auditoriumId: event.target.value })}>
             <option value="">{t("Không gắn phòng", "No auditorium assigned")}</option>
@@ -548,20 +549,21 @@ export default function MaintenancePage() {
         <section className="card p-5">
           <div><h2 className="text-xl font-bold">{t("Phiếu bảo trì", "Maintenance work orders")}</h2><p className="text-sm text-slate-500">{t(`${orders.filter((order) => openStatuses.has(order.status)).length} đang mở · ${orders.filter((order) => order.overdue).length} quá hạn.`, `${orders.filter((order) => openStatuses.has(order.status)).length} open · ${orders.filter((order) => order.overdue).length} overdue.`)}</p></div>
           <div className="mt-4 space-y-3">
-            {orders.map((order) => (
-              <div key={order.id} data-testid="maintenance-work-order" className={`rounded-xl border p-4 ${order.overdue ? "border-red-800 bg-red-950/20" : "border-slate-800"}`}>
+            {orders.map((order) => {
+              const orderCopy = maintenanceWorkOrderPresentation(order.title, order.description, language);
+              return <div key={order.id} data-testid="maintenance-work-order" className={`rounded-xl border p-4 ${order.overdue ? "border-red-800 bg-red-950/20" : "border-slate-800"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <b>{order.title}</b>
+                      <b>{orderCopy.title}</b>
                       <span className="rounded bg-slate-800 px-2 py-1 text-xs">{localizedLabel(order.priority, language)}</span>
                       <span data-testid="maintenance-work-order-status" className="rounded bg-slate-800 px-2 py-1 text-xs">{localizedLabel(order.status, language)}</span>
                       {order.overdue && <span className="rounded bg-red-900 px-2 py-1 text-xs text-red-100">{t("Quá hạn", "Overdue")}</span>}
                     </div>
-                    <p className="mt-1 text-sm text-slate-400">{order.description}</p>
+                    <p className="mt-1 text-sm text-slate-400">{orderCopy.description}</p>
                     <div className="mt-2 text-xs text-slate-500">
-                      {order.assetCode ? `${order.assetCode} · ${order.assetName}` : t("Không gắn thiết bị", "No equipment assigned")}
-                      {order.auditoriumName ? ` · ${order.auditoriumName}` : ""} · {t("Phụ trách", "Assignee")}: {order.assignedToName || t("Chưa phân công", "Unassigned")}
+                      {order.assetCode ? `${order.assetCode} · ${maintenanceAssetName(order.assetName,language)}` : t("Không gắn thiết bị", "No equipment assigned")}
+                      {order.auditoriumName ? ` · ${auditoriumDisplayName(order.auditoriumName, language)}` : ""} · {t("Phụ trách", "Assignee")}: {order.assignedToName || t("Chưa phân công", "Unassigned")}
                       {order.dueAt ? ` · ${t("Hạn", "Due")} ${formatDateTime(order.dueAt)}` : ""}
                     </div>
                     {order.status === "RESOLVED" && order.resolutionNote && <div className="mt-2 text-xs text-emerald-300">{t("Kết quả", "Result")}: {order.resolutionNote}</div>}
@@ -582,8 +584,8 @@ export default function MaintenancePage() {
                     ))}
                   </div>
                 )}
-              </div>
-            ))}
+              </div>;
+            })}
             {!orders.length && <div className="py-10 text-center text-slate-500">{t("Chưa có phiếu bảo trì.", "No maintenance work orders yet.")}</div>}
           </div>
         </section>
@@ -617,7 +619,7 @@ export default function MaintenancePage() {
               {selectedBlackouts.map((item) => (
                 <div key={item.id} data-testid="maintenance-blackout-card" data-blackout-id={item.id} data-auditorium-id={item.auditoriumId} data-blackout-start={item.startTime} data-blackout-end={item.endTime} aria-label={`${t("Khoảng bảo trì", "Maintenance window")}: ${item.reason}`} className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0"><b>{item.auditoriumName}</b><div className="break-words text-sm text-amber-200">{item.reason}</div><div className="text-xs text-slate-500">{formatDateTime(item.startTime)} → {formatDateTime(item.endTime)}</div></div>
+                    <div className="min-w-0"><b>{auditoriumDisplayName(item.auditoriumName, language)}</b><div className="break-words text-sm text-amber-200">{item.reason}</div><div className="text-xs text-slate-500">{formatDateTime(item.startTime)} → {formatDateTime(item.endTime)}</div></div>
                     <button className="btn btn-secondary shrink-0" aria-label={t("Mở lại phòng","Reopen auditorium")} onClick={() => removeBlackout(item.id)}>{t("Mở lại","Reopen")}</button>
                   </div>
                 </div>
