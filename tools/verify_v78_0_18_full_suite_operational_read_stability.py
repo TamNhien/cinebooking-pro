@@ -77,8 +77,8 @@ for p in (ROOT/'tools').glob('verify_v78*.py'):
         stale_readme.append(p.name)
 ok(not stale_readme, f'Historical V78 current-release guards accept V78.0.18 (stale={len(stale_readme)})')
 
-ok(any(x in sw for x in ['const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']), 'Service Worker generation is V78.0.18 or forward-compatible V78.0.19')
-ok(any(x in v78page for x in ['>V78.0.18</span>','>V78.0.19</span>']), 'Visible V78 Admin surface reports V78.0.18 or forward-compatible V78.0.19')
+ok(any(x in sw for x in ['const VERSION = "v78-0-18";','const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']), 'Service Worker generation is V78.0.18 or forward-compatible V78.0.19')
+ok(any(x in v78page for x in ['>V78.0.18</span>','>V78.0.19</span>','>V78.0.20</span>']), 'Visible V78 Admin surface reports V78.0.18 or forward-compatible V78.0.19')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
@@ -89,7 +89,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and V78 diagnostics execute the V78.0.18 verifier')
 ok('verify-v78-0-18' in make and 'release-v78-0-18' in make,
    'Makefile exposes V78.0.18 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V78.0.18','Current release:** V78.0.19']) and '`v78.0.18`' in readme and 'Full-Suite Operational Read Stability' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.18','Current release:** V78.0.19','Current release:** V78.0.20']) and '`v78.0.18`' in readme and 'Full-Suite Operational Read Stability' in readme,
    'README records the V78.0.18 full-suite operational read stability release')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'], 'Source keeps one consolidated root README.md')
 

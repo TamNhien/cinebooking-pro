@@ -1550,3 +1550,29 @@ verify-v78-0-19-r6:
 
 release-v78-0-19-r6:
 	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+
+verify-v78-0-19-r7:
+	python tools/verify_v78_0_19_r7_dynamic_en_presentation_closure.py
+
+release-v78-0-19-r7:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.19
+verify-v78-0-20:
+	python tools/verify_v78_0_20_v70_v77_en_release_tag_closure.py
+
+verify-v78-0-20-r1:
+	python tools/verify_v78_0_20_r1_runtime_en_closure.py
+
+verify-v78-0-20-r2:
+	python tools/verify_v78_0_20_r2_staff_audit_en_closure.py
+
+verify-v78-0-20-r3:
+	python tools/verify_v78_0_20_r3_audit_ip_release_gate_closure.py
+
+verify-v78-0-20-r4:
+	python tools/verify_v78_0_20_r4_inventory_full_suite_closure.py
+
+verify-v78-0-20-r5:
+	python tools/verify_v78_0_20_r5_v7805_release_preflight_forward_compatibility.py
+
+release-v78-0-20:
+	powershell -ExecutionPolicy Bypass -File ./scripts/release.ps1 v78.0.20

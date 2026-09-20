@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, api, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import type { SeatConsistencySummaryV66, SeatHoldItemV66, SeatReconcileResultV66, UserProfile } from "@/lib/types";
 
 const REFRESH_MS=5_000;
@@ -33,6 +34,7 @@ function stateClass(state:string){
 }
 
 export default function SeatOperationsV66(){
+  const { language, t } = usePresentationLanguage();
   const [summary,setSummary]=useState<SeatConsistencySummaryV66|null>(null);
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
@@ -63,7 +65,7 @@ export default function SeatOperationsV66(){
     setBusy(true);setMessage("");setError("");
     try{
       const r=await api<SeatReconcileResultV66>("/admin/seat-operations/reconcile",{method:"POST"});
-      setMessage(`Đã đối soát: ${r.expiredRows} hold hết hạn · ${r.activeRows} hold đang hoạt động · ${r.mirroredRows} Bản sao Redis.`);
+      setMessage(language==="en"?`Reconciled: ${r.expiredRows} expired holds · ${r.activeRows} active holds · ${r.mirroredRows} Redis mirrors.`:`Đã đối soát: ${r.expiredRows} hold hết hạn · ${r.activeRows} hold đang hoạt động · ${r.mirroredRows} bản sao Redis.`);
       await load();
     }catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
@@ -97,20 +99,20 @@ export default function SeatOperationsV66(){
     </div>
 
     <section className="card overflow-hidden" data-testid="active-seat-holds-v66">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-5"><div><h2 className="text-lg font-black">Lượt giữ ghế bền vững đang hoạt động</h2><p className="text-sm text-slate-500">Tự refresh mỗi 5 giây · {active.length} dòng trong cửa sổ gần nhất</p></div><span className="text-xs text-slate-500">Máy chủ: {summary?.serverTime?dateTime(summary.serverTime):"—"}</span></div>
-      <HoldTable rows={active}/>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-5"><div><h2 className="text-lg font-black">{t("Lượt giữ ghế bền vững đang hoạt động","Active durable seat holds")}</h2><p className="text-sm text-slate-500">{language==="en"?`Auto-refresh every 5 seconds · ${active.length} rows in the latest window`:`Tự refresh mỗi 5 giây · ${active.length} dòng trong cửa sổ gần nhất`}</p></div><span className="text-xs text-slate-500">{t("Máy chủ","Server")}: {summary?.serverTime?dateTime(summary.serverTime):"—"}</span></div>
+      <HoldTable rows={active} language={language} t={t}/>
     </section>
 
     <section className="card overflow-hidden" data-testid="seat-hold-history-v66">
-      <div className="border-b border-slate-800 p-5"><h2 className="text-lg font-black">Lifecycle gần đây</h2><p className="text-sm text-slate-500">HELD / RELEASED / EXPIRED / CONVERTED được giữ lại để đối soát.</p></div>
-      <HoldTable rows={summary?.recentHolds??[]}/>
+      <div className="border-b border-slate-800 p-5"><h2 className="text-lg font-black">{t("Lifecycle gần đây","Recent lifecycle")}</h2><p className="text-sm text-slate-500">{t("HELD / RELEASED / EXPIRED / CONVERTED được giữ lại để đối soát.","HELD / RELEASED / EXPIRED / CONVERTED states are retained for reconciliation.")}</p></div>
+      <HoldTable rows={summary?.recentHolds??[]} language={language} t={t}/>
     </section>
   </div>;
 }
 
 function Metric({label,value}:{label:string;value:string|number}){return <div className="card p-4"><div className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</div><div className="mt-2 text-2xl font-black">{value}</div></div>}
 function Info({label,value}:{label:string;value:string}){return <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3"><div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</div><div className="mt-1 break-all text-sm font-bold text-slate-200">{value}</div></div>}
-function HoldTable({rows}:{rows:SeatHoldItemV66[]}){return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm"><thead><tr className="text-slate-500"><th className="p-3">Trạng thái</th><th className="p-3">Phim / Ghế</th><th className="p-3">Người dùng</th><th className="p-3">Mã xác thực</th><th className="p-3">Tạo</th><th className="p-3">Hết hạn</th><th className="p-3">Đặt vé</th><th className="p-3">Sự kiện</th></tr></thead><tbody>{rows.length?rows.map(x=><tr key={x.id} className="border-t border-slate-800/80"><td className="p-3"><span className={`inline-flex rounded-full border px-2 py-1 text-xs font-bold ${stateClass(x.state)}`}>{viLabel(x.state)}</span></td><td className="p-3"><b>{x.movieTitle}</b><div className="text-slate-500">Ghế {x.seatCode}</div></td><td className="p-3">{x.userEmail}</td><td className="p-3 font-mono text-xs text-slate-400">{x.holdToken.slice(0,8)}…</td><td className="p-3">{dateTime(x.createdAt)}</td><td className="p-3">{dateTime(x.expiresAt)}</td><td className="p-3 font-mono text-xs text-slate-400">{x.convertedBookingId?`${x.convertedBookingId.slice(0,8)}…`:"—"}</td><td className="p-3 text-xs text-slate-400">{viLabel(x.lastEvent)}</td></tr>):<tr><td className="p-5 text-slate-500" colSpan={8}>Chưa có lượt giữ ghế trong lịch sử gần đây.</td></tr>}</tbody></table></div>}
+function HoldTable({rows,language,t}:{rows:SeatHoldItemV66[];language:Language;t:(vi:string,en:string)=>string}){return <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-sm"><thead><tr className="text-slate-500"><th className="min-w-28 whitespace-nowrap p-3">{t("Trạng thái","Status")}</th><th className="p-3">{t("Phim / Ghế","Movie / Seats")}</th><th className="p-3">{t("Người dùng","User")}</th><th className="p-3">{t("Mã xác thực","Authorization code")}</th><th className="whitespace-nowrap p-3">{t("Tạo","Created")}</th><th className="whitespace-nowrap p-3">{t("Hết hạn","Expired")}</th><th className="p-3">{t("Đặt vé","Booking")}</th><th className="p-3">{t("Sự kiện","Events")}</th></tr></thead><tbody>{rows.length?rows.map(x=><tr key={x.id} className="border-t border-slate-800/80"><td className="min-w-28 whitespace-nowrap p-3"><span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-bold ${stateClass(x.state)}`}>{localizedLabel(x.state,language)}</span></td><td className="p-3"><b>{x.movieTitle}</b><div className="text-slate-500">{t("Ghế","Seats")} {x.seatCode}</div></td><td className="p-3">{x.userEmail}</td><td className="p-3 font-mono text-xs text-slate-400">{x.holdToken.slice(0,8)}…</td><td className="whitespace-nowrap p-3">{dateTime(x.createdAt)}</td><td className="whitespace-nowrap p-3">{dateTime(x.expiresAt)}</td><td className="p-3 font-mono text-xs text-slate-400">{x.convertedBookingId?`${x.convertedBookingId.slice(0,8)}…`:"—"}</td><td className="p-3 text-xs text-slate-400">{localizedLabel(x.lastEvent,language)}</td></tr>):<tr><td className="p-5 text-slate-500" colSpan={8}>{t("Chưa có lượt giữ ghế trong lịch sử gần đây.","No seat holds in recent history.")}</td></tr>}</tbody></table></div>}
 /* V77.0.9 historical-verifier compatibility markers (not rendered):
 V66 · BOOKING CONSISTENCY & SEAT LOCKING 4.0
 */

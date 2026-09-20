@@ -28,7 +28,7 @@ async function withTransientRecommendationAdminReadRetry<T>(read:()=>Promise<T>)
 }
 
 export default function RecommendationV76AdminPage(){
-  usePresentationLanguage();
+  const { t } = usePresentationLanguage();
   const [days,setDays]=useState<number>(30);
   const [data,setData]=useState<RecommendationAdminSummaryV76|null>(null);
   const [error,setError]=useState("");
@@ -79,10 +79,10 @@ export default function RecommendationV76AdminPage(){
 
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6" data-testid="recommendation-summary-v76">
       <Metric label="Chiến lược" value={data?.strategyVersion??"V76-RECOMMENDATION-5"} compact/>
-      <Metric label="Cửa sổ" value={`${data?.windowDays??days} ngày`}/>
+      <Metric label={t("Cửa sổ","Window")} value={`${data?.windowDays??days} ${t("ngày","days")}`}/>
       <Metric label="Phim đang hoạt động" value={num(data?.activeMovies??0)}/>
-      <Metric label="Có thể gợi ý" value={pct(data?.coverage.actionableMoviePercent??0)}/>
-      <Metric label="Người dùng có thể cá nhân hóa" value={pct(data?.coverage.personalizableUserPercent??0)}/>
+      <Metric label={t("Có thể gợi ý","Recommendable")} value={pct(data?.coverage.actionableMoviePercent??0)}/>
+      <Metric label={t("Người dùng có thể cá nhân hóa","Personalizable users")} value={pct(data?.coverage.personalizableUserPercent??0)}/>
       <Metric label="Chất lượng" value={data?.coverage.qualityStatus??"-"}/>
     </section>
 
@@ -106,9 +106,9 @@ export default function RecommendationV76AdminPage(){
         <h2 className="text-xl font-bold">Độ phủ & mức sẵn sàng</h2>
         <p className="mt-1 text-sm text-slate-500">Có thể hành động = phim đang hoạt động có ít nhất một suất ĐANG MỞ trong tương lai. Siêu dữ liệu đầy đủ = có thể loại, ngôn ngữ và thời lượng.</p>
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Mini label="Phim có thể gợi ý" value={`${num(data?.actionableMovies??0)} / ${num(data?.activeMovies??0)}`} detail={pct(data?.coverage.actionableMoviePercent??0)}/>
-          <Mini label="Đủ siêu dữ liệu" value={`${num(data?.metadataCompleteMovies??0)} / ${num(data?.activeMovies??0)}`} detail={pct(data?.coverage.metadataCompletePercent??0)}/>
-          <Mini label="Users có signal" value={`${num(data?.personalizableUsers??0)} / ${num(data?.registeredUsers??0)}`} detail={pct(data?.coverage.personalizableUserPercent??0)}/>
+          <Mini label={t("Phim có thể gợi ý","Recommendable movies")} value={`${num(data?.actionableMovies??0)} / ${num(data?.activeMovies??0)}`} detail={pct(data?.coverage.actionableMoviePercent??0)}/>
+          <Mini label={t("Đủ siêu dữ liệu","Metadata complete")} value={`${num(data?.metadataCompleteMovies??0)} / ${num(data?.activeMovies??0)}`} detail={pct(data?.coverage.metadataCompletePercent??0)}/>
+          <Mini label={t("Users có signal","Users with signals")} value={`${num(data?.personalizableUsers??0)} / ${num(data?.registeredUsers??0)}`} detail={pct(data?.coverage.personalizableUserPercent??0)}/>
         </div>
       </section>
 
@@ -129,14 +129,14 @@ export default function RecommendationV76AdminPage(){
           <div className="max-w-4xl">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-violet-400/20 bg-violet-400/10 text-base" aria-hidden="true">↗</span>
-              <h2 className="text-xl font-bold sm:text-2xl">Lượt đặt vé đã xác nhận có hỗ trợ</h2>
+              <h2 className="text-xl font-bold sm:text-2xl">{t("Lượt đặt vé đã xác nhận có hỗ trợ","Supported confirmed bookings")}</h2>
             </div>
             <p className="text-sm leading-6 text-slate-400">
-              Lượt đặt vé ĐÃ XÁC NHẬN có cùng khách hàng + cùng phim với lượt nhấp/xem gợi ý trong 7 ngày trước đó. Chỉ dùng để đo mức hỗ trợ của gợi ý, không diễn giải là quan hệ nhân quả.
+              {t("Lượt đặt vé ĐÃ XÁC NHẬN có cùng khách hàng + cùng phim với lượt nhấp/xem gợi ý trong 7 ngày trước đó. Chỉ dùng để đo mức hỗ trợ của gợi ý, không diễn giải là quan hệ nhân quả.","A CONFIRMED booking with the same customer + movie as a recommendation click/view in the previous 7 days. This is used only to measure recommendation support and is not interpreted as causation.")}
             </p>
           </div>
           <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1.5 text-xs font-bold tracking-wide text-violet-200">
-            CỬA SỔ HỖ TRỢ 7 NGÀY
+            {t("CỬA SỔ HỖ TRỢ 7 NGÀY","7-DAY SUPPORT WINDOW")}
           </span>
         </div>
       </div>
@@ -144,26 +144,26 @@ export default function RecommendationV76AdminPage(){
       <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
         <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 shadow-inner shadow-black/10">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Assisted đặt vés</div>
-            <span className="rounded-md bg-violet-400/10 px-2 py-1 text-[11px] font-semibold text-violet-200">ĐÃ XÁC NHẬN</span>
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{t("Lượt đặt vé được hỗ trợ","Assisted bookings")}</div>
+            <span className="rounded-md bg-violet-400/10 px-2 py-1 text-[11px] font-semibold text-violet-200">{t("ĐÃ XÁC NHẬN","CONFIRMED")}</span>
           </div>
           <div className="mt-4 flex items-end gap-3">
             <div className="text-4xl font-black tracking-tight text-white sm:text-5xl">{num(data?.assistedConfirmedBookings??0)}</div>
-            <div className="pb-1 text-sm text-slate-500">lượt đặt vé được hỗ trợ</div>
+            <div className="pb-1 text-sm text-slate-500">{t("lượt đặt vé được hỗ trợ","assisted bookings")}</div>
           </div>
           <div className="mt-4 h-1.5 rounded-full bg-gradient-to-r from-violet-400/80 via-violet-400/30 to-transparent" aria-hidden="true" />
         </div>
 
         <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-5 shadow-inner shadow-black/10">
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Doanh thu thực nhận</div>
-            <span className="rounded-md bg-emerald-400/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">THÀNH CÔNG</span>
+            <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{t("Doanh thu thực nhận","Realized revenue")}</div>
+            <span className="rounded-md bg-emerald-400/10 px-2 py-1 text-[11px] font-semibold text-emerald-300">{t("THÀNH CÔNG","SUCCESS")}</span>
           </div>
           <div className="mt-4 text-3xl font-black tracking-tight text-emerald-300 sm:text-4xl">{currency(data?.assistedRealizedRevenue??0)}</div>
-          <div className="mt-2 text-sm text-slate-500">Doanh thu thực nhận từ thanh toán THÀNH CÔNG đã loại trùng theo lượt đặt vé.</div>
+          <div className="mt-2 text-sm text-slate-500">{t("Doanh thu thực nhận từ thanh toán THÀNH CÔNG đã loại trùng theo lượt đặt vé.","Realized revenue from SUCCESS payments, deduplicated by booking.")}</div>
           <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-emerald-300/90">
             <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
-            Doanh thu THÀNH CÔNG thực nhận
+            {t("Doanh thu THÀNH CÔNG thực nhận","Realized SUCCESS revenue")}
           </div>
         </div>
       </div>
@@ -175,7 +175,7 @@ export default function RecommendationV76AdminPage(){
 
     <section className="card overflow-hidden" data-testid="recommendation-top-movies-v76">
       <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Tương tác phim hàng đầu</h2><p className="mt-1 text-sm text-slate-500">Xếp theo hoạt động thật trong cửa sổ: nhấp, xem, phản hồi và lượt đặt vé được hỗ trợ.</p></div>
-      <Table headers={["Phim","Clicks","Views","Feedback","Assisted bookings"]} rows={data?.topMovies.map(x=>[x.movieTitle,num(x.clicks),num(x.views),num(x.feedback),num(x.assistedBookings)])??[]}/>
+      <Table headers={[t("Phim","Movie"),"Clicks","Views","Feedback","Assisted bookings"]} rows={data?.topMovies.map(x=>[x.movieTitle,num(x.clicks),num(x.views),num(x.feedback),num(x.assistedBookings)])??[]}/>
     </section>
 
     <section className="card overflow-hidden" data-testid="recommendation-sources-v76">

@@ -368,7 +368,7 @@ export default function AnalyticsPage(){
       <div className="grid gap-6 xl:grid-cols-3">
         <Rank language={language} title="Hàng đầu phim" items={data.topMovies}/>
         <Rank language={language} title="Phương thức thanh toán" items={data.paymentProviders}/>
-        <Rank language={language} title="Hàng đầu bắp nước" items={data.topConcessions}/>
+        <Rank language={language} title="Hàng đầu bắp nước" items={data.topConcessions} concessionNames/>
       </div>
 
       <section data-testid="analytics-snapshots-v51" className="card p-5 sm:p-6">
@@ -398,8 +398,8 @@ function Progress({value}:{value:number}){
   return <div className="w-full min-w-0"><div className="mb-1 flex justify-between text-xs"><span>{pct(safe)}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-emerald-400" style={{width:`${safe}%`}}/></div></div>;
 }
 
-function Rank({title,items,language}:{title:string;items:AnalyticsNameValue[];language:Language}){
-  return <section className="card p-5"><h2 className="font-bold">{title}</h2><div className="mt-4 space-y-3">{items.map((x,i)=><div key={x.name} className="flex items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-800 text-sm font-black">{i+1}</span><div className="min-w-0 flex-1"><div className="truncate font-semibold">{x.name}</div><div className="text-xs text-slate-500">{number(x.count)} {language==="vi"?"lượt":"events"}</div></div><div className="text-right text-sm font-bold text-emerald-300">{currency(x.value)}</div></div>)}{!items.length&&<p className="text-sm text-slate-500">{language==="vi"?"Chưa có dữ liệu.":"No data yet."}</p>}</div></section>;
+function Rank({title,items,language,concessionNames=false}:{title:string;items:AnalyticsNameValue[];language:Language;concessionNames?:boolean}){
+  return <section data-testid={concessionNames?"top-concessions-r7":undefined} className="card p-5"><h2 className="font-bold">{title}</h2><div className="mt-4 space-y-3">{items.map((x,i)=><div key={x.name} className="flex items-center gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-800 text-sm font-black">{i+1}</span><div className="min-w-0 flex-1"><div className="truncate font-semibold">{concessionNames?concessionProductName(x.name,language):x.name}</div><div className="text-xs text-slate-500">{number(x.count)} {language==="vi"?"lượt":"events"}</div></div><div className="text-right text-sm font-bold text-emerald-300">{currency(x.value)}</div></div>)}{!items.length&&<p className="text-sm text-slate-500">{language==="vi"?"Chưa có dữ liệu.":"No data yet."}</p>}</div></section>;
 }
 
 function StatusCard({title,items,language}:{title:string;items:AnalyticsStatusCount[];language:Language}){

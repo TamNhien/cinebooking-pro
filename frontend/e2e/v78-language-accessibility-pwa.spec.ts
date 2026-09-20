@@ -97,8 +97,72 @@ test("V78 VI/EN switch covers full presentation surfaces and accessibility/PWA s
     }
     if (route === "/admin/pricing") {
       const pricingRuleName = page.getByTestId("pricing-rule-name-v7816").first();
-      if (await pricingRuleName.count()) await expect(pricingRuleName).toHaveAttribute("data-i18n-skip", "true");
+      if (await pricingRuleName.count()) {
+        await expect(pricingRuleName).toHaveAttribute("data-i18n-skip", "true");
+        await expect(pricingRuleName).not.toHaveText(/^(?:Cuối tuần|Ưu đãi|Khung giờ|Phụ thu|Giá cuối tuần)/u);
+      }
+      const pricingMeta = page.getByTestId("pricing-rule-meta-r7").first();
+      if (await pricingMeta.count()) {
+        await expect(pricingMeta).not.toContainText("Cả tuần");
+        await expect(pricingMeta).not.toContainText("ưu tiên");
+        await expect(pricingMeta).not.toHaveText(/(?:^|, )T[2-7](?:,|$)|(?:^|, )CN(?:,|$)/u);
+      }
     }
+
+    if (route === "/admin/analytics") {
+      const topConcessions = page.getByTestId("top-concessions-r7");
+      if (await topConcessions.count()) {
+        const copy = await topConcessions.innerText();
+        expect(copy).not.toMatch(/(?:Bắp|Nước)/u);
+      }
+    }
+    if (route === "/admin/staff") {
+      const jobTitles = page.getByTestId("staff-job-title-r7");
+      if (await jobTitles.count()) {
+        const copy = await jobTitles.allInnerTexts();
+        for (const title of copy) expect(title).not.toMatch(/^(?:Giám sát ca|Nhân viên|Kỹ thuật viên|Quản lý rạp)/u);
+      }
+    }
+    if (route === "/staff/operations") {
+      const incidents = page.getByTestId("staff-incident");
+      if (await incidents.count()) {
+        const copy = (await incidents.allInnerTexts()).join("\n");
+        for (const forbidden of [
+          "Khách cần hỗ trợ tại cổng soát vé",
+          "Khách gặp khó khăn khi quét mã QR",
+          "Đã kiểm tra mã vé",
+          "Sự cố đã được xử lý và ghi nhận trong ca trực",
+        ]) expect(copy).not.toContain(forbidden);
+      }
+    }
+    if (route === "/admin/vouchers") {
+      const voucherNames = page.getByTestId("voucher-name-r7");
+      if (await voucherNames.count()) {
+        const copy = (await voucherNames.allInnerTexts()).join("\n");
+        expect(copy).not.toMatch(/^(?:Ưu đãi|Mã ưu đãi|Voucher (?:thành viên|cuối tuần|sinh nhật|đặt vé|bắp nước|suất tối|khách hàng|gia đình|học sinh|tri ân))/mu);
+      }
+      const body = await page.locator("main#main-content").innerText();
+      expect(body).not.toContain("tối đa");
+      expect(body).not.toContain("đến ");
+    }
+    if (route === "/for-you") {
+      const topGenres = page.getByTestId("for-you-top-genres-r7");
+      if (await topGenres.count()) await expect(topGenres).not.toHaveText(/(?:Phiêu lưu|Khoa học viễn tưởng|Trinh thám|Bí ẩn|Gia đình|Giật gân|Hành động|Kỳ ảo|Tâm lý|Tình cảm|Tội phạm)/u);
+    }
+    if (route === "/admin/marketing") {
+      await expect(page.getByTestId("marketing-title-r7")).toHaveValue("An offer just for you");
+      await expect(page.getByTestId("marketing-message-r7")).toHaveValue("CineBooking is sending you a personal offer to visit the cinema again soon.");
+    }
+    if (route === "/admin/observability") {
+      await expect(page.getByTestId("observability-window-r7")).toContainText("Local replica window:");
+      await expect(page.getByTestId("observability-window-r7")).not.toContainText("Cửa sổ");
+      const target = page.getByTestId("slo-target-r7").first();
+      if (await target.count()) {
+        await expect(target).toContainText("Target");
+        await expect(target).not.toContainText("Đích");
+      }
+    }
+
     if (route === "/admin/bookings") {
       const cinemaOption = page.getByTestId("admin-bookings-cinema-option-v7817").first();
       if (await cinemaOption.count()) await expect(cinemaOption).toHaveAttribute("data-i18n-skip", "true");
@@ -203,6 +267,84 @@ test("V78 VI/EN switch covers full presentation surfaces and accessibility/PWA s
         "hiện chỉ phù hợp local/sandbox",
       ]) expect(paymentCopy, `Payment EN leak: ${forbidden}`).not.toContain(forbidden);
       if (paymentCopy.includes("MOCK")) expect(paymentCopy).toContain("Internal payment (MOCK)");
+    }
+    if (route === "/admin/crm-automation") {
+      await expect(page.getByTestId("crm-title-v7820r1")).toHaveValue("An offer just for you");
+      await expect(page.getByTestId("crm-message-v7820r1")).toHaveValue("CineBooking has a personalized offer suited to your current lifecycle stage.");
+    }
+    if (route === "/mobile") {
+      const deviceCount = page.getByTestId("pwa-device-count-v7820r1");
+      if (await deviceCount.count()) await expect(deviceCount).not.toContainText("thiết bị");
+      const deviceMeta = page.getByTestId("pwa-device-meta-v7820r1").first();
+      if (await deviceMeta.count()) {
+        await expect(deviceMeta).not.toContainText("Đẩy");
+        await expect(deviceMeta).not.toContainText("Đã xem");
+      }
+    }
+    if (route === "/notifications") {
+      const count = page.getByTestId("notification-count-v7820r1");
+      if (await count.count()) await expect(count).not.toContainText("thông báo");
+      const notificationCopy = await page.getByTestId("notification-list-v7820r1").innerText();
+      for (const forbidden of [
+        "Sắp đến giờ chiếu",
+        "Sắp đến giờ vào rạp",
+        "Đã xác minh yêu cầu và hoàn tất service recovery V45",
+        "sẽ bắt đầu trong vòng 3 giờ",
+        "Hãy chuẩn bị QR vé",
+      ]) expect(notificationCopy, `Notification EN leak: ${forbidden}`).not.toContain(forbidden);
+    }
+    if (route === "/offline-tickets") {
+      const status = page.getByTestId("offline-sync-status-v7820r1");
+      if (await status.count()) {
+        await expect(status).not.toContainText("lần gần nhất kiểm tra");
+      }
+    }
+    if (route === "/admin/inventory") {
+      const notes = page.getByTestId("inventory-movement-note-v7820r1");
+      if (await notes.count()) {
+        const copy = (await notes.allInnerTexts()).join("\n");
+        for (const forbidden of ["Đổi điểm loyalty", "Điều chuyển tồn kho giữa các rạp", "Nhập kho chi nhánh", "Hao hụt ghi nhận khi kiểm kê cuối ca", "Bổ sung tồn kho cho ca tối"])
+          expect(copy, `Inventory movement EN leak: ${forbidden}`).not.toContain(forbidden);
+      }
+    }
+    if (route === "/admin/commerce") {
+      const stock = page.getByTestId("commerce-stock-v7820r1").first();
+      if (await stock.count()) {
+        await expect(stock).toContainText("Stock:");
+        await expect(stock).not.toContainText("Kho:");
+        await expect(stock).not.toContainText("khả dụng");
+        await expect(stock).not.toContainText("đang giữ");
+        await expect(stock).not.toContainText("thực tế");
+      }
+    }
+    if (route === "/admin/reviews") {
+      const movieId = page.getByTestId("review-movie-id-v7820r1").first();
+      if (await movieId.count()) await expect(movieId).toContainText("Movie ID:");
+      const comments = page.getByTestId("review-comment-v7820r1");
+      if (await comments.count()) {
+        const copy = (await comments.allInnerTexts()).join("\n");
+        for (const forbidden of ["Nội dung cuốn hút", "Hình ảnh đẹp", "Diễn xuất tự nhiên", "Phim phù hợp để xem cùng gia đình", "Phần âm nhạc tạo cảm xúc tốt", "Kịch bản có nhiều chi tiết thú vị"])
+          expect(copy, `Known seeded review EN leak: ${forbidden}`).not.toContain(forbidden);
+      }
+    }
+    if (route === "/admin/audit") {
+      const details = page.getByTestId("audit-details-v7820r1");
+      if (await details.count()) {
+        const copy = (await details.allInnerTexts()).join("\n");
+        for (const forbidden of [
+          "được cấp trong", "Incident đang mở", "Tồn kho thấp", "Thiết bị degraded / quá lịch service",
+          "Payment FAILED trong", "Hết tồn khả dụng", "Support quá SLA", "Đăng nhập thành công",
+          "Đăng xuất phiên", "Đăng ký tài khoản", "Sai email hoặc mật khẩu", "Tài khoản đã bị vô hiệu hoá",
+          "Admin mở QR vé", "Khách cần hỗ trợ tại cổng soát vé", "Đã kiểm tra mã vé", "Phòng 01", "Phòng 02",
+        ]) expect(copy, `Audit EN leak: ${forbidden}`).not.toContain(forbidden);
+      }
+      const ips=page.getByTestId("admin-audit-ip-v7820r3");
+      if(await ips.count()){
+        const style=await ips.first().evaluate(el=>{const s=getComputedStyle(el);return {whiteSpace:s.whiteSpace,overflowWrap:s.overflowWrap,wordBreak:s.wordBreak};});
+        expect(style.whiteSpace).toBe("nowrap");
+        expect(style.overflowWrap).toBe("normal");
+        expect(style.wordBreak).toBe("normal");
+      }
     }
     const leaks = await presentationLeaks(page);
     expect(leaks, `Vietnamese presentation copy leaked on ${route}: ${JSON.stringify(leaks)}`).toEqual([]);

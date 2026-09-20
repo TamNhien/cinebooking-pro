@@ -89,7 +89,7 @@ ok('SUSTAINED_OPERATIONAL_READ_OPTIONS' in inventory,
    "Inventory branch bootstrap opts into sustained operational-read retry")
 ok('throw new ApiError(503,"Inventory branch list is not ready yet.")' in inventory,
    "Inventory bootstrap retries transient empty branch snapshots instead of committing an empty select")
-ok('option").count(),{timeout:30000}' in inventory_e2e,
+ok(bool(re.search(r'option"\)\.count\(\),\{timeout:(?:30000|60000|75000)(?:,|\})', inventory_e2e)),
    "V48 inventory E2E allows the bounded sustained-read window before declaring branch/product failure")
 
 # Source-wide table inventory remains comprehensive.

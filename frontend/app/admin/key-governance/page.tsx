@@ -5,7 +5,8 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, dateTime } from "@/lib/api";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 import { clearAuth, getAuth } from "@/lib/auth";
 import type { KeyGovernanceSummaryV71, SecretRotationEventV71, SecretRotationPolicyV71, UserProfile } from "@/lib/types";
 
@@ -14,6 +15,7 @@ type EventType="ROTATED"|"VERIFIED"|"REVOKED"|"INCIDENT";
 
 export default function KeyGovernancePage(){
   const router=useRouter();
+  const { language, t } = usePresentationLanguage();
   const [summary,setSummary]=useState<KeyGovernanceSummaryV71|null>(null);
   const [policies,setPolicies]=useState<SecretRotationPolicyV71[]>([]);
   const [events,setEvents]=useState<SecretRotationEventV71[]>([]);
@@ -68,16 +70,16 @@ export default function KeyGovernancePage(){
 
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" data-testid="key-governance-summary-v71">
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chiến lược</div><div className="mt-2 text-sm font-black">{summary?.strategyVersion||STRATEGY}</div></div>
-      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Trạng thái tổng thể</div><div className={`mt-2 text-xl font-black ${postureClass}`}>{viLabel(summary?.posture||"REVIEW")}</div></div>
+      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Trạng thái tổng thể</div><div className={`mt-2 text-xl font-black ${postureClass}`}>{localizedLabel(summary?.posture||"REVIEW",language)}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Đã cấu hình</div><div className="mt-2 text-2xl font-black">{summary?.configuredSecretCount??0}/{summary?.enabledPolicyCount??0}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chưa có bằng chứng</div><div className="mt-2 text-2xl font-black">{summary?.noEvidenceCount??0}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Quá hạn</div><div className="mt-2 text-2xl font-black">{summary?.overdueCount??0}</div></div>
-      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chế độ thực thi</div><div className="mt-2 text-sm font-black">{summary?.dryRunOnly?"THỦ CÔNG / CHẠY THỬ":"TỰ ĐỘNG ĐÃ BẬT"}</div></div>
+      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chế độ thực thi</div><div className="mt-2 text-sm font-black">{summary?.dryRunOnly?t("THỦ CÔNG / CHẠY THỬ","MANUAL / DRY RUN"):t("TỰ ĐỘNG ĐÃ BẬT","AUTOMATION ENABLED")}</div></div>
     </section>
 
     <section className="card overflow-x-auto p-5" data-testid="key-governance-policies-v71">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🔑 Danh mục chính sách xoay vòng</h2><p className="mt-1 text-sm text-slate-400">Trạng thái chỉ cho biết đã cấu hình/chưa cấu hình; API không trả giá trị thông tin xác thực. Cửa sổ cảnh báo: {summary?.warningDays??14} ngày.</p></div><div className="text-sm font-bold">KHÔNG_LƯU_GIÁ_TRỊ_BÍ_MẬT_TRONG_CSDL</div></div>
-      <table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Chính sách</th><th className="p-2">Loại</th><th className="p-2">Đơn vị phụ trách</th><th className="p-2">Đã cấu hình</th><th className="p-2">Chu kỳ xoay</th><th className="p-2">Trạng thái</th><th className="p-2">Hạn tiếp theo</th></tr></thead><tbody>{policies.map(p=><tr className="border-t border-slate-800" key={p.id}><td className="p-2"><div className="font-bold">{p.policyKey}</div><div className="text-xs text-slate-500">{p.secretName}</div></td><td className="p-2">{viLabel(p.secretClass)}</td><td className="p-2">{viLabel(p.ownerTeam)}</td><td className="p-2 font-bold">{p.configured?"Có":"Không"}</td><td className="p-2">{p.rotationDays} ngày</td><td className="p-2 font-bold">{viLabel(p.rotationStatus)}</td><td className="p-2">{p.nextRotationDueAt?dateTime(p.nextRotationDueAt):"—"}</td></tr>)}</tbody></table>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🔑 Danh mục chính sách xoay vòng</h2><p className="mt-1 text-sm text-slate-400">{language==="en"?`Status indicates only configured/not configured; the API never returns credential values. Warning window: ${summary?.warningDays??14} days.`:`Trạng thái chỉ cho biết đã cấu hình/chưa cấu hình; API không trả giá trị thông tin xác thực. Cửa sổ cảnh báo: ${summary?.warningDays??14} ngày.`}</p></div><div className="text-sm font-bold">{t("KHÔNG_LƯU_GIÁ_TRỊ_BÍ_MẬT_TRONG_CSDL","DO_NOT_STORE_SECRET_VALUES_IN_DB")}</div></div>
+      <table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Chính sách</th><th className="p-2">Loại</th><th className="p-2">Đơn vị phụ trách</th><th className="p-2">Đã cấu hình</th><th className="p-2">Chu kỳ xoay</th><th className="p-2">Trạng thái</th><th className="p-2">Hạn tiếp theo</th></tr></thead><tbody>{policies.map(p=><tr className="border-t border-slate-800" key={p.id}><td className="p-2"><div className="font-bold">{p.policyKey}</div><div className="text-xs text-slate-500">{p.secretName}</div></td><td className="p-2">{localizedLabel(p.secretClass,language)}</td><td className="p-2">{localizedLabel(p.ownerTeam,language)}</td><td className="p-2 font-bold">{p.configured?t("Có","Yes"):t("Không","No")}</td><td className="p-2">{p.rotationDays} {t("ngày","days")}</td><td className="p-2 font-bold">{localizedLabel(p.rotationStatus,language)}</td><td className="p-2">{p.nextRotationDueAt?dateTime(p.nextRotationDueAt):"—"}</td></tr>)}</tbody></table>
     </section>
 
     <section className="grid gap-4 lg:grid-cols-2">
@@ -94,7 +96,7 @@ export default function KeyGovernancePage(){
       <div className="card p-5" data-testid="key-governance-policy-v71"><h2 className="text-lg font-black">🛡 Chính sách lưu trữ</h2><div className="mt-4 space-y-3 text-sm text-slate-300"><p>✅ Giá trị bí mật vẫn ở biến môi trường/trình quản lý bí mật.</p><p>✅ Cơ sở dữ liệu chỉ giữ siêu dữ liệu chính sách, tham chiếu nhà cung cấp và dấu vân tay không đảo ngược.</p><p>✅ Bằng chứng xoay vòng chỉ ghi thêm.</p><p>✅ Tự động xoay vòng mặc định TẮT.</p><p>❌ Không hiển thị bí mật JWT/SMTP/thanh toán/VAPID trên giao diện quản trị hoặc API.</p></div></div>
     </section>
 
-    <section className="card overflow-x-auto p-5" data-testid="key-governance-events-v71"><h2 className="text-lg font-black">📚 Bằng chứng xoay vòng</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Sự kiện</th><th className="p-2">Chính sách</th><th className="p-2">Loại</th><th className="p-2">Dấu vân tay</th><th className="p-2">Người thực hiện</th><th className="p-2">Thời gian</th></tr></thead><tbody>{events.map(e=><tr className="border-t border-slate-800" key={e.id}><td className="p-2 font-bold">{e.eventKey}</td><td className="p-2">{e.policyKey}</td><td className="p-2">{viLabel(e.eventType)}</td><td className="p-2"><code>{e.keyFingerprint||"—"}</code></td><td className="p-2">{e.actorEmail||"—"}</td><td className="p-2">{dateTime(e.occurredAt)}</td></tr>)}</tbody></table>{!events.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng xoay vòng. Trạng thái CHƯA CÓ BẰNG CHỨNG là dự kiến cho chính sách mới.</div>}</section>
+    <section className="card overflow-x-auto p-5" data-testid="key-governance-events-v71"><h2 className="text-lg font-black">📚 Bằng chứng xoay vòng</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Sự kiện</th><th className="p-2">Chính sách</th><th className="p-2">Loại</th><th className="p-2">Dấu vân tay</th><th className="p-2">Người thực hiện</th><th className="p-2">Thời gian</th></tr></thead><tbody>{events.map(e=><tr className="border-t border-slate-800" key={e.id}><td className="p-2 font-bold">{e.eventKey}</td><td className="p-2">{e.policyKey}</td><td className="p-2">{localizedLabel(e.eventType,language)}</td><td className="p-2"><code>{e.keyFingerprint||"—"}</code></td><td className="p-2">{e.actorEmail||"—"}</td><td className="p-2">{dateTime(e.occurredAt)}</td></tr>)}</tbody></table>{!events.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng xoay vòng. Trạng thái CHƯA CÓ BẰNG CHỨNG là dự kiến cho chính sách mới.</div>}</section>
   </div>;
 }
 /* V77.0.9 historical verifier aliases (not rendered):

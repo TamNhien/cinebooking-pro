@@ -1,14 +1,17 @@
-/* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
+/* eslint-disable react-hooks/exhaustive-deps -- effects intentionally synchronize API/subscription state; dependency lifecycle is intentionally bounded. */
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, api, currency, dateTime } from "@/lib/api";
 import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import { getAuth } from "@/lib/auth";
 import type { InventoryBranchOverview, InventoryMovement, InventoryProduct, InventorySummary, InventoryTransfer } from "@/lib/types";
 import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 import { concessionProductName } from "@/lib/concession-presentation";
+import { inventoryMovementNotePresentation } from "@/lib/controlled-business-presentation";
+
+const INVENTORY_BRANCH_BOOTSTRAP_READ_OPTIONS={deadlineMs:10_000,attemptTimeoutMs:4_000,baseDelayMs:300,maxDelayMs:1_200} as const;
 
 export default function InventoryAdmin(){
   const { language, t } = usePresentationLanguage();
@@ -29,14 +32,18 @@ export default function InventoryAdmin(){
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
   const [allBranchesHistory,setAllBranchesHistory]=useState(false);
+  const [branchLoadState,setBranchLoadState]=useState<"LOADING"|"READY"|"RETRYING"|"ERROR">("LOADING");
+  const bootstrapGeneration=useRef(0);
 
   async function loadBranches(){
+    setBranchLoadState(current=>current==="READY"?"READY":"LOADING");
     const rows=await withTransientReadRetry(async signal=>{
       const result=await api<InventoryBranchOverview[]>("/admin/inventory/branches",{signal});
       if(result.length===0)throw new ApiError(503,"Inventory branch list is not ready yet.");
       return result;
-    },SUSTAINED_OPERATIONAL_READ_OPTIONS);
+    },INVENTORY_BRANCH_BOOTSTRAP_READ_OPTIONS);
     setBranches(rows);
+    setBranchLoadState("READY");
     const next=cinemaId||rows[0]?.cinemaId||"";
     if(next&&!cinemaId)setCinemaId(next);
     if(next&&!transferTo)setTransferTo(rows.find(x=>x.cinemaId!==next)?.cinemaId||"");
@@ -49,7 +56,7 @@ export default function InventoryAdmin(){
     const [s,m]=await withTransientReadRetry(signal=>Promise.all([
       api<InventorySummary>(`/admin/inventory?cinemaId=${encodeURIComponent(cid)}`,{signal}),
       api<InventoryMovement[]>(`/admin/inventory/movements?${query}`,{signal})
-    ]));
+    ]),SUSTAINED_OPERATIONAL_READ_OPTIONS);
     setSummary(s);if(!allBranchesHistory)setMovements(m);
     const chosen=productId||selectedId||s.products[0]?.productId||"";
     setSelectedId(chosen);
@@ -60,7 +67,31 @@ export default function InventoryAdmin(){
   useEffect(()=>{
     const a=getAuth();
     if(!a||a.role!=="ADMIN"){window.location.assign("/login?next=/admin/inventory");return;}
-    loadBranches().then(cid=>load(cid)).catch(e=>setMsg((e as Error).message));
+    const generation=++bootstrapGeneration.current;
+    let cancelled=false;
+    const bootstrap=async()=>{
+      const deadline=Date.now()+60_000;
+      let attempt=0;
+      while(!cancelled&&generation===bootstrapGeneration.current){
+        try{
+          if(attempt>0)setBranchLoadState("RETRYING");
+          const cid=await loadBranches();
+          if(cancelled||generation!==bootstrapGeneration.current)return;
+          // Branch options are useful on their own. Do not keep them visually blocked
+          // behind a slower summary/movement aggregate during a loaded full-suite run.
+          void load(cid).catch(e=>setMsg((e as Error).message));
+          return;
+        }catch(e){
+          if(cancelled||generation!==bootstrapGeneration.current)return;
+          if(Date.now()>=deadline){setBranchLoadState("ERROR");setMsg((e as Error).message);return;}
+          attempt+=1;
+          setBranchLoadState("RETRYING");
+          await new Promise(resolve=>setTimeout(resolve,Math.min(500*attempt,2_000)));
+        }
+      }
+    };
+    void bootstrap();
+    return()=>{cancelled=true;};
   },[]);
 
   const products=useMemo(()=>{
@@ -108,7 +139,7 @@ export default function InventoryAdmin(){
     </div>
 
     <section className="card p-5">
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block text-sm"><span className="mb-1 block text-slate-400">{t("Chi nhánh đang quản lý", "Managed branch")}</span><select data-testid="inventory-cinema-select" className="input" value={cinemaId} onChange={e=>void changeCinema(e.target.value)}>{branches.map(b=><option key={b.cinemaId} value={b.cinemaId} data-i18n-skip="true">{b.cinemaName} · {language === "en" ? "available" : "khả dụng"} {b.totalAvailable} · {language === "en" ? "alert" : "cảnh báo"} {b.lowStockProducts+b.soldOutProducts}</option>)}</select></label><button className="btn btn-secondary" onClick={()=>void Promise.all([loadBranches(),load(cinemaId,selectedId||undefined)])}>{t("Làm mới","Refresh")}</button></div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end"><label className="block text-sm"><span className="mb-1 block text-slate-400">{t("Chi nhánh đang quản lý", "Managed branch")}</span><select data-testid="inventory-cinema-select" className="input" value={cinemaId} onChange={e=>void changeCinema(e.target.value)}>{branches.map(b=><option key={b.cinemaId} value={b.cinemaId} data-i18n-skip="true">{b.cinemaName} · {language === "en" ? "available" : "khả dụng"} {b.totalAvailable} · {language === "en" ? "alert" : "cảnh báo"} {b.lowStockProducts+b.soldOutProducts}</option>)}</select><span data-testid="inventory-branch-load-state-v7820r4" className="mt-1 block text-xs text-slate-500">{branchLoadState==="READY"?t("Danh sách chi nhánh đã sẵn sàng","Branch list ready"):branchLoadState==="ERROR"?t("Không tải được danh sách chi nhánh","Branch list unavailable"):t("Đang đồng bộ danh sách chi nhánh…","Synchronizing branch list…")}</span></label><button className="btn btn-secondary" onClick={()=>void loadBranches().then(cid=>load(cid,selectedId||undefined)).catch(e=>setMsg((e as Error).message))}>{t("Làm mới","Refresh")}</button></div>
       {branch&&<p className="mt-3 text-xs text-slate-500">{branch.cinemaName}: {branch.trackedProducts} {t("mặt hàng","items")} · {branch.totalAvailable} {t("phần khả dụng","available")} · {branch.lowStockProducts} {t("sắp hết","low stock")} · {branch.soldOutProducts} {t("hết hàng","sold out")}.</p>}
     </section>
 
@@ -143,8 +174,8 @@ export default function InventoryAdmin(){
     </section>
 
     <section className="card overflow-hidden" data-testid="inventory-movement-history-v48"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 p-5"><div><h2 className="text-xl font-bold">{t("Sổ nhập / xuất kho","Inventory movement ledger")} {allBranchesHistory?t("toàn hệ thống","system-wide"):t("theo rạp","by cinema")}</h2><p className="mt-1 text-xs text-slate-500">{t("Nhập kho · Giữ hàng · Giải phóng · Bán hàng · Hoàn hàng · Hao hụt · Chuyển vào/ra · Thưởng thành viên.","Restock · Reserve · Release · Sale · Refund · Waste · Transfer in/out · Loyalty reward.")}</p></div><button data-testid="inventory-history-scope-toggle" className="btn btn-secondary" onClick={()=>void toggleHistoryScope()}>{allBranchesHistory?t("Chỉ rạp hiện tại","Current cinema only"):t("Xem toàn chi nhánh","View all cinemas")}</button></div>
-      <div className="hidden xl:block"><table className="w-full table-fixed text-sm"><thead className="bg-slate-950/45 text-slate-400"><tr><th className="w-[12%] p-3">{t("Thời gian","Time")}</th><th className="w-[13%] p-3">{t("Rạp","Cinema")}</th><th className="w-[14%] p-3">{t("Sản phẩm","Product")}</th><th className="w-[11%] p-3">{t("Loại","Type")}</th><th className="w-[7%] p-3">{t("Δ tồn","Δ stock")}</th><th className="w-[7%] p-3">{t("Δ giữ","Δ reserved")}</th><th className="w-[12%] p-3">{t("Sau giao dịch","After transaction")}</th><th className="w-[13%] p-3">{t("Tham chiếu","Reference")}</th><th className="w-[11%] p-3">{t("Ghi chú","Note")}</th></tr></thead><tbody>{movements.map(m=><tr key={m.id} className="border-t border-slate-800/80 align-top"><td className="p-3">{dateTime(m.createdAt)}</td><td className="break-words p-3 text-xs">{m.cinemaName}</td><td className="break-words p-3 font-semibold">{concessionProductName(m.productName,language)}</td><td className="p-3"><span className={`inline-block rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></td><td className={`p-3 font-bold ${m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-500"}`}>{signed(m.quantityDelta)}</td><td className={`p-3 font-bold ${m.reservedDelta>0?"text-amber-300":m.reservedDelta<0?"text-cyan-300":"text-slate-500"}`}>{signed(m.reservedDelta)}</td><td className="p-3">{t("Tồn","Stock")} {m.stockAfter} · {t("Giữ","Reserved")} {m.reservedAfter}</td><td className="break-all p-3 text-xs text-slate-400">{m.referenceKey||m.bookingId||m.actorEmail||t("Hệ thống","System")}</td><td className="break-words p-3 text-xs text-slate-400">{m.note||"-"}</td></tr>)}</tbody></table></div>
-      <div className="grid gap-3 p-4 xl:hidden">{movements.map(m=><article key={m.id} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs text-slate-500">{dateTime(m.createdAt)} · {m.cinemaName}</div><h3 className="mt-1 font-bold" data-testid="inventory-movement-product-name-v7807" data-i18n-skip="true">{concessionProductName(m.productName,language)}</h3></div><span className={`rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><div>{t("Δ tồn","Δ stock")} <b className={m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-400"}>{signed(m.quantityDelta)}</b></div><div>{t("Δ giữ","Δ reserved")} <b>{signed(m.reservedDelta)}</b></div><div>{t("Tồn sau","Stock after")} <b>{m.stockAfter}</b></div><div>{t("Giữ sau","Reserved after")} <b>{m.reservedAfter}</b></div></div><div className="mt-3 break-all text-xs text-slate-500">{m.referenceKey||m.bookingId||m.actorEmail||t("Hệ thống","System")}</div>{m.note&&<p className="mt-2 break-words text-xs text-slate-400">{m.note}</p>}</article>)}</div>
+      <div className="hidden xl:block"><table className="w-full table-fixed text-sm"><thead className="bg-slate-950/45 text-slate-400"><tr><th className="w-[12%] p-3">{t("Thời gian","Time")}</th><th className="w-[13%] p-3">{t("Rạp","Cinema")}</th><th className="w-[14%] p-3">{t("Sản phẩm","Product")}</th><th className="w-[11%] p-3">{t("Loại","Type")}</th><th className="w-[7%] p-3">{t("Δ tồn","Δ stock")}</th><th className="w-[7%] p-3">{t("Δ giữ","Δ reserved")}</th><th className="w-[12%] p-3">{t("Sau giao dịch","After transaction")}</th><th className="w-[13%] p-3">{t("Tham chiếu","Reference")}</th><th className="w-[11%] p-3">{t("Ghi chú","Note")}</th></tr></thead><tbody>{movements.map(m=><tr key={m.id} className="border-t border-slate-800/80 align-top"><td className="p-3">{dateTime(m.createdAt)}</td><td className="break-words p-3 text-xs">{m.cinemaName}</td><td className="break-words p-3 font-semibold">{concessionProductName(m.productName,language)}</td><td className="p-3"><span className={`inline-block rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></td><td className={`p-3 font-bold ${m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-500"}`}>{signed(m.quantityDelta)}</td><td className={`p-3 font-bold ${m.reservedDelta>0?"text-amber-300":m.reservedDelta<0?"text-cyan-300":"text-slate-500"}`}>{signed(m.reservedDelta)}</td><td className="p-3">{t("Tồn","Stock")} {m.stockAfter} · {t("Giữ","Reserved")} {m.reservedAfter}</td><td className="break-all p-3 text-xs text-slate-400">{m.referenceKey||m.bookingId||m.actorEmail||t("Hệ thống","System")}</td><td data-testid="inventory-movement-note-v7820r1" className="break-words p-3 text-xs text-slate-400">{m.note?inventoryMovementNotePresentation(m.note,language):"-"}</td></tr>)}</tbody></table></div>
+      <div className="grid gap-3 p-4 xl:hidden">{movements.map(m=><article key={m.id} className="rounded-2xl border border-slate-800 bg-slate-950/35 p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs text-slate-500">{dateTime(m.createdAt)} · {m.cinemaName}</div><h3 className="mt-1 font-bold" data-testid="inventory-movement-product-name-v7807" data-i18n-skip="true">{concessionProductName(m.productName,language)}</h3></div><span className={`rounded-full px-2 py-1 text-xs font-bold ${movementClass(m.movementType)}`}>{m.movementType}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><div>{t("Δ tồn","Δ stock")} <b className={m.quantityDelta>0?"text-emerald-300":m.quantityDelta<0?"text-rose-300":"text-slate-400"}>{signed(m.quantityDelta)}</b></div><div>{t("Δ giữ","Δ reserved")} <b>{signed(m.reservedDelta)}</b></div><div>{t("Tồn sau","Stock after")} <b>{m.stockAfter}</b></div><div>{t("Giữ sau","Reserved after")} <b>{m.reservedAfter}</b></div></div><div className="mt-3 break-all text-xs text-slate-500">{m.referenceKey||m.bookingId||m.actorEmail||t("Hệ thống","System")}</div>{m.note&&<p data-testid="inventory-movement-note-v7820r1" className="mt-2 break-words text-xs text-slate-400">{inventoryMovementNotePresentation(m.note,language)}</p>}</article>)}</div>
       {!movements.length&&<div className="p-8 text-center text-slate-500">{t("Chưa có biến động kho trong phạm vi đang xem.","No inventory movements in the current scope.")}</div>}
     </section>
   </div>;

@@ -102,6 +102,13 @@ Invoke-Checked 'V78.0.19-R3 table center / EN dynamic copy / inventory E2E closu
 Invoke-Checked 'V78.0.19-R4 language / table center / release whitespace closure' { python -X utf8 tools/verify_v78_0_19_r4_language_table_release_closure.py }
 Invoke-Checked 'V78.0.19-R5 full EN presentation / inventory E2E closure' { python -X utf8 tools/verify_v78_0_19_r5_full_en_presentation_inventory_closure.py }
 Invoke-Checked 'V78.0.19-R6 lint / observability full-suite closure' { python -X utf8 tools/verify_v78_0_19_r6_lint_observability_full_suite_closure.py }
+Invoke-Checked 'V78.0.19-R7 dynamic EN presentation closure' { python -X utf8 tools/verify_v78_0_19_r7_dynamic_en_presentation_closure.py }
+Invoke-Checked 'V78.0.20 V70-V77 EN / release tag closure' { python -X utf8 tools/verify_v78_0_20_v70_v77_en_release_tag_closure.py }
+Invoke-Checked 'V78.0.20-R1 runtime EN presentation closure' { python -X utf8 tools/verify_v78_0_20_r1_runtime_en_closure.py }
+Invoke-Checked 'V78.0.20-R2 staff/audit EN runtime closure' { python -X utf8 tools/verify_v78_0_20_r2_staff_audit_en_closure.py }
+Invoke-Checked 'V78.0.20-R3 audit IP / historical release gate closure' { python -X utf8 tools/verify_v78_0_20_r3_audit_ip_release_gate_closure.py }
+Invoke-Checked 'V78.0.20-R4 inventory full-suite closure' { python -X utf8 tools/verify_v78_0_20_r4_inventory_full_suite_closure.py }
+Invoke-Checked 'V78.0.20-R5 historical V78.0.5 release-preflight compatibility' { python -X utf8 tools/verify_v78_0_20_r5_v7805_release_preflight_forward_compatibility.py }
 Invoke-Checked 'V78.0.18 post-tag stable-release workflow recovery' { python -X utf8 tools/verify_v78_0_18_post_tag_release_workflow_recovery.py }
 
 Write-Host 'PASS: CineBooking V78 UX / Accessibility / PWA 5.0 source diagnostics completed.' -ForegroundColor Green

@@ -8,8 +8,10 @@ import { getAuth } from "@/lib/auth";
 import { listOfflineTickets, requestPersistentStorage, storageEstimate, syncOfflineTickets } from "@/lib/offlineTickets";
 import { disableCurrentDevicePush, isStandalonePwa, listPwaDevices, pushConfig, registerCurrentPwaDevice, removePwaDevice } from "@/lib/pwa";
 import type { NotificationPreference, PwaDevice, PwaPushConfig } from "@/lib/types";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 
 export default function MobileCenterPage(){
+  const { t }=usePresentationLanguage();
   const [config,setConfig]=useState<PwaPushConfig|null>(null);
   const [devices,setDevices]=useState<PwaDevice[]>([]);
   const [offlineCount,setOfflineCount]=useState(0);
@@ -52,7 +54,7 @@ export default function MobileCenterPage(){
   },[]);
 
   const current=useMemo(()=>devices.find(d=>d.current),[devices]);
-  const storageText=quota?`${Math.round((usage||0)/1024/1024)} MB / ${Math.round(quota/1024/1024)} MB`:"Không rõ";
+  const storageText=quota?`${Math.round((usage||0)/1024/1024)} MB / ${Math.round(quota/1024/1024)} MB`:t("Không rõ","Unknown");
 
   async function enablePush(){
     setBusy(true);setError("");setMessage("");
@@ -68,15 +70,15 @@ export default function MobileCenterPage(){
       }
       const result=await registerCurrentPwaDevice({subscribe:true});
       setPermission(typeof Notification!=="undefined"?Notification.permission:"unsupported");
-      setMessage(result.config?.enabled?"✅ Đã bật thông báo đẩy nền cho thiết bị này.":"Thông báo đẩy chưa được cấu hình; CineBooking vẫn thông báo khi website đang mở.");
+      setMessage(result.config?.enabled?t("✅ Đã bật thông báo đẩy nền cho thiết bị này.","✅ Background push notifications are enabled for this device."):t("Thông báo đẩy chưa được cấu hình; CineBooking vẫn thông báo khi website đang mở.","Push notifications are not configured; CineBooking will still notify you while the website is open."));
       await load();
     }catch(e){setError((e as Error).message);}finally{setBusy(false);}
   }
 
-  async function disablePush(){setBusy(true);setError("");setMessage("");try{await disableCurrentDevicePush();setMessage("Đã tắt thông báo đẩy trên thiết bị hiện tại.");await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
-  async function persist(){setBusy(true);try{const ok=await requestPersistentStorage();setPersistent(ok);setMessage(ok?"✅ Trình duyệt đã cấp lưu trữ bền vững.":"Trình duyệt chưa cấp lưu trữ bền vững; vé ngoại tuyến vẫn được lưu nhưng có thể bị dọn khi thiếu dung lượng.");await load();}finally{setBusy(false);}}
-  async function syncTickets(){if(!auth)return;setBusy(true);setError("");try{const r=await syncOfflineTickets(auth.userId);setMessage(`Đồng bộ ${r.checked} vé: ${r.refreshed} hợp lệ, ${r.stale} cần đồng bộ lại, ${r.failed} chưa xác minh.`);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
-  async function remove(device:PwaDevice){if(!confirm(`Gỡ thiết bị ${device.deviceLabel}?`))return;setBusy(true);try{await removePwaDevice(device);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+  async function disablePush(){setBusy(true);setError("");setMessage("");try{await disableCurrentDevicePush();setMessage(t("Đã tắt thông báo đẩy trên thiết bị hiện tại.","Push notifications are disabled on this device."));await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+  async function persist(){setBusy(true);try{const ok=await requestPersistentStorage();setPersistent(ok);setMessage(ok?t("✅ Trình duyệt đã cấp lưu trữ bền vững.","✅ The browser granted persistent storage."):t("Trình duyệt chưa cấp lưu trữ bền vững; vé ngoại tuyến vẫn được lưu nhưng có thể bị dọn khi thiếu dung lượng.","The browser did not grant persistent storage; offline tickets remain saved but may be evicted when storage is low."));await load();}finally{setBusy(false);}}
+  async function syncTickets(){if(!auth)return;setBusy(true);setError("");try{const r=await syncOfflineTickets(auth.userId);setMessage(t(`Đồng bộ ${r.checked} vé: ${r.refreshed} hợp lệ, ${r.stale} cần đồng bộ lại, ${r.failed} chưa xác minh.`,`Synced ${r.checked} tickets: ${r.refreshed} valid, ${r.stale} stale, ${r.failed} not verified.`));await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+  async function remove(device:PwaDevice){if(!confirm(t(`Gỡ thiết bị ${device.deviceLabel}?`,`Remove device ${device.deviceLabel}?`)))return;setBusy(true);try{await removePwaDevice(device);await load();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
 
   return <div className="mx-auto max-w-5xl space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="section-kicker">PWA / DI ĐỘNG · V52</p><h1 className="text-3xl font-black">Trải nghiệm di động 3.0</h1><p className="mt-2 max-w-3xl text-slate-400">Trung tâm cài ứng dụng, thông báo đẩy nền, lưu trữ bền vững và đồng bộ vé QR ngoại tuyến có kiểm soát.</p></div><div className="flex gap-2"><Link className="btn btn-secondary" href="/offline-tickets">🎟 Vé ngoại tuyến</Link><Link className="btn btn-secondary" href="/notifications">🔔 Thông báo</Link></div></div>
@@ -84,10 +86,10 @@ export default function MobileCenterPage(){
     {(error||message)&&<div className={`rounded-xl p-4 text-sm ${error?"bg-red-950/45 text-red-200":"bg-emerald-950/35 text-emerald-200"}`}>{error||message}</div>}
 
     <section className="grid gap-4 md:grid-cols-4">
-      <div className="card p-5"><div className="text-xs text-slate-500">Kết nối</div><div className={`mt-2 font-black ${online?"text-emerald-300":"text-amber-300"}`}>{online?"Trực tuyến":"Ngoại tuyến"}</div></div>
-      <div className="card p-5"><div className="text-xs text-slate-500">Chế độ app</div><div className="mt-2 font-black">{standalone?"STANDALONE":"BROWSER"}</div></div>
-      <div className="card p-5"><div className="text-xs text-slate-500">Vé ngoại tuyến</div><div className="mt-2 text-2xl font-black">{offlineCount}</div><div className="text-xs text-slate-500">{staleCount} cần đồng bộ lại</div></div>
-      <div className="card p-5"><div className="text-xs text-slate-500">Lưu trữ</div><div className="mt-2 font-black">{persistent?"Bền vững":"Theo khả năng trình duyệt"}</div><div className="text-xs text-slate-500">{storageText}</div></div>
+      <div className="card p-5"><div className="text-xs text-slate-500">{t("Kết nối","Connection")}</div><div className={`mt-2 font-black ${online?"text-emerald-300":"text-amber-300"}`}>{online?t("Trực tuyến","Online"):t("Ngoại tuyến","Offline")}</div></div>
+      <div className="card p-5"><div className="text-xs text-slate-500">{t("Chế độ app","App mode")}</div><div className="mt-2 font-black">{standalone?"STANDALONE":"BROWSER"}</div></div>
+      <div className="card p-5"><div className="text-xs text-slate-500">{t("Vé ngoại tuyến","Offline tickets")}</div><div className="mt-2 text-2xl font-black">{offlineCount}</div><div className="text-xs text-slate-500">{staleCount} {t("cần đồng bộ lại","need resync")}</div></div>
+      <div className="card p-5"><div className="text-xs text-slate-500">{t("Lưu trữ","Storage")}</div><div className="mt-2 font-black">{persistent?t("Bền vững","Persistent"):t("Theo khả năng trình duyệt","Browser-managed")}</div><div className="text-xs text-slate-500">{storageText}</div></div>
     </section>
 
     <section className="card p-5" data-testid="pwa-push-v52" data-delivery-mode={config?.deliveryMode||"LOADING"}>
@@ -98,6 +100,6 @@ export default function MobileCenterPage(){
 
     <section className="card p-5" data-testid="offline-sync-v52"><h2 className="text-xl font-black">🎟 Vé ngoại tuyến & lưu trữ</h2><p className="mt-1 text-sm text-slate-400">QR ngoại tuyến chỉ được lưu qua IndexedDB. Service Worker không lưu đệm API, trang tài khoản hay QR riêng tư.</p><div className="mt-4 flex flex-wrap gap-2"><button className="btn btn-primary" disabled={busy||!online} onClick={syncTickets}>↻ Đồng bộ vé</button><button className="btn btn-secondary" disabled={busy||persistent} onClick={persist}>Yêu cầu lưu trữ bền vững</button></div></section>
 
-    <section className="card p-5" data-testid="pwa-devices-v52"><div className="flex items-center justify-between"><div><h2 className="text-xl font-black">📱 Thiết bị PWA</h2><p className="mt-1 text-sm text-slate-400">Không tạo thông tin xác thực Web Push giả. Chỉ trình duyệt thật mới ghi địa chỉ nhận và khóa.</p></div><span className="text-sm text-slate-500">{devices.length} thiết bị</span></div><div className="mt-4 space-y-3">{devices.map(d=><div key={d.id} className="flex flex-col gap-3 rounded-xl border border-slate-800 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-bold">{d.deviceLabel} {d.current&&<span className="text-xs text-rose-300">· Thiết bị này</span>}</div><div className="mt-1 text-xs text-slate-500">{d.platform} · {d.standalone?"Ứng dụng độc lập":"Trình duyệt"} · Đẩy {d.pushEnabled?"BẬT":"TẮT"} · Đã xem {dateTime(d.lastSeenAt)}</div>{d.lastFailureAt&&<div className="mt-1 text-xs text-amber-300">Lỗi thông báo đẩy: {d.failureCount} · {dateTime(d.lastFailureAt)}</div>}</div><button className="btn btn-secondary" disabled={busy} onClick={()=>remove(d)}>Gỡ</button></div>)}{!devices.length&&<div className="text-sm text-slate-500">Thiết bị hiện tại sẽ được ghi nhận sau khi Service Worker sẵn sàng.</div>}</div></section>
+    <section className="card p-5" data-testid="pwa-devices-v52"><div className="flex items-center justify-between"><div><h2 className="text-xl font-black">📱 {t("Thiết bị PWA","PWA devices")}</h2><p className="mt-1 text-sm text-slate-400">{t("Không tạo thông tin xác thực Web Push giả. Chỉ trình duyệt thật mới ghi địa chỉ nhận và khóa.","No fake Web Push credentials are created. Only a real browser records the endpoint and keys.")}</p></div><span data-testid="pwa-device-count-v7820r1" className="text-sm text-slate-500">{devices.length} {t("thiết bị","devices")}</span></div><div className="mt-4 space-y-3">{devices.map(d=><div key={d.id} className="flex flex-col gap-3 rounded-xl border border-slate-800 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="font-bold">{d.deviceLabel} {d.current&&<span className="text-xs text-rose-300">· {t("Thiết bị này","This device")}</span>}</div><div data-testid="pwa-device-meta-v7820r1" className="mt-1 text-xs text-slate-500">{d.platform} · {d.standalone?t("Ứng dụng độc lập","Standalone app"):t("Trình duyệt","Browser")} · {t("Đẩy","Push")} {d.pushEnabled?t("BẬT","ON"):t("TẮT","OFF")} · {t("Đã xem","Last seen")} {dateTime(d.lastSeenAt)}</div>{d.lastFailureAt&&<div className="mt-1 text-xs text-amber-300">{t("Lỗi thông báo đẩy","Push failure")}: {d.failureCount} · {dateTime(d.lastFailureAt)}</div>}</div><button className="btn btn-secondary" disabled={busy} onClick={()=>remove(d)}>{t("Gỡ","Remove")}</button></div>)}{!devices.length&&<div className="text-sm text-slate-500">{t("Thiết bị hiện tại sẽ được ghi nhận sau khi Service Worker sẵn sàng.","The current device will be recorded after the Service Worker is ready.")}</div>}</div></section>
   </div>;
 }

@@ -47,7 +47,7 @@ ok('inventory-target-stock-label-v7806' in e2e and 'toHaveText("Target stock")' 
    "V78 browser journey explicitly proves the EN target-stock label")
 ok('inventory-cinema-select' in e2e and 'toHaveAttribute("data-i18n-skip", "true")' in e2e,
    "V78 browser journey proves the cinema option business-data boundary")
-ok(any(x in sw for x in ['const VERSION = "v78-0-6";', 'const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-6";', 'const VERSION = "v78-0-7";','const VERSION = "v78-0-8";','const VERSION = "v78-0-9";','const VERSION = "v78-0-10";','const VERSION = "v78-0-11";','const VERSION = "v78-0-12";','const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']),
    "Service Worker generation is V78.0.6 or a forward-compatible V78 patch")
 
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))
@@ -59,7 +59,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.6 verifier")
 ok("verify-v78-0-6" in make and "release-v78-0-6" in make,
    "Makefile exposes V78.0.6 verify/release lifecycle")
-ok(any(x in readme for x in ["Current release:** V78.0.6", "Current release:** V78.0.7", "Current release:** V78.0.8", "Current release:** V78.0.9", "Current release:** V78.0.10","Current release:** V78.0.11", "Current release:** V78.0.12", "Current release:** V78.0.13", "Current release:** V78.0.14", "Current release:** V78.0.15","Current release:** V78.0.16", "Current release:** V78.0.17", "Current release:** V78.0.18", "Current release:** V78.0.19"]) and "V78.0.6" in readme and "Inventory Presentation-Language / Business-Data Boundaries" in readme,
+ok(any(x in readme for x in ["Current release:** V78.0.6", "Current release:** V78.0.7", "Current release:** V78.0.8", "Current release:** V78.0.9", "Current release:** V78.0.10","Current release:** V78.0.11", "Current release:** V78.0.12", "Current release:** V78.0.13", "Current release:** V78.0.14", "Current release:** V78.0.15","Current release:** V78.0.16", "Current release:** V78.0.17", "Current release:** V78.0.18", "Current release:** V78.0.19","Current release:** V78.0.20"]) and "V78.0.6" in readme and "Inventory Presentation-Language / Business-Data Boundaries" in readme,
    "README records V78.0.6 inventory runtime-boundary fix")
 ok([p.name for p in ROOT.glob("*.md")] == ["README.md"],
    "Source keeps one consolidated root README.md")

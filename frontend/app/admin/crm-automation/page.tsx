@@ -33,11 +33,16 @@ async function withTransientCrmReadRetry<T>(read:()=>Promise<T>){
     }
   }
 }
-const emptyCampaign:CrmAutomationRequestV77={
+const CRM_DEFAULT_CAMPAIGN_COPY={
+  vi:{title:"Ưu đãi dành riêng cho bạn",message:"CineBooking gửi bạn một ưu đãi cá nhân phù hợp với giai đoạn hiện tại của bạn."},
+  en:{title:"An offer just for you",message:"CineBooking has a personalized offer suited to your current lifecycle stage."},
+} as const;
+
+function emptyCampaign(language:Language):CrmAutomationRequestV77{return {
   campaignCode:"",
   playbookCode:"AT_RISK_WINBACK",
-  title:"Ưu đãi dành riêng cho bạn",
-  message:"CineBooking gửi bạn một ưu đãi cá nhân phù hợp với giai đoạn hiện tại của bạn.",
+  title:CRM_DEFAULT_CAMPAIGN_COPY[language].title,
+  message:CRM_DEFAULT_CAMPAIGN_COPY[language].message,
   discountType:"PERCENT",
   discountValue:15,
   minOrderAmount:100000,
@@ -45,18 +50,28 @@ const emptyCampaign:CrmAutomationRequestV77={
   validityDays:14,
   maxRecipients:100,
   confirmed:false,
-};
+};}
 
 export default function CrmAutomationV77Page(){
   const { language, t } = usePresentationLanguage();
   const [days,setDays]=useState<number>(30);
   const [summary,setSummary]=useState<CrmAutomationSummaryV77|null>(null);
-  const [form,setForm]=useState<CrmAutomationRequestV77>({...emptyCampaign});
+  const [form,setForm]=useState<CrmAutomationRequestV77>(()=>emptyCampaign(language));
   const [preview,setPreview]=useState<CrmAutomationPreviewV77|null>(null);
   const [result,setResult]=useState<CrmAutomationExecutionV77|null>(null);
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
+
+  useEffect(()=>{
+    setForm(current=>{
+      const titleIsDefault=Object.values(CRM_DEFAULT_CAMPAIGN_COPY).some(copy=>copy.title===current.title);
+      const messageIsDefault=Object.values(CRM_DEFAULT_CAMPAIGN_COPY).some(copy=>copy.message===current.message);
+      if(!titleIsDefault&&!messageIsDefault)return current;
+      const copy=CRM_DEFAULT_CAMPAIGN_COPY[language];
+      return {...current,title:titleIsDefault?copy.title:current.title,message:messageIsDefault?copy.message:current.message};
+    });
+  },[language]);
 
   const load=useCallback(async()=>{
     setBusy(true);
@@ -185,13 +200,13 @@ export default function CrmAutomationV77Page(){
     <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
       <section className="card overflow-hidden" data-testid="crm-outcomes-v77">
         <div className="border-b border-slate-800 bg-gradient-to-r from-fuchsia-500/10 via-slate-950/10 to-emerald-500/10 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">Kết quả CRM đã quan sát</h2><p className="mt-1 text-sm text-slate-500">Chỉ đo PROMOTION_V77 trong cửa sổ {summary?.outcome.windowDays??days} ngày.</p></div><span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-bold text-fuchsia-200">CHỈ LÀ TƯƠNG QUAN</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold">{t("Kết quả CRM đã quan sát","Observed CRM results")}</h2><p className="mt-1 text-sm text-slate-500">{language==="en"?`Only PROMOTION_V77 is measured in the ${summary?.outcome.windowDays??days}-day window.`:`Chỉ đo PROMOTION_V77 trong cửa sổ ${summary?.outcome.windowDays??days} ngày.`}</p></div><span className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1 text-xs font-bold text-fuchsia-200">{t("CHỈ LÀ TƯƠNG QUAN","CORRELATION ONLY")}</span></div>
         </div>
         <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
-          <Mini label="Tin nhắn khuyến mãi" value={num(summary?.outcome.promotionMessages??0)} detail={`${num(summary?.outcome.inAppVisibleMessages??0)} in-app visible`}/>
-          <Mini label="Tỷ lệ đã đọc" value={pct(summary?.outcome.readRatePercent??0)} detail={`${num(summary?.outcome.readMessages??0)} đã đọc`}/>
-          <Mini label="Assisted đặt vés" value={num(summary?.outcome.assistedConfirmedBookings??0)} detail="ĐÃ XÁC NHẬN ≤7d sau CRM"/>
-          <Mini label="Doanh thu có hỗ trợ" value={currency(summary?.outcome.assistedRealizedRevenue??0)} detail="Thanh toán THÀNH CÔNG đã loại trùng"/>
+          <Mini label={t("Tin nhắn khuyến mãi","Promotional messages")} value={num(summary?.outcome.promotionMessages??0)} detail={`${num(summary?.outcome.inAppVisibleMessages??0)} in-app visible`}/>
+          <Mini label={t("Tỷ lệ đã đọc","Read rate")} value={pct(summary?.outcome.readRatePercent??0)} detail={`${num(summary?.outcome.readMessages??0)} ${t("đã đọc","read")}`}/>
+          <Mini label={t("Lượt đặt vé được hỗ trợ","Assisted bookings")} value={num(summary?.outcome.assistedConfirmedBookings??0)} detail={t("ĐÃ XÁC NHẬN ≤7 ngày sau CRM","CONFIRMED ≤7 days after CRM")}/>
+          <Mini label={t("Doanh thu có hỗ trợ","Assisted revenue")} value={currency(summary?.outcome.assistedRealizedRevenue??0)} detail={t("Thanh toán THÀNH CÔNG đã loại trùng","Deduplicated SUCCESS payments")}/>
         </div>
         <div className="border-t border-slate-800/70 bg-slate-950/30 px-5 py-3 text-xs leading-5 text-slate-500"><span className="font-semibold text-slate-400">Ghi chú bằng chứng:</span> Đặt vé được CRM hỗ trợ là tín hiệu tương quan khi khách nhận PROMOTION_V77 trong 7 ngày trước lượt đặt vé ĐÃ XÁC NHẬN; không phải quy kết nhân quả.</div>
       </section>
@@ -215,10 +230,10 @@ export default function CrmAutomationV77Page(){
     <div className="grid gap-6 xl:grid-cols-[430px_1fr]">
       <form onSubmit={runPreview} className="card h-fit space-y-4 p-5" data-testid="crm-composer-v77">
         <div><h2 className="text-xl font-bold">Thiết lập tự động hóa CRM</h2><p className="mt-1 text-xs text-slate-500">Bắt buộc xem trước trước khi thực thi. Mã chiến dịch + người dùng là khóa chống lặp; chạy lại không tạo thông báo trùng.</p></div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">Mã chiến dịch</label><input className="input font-bold uppercase" value={form.campaignCode} onChange={e=>dirty({...form,campaignCode:e.target.value.toUpperCase().replace(/\s/g,"")})} placeholder="VD: WINBACK_SEP" maxLength={12} required/><p className="mt-1 text-xs text-slate-500">3-12 ký tự A-Z, 0-9, - hoặc _.</p></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">Mã chiến dịch</label><input className="input font-bold uppercase" value={form.campaignCode} onChange={e=>dirty({...form,campaignCode:e.target.value.toUpperCase().replace(/\s/g,"")})} placeholder={t("VD: WINBACK_SEP","E.G. WINBACK_SEP")} maxLength={12} required/><p className="mt-1 text-xs text-slate-500">3-12 ký tự A-Z, 0-9, - hoặc _.</p></div>
         <div><label className="mb-1.5 block text-sm text-slate-300">Kịch bản vòng đời</label><select className="input" data-testid="crm-playbook-select-v77" value={form.playbookCode} onChange={e=>dirty({...form,playbookCode:e.target.value as CrmAutomationRequestV77["playbookCode"]})}>{summary?.playbooks.map(p=>{const copy=playbookCopy(p,language);return <option key={p.code} value={p.code}>{copy.label} ({p.contactableCustomers} {t("sẵn sàng","ready")})</option>})}</select>{selected&&<p className="mt-1 text-xs text-slate-500">{playbookCopy(selected,language).definition}</p>}</div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">Tiêu đề</label><input className="input" value={form.title} onChange={e=>dirty({...form,title:e.target.value})} maxLength={120} required/></div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">Nội dung</label><textarea className="input min-h-28" value={form.message} onChange={e=>dirty({...form,message:e.target.value})} maxLength={500} required/></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">Tiêu đề</label><input data-testid="crm-title-v7820r1" className="input" value={form.title} onChange={e=>dirty({...form,title:e.target.value})} maxLength={120} required/></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">Nội dung</label><textarea data-testid="crm-message-v7820r1" className="input min-h-28" value={form.message} onChange={e=>dirty({...form,message:e.target.value})} maxLength={500} required/></div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Loại giảm</label><select className="input" value={form.discountType} onChange={e=>dirty({...form,discountType:e.target.value as "PERCENT"|"FIXED"})}><option value="PERCENT">Phần trăm (%)</option><option value="FIXED">Số tiền (đ)</option></select></div><div><label className="mb-1.5 block text-sm text-slate-300">Mức giảm</label><input className="input" type="number" min={1} max={form.discountType==="PERCENT"?100:undefined} value={form.discountValue} onChange={e=>dirty({...form,discountValue:Number(e.target.value)})}/></div></div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Đơn tối thiểu</label><input className="input" type="number" min={0} value={form.minOrderAmount} onChange={e=>dirty({...form,minOrderAmount:Number(e.target.value)})}/></div><div><label className="mb-1.5 block text-sm text-slate-300">Giảm tối đa</label><input className="input" type="number" min={0} value={form.maxDiscount??""} onChange={e=>dirty({...form,maxDiscount:e.target.value===""?undefined:Number(e.target.value)})} placeholder="Không giới hạn"/></div></div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">Hiệu lực (ngày)</label><input className="input" type="number" min={1} max={90} value={form.validityDays} onChange={e=>dirty({...form,validityDays:Number(e.target.value)})}/></div><div><label className="mb-1.5 block text-sm text-slate-300">Số người nhận tối đa</label><input className="input" data-testid="crm-max-recipients-v77" type="number" min={1} max={5000} value={form.maxRecipients} onChange={e=>dirty({...form,maxRecipients:Number(e.target.value)})}/></div></div>
@@ -229,16 +244,16 @@ export default function CrmAutomationV77Page(){
       <div className="space-y-5">
         {preview?<section className="card overflow-hidden" data-testid="crm-preview-result-v77">
           <div className="border-b border-slate-800 bg-gradient-to-r from-cyan-500/10 via-slate-950/10 to-fuchsia-500/10 p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black tracking-widest text-cyan-300">XEM TRƯỚC · {preview.executable?"SẴN SÀNG":"BỊ CHẶN"}</div><h2 className="mt-1 text-xl font-bold">{preview.campaignCode} · {playbookLabel(preview.playbookCode,language,preview.playbookLabel)}</h2></div><div className={`rounded-xl px-4 py-2 text-2xl font-black ${preview.executable?"bg-emerald-500/10 text-emerald-300":"bg-rose-500/10 text-rose-300"}`}>{num(preview.contactableCustomers)} sẵn sàng</div></div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3"><Mini label="Đủ điều kiện" value={num(preview.eligibleCustomers)}/><Mini label="Có thể liên hệ" value={num(preview.contactableCustomers)}/><Mini label="Đã loại trừ" value={num(preview.suppressedCustomers)}/></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><div className="text-xs font-black tracking-widest text-cyan-300">{t("XEM TRƯỚC","PREVIEW")} · {preview.executable?t("SẴN SÀNG","READY"):t("BỊ CHẶN","BLOCKED")}</div><h2 className="mt-1 text-xl font-bold">{preview.campaignCode} · {playbookLabel(preview.playbookCode,language,preview.playbookLabel)}</h2></div><div className={`rounded-xl px-4 py-2 text-2xl font-black ${preview.executable?"bg-emerald-500/10 text-emerald-300":"bg-rose-500/10 text-rose-300"}`}>{num(preview.contactableCustomers)} {t("sẵn sàng","ready")}</div></div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3"><Mini label={t("Đủ điều kiện","Eligible")} value={num(preview.eligibleCustomers)}/><Mini label={t("Có thể liên hệ","Contactable")} value={num(preview.contactableCustomers)}/><Mini label={t("Đã loại trừ","Suppressed")} value={num(preview.suppressedCustomers)}/></div>
             <div className="mt-4 grid gap-2 text-xs text-slate-400"><div>🎟 {preview.voucherPolicy}</div><div>🔔 {preview.deliveryPolicy}</div><div>🛡 {preview.safetyPolicy}</div></div>
-            {!preview.executable&&<div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-sm text-rose-200">Thực thi đang bị chặn: cần ít nhất 1 khách có thể liên hệ và số khách có thể liên hệ ≤ số người nhận tối đa ({preview.maxRecipients}).</div>}
+            {!preview.executable&&<div className="mt-4 rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 text-sm text-rose-200">{language==="en"?`Execution is blocked: at least one contactable customer is required and contactable customers must be ≤ the maximum recipient count (${preview.maxRecipients}).`:`Thực thi đang bị chặn: cần ít nhất 1 khách có thể liên hệ và số khách có thể liên hệ ≤ số người nhận tối đa (${preview.maxRecipients}).`}</div>}
           </div>
           <div className="hidden xl:block"><table className="w-full table-fixed text-xs"><thead className="bg-slate-900/70 text-[10px] uppercase text-slate-500"><tr><th className="w-[24%] p-3">{t("Khách","Customer")}</th><th className="p-3">{t("Hạng","Tier")}</th><th className="p-3">{t("Đặt vé","Bookings")}</th><th className="p-3">{t("Doanh thu","Revenue")}</th><th className="p-3">{t("Độ gần đây","Recency")}</th><th className="p-3">{t("Khuyến mãi 7 ngày","Promotions / 7d")}</th><th className="w-[18%] p-3">{t("Khả năng liên hệ","Contactability")}</th></tr></thead><tbody className="divide-y divide-slate-800">{preview.audience.map(a=><tr key={a.customerRef}><td className="p-3"><div className="break-words font-semibold">{a.customerRef}</div><div className="break-all text-[10px] text-slate-500">{a.maskedEmail}</div></td><td className="p-3">{a.membershipTier||"-"}</td><td className="p-3">{num(a.lifetimeBookings)}</td><td className="p-3">{currency(a.lifetimeRevenue)}</td><td className="p-3">{a.recencyDays<0?t("Chưa đặt vé","No booking yet"):`${a.recencyDays} ${t("ngày","days")}`}</td><td className="p-3">{a.promotionNotifications7d}</td><td className="p-3">{a.contactable?<span className="rounded-md bg-emerald-400/10 px-2 py-1 text-xs font-bold text-emerald-300">{t("SẴN SÀNG","READY")}</span>:<span className="rounded-md bg-amber-400/10 px-2 py-1 text-xs font-bold text-amber-200">{suppressionLabel(a.suppressionReason,language)}</span>}</td></tr>)}</tbody></table></div><div className="grid gap-2 p-4 xl:hidden">{preview.audience.map(a=><article className="rounded-xl border border-slate-800 p-3" key={a.customerRef}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><b className="break-words">{a.customerRef}</b><div className="break-all text-xs text-slate-500">{a.maskedEmail}</div></div><span className={a.contactable?"text-xs font-bold text-emerald-300":"text-xs font-bold text-amber-200"}>{a.contactable?t("SẴN SÀNG","READY"):suppressionLabel(a.suppressionReason,language)}</span></div><div className="mt-3 grid grid-cols-2 gap-2 text-xs"><span>{t("Hạng","Tier")}: <b>{a.membershipTier||"-"}</b></span><span>{t("Đặt vé","Bookings")}: <b>{num(a.lifetimeBookings)}</b></span><span>{t("Doanh thu","Revenue")}: <b>{currency(a.lifetimeRevenue)}</b></span><span>{t("Độ gần đây","Recency")}: <b>{a.recencyDays<0?t("Chưa đặt vé","No booking yet"):`${a.recencyDays} ${t("ngày","days")}`}</b></span></div></article>)}</div>
-          {preview.eligibleCustomers>preview.previewLimit&&<div className="border-t border-slate-800 p-3 text-xs text-slate-500">Đang hiển thị {preview.previewLimit}/{preview.eligibleCustomers} khách đầu tiên; khách có thể liên hệ được ưu tiên lên đầu phần xem trước.</div>}
+          {preview.eligibleCustomers>preview.previewLimit&&<div className="border-t border-slate-800 p-3 text-xs text-slate-500">{language==="en"?`Showing the first ${preview.previewLimit}/${preview.eligibleCustomers} customers; contactable customers are prioritized at the top of the preview.`:`Đang hiển thị ${preview.previewLimit}/${preview.eligibleCustomers} khách đầu tiên; khách có thể liên hệ được ưu tiên lên đầu phần xem trước.`}</div>}
         </section>:<section className="card p-8 text-center" data-testid="crm-preview-empty-v77"><div className="text-4xl">🧭</div><h2 className="mt-3 text-xl font-bold">Chọn kịch bản và chạy Xem trước</h2><p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">V77 sẽ tính lifecycle eligibility, khả năng liên hệ và lọc loại trừ trước khi cho phép Thực thi. Không có chiến dịch nào được gửi từ màn hình này nếu chưa Xem trước.</p></section>}
 
-        {result&&<section className="card border border-emerald-700/60 p-5" data-testid="crm-execution-result-v77"><div className="text-xs font-black tracking-widest text-emerald-300">ĐÃ THỰC THI · AN TOÀN KHI LẶP</div><h2 className="mt-1 text-xl font-bold">{result.campaignCode}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Mini label="Có thể liên hệ" value={num(result.contactableCustomers)}/><Mini label="Đã loại trừ" value={num(result.suppressedCustomers)}/><Mini label="Mã ưu đãi mới" value={num(result.vouchersCreated)}/><Mini label="Mã ưu đãi tái sử dụng" value={num(result.vouchersReused)}/><Mini label="Thông báo mới" value={num(result.notificationsCreated)}/></div><div className="mt-3 text-xs text-slate-500">Thông báo đã bỏ qua: {result.notificationsSkipped}. Chạy lại cùng mã chiến dịch không tạo lần gửi trùng nhờ khóa chống trùng CRM77.</div></section>}
+        {result&&<section className="card border border-emerald-700/60 p-5" data-testid="crm-execution-result-v77"><div className="text-xs font-black tracking-widest text-emerald-300">{t("ĐÃ THỰC THI · AN TOÀN KHI LẶP","EXECUTED · IDEMPOTENT")}</div><h2 className="mt-1 text-xl font-bold">{result.campaignCode}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Mini label={t("Có thể liên hệ","Contactable")} value={num(result.contactableCustomers)}/><Mini label={t("Đã loại trừ","Suppressed")} value={num(result.suppressedCustomers)}/><Mini label={t("Mã ưu đãi mới","New vouchers")} value={num(result.vouchersCreated)}/><Mini label={t("Mã ưu đãi tái sử dụng","Reused vouchers")} value={num(result.vouchersReused)}/><Mini label={t("Thông báo mới","New notifications")} value={num(result.notificationsCreated)}/></div><div className="mt-3 text-xs text-slate-500">{language==="en"?`Skipped notifications: ${result.notificationsSkipped}. Re-running the same campaign code does not create duplicate sends because of the CRM77 deduplication key.`:`Thông báo đã bỏ qua: ${result.notificationsSkipped}. Chạy lại cùng mã chiến dịch không tạo lần gửi trùng nhờ khóa chống trùng CRM77.`}</div></section>}
       </div>
     </div>
   </div>;

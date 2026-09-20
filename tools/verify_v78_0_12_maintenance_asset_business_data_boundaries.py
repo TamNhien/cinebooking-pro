@@ -39,9 +39,9 @@ ok('route === "/admin/maintenance"' in e2e and 'maintenance-asset-name-card-v781
    "Focused V78 journey explicitly proves Maintenance asset-name boundaries")
 ok('clone.querySelectorAll(\'[data-i18n-skip="true"]\')' in e2e and 'closest(\'[data-i18n-skip="true"]\')' in e2e,
    "Browser leak scan still removes only explicit narrow source-data boundaries")
-ok(any(v in sw for v in ['const VERSION = "v78-0-12";', 'const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
+ok(any(v in sw for v in ['const VERSION = "v78-0-12";', 'const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']),
    "Service Worker generation is V78.0.12 or forward-compatible V78.0.13")
-ok(any(v in v78page for v in ['>V78.0.12</span>', '>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']),
+ok(any(v in v78page for v in ['>V78.0.12</span>', '>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>','>V78.0.20</span>']),
    "Visible V78 Admin surface reports V78.0.12 or forward patch generation")
 
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))
@@ -53,7 +53,7 @@ ok(name in release and name in ci and name in diag,
    "Release, CI and V78 diagnostics execute V78.0.12 verifier")
 ok("verify-v78-0-12" in make and "release-v78-0-12" in make,
    "Makefile exposes V78.0.12 verify/release lifecycle")
-ok(any(x in readme for x in ['Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and any(x in readme for x in ['`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Maintenance Asset Business-Data Boundaries' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.12','Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19','Current release:** V78.0.20']) and any(x in readme for x in ['`v78.0.12`','`v78.0.13`','`v78.0.14`','`v78.0.15`']) and 'Maintenance Asset Business-Data Boundaries' in readme,
    "README preserves V78.0.12 Maintenance fix under forward release metadata")
 ok([p.name for p in ROOT.glob("*.md")] == ["README.md"],
    "Source keeps one consolidated root README.md")

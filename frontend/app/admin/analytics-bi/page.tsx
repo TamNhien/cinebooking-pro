@@ -122,12 +122,12 @@ export default function AnalyticsBiV75Page(){
 
     <section className="card overflow-hidden" data-testid="movie-efficiency-v75">
       <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Hiệu suất phim</h2><p className="mt-1 text-sm text-slate-500">Chỉ tính suất đã bắt đầu trong cửa sổ; tỷ lệ lấp đầy = vé đang hoạt động / tổng ghế được chào bán qua các suất.</p></div>
-      <Table headers={["Phim","Suất","Vé","Sức chứa","Tỷ lệ lấp đầy","Doanh thu","Doanh thu/suất","Doanh thu/ghế"]} rows={data?.movieEfficiency.map(x=>[x.movieTitle,number(x.completedShowtimes),number(x.ticketsSold),number(x.seatCapacity),pct(x.occupancyRatePercent),currency(x.realizedRevenue),currency(x.revenuePerShowtime),currency(x.revenuePerSeatOffered)])??[]}/>
+      <Table headers={[t("Phim","Movie"),t("Suất","Showtimes"),t("Vé","Tickets"),t("Sức chứa","Capacity"),t("Tỷ lệ lấp đầy","Occupancy rate"),t("Doanh thu","Revenue"),t("Doanh thu/suất","Revenue/showtime"),t("Doanh thu/ghế","Revenue/seat")]} rows={data?.movieEfficiency.map(x=>[x.movieTitle,number(x.completedShowtimes),number(x.ticketsSold),number(x.seatCapacity),pct(x.occupancyRatePercent),currency(x.realizedRevenue),currency(x.revenuePerShowtime),currency(x.revenuePerSeatOffered)])??[]}/>
     </section>
 
     <section className="card overflow-hidden" data-testid="cinema-efficiency-v75">
       <div className="border-b border-slate-800 p-5"><h2 className="text-xl font-bold">Hiệu suất rạp</h2><p className="mt-1 text-sm text-slate-500">So sánh tỷ lệ lấp đầy và hiệu quả doanh thu trên cùng cửa sổ thời gian.</p></div>
-      <Table headers={["Rạp","Suất","Vé","Sức chứa","Tỷ lệ lấp đầy","Doanh thu","Doanh thu/suất","Doanh thu/ghế"]} rows={data?.cinemaEfficiency.map(x=>[x.cinemaName,number(x.completedShowtimes),number(x.ticketsSold),number(x.seatCapacity),pct(x.occupancyRatePercent),currency(x.realizedRevenue),currency(x.revenuePerShowtime),currency(x.revenuePerSeatOffered)])??[]}/>
+      <Table headers={[t("Rạp","Cinema"),t("Suất","Showtimes"),t("Vé","Tickets"),t("Sức chứa","Capacity"),t("Tỷ lệ lấp đầy","Occupancy rate"),t("Doanh thu","Revenue"),t("Doanh thu/suất","Revenue/showtime"),t("Doanh thu/ghế","Revenue/seat")]} rows={data?.cinemaEfficiency.map(x=>[x.cinemaName,number(x.completedShowtimes),number(x.ticketsSold),number(x.seatCapacity),pct(x.occupancyRatePercent),currency(x.realizedRevenue),currency(x.revenuePerShowtime),currency(x.revenuePerSeatOffered)])??[]}/>
     </section>
   </div>;
 }

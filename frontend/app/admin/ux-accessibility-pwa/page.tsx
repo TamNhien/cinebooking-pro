@@ -51,7 +51,7 @@ export default function UxAccessibilityPwaV78Page(){
     <section className="card p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div><h2 className="text-xl font-bold">{t("Các bề mặt V78","V78 surfaces")}</h2><p className="mt-1 text-sm text-slate-500">{t("Mở nhanh các luồng được V78 bảo vệ trực tiếp.","Open the flows directly protected by V78.")}</p></div>
-        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300">V78.0.19</span>
+        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-300">V78.0.20</span>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Link href="/mobile" className="btn btn-secondary">{t("📱 Trung tâm di động","📱 Mobile hub")}</Link>

@@ -15,18 +15,23 @@ import type {
   MarketingSegmentV64,
 } from "@/lib/types";
 
-const emptyCampaign:MarketingCampaignRequestV64={
+const DEFAULT_CAMPAIGN_COPY={
+  vi:{title:"Ưu đãi dành riêng cho bạn",message:"CineBooking gửi bạn một ưu đãi cá nhân để quay lại rạp trong thời gian tới."},
+  en:{title:"An offer just for you",message:"CineBooking is sending you a personal offer to visit the cinema again soon."},
+} as const;
+
+function emptyCampaign(language:Language):MarketingCampaignRequestV64{return {
   campaignCode:"",
   segmentCode:"AT_RISK_31_90D",
-  title:"Ưu đãi dành riêng cho bạn",
-  message:"CineBooking gửi bạn một ưu đãi cá nhân để quay lại rạp trong thời gian tới.",
+  title:DEFAULT_CAMPAIGN_COPY[language].title,
+  message:DEFAULT_CAMPAIGN_COPY[language].message,
   discountType:"PERCENT",
   discountValue:15,
   minOrderAmount:100000,
   maxDiscount:50000,
   validityDays:14,
   confirmed:false,
-};
+};}
 
 type FeedbackKind="info"|"success"|"warning"|"error";
 
@@ -46,7 +51,7 @@ const SEGMENT_FALLBACK_LABELS:Record<MarketingCampaignRequestV64["segmentCode"],
 export default function MarketingAutomationV64Page(){
   const { language, t } = usePresentationLanguage();
   const [overview,setOverview]=useState<MarketingOverviewV64|null>(null);
-  const [form,setForm]=useState<MarketingCampaignRequestV64>({...emptyCampaign});
+  const [form,setForm]=useState<MarketingCampaignRequestV64>(()=>emptyCampaign(language));
   const [preview,setPreview]=useState<MarketingCampaignPreviewV64|null>(null);
   const [result,setResult]=useState<MarketingCampaignLaunchV64|null>(null);
   const [busy,setBusy]=useState(false);
@@ -56,6 +61,16 @@ export default function MarketingAutomationV64Page(){
   const [overviewLoading,setOverviewLoading]=useState(true);
 
   const refreshStepUp=useCallback(()=>{setStepUpReady(Boolean(getStepUp()));},[]);
+
+  useEffect(()=>{
+    setForm(current=>{
+      const titleIsDefault=Object.values(DEFAULT_CAMPAIGN_COPY).some(copy=>copy.title===current.title);
+      const messageIsDefault=Object.values(DEFAULT_CAMPAIGN_COPY).some(copy=>copy.message===current.message);
+      if(!titleIsDefault&&!messageIsDefault)return current;
+      const copy=DEFAULT_CAMPAIGN_COPY[language];
+      return {...current,title:titleIsDefault?copy.title:current.title,message:messageIsDefault?copy.message:current.message};
+    });
+  },[language]);
 
   const load=useCallback(async()=>{
     const auth=getAuth();
@@ -210,8 +225,8 @@ export default function MarketingAutomationV64Page(){
         <div><h2 className="text-xl font-bold">{t("Tạo chiến dịch V64","Create V64 campaign")}</h2><p className="mt-1 text-xs text-slate-500">{t("Bắt buộc xem trước trước khi phát hành. Mã chiến dịch là khóa chống lặp: chạy lại cùng mã sẽ không phát mã ưu đãi/thông báo trùng.","Preview is required before publishing. Campaign code is the idempotency key: rerunning the same code does not issue duplicate vouchers or notifications.")}</p></div>
         <div><label className="mb-1.5 block text-sm text-slate-300">{t("Mã chiến dịch","Campaign code")}</label><input className="input font-bold uppercase" value={form.campaignCode} onChange={e=>invalidatePreview({...form,campaignCode:e.target.value.toUpperCase().replace(/\s/g,"")})} placeholder="VD: WINBACK_AUG" maxLength={12} required/><p className="mt-1 text-xs text-slate-500">{t("3-12 ký tự A-Z, 0-9, - hoặc _.","3-12 characters: A-Z, 0-9, - or _.")}</p></div>
         <div><label className="mb-1.5 block text-sm text-slate-300">{t("Phân khúc","Segment")}</label><select className="input" data-testid="segment-select-v64" value={form.segmentCode} onChange={e=>invalidatePreview({...form,segmentCode:e.target.value as MarketingCampaignRequestV64["segmentCode"]})}>{SEGMENT_CODES.map(code=>{const live=overview?.segments.find(s=>s.code===code);const pair=SEGMENT_FALLBACK_LABELS[code];const label=live?segmentCopy(live,language).label:(language==="vi"?pair[0]:pair[1]);return <option key={code} value={code}>{label} ({live?.customers??0})</option>})}</select>{selected&&<p className="mt-1 text-xs text-slate-500">{segmentCopy(selected,language).definition}</p>}</div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">{t("Tiêu đề","Title")}</label><input className="input" value={form.title} onChange={e=>invalidatePreview({...form,title:e.target.value})} maxLength={120} required/></div>
-        <div><label className="mb-1.5 block text-sm text-slate-300">{t("Nội dung","Message")}</label><textarea className="input min-h-28" value={form.message} onChange={e=>invalidatePreview({...form,message:e.target.value})} maxLength={500} required/></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">{t("Tiêu đề","Title")}</label><input data-testid="marketing-title-r7" className="input" value={form.title} onChange={e=>invalidatePreview({...form,title:e.target.value})} maxLength={120} required/></div>
+        <div><label className="mb-1.5 block text-sm text-slate-300">{t("Nội dung","Message")}</label><textarea data-testid="marketing-message-r7" className="input min-h-28" value={form.message} onChange={e=>invalidatePreview({...form,message:e.target.value})} maxLength={500} required/></div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">{t("Loại giảm","Discount type")}</label><select className="input" value={form.discountType} onChange={e=>invalidatePreview({...form,discountType:e.target.value as "PERCENT"|"FIXED"})}><option value="PERCENT">{t("Phần trăm (%)","Percent (%)")}</option><option value="FIXED">{t("Số tiền (đ)","Fixed amount (VND)")}</option></select></div><div><label className="mb-1.5 block text-sm text-slate-300">{t("Mức giảm","Discount value")}</label><input className="input" type="number" min={1} max={form.discountType==="PERCENT"?100:undefined} value={form.discountValue} onChange={e=>invalidatePreview({...form,discountValue:Number(e.target.value)})}/></div></div>
         <div className="grid grid-cols-2 gap-3"><div><label className="mb-1.5 block text-sm text-slate-300">{t("Đơn tối thiểu","Minimum order")}</label><input className="input" type="number" min={0} value={form.minOrderAmount} onChange={e=>invalidatePreview({...form,minOrderAmount:Number(e.target.value)})}/></div><div><label className="mb-1.5 block text-sm text-slate-300">{t("Giảm tối đa","Maximum discount")}</label><input className="input" type="number" min={0} value={form.maxDiscount??""} onChange={e=>invalidatePreview({...form,maxDiscount:e.target.value===""?undefined:Number(e.target.value)})} placeholder={t("Không giới hạn","Unlimited")}/></div></div>
         <div><label className="mb-1.5 block text-sm text-slate-300">{t("Hiệu lực mã ưu đãi (ngày)","Voucher validity (days)")}</label><input className="input" type="number" min={1} max={90} value={form.validityDays} onChange={e=>invalidatePreview({...form,validityDays:Number(e.target.value)})}/></div>

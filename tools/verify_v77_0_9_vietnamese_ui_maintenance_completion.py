@@ -126,7 +126,7 @@ support_localized = (
     or ("localizedLabel" in support and "localizedLabel(value,language)" in support and "{label(c.status)}" in support and "{label(c.category)}" in support)
 )
 ok(support_localized, "Support case status/category are translated at render time")
-ok("viLabel(x.state)" in seat_ops, "Seat-hold state is translated at render time")
+ok("viLabel(x.state)" in seat_ops or "localizedLabel(x.state,language)" in seat_ops, "Seat-hold state is translated at render time")
 ok("viLabel(x.status)" in waitlist or "viLabel(item.status)" in waitlist or "localizedLabel(x.status,language)" in waitlist or "localizedLabel(item.status,language)" in waitlist, "Waitlist status is translated at render time")
 
 # Existing/reference database display data localization.

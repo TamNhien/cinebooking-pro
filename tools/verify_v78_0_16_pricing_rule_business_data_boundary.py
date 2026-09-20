@@ -17,8 +17,8 @@ sw=text('frontend/public/sw.js')
 v78page=text('frontend/app/admin/ux-accessibility-pwa/page.tsx')
 release=text('scripts/release.ps1'); ci=text('.github/workflows/ci.yml'); diag=text('tools/diagnose-v78.ps1'); make=text('Makefile'); readme=text('README.md')
 
-ok('data-testid="pricing-rule-name-v7816" data-i18n-skip="true" className="text-lg font-bold">{r.name}</h3>' in pricing,
-   'Admin Pricing rule-name H3 uses an exact source-owned business-data boundary')
+ok(('data-testid="pricing-rule-name-v7816" data-i18n-skip="true" className="text-lg font-bold">{r.name}</h3>' in pricing) or ('data-testid="pricing-rule-name-v7816" data-i18n-skip="true" className="text-lg font-bold">{pricingRuleDisplayName(r.name,language)}</h3>' in pricing),
+   'Admin Pricing rule-name H3 uses a source-owned or bounded controlled-vocabulary presentation boundary')
 ok('filtered.map(r=><article' in pricing,
    'Pricing rule cards remain rendered through the normal fail-closed page surface')
 ok('<article key={r.id} className={`card p-5 ${!r.active?"opacity-65":""}`}>' in pricing,
@@ -33,8 +33,10 @@ ok('"/admin/pricing"' in v78e2e,
 # This field is admin-authored/source-owned business data. It must not be machine translated.
 # Later presentation patches may need the language hook for controlled auditorium labels,
 # while the admin-authored pricing-rule name itself must remain raw source data.
-ok('{r.name}</h3>' in pricing and not re.search(r'(?:localizedLabel|presentationText|\bt)\(\s*r\.name', pricing),
-   'Pricing rule names remain source-owned rather than hardcoded machine translations')
+helper=text('frontend/lib/controlled-business-presentation.ts')
+ok((('{r.name}</h3>' in pricing and not re.search(r'(?:localizedLabel|presentationText|\bt)\(\s*r\.name', pricing)) or
+    ('pricingRuleDisplayName(r.name,language)' in pricing and 'PRICING_RULE_PREFIX_EN' in helper and 'return raw;' in helper and 'name:r.name' in pricing)),
+   'Pricing rule names preserve raw stored data; only bounded known seed vocabulary may localize at render time')
 
 # Historical SW lists that knew V78.0.15 must accept V78.0.16.
 stale=[]
@@ -51,8 +53,8 @@ for p in (ROOT/'tools').glob('verify_v78*.py'):
         stale_readme.append(p.name)
 ok(not stale_readme, f'Historical V78 current-release guards accept V78.0.16 (stale={len(stale_readme)})')
 
-ok(any(x in sw for x in ['const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']), 'Service Worker generation is V78.0.16 or forward-compatible V78.0.17')
-ok(any(x in v78page for x in ['>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']), 'Visible V78 Admin surface reports V78.0.16 or forward-compatible V78.0.17')
+ok(any(x in sw for x in ['const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']), 'Service Worker generation is V78.0.16 or forward-compatible V78.0.17')
+ok(any(x in v78page for x in ['>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>','>V78.0.20</span>']), 'Visible V78 Admin surface reports V78.0.16 or forward-compatible V78.0.17')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
@@ -63,7 +65,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and V78 diagnostics execute the V78.0.16 verifier')
 ok('verify-v78-0-16' in make and 'release-v78-0-16' in make,
    'Makefile exposes V78.0.16 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and '`v78.0.16`' in readme and 'Pricing Rule Business-Data Boundary' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19','Current release:** V78.0.20']) and '`v78.0.16`' in readme and 'Pricing Rule Business-Data Boundary' in readme,
    'README records the V78.0.16 Pricing rule business-data boundary release')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'], 'Source keeps one consolidated root README.md')
 

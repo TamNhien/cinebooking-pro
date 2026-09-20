@@ -6,7 +6,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
-import { viLabel } from "@/lib/vi-labels";
+import { localizedLabel } from "@/lib/vi-labels";
+import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
 import type { SoftwareArtifactEvidenceV72, SoftwareSupplyChainScanV72, SupplyChainSummaryV72, UserProfile } from "@/lib/types";
 
 const STRATEGY="V72-SUPPLY-CHAIN-INTEGRITY-5";
@@ -14,6 +15,7 @@ type ArtifactType="BACKEND_JAR"|"FRONTEND_BUNDLE"|"CONTAINER_IMAGE"|"DEPENDENCY_
 
 export default function SupplyChainPage(){
   const router=useRouter();
+  const { language } = usePresentationLanguage();
   const [summary,setSummary]=useState<SupplyChainSummaryV72|null>(null);
   const [artifacts,setArtifacts]=useState<SoftwareArtifactEvidenceV72[]>([]);
   const [scans,setScans]=useState<SoftwareSupplyChainScanV72[]>([]);
@@ -85,7 +87,7 @@ export default function SupplyChainPage(){
 
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" data-testid="supply-chain-summary-v72">
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Chiến lược</div><div className="mt-2 text-sm font-black">{summary?.strategyVersion||STRATEGY}</div></div>
-      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Trạng thái tổng thể</div><div className={`mt-2 text-xl font-black ${postureClass}`}>{summary?.posture||"NO_EVIDENCE"}</div></div>
+      <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Trạng thái tổng thể</div><div className={`mt-2 text-xl font-black ${postureClass}`}>{localizedLabel(summary?.posture||"NO_EVIDENCE",language)}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Gói tạo tács</div><div className="mt-2 text-2xl font-black">{summary?.artifactCount??0}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Quéts</div><div className="mt-2 text-2xl font-black">{summary?.scanCount??0}</div></div>
       <div className="card p-5"><div className="text-xs font-bold uppercase text-slate-500">Nghiêm trọng / Cao tối đa</div><div className="mt-2 text-xl font-black">{summary?.maxCritical??0} / {summary?.maxHigh??0}</div></div>
@@ -93,7 +95,7 @@ export default function SupplyChainPage(){
     </section>
 
     <section className="card p-5" data-testid="supply-chain-policy-v72">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🛡 Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-400">Độ mới của bằng chứng: {summary?.evidenceMaxAgeHours??168} giờ. V72 mặc định không tự chặn bản phát hành; CI/bản phát hành vẫn là nguồn tham chiếu chuẩn.</p></div><div className="text-sm font-bold">DIGESTS_ONLY · APPEND_ONLY_EVIDENCE</div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-black">🛡 Chính sách bằng chứng</h2><p className="mt-1 text-sm text-slate-400">{language==="en"?`Evidence freshness: ${summary?.evidenceMaxAgeHours??168} hours. V72 does not block a release by default; CI/release remains the authoritative reference.`:`Độ mới của bằng chứng: ${summary?.evidenceMaxAgeHours??168} giờ. V72 mặc định không tự chặn bản phát hành; CI/bản phát hành vẫn là nguồn tham chiếu chuẩn.`}</p></div><div className="text-sm font-bold">DIGESTS_ONLY · APPEND_ONLY_EVIDENCE</div></div>
       <div className="mt-4 grid gap-3 md:grid-cols-2"><p className="text-sm text-slate-300">✅ SHA-256, xác nhận nguồn, tham chiếu bản dựng/SBOM và bộ đếm quét.</p><p className="text-sm text-slate-300">❌ Không lưu JAR/bundle/image binary, dependency package content hoặc nội dung báo cáo quét.</p></div>
     </section>
 
@@ -113,7 +115,7 @@ export default function SupplyChainPage(){
       <form className="card p-5" onSubmit={recordScan} data-testid="supply-chain-scan-form-v72">
         <h2 className="text-lg font-black">🔎 Ghi bằng chứng quét</h2><p className="mt-2 text-sm text-slate-400">Kết luận ĐẠT/CẢNH BÁO/KHÔNG ĐẠT được dịch vụ phía máy chủ tính; giao diện không được tự khai báo đạt.</p>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Gói tạo tác</label><select className="input mt-2 w-full" required value={artifactId} onChange={e=>setArtifactId(e.target.value)}><option value="" disabled>Chọn bằng chứng gói tạo tác</option>{artifacts.map(a=><option key={a.id} value={a.id}>{a.artifactKey} · {a.artifactType}</option>)}</select>
-        <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Trình quét</label><input className="input mt-2 w-full" maxLength={80} value={scanner} onChange={e=>setScanner(e.target.value)}/>
+        <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Trình quét</label><input className="input mt-2 w-full" maxLength={80} value={language==="en"&&scanner==="Trình quét CI"?"CI scanner":scanner} onChange={e=>setScanner(e.target.value)}/>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Phiên bản trình quét</label><input className="input mt-2 w-full" maxLength={80} value={scannerVersion} onChange={e=>setScannerVersion(e.target.value)}/>
         <label className="mt-4 block text-xs font-bold uppercase text-slate-500">Dấu vân tay báo cáo</label><input className="input mt-2 w-full" maxLength={128} value={reportFingerprint} onChange={e=>setReportFingerprint(e.target.value)} placeholder="sha256:... hoặc dấu vân tay báo cáo an toàn"/>
         <div className="mt-4 grid grid-cols-2 gap-3"><label className="text-xs font-bold uppercase text-slate-500">Nghiêm trọng<input className="input mt-2 w-full" type="number" min={0} value={critical} onChange={e=>setCritical(Number(e.target.value))}/></label><label className="text-xs font-bold uppercase text-slate-500">Cao<input className="input mt-2 w-full" type="number" min={0} value={high} onChange={e=>setHigh(Number(e.target.value))}/></label><label className="text-xs font-bold uppercase text-slate-500">Trung bình<input className="input mt-2 w-full" type="number" min={0} value={medium} onChange={e=>setMedium(Number(e.target.value))}/></label><label className="text-xs font-bold uppercase text-slate-500">Thấp<input className="input mt-2 w-full" type="number" min={0} value={low} onChange={e=>setLow(Number(e.target.value))}/></label></div>
@@ -122,9 +124,9 @@ export default function SupplyChainPage(){
       </form>
     </section>
 
-    <section className="card overflow-x-auto p-5" data-testid="supply-chain-artifacts-v72"><h2 className="text-lg font-black">📚 Bằng chứng gói tạo tác</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Gói tạo tác</th><th className="p-2">Loại</th><th className="p-2">Phiên bản</th><th className="p-2">SHA-256</th><th className="p-2">Mã commit</th><th className="p-2">Ngày tạo</th></tr></thead><tbody>{artifacts.map(a=><tr className="border-t border-slate-800" key={a.id}><td className="p-2 font-bold">{a.artifactKey}</td><td className="p-2">{viLabel(a.artifactType)}</td><td className="p-2">{a.versionLabel}</td><td className="p-2"><code>{a.sha256.slice(0,16)}…</code></td><td className="p-2"><code>{a.sourceCommit?.slice(0,12)||"—"}</code></td><td className="p-2">{dateTime(a.artifactCreatedAt)}</td></tr>)}</tbody></table>{!artifacts.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng gói tạo tác; trạng thái CHƯA CÓ BẰNG CHỨNG là dự kiến cho lần triển khai mới.</div>}</section>
+    <section className="card overflow-x-auto p-5" data-testid="supply-chain-artifacts-v72"><h2 className="text-lg font-black">📚 Bằng chứng gói tạo tác</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Gói tạo tác</th><th className="p-2">Loại</th><th className="p-2">Phiên bản</th><th className="p-2">SHA-256</th><th className="p-2">Mã commit</th><th className="p-2">Ngày tạo</th></tr></thead><tbody>{artifacts.map(a=><tr className="border-t border-slate-800" key={a.id}><td className="p-2 font-bold">{a.artifactKey}</td><td className="p-2">{localizedLabel(a.artifactType,language)}</td><td className="p-2">{a.versionLabel}</td><td className="p-2"><code>{a.sha256.slice(0,16)}…</code></td><td className="p-2"><code>{a.sourceCommit?.slice(0,12)||"—"}</code></td><td className="p-2">{dateTime(a.artifactCreatedAt)}</td></tr>)}</tbody></table>{!artifacts.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng gói tạo tác; trạng thái CHƯA CÓ BẰNG CHỨNG là dự kiến cho lần triển khai mới.</div>}</section>
 
-    <section className="card overflow-x-auto p-5" data-testid="supply-chain-scans-v72"><h2 className="text-lg font-black">🧪 Bằng chứng quét</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Quét</th><th className="p-2">Gói tạo tác</th><th className="p-2">Trình quét</th><th className="p-2">C/H/M/L</th><th className="p-2">Kết luận</th><th className="p-2">Ngày quét</th></tr></thead><tbody>{scans.map(s=><tr className="border-t border-slate-800" key={s.id}><td className="p-2 font-bold">{s.scanKey}</td><td className="p-2">{s.artifactKey}</td><td className="p-2">{s.scanner}</td><td className="p-2">{s.criticalCount}/{s.highCount}/{s.mediumCount}/{s.lowCount}</td><td className="p-2 font-black">{viLabel(s.decision)}</td><td className="p-2">{dateTime(s.scannedAt)}</td></tr>)}</tbody></table>{!scans.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng quét.</div>}</section>
+    <section className="card overflow-x-auto p-5" data-testid="supply-chain-scans-v72"><h2 className="text-lg font-black">🧪 Bằng chứng quét</h2><table className="mt-4 min-w-full text-sm"><thead className="text-xs uppercase text-slate-500"><tr><th className="p-2">Quét</th><th className="p-2">Gói tạo tác</th><th className="p-2">Trình quét</th><th className="p-2">C/H/M/L</th><th className="p-2">Kết luận</th><th className="p-2">Ngày quét</th></tr></thead><tbody>{scans.map(s=><tr className="border-t border-slate-800" key={s.id}><td className="p-2 font-bold">{s.scanKey}</td><td className="p-2">{s.artifactKey}</td><td className="p-2">{language==="en"&&s.scanner==="Trình quét CI"?"CI scanner":s.scanner}</td><td className="p-2">{s.criticalCount}/{s.highCount}/{s.mediumCount}/{s.lowCount}</td><td className="p-2 font-black">{localizedLabel(s.decision,language)}</td><td className="p-2">{dateTime(s.scannedAt)}</td></tr>)}</tbody></table>{!scans.length&&<div className="mt-4 text-sm text-slate-500">Chưa có bằng chứng quét.</div>}</section>
   </div>;
 }
 /* V77.0.9 historical verifier aliases (not rendered):

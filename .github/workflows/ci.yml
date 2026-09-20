@@ -607,6 +607,20 @@ jobs:
         run: python3 tools/verify_v78_0_19_r5_full_en_presentation_inventory_closure.py
       - name: Verify V78.0.19-R6 lint / observability full-suite closure
         run: python3 tools/verify_v78_0_19_r6_lint_observability_full_suite_closure.py
+      - name: Verify V78.0.19-R7 dynamic EN presentation closure
+        run: python3 tools/verify_v78_0_19_r7_dynamic_en_presentation_closure.py
+      - name: Verify V78.0.20 V70-V77 EN / release tag closure
+        run: python3 tools/verify_v78_0_20_v70_v77_en_release_tag_closure.py
+      - name: Verify V78.0.20-R1 runtime EN presentation closure
+        run: python3 tools/verify_v78_0_20_r1_runtime_en_closure.py
+      - name: Verify V78.0.20-R2 staff/audit EN runtime closure
+        run: python3 tools/verify_v78_0_20_r2_staff_audit_en_closure.py
+      - name: Verify V78.0.20-R3 audit IP / historical release gate closure
+        run: python3 tools/verify_v78_0_20_r3_audit_ip_release_gate_closure.py
+      - name: Verify V78.0.20-R4 inventory full-suite closure
+        run: python3 tools/verify_v78_0_20_r4_inventory_full_suite_closure.py
+      - name: Verify V78.0.20-R5 historical V78.0.5 release-preflight compatibility
+        run: python3 tools/verify_v78_0_20_r5_v7805_release_preflight_forward_compatibility.py
       - name: Verify stable release workflow recovery
         run: python3 tools/verify_v78_0_18_post_tag_release_workflow_recovery.py
 

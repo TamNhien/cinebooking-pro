@@ -5,10 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { api, dateTime } from "@/lib/api";
 import { getAuth } from "@/lib/auth";
 import { usePresentationLanguage } from "@/lib/usePresentationLanguage";
+import { auditDetailPresentation } from "@/lib/controlled-business-presentation";
 import type { AuditItem } from "@/lib/types";
 
 export default function AuditPage() {
-  const { t } = usePresentationLanguage();
+  const { language, t } = usePresentationLanguage();
   const [items, setItems] = useState<AuditItem[]>([]);
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
@@ -64,10 +65,10 @@ export default function AuditPage() {
             <tr>
               <th className="p-3">{t("Thời gian", "Time")}</th>
               <th>{t("Người thực hiện", "Actor")}</th>
-              <th>{t("Thao tác", "Action")}</th>
+              <th className="min-w-[190px] whitespace-nowrap">{t("Thao tác", "Action")}</th>
               <th data-testid="admin-audit-entity-header-v7805">{t("Đối tượng", "Entity")}</th>
               <th>{t("Chi tiết", "Details")}</th>
-              <th>IP</th>
+              <th data-testid="admin-audit-ip-header-v7820r3" className="min-w-[128px] whitespace-nowrap">IP</th>
             </tr>
           </thead>
           <tbody>
@@ -75,18 +76,18 @@ export default function AuditPage() {
               <tr key={x.id} className="border-t border-slate-800">
                 <td className="p-3 text-slate-400">{dateTime(x.createdAt)}</td>
                 <td data-i18n-skip="true">{x.actorEmail || "system"}</td>
-                <td data-i18n-skip="true">
-                  <span className="rounded-lg bg-slate-800 px-2 py-1 font-bold">{x.action}</span>
+                <td className="whitespace-nowrap" data-i18n-skip="true">
+                  <span className="inline-flex whitespace-nowrap rounded-lg bg-slate-800 px-2 py-1 font-bold">{x.action}</span>
                 </td>
                 <td data-i18n-skip="true">
                   {x.entityType || "—"}{" "}
                   {x.entityId && <span className="text-xs text-slate-500">#{x.entityId}</span>}
                 </td>
-                <td className="max-w-md truncate" data-i18n-skip="true">
-                  {x.details || "—"}
+                <td data-testid="audit-details-v7820r1" className="max-w-md" data-i18n-skip="true">
+                  {auditDetailPresentation(x.details,language) || "—"}
                 </td>
-                <td className="text-slate-500" data-i18n-skip="true">
-                  {x.ipAddress || "—"}
+                <td className="min-w-[128px] whitespace-nowrap text-slate-500" data-i18n-skip="true">
+                  <span data-testid="admin-audit-ip-v7820r3" className="inline-block whitespace-nowrap font-mono tabular-nums [overflow-wrap:normal] [word-break:normal]">{x.ipAddress || "—"}</span>
                 </td>
               </tr>
             ))}

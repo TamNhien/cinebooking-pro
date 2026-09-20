@@ -9,6 +9,7 @@ import type { RecommendationFeedbackResponse, RecommendationHome, Recommendation
 import MovieCard from "@/components/MovieCard";
 import { useLanguage } from "@/components/LanguageProvider";
 import { recommendationDaypartLabel, recommendationDurationLabel, recommendationFeedbackMessage, recommendationProfileSummary, recommendationReason, recommendationScoreCopy, recommendationSignal, recommendationWeekdayLabel } from "@/lib/recommendation-presentation";
+import { movieGenreLabel, movieLanguageLabel } from "@/lib/movie-presentation";
 
 type FeedbackType="MORE_LIKE_THIS"|"LESS_LIKE_THIS"|"HIDE";
 
@@ -100,8 +101,8 @@ export default function ForYouPage(){
 
         {profile&&<div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6" data-testid="taste-profile">
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Profile strength":"Độ mạnh hồ sơ"}</div><b className="mt-1 block text-xl">{profile.profileStrength}%</b><div className="mt-2 h-1.5 rounded-full bg-slate-800"><div className="h-1.5 rounded-full bg-violet-500" style={{width:`${profile.profileStrength}%`}}/></div></div>
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Top genres":"Thể loại nổi bật"}</div><b className="mt-1 block">{profile.topGenres.slice(0,3).map(x=>x.name).join(" · ")||(en?"Learning":"Đang học")}</b></div>
-          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Languages":"Ngôn ngữ hợp gu"}</div><b className="mt-1 block">{profile.topLanguages?.slice(0,2).map(x=>x.name).join(" · ")||"—"}</b></div>
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Top genres":"Thể loại nổi bật"}</div><b data-testid="for-you-top-genres-r7" className="mt-1 block">{profile.topGenres.slice(0,3).map(x=>movieGenreLabel(x.name,language)).join(" · ")||(en?"Learning":"Đang học")}</b></div>
+          <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Languages":"Ngôn ngữ hợp gu"}</div><b className="mt-1 block">{profile.topLanguages?.slice(0,2).map(x=>movieLanguageLabel(x.name,language)).join(" · ")||"—"}</b></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Typical duration":"Thời lượng thường xem"}</div><b className="mt-1 block">{recommendationDurationLabel(profile.preferredDurationBand, profile.preferredDurationLabel, language)}</b></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Schedule fit":"Lịch xem quen thuộc"}</div><b className="mt-1 block">{[recommendationWeekdayLabel(profile.preferredWeekday, profile.preferredWeekdayLabel, language), recommendationDaypartLabel(profile.preferredDaypart, profile.preferredDaypartLabel, language)].filter(x=>x&&x!=="—").join(" · ")||"—"}</b><span className="mt-1 block text-[11px] text-slate-500">{profile.preferredCinemaName||""}</span></div>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/55 p-4"><div className="text-xs text-slate-400">{en?"Taste signals":"Tín hiệu cá nhân"}</div><b className="mt-1 block">{profile.signalCount} · {profile.feedbackCount} {en?"feedback":"phản hồi"}</b><span className="mt-1 block text-[11px] text-slate-500">{profile.hiddenCount} {en?"hidden":"đã ẩn"}</span></div>

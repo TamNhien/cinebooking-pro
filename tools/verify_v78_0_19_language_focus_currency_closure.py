@@ -65,11 +65,11 @@ ok(all(x in system_presentation for x in ['Support requests past SLA','Overdue m
    'All five Command Center attention templates have EN presentation copy')
 
 # Business/user-authored values must stay untouched.
-support=text('frontend/app/admin/support/page.tsx'); staff_ops=text('frontend/app/staff/operations/page.tsx'); maintenance=text('frontend/app/admin/maintenance/page.tsx')
+support=text('frontend/app/admin/support/page.tsx'); staff_ops=text('frontend/app/staff/operations/page.tsx'); maintenance=text('frontend/app/admin/maintenance/page.tsx'); controlled=text('frontend/lib/controlled-business-presentation.ts')
 ok('supportCasePresentation(c.subject,c.description,language)' in support and 'SUPPORT_SUBJECT_EN' in system_presentation and 'SUPPORT_DESCRIPTION_EN' in system_presentation and '?? subject' in system_presentation and '?? description' in system_presentation,
    'Known seeded support templates localize while arbitrary user-authored payloads fall through unchanged')
-ok('{i.title}' in staff_ops and '{i.description}' in staff_ops,
-   'Staff incident title/description remain user-authored business payloads')
+ok(('staffIncidentPresentation(i.title,i.description,i.resolutionNote,language)' in staff_ops and 'language !== "en"' in controlled and '?? rawDescription' in controlled and '?? rawResolution' in controlled) or ('{i.title}' in staff_ops and '{i.description}' in staff_ops),
+   'Staff incidents preserve arbitrary user-authored payloads while allowing bounded known-template localization')
 ok('maintenanceAssetName(asset.name,language)' in maintenance and 'MAINTENANCE_ASSET_PREFIX_EN' in system_presentation and 'return value;' in system_presentation and 'name: asset.name' in maintenance,
    'Known maintenance asset prefixes localize while arbitrary/editable business names remain raw')
 
@@ -78,8 +78,8 @@ ok('route === "/admin/performance"' in e2e and 'columnheader", { name: "Revenue"
 ok('not.toHaveAttribute("data-i18n-skip", "true")' in e2e and 'movie-card-genre-v7808' in e2e,
    'Browser contract treats movie genre as localized controlled vocabulary')
 
-ok('const VERSION = "v78-0-19";' in sw, 'Service Worker generation advances to V78.0.19')
-ok('>V78.0.19</span>' in v78page, 'Visible V78 Admin surface reports V78.0.19')
+ok(any(x in sw for x in ['const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']), 'Service Worker generation is V78.0.19 or forward-compatible V78.0.20')
+ok(any(x in v78page for x in ['>V78.0.19</span>','>V78.0.20</span>']), 'Visible V78 Admin surface reports V78.0.19 or forward-compatible V78.0.20')
 
 migrations=list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
 latest=max(int(re.match(r'V(\d+)',p.name).group(1)) for p in migrations if re.match(r'V(\d+)',p.name))
@@ -91,7 +91,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and V78 diagnostics execute the V78.0.19 verifier')
 ok('verify-v78-0-19' in make and 'release-v78-0-19' in make,
    'Makefile exposes V78.0.19 verify/release lifecycle')
-ok('Current release:** V78.0.19' in readme and '`v78.0.19`' in readme and 'Language / Focus / Currency Closure' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.19','Current release:** V78.0.20']) and '`v78.0.19`' in readme and 'Language / Focus / Currency Closure' in readme,
    'README records the V78.0.19 release and consolidated change history')
 ok([p.name for p in ROOT.glob('*.md')]==['README.md'],'Source keeps one consolidated root README.md')
 

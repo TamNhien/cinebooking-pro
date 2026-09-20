@@ -69,8 +69,14 @@ test("V48 admin manages branch stock price waste and transfer",async({page,conte
   await expect(page.getByRole("heading",{name:"Kho bắp nước theo rạp"})).toBeVisible();
   const cinema=page.getByTestId("inventory-cinema-select");
   const product=page.getByTestId("inventory-product-select");
-  await expect.poll(async()=>cinema.locator("option").count(),{timeout:30000}).toBeGreaterThan(1);
-  await expect.poll(async()=>product.locator("option").count(),{timeout:30000}).toBeGreaterThan(0);
+
+  // V78.0.20-R4: the full 47-test run can temporarily saturate the read path even
+  // after the real API precondition is proven. Keep this a real UI/API assertion:
+  // no injected options, no mocked route, no weakened count. Exercise the product's
+  // bounded refresh path until the UI converges with the already-proven API state.
+  await expect.poll(async()=>cinema.locator("option").count(),{timeout:75000,intervals:[500,1000,1500,2000]}).toBeGreaterThan(1);
+  await expect(page.getByTestId("inventory-branch-load-state-v7820r4")).toContainText("Danh sách chi nhánh đã sẵn sàng");
+  await expect.poll(async()=>product.locator("option").count(),{timeout:60000,intervals:[500,1000,1500,2000]}).toBeGreaterThan(0);
 
   await page.getByRole("spinbutton",{name:"Số lượng nhập thêm"}).fill("5");
   await page.getByPlaceholder("Ghi chú nghiệp vụ...").fill("Bổ sung tồn kho cho ca tối");

@@ -124,9 +124,9 @@ version_titles = [
 ]
 ok(all(title in e2e for title in version_titles),
    'Focused V78 browser journey explicitly proves every Admin version action V53-V78 switches to EN')
-ok(any(x in sw for x in ['const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";']),
+ok(any(x in sw for x in ['const VERSION = "v78-0-13";','const VERSION = "v78-0-14";','const VERSION = "v78-0-15";','const VERSION = "v78-0-16";','const VERSION = "v78-0-17";','const VERSION = "v78-0-18";','const VERSION = "v78-0-19";','const VERSION = "v78-0-20";']),
    'Service Worker generation is V78.0.13 or forward-compatible V78.0.14')
-ok(any(x in v78page for x in ['>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>']),
+ok(any(x in v78page for x in ['>V78.0.13</span>','>V78.0.14</span>','>V78.0.15</span>','>V78.0.16</span>','>V78.0.17</span>','>V78.0.18</span>','>V78.0.19</span>','>V78.0.20</span>']),
    'Visible V78 Admin surface reports V78.0.13 or forward-compatible V78.0.14')
 
 migrations = list((ROOT/'backend/src/main/resources/db/migration').glob('V*.sql'))
@@ -139,7 +139,7 @@ ok(name in release and name in ci and name in diag,
    'Release, CI and V78 diagnostics execute the V78.0.13 comprehensive verifier')
 ok('verify-v78-0-13' in make and 'release-v78-0-13' in make,
    'Makefile exposes V78.0.13 verify/release lifecycle')
-ok(any(x in readme for x in ['Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19']) and '`v78.0.13`' in readme and 'Comprehensive Presentation-Language Ownership' in readme,
+ok(any(x in readme for x in ['Current release:** V78.0.13','Current release:** V78.0.14','Current release:** V78.0.15','Current release:** V78.0.16','Current release:** V78.0.17','Current release:** V78.0.18','Current release:** V78.0.19','Current release:** V78.0.20']) and '`v78.0.13`' in readme and 'Comprehensive Presentation-Language Ownership' in readme,
    'README preserves V78.0.13 comprehensive language ownership under forward release metadata')
 ok([p.name for p in ROOT.glob('*.md')] == ['README.md'],
    'Source keeps one consolidated root README.md')

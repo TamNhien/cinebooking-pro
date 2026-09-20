@@ -7,10 +7,12 @@ import { api, dateTime } from "@/lib/api";
 import { clearAuth, getAuth } from "@/lib/auth";
 import { SUSTAINED_OPERATIONAL_READ_OPTIONS, withTransientReadRetry } from "@/lib/transient-read";
 import type { ObservabilitySummaryV65, ObservabilitySloV65, UserProfile } from "@/lib/types";
+import { usePresentationLanguage, type Language } from "@/lib/usePresentationLanguage";
 
 const REFRESH_MS=10_000;
 
 export default function ObservabilityV65Page(){
+  const { language, t }=usePresentationLanguage();
   const [summary,setSummary]=useState<ObservabilitySummaryV65|null>(null);
   const [msg,setMsg]=useState("");
   const [busy,setBusy]=useState(false);
@@ -67,8 +69,8 @@ export default function ObservabilityV65Page(){
 
     <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
       <section className="card p-5" data-testid="slo-v65">
-        <div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-bold">Sức khỏe SLO</h2><p className="mt-1 text-sm text-slate-500">Cửa sổ local replica {summary?.windowMinutes??5} phút. Không có traffic thì hiển thị NO_DATA thay vì báo PASS giả.</p></div><Badge status={summary?.overallStatus??"NO_DATA"}/></div>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">{summary?.slos.map(s=><SloCard key={s.code} slo={s}/>)??<div className="text-sm text-slate-500">Đang tải SLO...</div>}</div>
+        <div className="flex items-start justify-between gap-4"><div><h2 className="text-xl font-bold">{t("Sức khỏe SLO","SLO health")}</h2><p data-testid="observability-window-r7" className="mt-1 text-sm text-slate-500">{language==="en"?`Local replica window: ${summary?.windowMinutes??5} minutes. With no traffic, NO_DATA is shown instead of a false PASS.`:`Cửa sổ local replica ${summary?.windowMinutes??5} phút. Không có traffic thì hiển thị NO_DATA thay vì báo PASS giả.`}</p></div><Badge status={summary?.overallStatus??"NO_DATA"}/></div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">{summary?.slos.map(s=><SloCard key={s.code} slo={s} language={language}/>)??<div className="text-sm text-slate-500">{t("Đang tải SLO...","Loading SLO...")}</div>}</div>
       </section>
 
       <section className="card p-5" data-testid="dependencies-v65">
@@ -93,7 +95,7 @@ export default function ObservabilityV65Page(){
 
 function Metric({label,value,tone="text-white",compact=false}:{label:string;value:string;tone?:string;compact?:boolean}){return <div className="card p-5"><div className="text-xs uppercase tracking-wider text-slate-500">{label}</div><div className={`mt-2 font-black ${compact?"break-all text-sm":"text-3xl"} ${tone}`}>{value}</div></div>}
 function RuntimeMetric({label,value,detail}:{label:string;value:string;detail?:string}){return <div className="rounded-xl bg-slate-900/60 p-4"><div className="text-xs text-slate-500">{label}</div><div className="mt-1 font-bold">{value}</div>{detail&&<div className="mt-1 text-xs text-slate-500">{detail}</div>}</div>}
-function SloCard({slo}:{slo:ObservabilitySloV65}){return <div className="rounded-xl bg-slate-900/60 p-4"><div className="flex items-start justify-between gap-2"><div className="font-bold">{slo.label}</div><Badge status={slo.status}/></div><div className={`mt-3 text-2xl font-black ${statusTone(slo)}`}>{formatSlo(slo.currentValue,slo.unit)}</div><div className="mt-1 text-xs text-slate-500">Đích {slo.comparison} {formatSlo(slo.targetValue,slo.unit)} · n={slo.sampleCount}</div></div>}
+function SloCard({slo,language}:{slo:ObservabilitySloV65;language:Language}){return <div className="rounded-xl bg-slate-900/60 p-4"><div className="flex items-start justify-between gap-2"><div className="font-bold">{slo.label}</div><Badge status={slo.status}/></div><div className={`mt-3 text-2xl font-black ${statusTone(slo)}`}>{formatSlo(slo.currentValue,slo.unit)}</div><div data-testid="slo-target-r7" className="mt-1 text-xs text-slate-500">{language==="en"?"Target":"Đích"} {slo.comparison} {formatSlo(slo.targetValue,slo.unit)} · n={slo.sampleCount}</div></div>}
 function Badge({status}:{status:string}){const cls=status==="PASS"?"bg-emerald-500/10 text-emerald-300":status==="FAIL"?"bg-rose-500/10 text-rose-300":status==="WARN"?"bg-amber-500/10 text-amber-300":"bg-slate-700/50 text-slate-300";return <span className={`rounded-full px-2.5 py-1 text-xs font-black ${cls}`}>{status}</span>}
 function statusTone(slo?:ObservabilitySloV65){if(!slo||slo.status==="NO_DATA")return "text-slate-300";return slo.status==="PASS"?"text-emerald-300":slo.status==="FAIL"?"text-rose-300":"text-amber-300"}
 function formatSlo(v:number,unit:string){return unit==="%"?`${v.toFixed(3)}%`:unit==="ms"?`${Math.round(v)} ms`:`${v} ${unit}`}

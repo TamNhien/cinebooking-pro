@@ -125,8 +125,8 @@ ok('localizedLabel(a.severity,language)' in historical and 'Security severity is
    "Historical V77.0.9 security-severity gate accepts the modern language-aware renderer")
 ok('language:uiLanguage' in historical_movies and 'movieGenreLabel(x,uiLanguage)' in historical_movies,
    "Historical V77.0.41 movie-language gate accepts controlled-vocabulary localization")
-ok('Current release:** V78.0.19' in v7805 and 'Current release:** V78.0.19' in v7806,
-   "Historical V78.0.5/V78.0.6 release-metadata gates accept V78.0.19")
+ok(all('Current release:** V78.0.20' in x or 'Current release:** V78.0.19' in x for x in (v7805,v7806)),
+   "Historical V78.0.5/V78.0.6 release-metadata gates accept V78.0.19 or V78.0.20")
 
 # Release wiring and no-schema lineage.
 migrations = list((ROOT / "backend/src/main/resources/db/migration").glob("V*.sql"))

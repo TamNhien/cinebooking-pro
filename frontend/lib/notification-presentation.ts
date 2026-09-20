@@ -33,13 +33,40 @@ function supportReply(item: Pick<NotificationItem, "title" | "message">): Notifi
   };
 }
 
+
+const SEEDED_DEMO_NOTIFICATION_EN: Readonly<Record<string, readonly [string,string,string]>> = Object.freeze({
+  "Đặt vé thành công": ["Booking của bạn đã được xác nhận.","Booking confirmed","Your booking has been confirmed."],
+  "Sắp đến giờ chiếu": ["Suất chiếu của bạn sẽ bắt đầu trong thời gian tới.","Showtime coming up","Your showtime will begin soon."],
+  "Điểm thành viên vừa được cộng": ["Điểm thành viên từ giao dịch gần nhất đã được ghi nhận.","Membership points added","Points from your latest transaction have been added."],
+  "Voucher sắp hết hạn": ["Bạn có voucher sắp hết hạn, hãy sử dụng trước thời hạn.","Voucher expiring soon","You have a voucher that is about to expire. Use it before the deadline."],
+  "Cập nhật lịch chiếu": ["Lịch chiếu của phim bạn quan tâm vừa được cập nhật.","Showtime schedule updated","The schedule for a movie you follow has been updated."],
+  "Ưu đãi bắp nước hôm nay": ["Một số combo bắp nước đang có ưu đãi tại rạp.","Concessions offer today","Selected concession combos are on promotion at the cinema."],
+  "Vé đã sẵn sàng để check-in": ["Mã QR vé của bạn đã sẵn sàng để sử dụng tại cổng.","Ticket ready for check-in","Your ticket QR code is ready to use at the entrance."],
+  "Thông tin phòng chiếu": ["Vui lòng kiểm tra đúng phòng chiếu trên vé trước khi vào rạp.","Auditorium information","Check the auditorium shown on your ticket before entering."],
+  "Nhắc lịch xem phim": ["CineBooking nhắc bạn về lịch xem phim đã đặt.","Movie booking reminder","CineBooking is reminding you about your scheduled movie booking."],
+  "Cập nhật tài khoản": ["Thông tin tài khoản của bạn vừa được cập nhật.","Account updated","Your account information was recently updated."],
+});
+
+function seededDemoNotification(item: Pick<NotificationItem, "title" | "message">): NotificationPresentation | null {
+  const copy=SEEDED_DEMO_NOTIFICATION_EN[item.title];
+  if(!copy||item.message!==copy[0])return null;
+  return {title:[text(copy[1])],message:[text(copy[2])]};
+}
+
+const SUPPORT_SYSTEM_NOTE_EN:Readonly<Record<string,string>>=Object.freeze({
+  "Đã xác minh yêu cầu và hoàn tất service recovery V45":"The request was verified and V45 service recovery was completed",
+  "Đã xác minh booking và gửi lại email xác nhận vé cho khách hàng.":"The booking was verified and the confirmation email was resent to the customer.",
+});
+
 function supportStatus(item: Pick<NotificationItem, "title" | "message">): NotificationPresentation {
   const caseNumber = item.title.match(/^Cập nhật yêu cầu\s+(.+)$/u)?.[1] ?? item.title;
   const match = item.message.match(/^Trạng thái mới:\s*([A-Z_]+)(?:\.\s*(.*))?$/u);
   if (!match) return { title: compact([text("Support request update "), data(caseNumber)]), message: [data(item.message)] };
+  const rawNote=match[2]??"";
+  const translatedNote=SUPPORT_SYSTEM_NOTE_EN[rawNote];
   return {
     title: compact([text("Support request update "), data(caseNumber)]),
-    message: compact([text("New status: "), text(match[1]), match[2] ? text(". ") : null, match[2] ? data(match[2]) : null]),
+    message: compact([text("New status: "), text(match[1]), rawNote ? text(". ") : null, rawNote ? (translatedNote ? text(translatedNote) : data(rawNote)) : null]),
   };
 }
 
@@ -224,6 +251,16 @@ export function notificationPresentation(
   language: Language,
 ): NotificationPresentation {
   if (language === "vi") return fallback(item, language);
+
+  // Older persisted rows and imported demo data may predate the current type
+  // discriminator. Known CineBooking-owned templates still receive EN ownership
+  // by their stable title/message shape; arbitrary payloads remain untouched.
+  const seeded=seededDemoNotification(item);
+  if(seeded)return seeded;
+  if(item.title==="Sắp đến giờ chiếu")return showtimeReminder(item,false);
+  if(item.title==="Sắp đến giờ vào rạp")return showtimeReminder(item,true);
+  if(item.title.startsWith("Cập nhật yêu cầu "))return supportStatus(item);
+  if(item.title.startsWith("CineBooking đã phản hồi "))return supportReply(item);
 
   switch (item.type) {
     case "SUPPORT_REPLY": return supportReply(item);
