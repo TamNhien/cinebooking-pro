@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 import static com.cinebooking.seat.SeatDtos.*;
@@ -45,7 +44,7 @@ public class SeatService {
         bookingService.repairSeatReservations(showtimeId);
         Showtime showtime = requireShowtime(showtimeId);
         List<SeatResponse> result = seatResponses(showtime,currentUserId);
-        List<UUID> mine = result.stream().filter(SeatResponse::heldByMe).map(SeatResponse::id).toList();
+        List<UUID> mine = result.stream().filter(cbValue -> cbValue.heldByMe()).map(cbValue -> cbValue.id()).toList();
         long now = System.currentTimeMillis();
         long remaining = holds.remainingSeconds(showtimeId,mine,currentUserId);
         long remainingMs = holds.remainingMillis(showtimeId,mine,currentUserId);
@@ -125,7 +124,7 @@ public class SeatService {
     private List<SeatResponse> seatResponses(Showtime showtime, UUID currentUserId) {
         List<Seat> all = seats.findByAuditoriumIdOrderByRowLabelAscSeatNumberAsc(showtime.getAuditoriumId());
         Set<UUID> reserved = new HashSet<>(bookingSeats.findReservedSeatIds(showtime.getId()));
-        List<UUID> ids = all.stream().map(Seat::getId).toList();
+        List<UUID> ids = all.stream().map(cbValue -> cbValue.getId()).toList();
         List<String> holders = holds.holders(showtime.getId(), ids);
         PricingService.PricingContext pricingContext=pricing.contextFor(showtime);
         List<SeatResponse> result = new ArrayList<>();

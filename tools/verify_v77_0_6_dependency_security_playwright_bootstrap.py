@@ -33,8 +33,12 @@ eslint_next = str(pkg.get("devDependencies", {}).get("eslint-config-next", ""))
 allow_scripts = pkg.get("allowScripts", {})
 scripts = pkg.get("scripts", {})
 
-ok("Next.js is patched to 16.3.4", next_version == "16.3.4")
-ok("eslint-config-next is aligned to Next 16.3.4", eslint_next == next_version == "16.3.4")
+# V77 originally reviewed 16.3.4. Later releases must accept a newer
+# stable security patch without weakening the enforced npm audit gate.
+next_parts = tuple(map(int, next_version.split('.'))) if re.fullmatch(r"16\.\d+\.\d+", next_version) else ()
+next_supported = next_version == "16.3.4" or (len(next_parts) == 3 and next_parts >= (16, 4, 6))
+ok("Next.js meets V77 baseline or later 16.4.6+ stable security patch", next_supported)
+ok("eslint-config-next matches reviewed Next.js version", eslint_next == next_version and next_supported)
 ok("unrs-resolver install script is explicitly reviewed and version-pinned", allow_scripts.get("unrs-resolver@1.12.2") is True)
 ok("No blanket install-script approval exists", all(k != "*" for k in allow_scripts))
 ok("Frontend exposes high/critical dependency audit gate", scripts.get("security:audit") == "npm audit --audit-level=high")

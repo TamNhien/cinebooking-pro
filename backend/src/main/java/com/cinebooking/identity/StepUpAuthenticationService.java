@@ -54,7 +54,7 @@ public class StepUpAuthenticationService {
         if(sessionId==null) throw new ApiException(HttpStatus.BAD_REQUEST,"Không xác định được phiên đăng nhập hiện tại");
         AppUser user=users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy tài khoản"));
         if(user.getRole()!=Role.ADMIN) throw new ApiException(HttpStatus.FORBIDDEN,"Xác thực tăng cường V68 chỉ áp dụng cho ADMIN");
-        AuthSession session=sessions.findById(sessionId).filter(s->s.getUserId().equals(user.getId())&&s.active())
+        sessions.findById(sessionId).filter(s->s.getUserId().equals(user.getId())&&s.active())
                 .orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Phiên đăng nhập không còn hoạt động"));
         if(!encoder.matches(password,user.getPasswordHash())){
             audit.record(email,"ADMIN_STEP_UP_FAILED","AUTH_SESSION",sessionId.toString(),"V68 step-up bị từ chối do mật khẩu xác nhận không đúng",ip);

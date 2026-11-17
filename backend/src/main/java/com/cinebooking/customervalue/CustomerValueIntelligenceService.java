@@ -78,13 +78,13 @@ public class CustomerValueIntelligenceService {
         List<CustomerMetricRaw> raw = customerMetrics(from, toExclusive, cinemaId);
         Map<UUID, Integer> recencyScores = quintileScores(raw,
                 Comparator.comparingLong((CustomerMetricRaw row) -> recencyDays(row, today))
-                        .thenComparing(CustomerMetricRaw::customerId));
+                        .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
         Map<UUID, Integer> frequencyScores = quintileScores(raw,
-                Comparator.comparingLong(CustomerMetricRaw::lifetimeBookings).reversed()
-                        .thenComparing(CustomerMetricRaw::customerId));
+                Comparator.comparingLong((CustomerMetricRaw cbValue) -> cbValue.lifetimeBookings()).reversed()
+                        .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
         Map<UUID, Integer> monetaryScores = quintileScores(raw,
-                Comparator.comparing(CustomerMetricRaw::lifetimeRevenue).reversed()
-                        .thenComparing(CustomerMetricRaw::customerId));
+                Comparator.comparing((CustomerMetricRaw cbValue) -> cbValue.lifetimeRevenue()).reversed()
+                        .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
 
         List<ScoredCustomer> scored = raw.stream().map(row -> {
             long recency = recencyDays(row, today);
@@ -96,7 +96,7 @@ public class CustomerValueIntelligenceService {
 
         BigDecimal activeBaseLifetimeRevenue = scored.stream()
                 .map(row -> row.raw().lifetimeRevenue())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
         long lifetimeBookings = scored.stream().mapToLong(row -> row.raw().lifetimeBookings()).sum();
         BigDecimal periodRevenue = periodRevenue(from, toExclusive, cinemaId);
 
@@ -293,7 +293,7 @@ public class CustomerValueIntelligenceService {
 
     private double medianRecency(List<ScoredCustomer> rows) {
         if (rows.isEmpty()) return 0.0;
-        List<Long> values = rows.stream().map(ScoredCustomer::recencyDays).sorted().toList();
+        List<Long> values = rows.stream().map(cbValue -> cbValue.recencyDays()).sorted().toList();
         int middle = values.size() / 2;
         if (values.size() % 2 == 1) return values.get(middle);
         return BigDecimal.valueOf(values.get(middle - 1) + values.get(middle))
@@ -304,7 +304,7 @@ public class CustomerValueIntelligenceService {
         if (rows.isEmpty() || totalRevenue.signum() <= 0) return 0.0;
         int topCount = Math.max(1, (int) Math.ceil(rows.size() * 0.10));
         BigDecimal topRevenue = rows.stream().limit(topCount)
-                .map(row -> row.raw().lifetimeRevenue()).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(row -> row.raw().lifetimeRevenue()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
         return percentage(topRevenue, totalRevenue);
     }
 

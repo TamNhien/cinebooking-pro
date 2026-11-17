@@ -8,6 +8,7 @@ import BackgroundTheme from "@/components/BackgroundTheme";
 import RuntimeReadyMarker from "@/components/RuntimeReadyMarker";
 import LegacyUiLocalizationBridge from "@/components/LegacyUiLocalizationBridge";
 import InputModalityManager from "@/components/InputModalityManager";
+import CineBot from "@/components/CineBot";
 
 export const metadata: Metadata = {
   title: "CineBooking Pro",
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {children}
           </main>
           <SiteFooter />
+          <CineBot />
         </LanguageProvider>
       </body>
     </html>

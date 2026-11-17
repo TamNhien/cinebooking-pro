@@ -25,7 +25,6 @@ public class StaffOperationsService {
     private final UserRepository users;
     private final StaffProfileRepository profiles;
     private final StaffAttendanceRepository attendance;
-    private final StaffShiftRepository shifts;
     private final StaffShiftHandoverRepository handovers;
     private final StaffIncidentRepository incidents;
     private final TicketCheckInLogRepository checkins;
@@ -39,11 +38,11 @@ public class StaffOperationsService {
     private final ZoneId zone;
 
     public StaffOperationsService(UserRepository users,StaffProfileRepository profiles,StaffAttendanceRepository attendance,
-                                  StaffShiftRepository shifts,StaffShiftHandoverRepository handovers,StaffIncidentRepository incidents,
+                                  StaffShiftHandoverRepository handovers,StaffIncidentRepository incidents,
                                   TicketCheckInLogRepository checkins,BookingRepository bookings,ShowtimeRepository showtimes,
                                   MovieRepository movies,AuditoriumRepository auditoriums,CinemaRepository cinemas,AuditService audit,
                                   StaffOperationsEventPublisher events,@Value("${app.staff.time-zone:Asia/Ho_Chi_Minh}") String zone){
-        this.users=users;this.profiles=profiles;this.attendance=attendance;this.shifts=shifts;this.handovers=handovers;this.incidents=incidents;
+        this.users=users;this.profiles=profiles;this.attendance=attendance;this.handovers=handovers;this.incidents=incidents;
         this.checkins=checkins;this.bookings=bookings;this.showtimes=showtimes;this.movies=movies;this.auditoriums=auditoriums;this.cinemas=cinemas;
         this.audit=audit;this.events=events;this.zone=ZoneId.of(zone);
     }
@@ -146,13 +145,13 @@ public class StaffOperationsService {
     private UUID resolveCinema(AppUser u,UUID requested,boolean requireActive){
         if(u.getRole()==Role.ADMIN){
             if(requested!=null){cinema(requested);return requested;}
-            return cinemas.findAllByOrderByNameAsc().stream().findFirst().map(Cinema::getId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp nào"));
+            return cinemas.findAllByOrderByNameAsc().stream().findFirst().map(cbValue -> cbValue.getId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp nào"));
         }
         return effectiveCinemaForStaff(u,requested,requireActive);
     }
     private UUID effectiveCinemaForStaff(AppUser u,UUID requested,boolean requireActive){
         StaffAttendance active=attendance.findFirstByStaffUserIdAndCheckOutAtIsNullOrderByCheckInAtDesc(u.getId()).orElse(null);
-        UUID allowed=active==null?profiles.findById(u.getId()).map(StaffProfile::getCinemaId).orElse(null):active.getCinemaId();
+        UUID allowed=active==null?profiles.findById(u.getId()).map(cbValue -> cbValue.getCinemaId()).orElse(null):active.getCinemaId();
         if(requireActive&&active==null)throw new ApiException(HttpStatus.CONFLICT,"Bạn phải bắt đầu ca trước khi thực hiện thao tác này");
         if(allowed==null)throw new ApiException(HttpStatus.FORBIDDEN,"Nhân viên chưa được phân rạp");
         if(requested!=null&&!Objects.equals(requested,allowed))throw new ApiException(HttpStatus.FORBIDDEN,"Bạn chỉ được xem vận hành tại rạp của mình");
@@ -161,7 +160,7 @@ public class StaffOperationsService {
     private StaffAttendance activeAttendance(AppUser u){return attendance.findFirstByStaffUserIdAndCheckOutAtIsNullOrderByCheckInAtDesc(u.getId()).orElseThrow(()->new ApiException(HttpStatus.CONFLICT,"Bạn phải bắt đầu ca trước khi thực hiện thao tác này"));}
     private Cinema cinema(UUID id){return cinemas.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));}
     private String upper(String v){return v==null?"":v.trim().toUpperCase(Locale.ROOT);}
-    private String userName(UUID id){return id==null?null:users.findById(id).map(AppUser::getFullName).orElse("-");}
+    private String userName(UUID id){return id==null?null:users.findById(id).map(cbValue -> cbValue.getFullName()).orElse("-");}
     private HandoverResponse handoverDto(StaffShiftHandover h){return new HandoverResponse(h.getId(),h.getCinemaId(),cinema(h.getCinemaId()).getName(),h.getFromShiftId(),h.getFromAttendanceId(),h.getFromStaffUserId(),userName(h.getFromStaffUserId()),h.getToStaffUserId(),userName(h.getToStaffUserId()),h.getSummary(),h.getStatus(),h.getCreatedAt(),h.getAcceptedAt());}
     private IncidentResponse incidentDto(StaffIncident x){return new IncidentResponse(x.getId(),x.getCinemaId(),cinema(x.getCinemaId()).getName(),x.getShiftId(),x.getAttendanceId(),x.getReportedBy(),userName(x.getReportedBy()),x.getCategory(),x.getSeverity(),x.getTitle(),x.getDescription(),x.getStatus(),x.getResolvedBy(),userName(x.getResolvedBy()),x.getResolvedAt(),x.getResolutionNote(),x.getCreatedAt(),x.getUpdatedAt());}
     private LiveCheckIn liveCheckIn(TicketCheckInLog log){

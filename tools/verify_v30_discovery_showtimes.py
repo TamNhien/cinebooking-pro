@@ -45,8 +45,8 @@ check("movie detail groups only selected-day cinemas", 'selectedShows.forEach' i
 
 check("V30 browser E2E spec exists", bool(e2e))
 check("V30 E2E verifies movie discovery filters", 'Khoa học viễn tưởng' in e2e and '8 phim phù hợp' in e2e)
-check("V30 E2E navigates to September 30", '2026-09-30' in e2e and '16 suất của 8 phim' in e2e)
-check("V30 E2E verifies selected-day movie detail", 'toHaveCount(2)' in e2e and 'Hành Trình Sao Hỏa' in e2e)
+check("V30 E2E checks the currently available day against real API data", 'request.get("/api/showtimes")' in e2e and 'selectedDay' in e2e and 'uniqueMovies' in e2e)
+check("V30 E2E verifies selected-day movie detail", 'toHaveCount(selectedMovieShows.length)' in e2e and 'Hành Trình Sao Hỏa' in e2e)
 check("release candidate runs all Playwright specs", 'Run browser E2E journeys' in rc and 'V29.2 + V30' in rc and 'bash tools/e2e-v29.2.sh' in rc)
 
 check("V29 demo schedule migration remains intact", migration.exists())

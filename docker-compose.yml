@@ -42,6 +42,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-cinebooking}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-cinebooking}
       JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
+      CHATBOT_OPENAI_API_KEY: ${CHATBOT_OPENAI_API_KEY:-}
+      CHATBOT_OPENAI_MODEL: ${CHATBOT_OPENAI_MODEL:-gpt-4.1-mini}
       SPRING_DATA_REDIS_HOST: redis
       JWT_SECRET: "${JWT_SECRET:?JWT_SECRET is required. Run tools/init-env.ps1 first}"
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@cine.local}

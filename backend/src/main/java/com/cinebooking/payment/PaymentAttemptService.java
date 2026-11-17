@@ -40,7 +40,7 @@ public class PaymentAttemptService {
             if(p.getStatus()==PaymentStatus.PENDING&&provider.equals(p.getProvider()))return new StartClaim(p,booking,true,p.getRetryOfPaymentId()!=null);
         }
 
-        UUID retryOf=latest.filter(x->x.getStatus()==PaymentStatus.FAILED||x.getStatus()==PaymentStatus.CANCELLED).map(Payment::getId).orElse(null);
+        UUID retryOf=latest.filter(x->x.getStatus()==PaymentStatus.FAILED||x.getStatus()==PaymentStatus.CANCELLED).map(cbValue -> cbValue.getId()).orElse(null);
         Payment p=newPayment(booking,userId,provider,idempotencyKey,retryOf,nextAttempt(bookingId));
         payments.save(p);
         return new StartClaim(p,booking,false,retryOf!=null);

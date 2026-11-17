@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -76,9 +75,9 @@ public class InventoryService {
 
     @Transactional(readOnly=true)
     public List<InventoryBranchOverview> branches(){
-        Map<UUID,String> names=cinemas.findAllByOrderByNameAsc().stream().collect(Collectors.toMap(Cinema::getId,Cinema::getName, (a,b)->a,LinkedHashMap::new));
+        Map<UUID,String> names=cinemas.findAllByOrderByNameAsc().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(),cbValue -> cbValue.getName(), (a,b)->a,LinkedHashMap::new));
         List<CinemaConcessionInventory> all=branchInventory.findByCinemaIdIn(names.keySet());
-        Map<UUID,List<CinemaConcessionInventory>> grouped=all.stream().collect(Collectors.groupingBy(CinemaConcessionInventory::getCinemaId));
+        Map<UUID,List<CinemaConcessionInventory>> grouped=all.stream().collect(Collectors.groupingBy(cbValue -> cbValue.getCinemaId()));
         List<InventoryBranchOverview> out=new ArrayList<>();
         for(var e:names.entrySet()){
             List<CinemaConcessionInventory> rows=grouped.getOrDefault(e.getKey(),List.of());
@@ -95,13 +94,13 @@ public class InventoryService {
     public InventorySummary summary(UUID cinemaId){
         Cinema cinema=cinemas.findById(cinemaId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));
         List<ConcessionProduct> allProducts=products.findAllByOrderBySortOrderAscNameAsc();
-        Map<UUID,CinemaConcessionInventory> inv=branchInventory.findByCinemaId(cinemaId).stream().collect(Collectors.toMap(CinemaConcessionInventory::getProductId,x->x));
-        Map<UUID,CinemaConcessionPrice> prices=branchPrices.findByCinemaId(cinemaId).stream().collect(Collectors.toMap(CinemaConcessionPrice::getProductId,x->x));
+        Map<UUID,CinemaConcessionInventory> inv=branchInventory.findByCinemaId(cinemaId).stream().collect(Collectors.toMap(cbValue -> cbValue.getProductId(),x->x));
+        Map<UUID,CinemaConcessionPrice> prices=branchPrices.findByCinemaId(cinemaId).stream().collect(Collectors.toMap(cbValue -> cbValue.getProductId(),x->x));
         List<InventoryProductResponse> rows=allProducts.stream().map(p->product(cinema,p,inv.get(p.getId()),prices.get(p.getId()))).toList();
-        int tracked=(int)rows.stream().filter(InventoryProductResponse::inventoryEnabled).count();
-        int onHand=rows.stream().filter(InventoryProductResponse::inventoryEnabled).mapToInt(InventoryProductResponse::stockOnHand).sum();
-        int reserved=rows.stream().filter(InventoryProductResponse::inventoryEnabled).mapToInt(InventoryProductResponse::stockReserved).sum();
-        int available=rows.stream().filter(InventoryProductResponse::inventoryEnabled).mapToInt(InventoryProductResponse::stockAvailable).sum();
+        int tracked=(int)rows.stream().filter(cbValue -> cbValue.inventoryEnabled()).count();
+        int onHand=rows.stream().filter(cbValue -> cbValue.inventoryEnabled()).mapToInt(cbValue -> cbValue.stockOnHand()).sum();
+        int reserved=rows.stream().filter(cbValue -> cbValue.inventoryEnabled()).mapToInt(cbValue -> cbValue.stockReserved()).sum();
+        int available=rows.stream().filter(cbValue -> cbValue.inventoryEnabled()).mapToInt(cbValue -> cbValue.stockAvailable()).sum();
         int low=(int)rows.stream().filter(x->x.inventoryEnabled()&&x.lowStock()&&!x.soldOut()).count();
         int sold=(int)rows.stream().filter(x->x.inventoryEnabled()&&x.soldOut()).count();
         return new InventorySummary(cinemaId,cinema.getName(),rows.size(),tracked,onHand,reserved,available,low,sold,rows);
@@ -114,8 +113,8 @@ public class InventoryService {
         else if(cinemaId!=null)list=movements.findTop200ByCinemaIdOrderByCreatedAtDesc(cinemaId);
         else if(productId!=null)list=movements.findTop200ByProductIdOrderByCreatedAtDesc(productId);
         else list=movements.findTop200ByOrderByCreatedAtDesc();
-        Map<UUID,String> productNames=products.findAllById(list.stream().map(InventoryMovement::getProductId).collect(Collectors.toSet())).stream().collect(Collectors.toMap(ConcessionProduct::getId,ConcessionProduct::getName));
-        Map<UUID,String> cinemaNames=cinemas.findAllById(list.stream().map(InventoryMovement::getCinemaId).filter(Objects::nonNull).collect(Collectors.toSet())).stream().collect(Collectors.toMap(Cinema::getId,Cinema::getName));
+        Map<UUID,String> productNames=products.findAllById(list.stream().map(cbValue -> cbValue.getProductId()).collect(Collectors.toSet())).stream().collect(Collectors.toMap(cbValue -> cbValue.getId(),cbValue -> cbValue.getName()));
+        Map<UUID,String> cinemaNames=cinemas.findAllById(list.stream().map(cbValue -> cbValue.getCinemaId()).filter(Objects::nonNull).collect(Collectors.toSet())).stream().collect(Collectors.toMap(cbValue -> cbValue.getId(),cbValue -> cbValue.getName()));
         return list.stream().map(m->new InventoryMovementResponse(m.getId(),m.getProductId(),productNames.getOrDefault(m.getProductId(),"Sản phẩm"),m.getCinemaId(),cinemaNames.getOrDefault(m.getCinemaId(),"Kho cũ toàn hệ thống"),m.getBookingId(),m.getMovementType(),nz(m.getQuantityDelta()),nz(m.getReservedDelta()),nz(m.getStockAfter()),nz(m.getReservedAfter()),m.getActorEmail(),m.getReferenceKey(),m.getNote(),m.getCreatedAt())).toList();
     }
 
@@ -139,10 +138,10 @@ public class InventoryService {
     public InventoryTransferResponse transfer(InventoryTransferRequest req,String actorEmail){
         if(req.fromCinemaId().equals(req.toCinemaId()))throw new ApiException(HttpStatus.BAD_REQUEST,"Rạp nguồn và rạp nhận phải khác nhau");
         ConcessionProduct p=products.findById(req.productId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy sản phẩm"));
-        Map<UUID,Cinema> cinemaMap=cinemas.findAllById(List.of(req.fromCinemaId(),req.toCinemaId())).stream().collect(Collectors.toMap(Cinema::getId,x->x));
+        Map<UUID,Cinema> cinemaMap=cinemas.findAllById(List.of(req.fromCinemaId(),req.toCinemaId())).stream().collect(Collectors.toMap(cbValue -> cbValue.getId(),x->x));
         if(cinemaMap.size()!=2)throw new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp nguồn hoặc rạp nhận");
         List<CinemaConcessionInventory> locked=branchInventory.findTransferRowsForUpdate(req.productId(),List.of(req.fromCinemaId(),req.toCinemaId()));
-        Map<UUID,CinemaConcessionInventory> byCinema=locked.stream().collect(Collectors.toMap(CinemaConcessionInventory::getCinemaId,x->x));
+        Map<UUID,CinemaConcessionInventory> byCinema=locked.stream().collect(Collectors.toMap(cbValue -> cbValue.getCinemaId(),x->x));
         CinemaConcessionInventory from=byCinema.get(req.fromCinemaId()),to=byCinema.get(req.toCinemaId());
         if(from==null||to==null)throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm chưa được cấu hình kho tại một trong hai rạp");
         if(available(from)<req.quantity())throw new ApiException(HttpStatus.CONFLICT,"Kho nguồn chỉ còn "+available(from)+" phần khả dụng");
@@ -178,7 +177,7 @@ public class InventoryService {
     @Transactional
     public void consumeLoyaltyReward(UUID productId,int quantity,String actorEmail,String rewardCode){
         if(quantity<=0)throw new ApiException(HttpStatus.BAD_REQUEST,"Số lượng phần thưởng không hợp lệ");
-        AppUser staff=users.findByEmailIgnoreCase(actorEmail).orElseThrow();UUID cinemaId=staffProfiles.findById(staff.getId()).map(StaffProfile::getCinemaId).orElseGet(()->cinemas.findAllByOrderByNameAsc().stream().findFirst().map(Cinema::getId).orElseThrow());
+        AppUser staff=users.findByEmailIgnoreCase(actorEmail).orElseThrow();UUID cinemaId=staffProfiles.findById(staff.getId()).map(cbValue -> cbValue.getCinemaId()).orElseGet(()->cinemas.findAllByOrderByNameAsc().stream().findFirst().map(cbValue -> cbValue.getId()).orElseThrow());
         ConcessionProduct p=products.findById(productId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Sản phẩm phần thưởng không còn tồn tại"));if(!Boolean.TRUE.equals(p.getActive()))throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm phần thưởng đang tạm dừng");if(!Boolean.TRUE.equals(p.getInventoryEnabled()))return;
         CinemaConcessionInventory row=lockedOne(cinemaId,productId);if(available(row)<quantity)throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm "+p.getName()+" tại rạp hiện không đủ tồn kho để giao phần thưởng");row.setStockOnHand(nz(row.getStockOnHand())-quantity);branchInventory.save(row);record(row,null,"LOYALTY_REWARD",-quantity,0,actorEmail,"LOYALTY:"+rewardCode,"Đổi điểm loyalty · "+rewardCode);
     }
@@ -193,8 +192,8 @@ public class InventoryService {
     }
 
     private UUID cinemaForBooking(UUID bookingId){Booking b=bookings.findById(bookingId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy booking"));Showtime s=showtimes.findById(b.getShowtimeId()).orElseThrow();Auditorium a=auditoriums.findById(s.getAuditoriumId()).orElseThrow();return a.getCinemaId();}
-    private Map<UUID,Integer> quantities(List<BookingConcession> rows){Map<UUID,Integer> qty=new LinkedHashMap<>();if(rows!=null)for(BookingConcession row:rows)if(row.getProductId()!=null&&row.getQuantity()!=null&&row.getQuantity()>0)qty.merge(row.getProductId(),row.getQuantity(),Integer::sum);return qty;}
-    private Map<UUID,CinemaConcessionInventory> lock(UUID cinemaId,Collection<UUID> ids){return branchInventory.findForUpdate(cinemaId,ids).stream().collect(Collectors.toMap(CinemaConcessionInventory::getProductId,x->x,(a,b)->a,LinkedHashMap::new));}
+    private Map<UUID,Integer> quantities(List<BookingConcession> rows){Map<UUID,Integer> qty=new LinkedHashMap<>();if(rows!=null)for(BookingConcession row:rows)if(row.getProductId()!=null&&row.getQuantity()!=null&&row.getQuantity()>0)qty.merge(row.getProductId(),row.getQuantity(),(cbLeft, cbRight) -> Integer.sum(cbLeft, cbRight));return qty;}
+    private Map<UUID,CinemaConcessionInventory> lock(UUID cinemaId,Collection<UUID> ids){return branchInventory.findForUpdate(cinemaId,ids).stream().collect(Collectors.toMap(cbValue -> cbValue.getProductId(),x->x,(a,b)->a,LinkedHashMap::new));}
     private CinemaConcessionInventory lockedOne(UUID cinemaId,UUID productId){Map<UUID,CinemaConcessionInventory> rows=lock(cinemaId,List.of(productId));CinemaConcessionInventory row=rows.get(productId);if(row==null)throw new ApiException(HttpStatus.CONFLICT,"Sản phẩm chưa được cấu hình kho tại rạp này");return row;}
     private int available(CinemaConcessionInventory row){return Math.max(0,nz(row.getStockOnHand())-nz(row.getStockReserved()));}
     private InventoryProductResponse product(Cinema cinema,ConcessionProduct p,CinemaConcessionInventory row,CinemaConcessionPrice price){boolean tracked=Boolean.TRUE.equals(p.getInventoryEnabled())&&row!=null&&Boolean.TRUE.equals(row.getActive());int on=row==null?0:nz(row.getStockOnHand()),reserved=row==null?0:nz(row.getStockReserved()),available=Math.max(0,on-reserved),threshold=row==null?nz(p.getLowStockThreshold()):nz(row.getLowStockThreshold()),target=row==null?0:nz(row.getTargetStock());BigDecimal effective=price!=null&&Boolean.TRUE.equals(price.getActive())?price.getPrice():p.getPrice();boolean override=price!=null&&Boolean.TRUE.equals(price.getActive())&&effective.compareTo(p.getPrice())!=0;return new InventoryProductResponse(p.getId(),cinema.getId(),cinema.getName(),p.getName(),p.getPrice(),effective,override,Boolean.TRUE.equals(p.getActive())&&row!=null&&Boolean.TRUE.equals(row.getActive()),tracked,on,reserved,available,threshold,target,tracked&&available<=threshold,tracked&&available<=0);}

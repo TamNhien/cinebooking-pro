@@ -1,8 +1,12 @@
+> **MỚI — CineBot (chatbot tư vấn phim và trò chuyện):** Website đã tích hợp trợ lý khách hàng có chào hỏi, gợi ý phim theo dữ liệu thật, tìm rạp/lịch chiếu, hướng dẫn đặt vé và tùy chọn trò chuyện AI khi cấu hình API key. Xem mục **CineBot — trợ lý khách hàng** ở cuối README.
+
 # CineBooking Pro V78
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 
 > **Current release:** V78.0.20 (candidate) - UX / Accessibility / PWA 5.0 - V70-V77 EN / Lifecycle Presentation Closure
+
+> **V78.0.21 release preflight repair:** restores historical static-verifier contracts for V61 risk scoring, V68 admin step-up expiry, V71 key governance, V74 reliability chronology, V75 missing-cost analytics, and V34/V41 documentation/environment checks; CineBot UI copy remains bilingual. The target tag is `v78.0.21` only if the full Windows release pipeline succeeds.
 
 > **Current language policy (V78.0.18):** profile sạch khởi tạo tiếng Việt. Nút **VN / EN** lưu `cinebooking_language`; toàn bộ presentation copy trong `frontend/app` + `frontend/components` được audit literal-level thay vì chỉ một nhóm trang đại diện. Static UI dùng catalog VI→EN nguồn sở hữu, feedback động dùng semantic pattern/direct language ownership, native `alert/confirm/prompt` cũng đi qua cùng language bridge. `data-i18n-skip="true"` tiếp tục bảo vệ tên phim/rạp, payload backend, ID và dữ liệu nghiệp vụ khỏi bị dịch nhầm. Root layout vẫn khôi phục preference trước hydration/full navigation.
 > **Previous stable incorporated:** `v77.0.61` - CRM Automation 5.0 + language/runtime stabilization.
@@ -39,7 +43,7 @@ V77.0.13 closes the final zero-warning ESLint regression exposed after V77.0.12 
 V77.0.14 completes the Vietnamese UI/navigation repair identified after V77.0.13: the V57 Admin shortcut now opens a dedicated `/admin/booking-seat-intelligence` surface backed by real `/admin/showtimes` and `/admin/bookings` data and links directly into each real seat map; Chromium/Windows native selects receive readable height/padding/option rhythm; and VN/EN switching is now a **site-wide presentation setting** with English as the clean-profile default and a persisted explicit Vietnamese/English choice. `LanguageProvider` updates `document.lang`, shared shell copy and a guarded runtime static-UI catalog so pages that have not yet been individually rewritten with `useLanguage()` still switch without translating API routes, enum values, JSON properties, movie/customer data or code blocks. The V56 customer-value page is fully bilingual and locale-aware, and its accidental localized API path `/admin/customer-value/điểmcard` is corrected back to the immutable machine contract `/admin/customer-value/scorecard`, fixing the red `Lỗi hệ thống` banner shown on the real Admin page. The V61 risk screen keeps machine values such as `BLOCK_RECOMMENDED` unchanged. V77.0.14 remains a **no-schema patch**; Flyway stays V72 / 67 public tables.
 > **Regression compatibility:** the historical V47 gate still verifies that automatic reconciliation defaulted OFF in V47-V66, while accepting V67+ where the default is intentionally ON.
 > **Backend:** Spring Boot 4.1 / Java 25 / PostgreSQL 18.4 / Redis 8.8
-> **Frontend:** Next.js 16.3.4 / Node.js 24 / Playwright Chromium
+> **Frontend:** Next.js 16.3.4 baseline; stable Release preflight upgrades to security-patched Next.js 16.4.6 / Node.js 24 / Playwright Chromium
 > **Runtime:** Docker Compose + nginx load balancing 2 backend replicas
 
 V66 adds **Booking Consistency & Seat Locking 4.0** on top of V65 observability: PostgreSQL is now the durable authority for short-lived seat holds, seat-row pessimistic locks serialize contenders across backend replicas, Redis is only a best-effort TTL mirror, checkout converts a durable hold in the same transaction, and existing `uq_showtime_seat_active` remains the final booking invariant. V66 adds Flyway `V66__durable_seat_holds.sql`; the database now has **58 public tables**: 57 seeded/core tables plus the transient operational `seat_hold` table. No synthetic movie/customer/booking/payment activity is seeded for V66.
@@ -8657,3 +8661,119 @@ python -X utf8 .\tools\verify_v78_0_20_v70_v77_en_release_tag_closure.py
 ```
 
 Then run zero-warning lint, the production build, Docker health, focused V78 language E2E and the full Chromium suite. Only the exact V78.0.20 source that reaches all release gates should be published with `scripts\release.ps1 v78.0.20`.
+
+
+---
+
+# CineBot — trợ lý khách hàng cho CineBooking Pro
+
+Tính năng được tích hợp ngay vào website (Next.js) và backend Spring Boot.
+
+## Tính năng
+
+- Nút **Hỏi CineBot** ở góc dưới bên phải các trang khách hàng; không hiển thị ở `/admin`.
+- Tin nhắn chào mừng, trả lời nhanh, nhiều lượt trò chuyện, lịch sử lưu tạm trong phiên trình duyệt, nút **Cuộc trò chuyện mới**.
+- Hỏi tên phim, thể loại, mô tả, thời lượng; gợi ý phim từ cơ sở dữ liệu **đang được công bố**.
+- Tra cứu suất chiếu mở bán, rạp, giá cơ bản và liên kết đến đúng trang phim hoặc đặt ghế.
+- Giải thích các bước đặt vé và chuyển tới trang **Vé của tôi**. Không tự đặt vé hay thu tiền.
+- Hỗ trợ tiếng Việt và tiếng Anh theo nút chọn ngôn ngữ của web.
+- Chế độ không có API key: bộ trả lời theo chủ đề và dữ liệu phim thật (không phải mô hình AI sinh ngôn ngữ, khả năng trò chuyện mở bị giới hạn).
+- Chế độ có API key: sử dụng **OpenAI Responses API** qua backend, giữ ngữ cảnh hội thoại ngắn để trò chuyện tự nhiên; lỗi API tự động trở về chế độ cơ bản.
+
+## Cấu hình
+
+Ở file `.env` **của máy bạn** (không đưa lên Git):
+
+```dotenv
+CHATBOT_OPENAI_API_KEY=
+CHATBOT_OPENAI_MODEL=gpt-4.1-mini
+```
+
+Có thể để khóa trống để thử chế độ tư vấn cơ bản hoàn toàn không phát sinh phí AI.
+Nếu muốn chatbot thực sự trò chuyện AI đa dạng, hãy lấy khóa từ tài khoản API của bạn và gán vào `CHATBOT_OPENAI_API_KEY`. API có **chi phí sử dụng riêng** theo chính sách nhà cung cấp, không tự động bao gồm trong gói ChatGPT. Không đặt API key ở `NEXT_PUBLIC_*` hay trong mã frontend.
+
+Đưa cấu hình lên môi trường Docker sau khi sửa `.env`:
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui
+# Giữ nguyên các biến .env khác đang được dự án sử dụng
+# Khi chỉ sửa cấu hình hoặc mã nguồn backend/frontend, build lại container:
+docker compose up -d --build
+# Kiểm tra trạng thái:
+docker compose ps
+```
+
+## API
+
+`POST /api/chatbot/message` (public; mỗi request được giới hạn độ dài tin nhắn và lưu lượng theo địa chỉ kết nối).
+
+Ví dụ request:
+
+```json
+{
+  "message": "Gợi ý phim hành động hay",
+  "language": "vi",
+  "history": [
+    {"role":"user","content":"Xin chào"},
+    {"role":"assistant","content":"Xin chào bạn!"}
+  ]
+}
+```
+
+Ví dụ cấu trúc response:
+
+```json
+{
+  "reply": "...",
+  "links": [{"label":"Khám phá phim","href":"/movies"}],
+  "suggestions": ["Gợi ý phim hay", "Lịch chiếu hôm nay"],
+  "mode": "local"
+}
+```
+
+## Bảo mật và giới hạn
+
+- Cấu hình khóa phía **server**, không trả về trình duyệt; đặt `store=false` khi gọi API AI.
+- Không truyền access token, mật khẩu, OTP, thông tin thẻ hoặc dữ liệu vé cá nhân vào mô hình AI.
+- Không dùng nội dung phản hồi làm HTML, liên kết điều hướng chỉ dùng đường dẫn nội bộ được cho phép.
+- Giới hạn mỗi tin nhắn 500 ký tự, lịch sử tối đa 8 tin và dữ liệu phim đưa vào AI có giới hạn.
+- Giới hạn yêu cầu ở controller áp dụng theo `remoteAddr`: với reverse proxy hoặc nhiều người cùng truy cập một IP, hãy cấu hình rate-limit bổ sung tại gateway nếu triển khai công khai.
+- Số ghế và tổng giá thanh toán luôn phải xác nhận ở màn hình đặt vé; thông tin chatbot chỉ để tham khảo.
+- Lịch sử trong `sessionStorage` chỉ lưu ở tab trình duyệt hiện tại, xóa qua nút hội thoại mới hoặc đóng tab. Không lưu trong PostgreSQL.
+
+## Kiểm thử
+
+```powershell
+cd D:\LienThongDH\DoAn\cinebooking-pro-email-password-ui\frontend
+npm ci
+npx tsc --noEmit
+npm run lint
+
+cd ..\backend
+mvn test -Dtest=ChatbotServiceTest
+```
+
+**Chú ý:** file ZIP source không đóng gói `node_modules`, `.next`, `target`, `.git`, `.env` hoặc bản sao database vì đó là artifacts build hay chứa thông tin nhạy cảm.
+
+## Nút chat bị thông báo cài ứng dụng PWA che
+
+Ở trang khách hàng, nút **Hỏi CineBot** nằm ở góc dưới bên phải. Khi thông báo
+**Cài CineBooking** (PWA) đang hiện, nút chat tự chuyển lên phía trên thông báo;
+cửa sổ chat cũng tự co chiều cao để không bị khuất. Không hiển thị tại `/admin`.
+
+Nếu trang cũ còn được cache, vào DevTools > Application > Service Workers để
+kiểm tra/cập nhật Service Worker và tải lại mạnh (`Ctrl+Shift+R`). Không cần
+xóa dữ liệu PostgreSQL.
+
+
+### V78.0.21 E2E: expired V29 demo schedule (November 2026)
+
+The original **V29 test catalog** schedules shows only between August 18 and September 30, 2026.
+As of November 2026, the public `/api/showtimes` correctly returns no past showtimes.
+The full booking Playwright suite therefore needs *actual upcoming OPEN showtimes* (or explicit demo-only fixtures).
+
+- `scripts/release.ps1` performs a **read-only schedule preflight** before the full E2E run. It refuses to publish if the seeded Mars movie has no upcoming OPEN showtime; it never weakens/omits E2E.
+- For an **intentional local demo database only**, execute `./tools/seed-demo-e2e-showtimes.ps1 -ConfirmDemoOnly` before Release. This inserts idempotent future showtimes using the original eight V29 demo movies and their seeded auditorium/time slots. It does not update old shows or write any bookings/payments. **Do not run this on a production or customer database**: the new showtimes are demo availability, not real cinema listings.
+- For real cinema data, use the Admin showtime planner to create legitimate future showtimes instead; do not run the demo seed.
+- `discovery-calendar.spec.ts` now compares current cinema/date/movie counts to the *real public API* rather than trying to book through the expired September 2026 schedule. No mocked API and no skipped assertions.
+- `tools/verify_e2e_schedule_contract.py` checks this opt-in-only fixture and unchanged release gate.

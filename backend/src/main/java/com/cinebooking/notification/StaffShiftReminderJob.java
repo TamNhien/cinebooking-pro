@@ -34,7 +34,7 @@ public class StaffShiftReminderJob {
             ZonedDateTime start=StaffShiftTime.start(s,zone);
             ZonedDateTime remindAt=start.minusMinutes(reminderMinutes);
             if(now.isBefore(remindAt)||!now.isBefore(start))continue;
-            String cinema=cinemas.findById(s.getCinemaId()).map(Cinema::getName).orElse("rạp được phân công");
+            String cinema=cinemas.findById(s.getCinemaId()).map(cbValue -> cbValue.getName()).orElse("rạp được phân công");
             String message="Ca làm tại "+cinema+" bắt đầu lúc "+s.getStartTime()+" ngày "+s.getShiftDate()+". Hãy chuẩn bị chấm công đúng giờ.";
             notifications.createOnce(s.getStaffUserId(),"STAFF_SHIFT_REMINDER","Sắp đến ca làm",message,"/staff/schedule","SHIFT_REMINDER:"+s.getId());
         }

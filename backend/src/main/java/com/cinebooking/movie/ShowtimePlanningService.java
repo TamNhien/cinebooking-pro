@@ -63,7 +63,7 @@ public class ShowtimePlanningService {
         }
 
         Map<Instant, ShowtimePlanSlot> byStart = preview.slots().stream()
-                .collect(Collectors.toMap(ShowtimePlanSlot::startTime, s -> s, (a, b) -> a, LinkedHashMap::new));
+                .collect(Collectors.toMap(cbValue -> cbValue.startTime(), s -> s, (a, b) -> a, LinkedHashMap::new));
         List<Showtime> created = new ArrayList<>();
         for (Instant start : plan.starts()) {
             ShowtimePlanSlot slot = byStart.get(start);
@@ -171,7 +171,7 @@ public class ShowtimePlanningService {
             } else if (conflict != null) {
                 conflictType = "SHOWTIME";
                 conflictShowtimeId = conflict.getId();
-                conflictLabel = conflictMovie.getTitle() + " · " + local(conflict.getStartTime());
+                conflictLabel = (conflictMovie == null ? "Phim không xác định" : conflictMovie.getTitle()) + " · " + local(conflict.getStartTime());
             } else {
                 PlannedWindow internal = accepted.stream().filter(w -> overlaps(start, end, w.start(), w.end())).findFirst().orElse(null);
                 if (internal != null) {
@@ -189,7 +189,7 @@ public class ShowtimePlanningService {
     }
 
     private Map<UUID, Movie> movieMap() {
-        return movies.findAll().stream().collect(Collectors.toMap(Movie::getId, m -> m));
+        return movies.findAll().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(), m -> m));
     }
 
     private ShowtimeStatus parseStatus(String value) {

@@ -33,7 +33,7 @@ public class ShowtimeWaitlistService {
     }
 
     public WaitlistStatus status(UUID showtimeId,String email){
-        Showtime st=showtime(showtimeId);int available=available(showtimeId);
+        showtime(showtimeId);int available=available(showtimeId);
         if(email==null||email.isBlank())return new WaitlistStatus(showtimeId,false,"NONE",available,null,null);
         UUID uid=user(email).getId();
         return repo.findByUserIdAndShowtimeId(uid,showtimeId)
@@ -55,7 +55,7 @@ public class ShowtimeWaitlistService {
 
     @Transactional
     public WaitlistStatus unsubscribe(UUID showtimeId,String email){
-        Showtime st=showtime(showtimeId);UUID uid=user(email).getId();
+        showtime(showtimeId);UUID uid=user(email).getId();
         repo.findByUserIdAndShowtimeId(uid,showtimeId).ifPresent(w->{w.setStatus("CANCELLED");repo.save(w);});
         return new WaitlistStatus(showtimeId,false,"CANCELLED",available(showtimeId),null,null);
     }

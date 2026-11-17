@@ -53,6 +53,6 @@ public class StaffGatePolicyService {
     }
     private String cinemaName(UUID id){
         if(id==null)return "chưa phân rạp";
-        return cinemas.findById(id).map(Cinema::getName).orElse(id.toString());
+        return cinemas.findById(id).map(cbValue -> cbValue.getName()).orElse(id.toString());
     }
 }

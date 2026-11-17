@@ -55,7 +55,7 @@ public class AdminBookingOperationsService {
 
     public List<BookingAdminView> list() {
         return bookings.findAll().stream()
-                .sorted(Comparator.comparing(Booking::getCreatedAt).reversed())
+                .sorted(Comparator.comparing((Booking cbValue) -> cbValue.getCreatedAt()).reversed())
                 .map(b -> view(b, false)).toList();
     }
 
@@ -115,7 +115,7 @@ public class AdminBookingOperationsService {
 
         List<BookingSeat> seatRows = bookingSeats.findByBookingId(b.getId());
         Map<UUID, Seat> seatMap = new HashMap<>();
-        seats.findAllById(seatRows.stream().map(BookingSeat::getSeatId).toList()).forEach(s -> seatMap.put(s.getId(), s));
+        seats.findAllById(seatRows.stream().map(cbValue -> cbValue.getSeatId()).toList()).forEach(s -> seatMap.put(s.getId(), s));
         List<BookingSeatResponse> seatDtos = seatRows.stream().map(bs -> {
             Seat s = seatMap.get(bs.getSeatId());
             return new BookingSeatResponse(bs.getSeatId(), s == null ? "?" : s.getRowLabel()+s.getSeatNumber(), bs.getPrice());
@@ -127,7 +127,7 @@ public class AdminBookingOperationsService {
                 new PaymentView(p.getId(), p.getProvider(), p.getStatus().name(), p.getAmount(), p.getProviderTransactionId(), p.getCreatedAt(), p.getPaidAt())
         ).toList();
         PaymentView latest = paymentViews.isEmpty() ? null : paymentViews.get(0);
-        String checkedBy = b.getCheckedInBy() == null ? null : users.findById(b.getCheckedInBy()).map(AppUser::getEmail).orElse(null);
+        String checkedBy = b.getCheckedInBy() == null ? null : users.findById(b.getCheckedInBy()).map(cbValue -> cbValue.getEmail()).orElse(null);
         List<AuditView> timeline = withTimeline ? auditLogs.findTop100ByEntityTypeAndEntityIdOrderByCreatedAtDesc("BOOKING", b.getId().toString()).stream()
                 .map(x -> new AuditView(x.getId(), x.getActorEmail(), x.getAction(), x.getDetails(), x.getIpAddress(), x.getCreatedAt())).toList() : List.of();
 

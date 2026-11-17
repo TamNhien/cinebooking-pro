@@ -239,7 +239,7 @@ public class BookingService {
     public void cancelPending(UUID bookingId, BookingStatus finalStatus) {
         Booking b = bookings.findByIdForUpdate(bookingId).orElse(null);
         if (b == null || b.getStatus() != BookingStatus.PENDING) return;
-        List<BookingSeat> rows = bookingSeats.findByBookingId(bookingId); List<UUID> seatIds=rows.stream().map(BookingSeat::getSeatId).toList();
+        List<BookingSeat> rows = bookingSeats.findByBookingId(bookingId); List<UUID> seatIds=rows.stream().map(cbValue -> cbValue.getSeatId()).toList();
         refundBenefitsIfNeeded(b);
         inventory.releaseReservation(bookingId, finalStatus==BookingStatus.EXPIRED?"Booking hết hạn - trả tồn kho đã giữ":"Booking bị huỷ - trả tồn kho đã giữ");
         bookingSeats.releaseByBookingId(bookingId);
@@ -282,7 +282,7 @@ public class BookingService {
 
     public BookingResponse toDto(Booking b) {
         Showtime st=showtimes.findById(b.getShowtimeId()).orElseThrow(); Movie movie=movies.findById(st.getMovieId()).orElseThrow(); Map<UUID,Seat> seatMap=new HashMap<>();
-        List<BookingSeat> seatRows=bookingSeats.findByBookingId(b.getId()); seats.findAllById(seatRows.stream().map(BookingSeat::getSeatId).toList()).forEach(s->seatMap.put(s.getId(),s));
+        List<BookingSeat> seatRows=bookingSeats.findByBookingId(b.getId()); seats.findAllById(seatRows.stream().map(cbValue -> cbValue.getSeatId()).toList()).forEach(s->seatMap.put(s.getId(),s));
         List<BookingSeatResponse> seatDtos=seatRows.stream().map(bs->{Seat s=seatMap.get(bs.getSeatId());return new BookingSeatResponse(bs.getSeatId(),s==null?"?":s.getRowLabel()+s.getSeatNumber(),bs.getPrice());}).toList();
         List<BookingConcessionResponse> con=commerce.bookingItems(b.getId()).stream().map(x->new BookingConcessionResponse(x.getProductId(),x.getProductName(),x.getUnitPrice(),x.getQuantity(),x.getSubtotal())).toList();
         return new BookingResponse(b.getId(),b.getShowtimeId(),movie.getTitle(),st.getStartTime(),b.getStatus().name(),b.getTotalAmount(),nz(b.getSeatAmount()),nz(b.getConcessionAmount()),nz(b.getDiscountAmount()),b.getPointsRedeemed()==null?0:b.getPointsRedeemed(),b.getVoucherCode(),b.getExpiresAt(),b.getCreatedAt(),b.getConfirmedAt(),b.getCheckedInAt(),b.getRefundRequestedAt(),b.getRefundedAt(),b.getRefundAmount(),b.getRefundFeeAmount(),b.getRefundRatePercent(),b.getRefundPolicyCode(),Boolean.TRUE.equals(b.getRefundAutomatic()),b.getRefundReason(),seatDtos,con);
@@ -296,10 +296,10 @@ public class BookingService {
     }
 
     private String requestFingerprint(CreateBookingRequest req) {
-        List<String> seatIds=req.seatIds().stream().filter(Objects::nonNull).map(UUID::toString).distinct().sorted().toList();
-        Map<UUID,Integer> concessions=new TreeMap<>(Comparator.comparing(UUID::toString));
+        List<String> seatIds=req.seatIds().stream().filter(Objects::nonNull).map(cbValue -> cbValue.toString()).distinct().sorted().toList();
+        Map<UUID,Integer> concessions=new TreeMap<>(Comparator.comparing((UUID cbValue) -> cbValue.toString()));
         if(req.concessions()!=null) for(ConcessionItemRequest item:req.concessions())
-            if(item!=null&&item.productId()!=null) concessions.merge(item.productId(),item.quantity(),Integer::sum);
+            if(item!=null&&item.productId()!=null) concessions.merge(item.productId(),item.quantity(),(cbLeft, cbRight) -> Integer.sum(cbLeft, cbRight));
         String concessionPart=concessions.entrySet().stream().map(e->e.getKey()+":"+e.getValue()).reduce((a,b)->a+","+b).orElse("");
         String voucher=req.voucherCode()==null?"":req.voucherCode().trim().toUpperCase(Locale.ROOT);
         int points=req.redeemPoints()==null?0:req.redeemPoints();

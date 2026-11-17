@@ -97,7 +97,7 @@ public class PrivacyGovernanceService {
                 item("ENGAGEMENT","movie_favorite",count("select count(*) from movie_favorite where user_id=?",id),"ERASABLE"),
                 item("ENGAGEMENT","movie_review",count("select count(*) from movie_review where user_id=?",id),"REVIEW"),
                 item("DEVICE","pwa_device",count("select count(*) from pwa_device where user_id=?",id),"REVOCABLE"));
-        long total=items.stream().mapToLong(SubjectInventoryItem::recordCount).sum();
+        long total=items.stream().mapToLong(cbValue -> cbValue.recordCount()).sum();
         return new SubjectInventory(id,user.getEmail(),user.getFullName(),Instant.now(),total,items,false);
     }
 

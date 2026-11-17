@@ -75,7 +75,7 @@ public class CrmAutomationService {
         Map<String, Long> suppressions = new LinkedHashMap<>();
         for (CustomerRaw customer : customers) {
             String reason = suppressionReason(customer);
-            if (reason != null) suppressions.merge(reason, 1L, Long::sum);
+            if (reason != null) suppressions.merge(reason, 1L, (cbLeft, cbRight) -> Long.sum(cbLeft, cbRight));
         }
 
         List<CrmPlaybookV77> playbooks = orderedPlaybooks().stream().map(code -> {
@@ -196,8 +196,8 @@ public class CrmAutomationService {
                 .sorted(Comparator
                         .comparing((CustomerRaw c) -> suppressionReason(c) == null ? 0 : 1)
                         .thenComparing((CustomerRaw c) -> c.lastBookingDate() == null ? LocalDate.MIN : c.lastBookingDate(), Comparator.reverseOrder())
-                        .thenComparing(CustomerRaw::lifetimeRevenue, Comparator.reverseOrder())
-                        .thenComparing(CustomerRaw::userId))
+                        .thenComparing((CustomerRaw cbValue) -> cbValue.lifetimeRevenue(), Comparator.reverseOrder())
+                        .thenComparing((CustomerRaw cbValue) -> cbValue.userId()))
                 .toList();
     }
 

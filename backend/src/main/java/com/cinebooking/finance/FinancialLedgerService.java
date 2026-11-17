@@ -66,8 +66,8 @@ public class FinancialLedgerService {
         if(amount.signum()==0)return;
         if(amount.signum()<0)throw new IllegalArgumentException("Financial ledger amount must be non-negative");
         List<FinancialLedgerLine> batch=List.of(line(entryId,debitAccount,"DEBIT",amount),line(entryId,creditAccount,"CREDIT",amount));
-        BigDecimal debit=batch.stream().filter(x->"DEBIT".equals(x.getDirection())).map(FinancialLedgerLine::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
-        BigDecimal credit=batch.stream().filter(x->"CREDIT".equals(x.getDirection())).map(FinancialLedgerLine::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add);
+        BigDecimal debit=batch.stream().filter(x->"DEBIT".equals(x.getDirection())).map(cbValue -> cbValue.getAmount()).reduce(BigDecimal.ZERO,(cbLeft, cbRight) -> cbLeft.add(cbRight));
+        BigDecimal credit=batch.stream().filter(x->"CREDIT".equals(x.getDirection())).map(cbValue -> cbValue.getAmount()).reduce(BigDecimal.ZERO,(cbLeft, cbRight) -> cbLeft.add(cbRight));
         if(debit.compareTo(credit)!=0)throw new IllegalStateException("Unbalanced financial ledger event "+eventKey);
         lines.saveAll(batch);
     }
@@ -102,11 +102,11 @@ public class FinancialLedgerService {
         List<Payment> paid=payments.findByPaidAtGreaterThanEqualAndPaidAtLessThanAndStatusIn(from,to,List.of(PaymentStatus.SUCCESS,PaymentStatus.REFUNDED,PaymentStatus.REVIEW));
         List<Payment> refunded=payments.findByRefundedAtGreaterThanEqualAndRefundedAtLessThanAndStatus(from,to,PaymentStatus.REFUNDED);
         List<FinancialLedgerEntry> ledgerEntries=entries.findByOccurredAtGreaterThanEqualAndOccurredAtLessThanOrderByOccurredAtAsc(from,to);
-        Map<String,FinancialLedgerEntry> byKey=ledgerEntries.stream().collect(Collectors.toMap(FinancialLedgerEntry::getEventKey,Function.identity(),(a,b)->a,LinkedHashMap::new));
+        Map<String,FinancialLedgerEntry> byKey=ledgerEntries.stream().collect(Collectors.toMap(cbValue -> cbValue.getEventKey(),Function.identity(),(a,b)->a,LinkedHashMap::new));
         Map<UUID,List<FinancialLedgerLine>> lineMap=lineMap(ledgerEntries);
         List<FinancialReconciliationIssue> found=new ArrayList<>();
 
-        BigDecimal paymentAmount=sumPayments(paid,Payment::getAmount);
+        BigDecimal paymentAmount=sumPayments(paid,cbValue -> cbValue.getAmount());
         BigDecimal refundAmount=sumPayments(refunded,p->p.getRefundedAmount()==null?BigDecimal.ZERO:p.getRefundedAmount());
         BigDecimal captureLedger=ledgerAmount(ledgerEntries,lineMap,"PAYMENT_CAPTURED");
         BigDecimal refundLedger=ledgerAmount(ledgerEntries,lineMap,"REFUND_SETTLED");
@@ -168,7 +168,7 @@ public class FinancialLedgerService {
 
     private Map<UUID,List<FinancialLedgerLine>> lineMap(List<FinancialLedgerEntry> ledgerEntries){
         if(ledgerEntries.isEmpty())return Map.of();
-        List<UUID> ids=ledgerEntries.stream().map(FinancialLedgerEntry::getId).toList();
+        List<UUID> ids=ledgerEntries.stream().map(cbValue -> cbValue.getId()).toList();
         Map<UUID,List<FinancialLedgerLine>> out=new HashMap<>();
         for(int i=0;i<ids.size();i+=1000){
             List<UUID> batch=ids.subList(i,Math.min(ids.size(),i+1000));
@@ -176,9 +176,9 @@ public class FinancialLedgerService {
         }
         return out;
     }
-    private BigDecimal ledgerAmount(List<FinancialLedgerEntry> es,Map<UUID,List<FinancialLedgerLine>> lineMap,String type){return money(es.stream().filter(e->type.equals(e.getEventType())).map(e->entryDebit(lineMap.getOrDefault(e.getId(),List.of()))).reduce(BigDecimal.ZERO,BigDecimal::add));}
-    private BigDecimal entryDebit(List<FinancialLedgerLine> ls){return money(ls.stream().filter(l->"DEBIT".equals(l.getDirection())).map(FinancialLedgerLine::getAmount).reduce(BigDecimal.ZERO,BigDecimal::add));}
-    private BigDecimal sumPayments(List<Payment> ps,Function<Payment,BigDecimal> f){return money(ps.stream().map(f).filter(Objects::nonNull).reduce(BigDecimal.ZERO,BigDecimal::add));}
+    private BigDecimal ledgerAmount(List<FinancialLedgerEntry> es,Map<UUID,List<FinancialLedgerLine>> lineMap,String type){return money(es.stream().filter(e->type.equals(e.getEventType())).map(e->entryDebit(lineMap.getOrDefault(e.getId(),List.of()))).reduce(BigDecimal.ZERO,(cbLeft, cbRight) -> cbLeft.add(cbRight)));}
+    private BigDecimal entryDebit(List<FinancialLedgerLine> ls){return money(ls.stream().filter(l->"DEBIT".equals(l.getDirection())).map(cbValue -> cbValue.getAmount()).reduce(BigDecimal.ZERO,(cbLeft, cbRight) -> cbLeft.add(cbRight)));}
+    private BigDecimal sumPayments(List<Payment> ps,Function<Payment,BigDecimal> f){return money(ps.stream().map(f).filter(Objects::nonNull).reduce(BigDecimal.ZERO,(cbLeft, cbRight) -> cbLeft.add(cbRight)));}
     private BigDecimal money(BigDecimal v){return (v==null?BigDecimal.ZERO:v).setScale(2,RoundingMode.HALF_UP);}
     private String providerAccount(String provider){String p=provider==null?"UNKNOWN":provider.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_]","_");return p.length()>50?p.substring(0,50):p;}
 

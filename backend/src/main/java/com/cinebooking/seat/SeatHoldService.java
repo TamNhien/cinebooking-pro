@@ -157,7 +157,7 @@ public class SeatHoldService {
         Instant now=Instant.now();
         return repository.findActiveForSeats(showtimeId,ids,now).stream()
                 .filter(x->userId.equals(x.getUserId()))
-                .map(SeatHoldRecord::getExpiresAt)
+                .map(cbValue -> cbValue.getExpiresAt())
                 .mapToLong(x->Math.max(0,Duration.between(now,x).toMillis()))
                 .min().orElse(0L);
     }
@@ -179,7 +179,7 @@ public class SeatHoldService {
         for(SeatHoldRecord row:mine){row.setState("RELEASED");row.setReleasedAt(now);row.setLastEvent("SEAT_HOLD_RELEASED");repository.save(row);}
         repository.flush();
         if(!mine.isEmpty()) afterCommit(()->{
-            clearMirror(showtimeId,mine.stream().map(SeatHoldRecord::getSeatId).toList());
+            clearMirror(showtimeId,mine.stream().map(cbValue -> cbValue.getSeatId()).toList());
             releasedCounter.increment(mine.size());
             safeAuditUser(userId,"SEAT_HOLD_RELEASED",mine.get(0).getHoldToken().toString(),"showtime="+showtimeId+" seats="+mine.size());
         });
@@ -225,7 +225,7 @@ public class SeatHoldService {
         if(!expired.isEmpty()) afterCommit(()->{
             Map<UUID,List<SeatHoldRecord>> groups=new HashMap<>();
             for(SeatHoldRecord x:expired)groups.computeIfAbsent(x.getShowtimeId(),k->new ArrayList<>()).add(x);
-            groups.forEach((showtime,rows)->clearMirror(showtime,rows.stream().map(SeatHoldRecord::getSeatId).toList()));
+            groups.forEach((showtime,rows)->clearMirror(showtime,rows.stream().map(cbValue -> cbValue.getSeatId()).toList()));
             expiredCounter.increment(expired.size());
             for(SeatHoldRecord row:expired) safeAuditSystem("SEAT_HOLD_EXPIRED",row.getHoldToken().toString(),"showtime="+row.getShowtimeId()+" seat="+row.getSeatId());
         });

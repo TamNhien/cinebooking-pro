@@ -77,8 +77,8 @@ public class RecommendationService {
     public List<RecommendationItem> trending(UUID cinemaId, int requestedLimit) {
         int limit = clamp(requestedLimit, 1, 20);
         List<Movie> candidates = candidates(cinemaId);
-        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(Movie::getId).toList());
-        String cinemaName = cinemaId == null ? null : cinemas.findById(cinemaId).map(Cinema::getName)
+        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(cbValue -> cbValue.getId()).toList());
+        String cinemaName = cinemaId == null ? null : cinemas.findById(cinemaId).map(cbValue -> cbValue.getName())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy rạp"));
 
         return candidates.stream()
@@ -90,7 +90,7 @@ public class RecommendationService {
                     List<String> signals = trendSignals(p, cinemaName != null);
                     return item(movie, score, confidence, reason, List.of(), signals, null);
                 })
-                .sorted(Comparator.comparingDouble(RecommendationItem::score).reversed()
+                .sorted(Comparator.comparingDouble((RecommendationItem cbValue) -> cbValue.score()).reversed()
                         .thenComparing(x -> x.movie().title()))
                 .limit(limit)
                 .toList();
@@ -102,7 +102,7 @@ public class RecommendationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy phim"));
         List<Movie> candidates = movies.findByActiveTrueOrderByCreatedAtDesc().stream()
                 .filter(m -> !m.getId().equals(movieId)).toList();
-        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(Movie::getId).toList());
+        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(cbValue -> cbValue.getId()).toList());
 
         return candidates.stream().map(movie -> {
                     List<String> matched = displayMatchedGenres(target, movie);
@@ -118,7 +118,7 @@ public class RecommendationService {
                     return item(movie, score, Math.min(95, 45 + matched.size() * 15 + popularityConfidence(p) / 4),
                             reason, matched, signals, null);
                 })
-                .sorted(Comparator.comparingDouble(RecommendationItem::score).reversed()
+                .sorted(Comparator.comparingDouble((RecommendationItem cbValue) -> cbValue.score()).reversed()
                         .thenComparing(x -> x.movie().title()))
                 .limit(limit)
                 .toList();
@@ -167,9 +167,9 @@ public class RecommendationService {
                     .limit(limit).toList();
         }
 
-        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(Movie::getId).toList());
-        Map<UUID, Availability> availability = availability(candidates.stream().map(Movie::getId).toList(), profile);
-        Map<UUID, Movie> movieById = movies.findAll().stream().collect(Collectors.toMap(Movie::getId, m -> m));
+        Map<UUID, Popularity> popularity = popularity(candidates.stream().map(cbValue -> cbValue.getId()).toList());
+        Map<UUID, Availability> availability = availability(candidates.stream().map(cbValue -> cbValue.getId()).toList(), profile);
+        Map<UUID, Movie> movieById = movies.findAll().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(), m -> m));
         double facetMultiplier = switch (mode) {
             case "FAMILIAR" -> 1.00;
             case "DISCOVERY" -> 0.45;
@@ -240,7 +240,7 @@ public class RecommendationService {
 
     private PersonalProfile personalProfile(UUID userId) {
         List<Movie> all = movies.findAll();
-        Map<UUID, Movie> byId = all.stream().collect(Collectors.toMap(Movie::getId, m -> m));
+        Map<UUID, Movie> byId = all.stream().collect(Collectors.toMap(cbValue -> cbValue.getId(), m -> m));
         PersonalProfile profile = new PersonalProfile();
 
         jdbc.query("select movie_id from movie_favorite where user_id=?", rs -> {
@@ -285,9 +285,9 @@ public class RecommendationService {
             double weight = 4.5 * Math.min(count, 3);
             addMovieGenres(profile, byId.get(movieId), weight);
             addMovieFacets(profile, byId.get(movieId), weight);
-            profile.cinemaWeights.merge(cinemaId, (double)count, Double::sum);
-            profile.daypartWeights.merge(daypart(hour), (double)count, Double::sum);
-            profile.weekdayWeights.merge(weekday, (double)count, Double::sum);
+            profile.cinemaWeights.merge(cinemaId, (double)count, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
+            profile.daypartWeights.merge(daypart(hour), (double)count, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
+            profile.weekdayWeights.merge(weekday, (double)count, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
         }, userId);
 
         jdbc.query("select movie_id,event_type,created_at from recommendation_event where user_id=? and created_at>=now()-interval '120 days'", rs -> {
@@ -340,7 +340,7 @@ public class RecommendationService {
                 .map(e -> new TasteFacet(profile.languageLabels.getOrDefault(e.getKey(), e.getKey()), round(e.getValue())))
                 .toList();
         UUID cinemaId = profile.preferredCinemaId();
-        String cinemaName = cinemaId == null ? null : cinemas.findById(cinemaId).map(Cinema::getName).orElse(null);
+        String cinemaName = cinemaId == null ? null : cinemas.findById(cinemaId).map(cbValue -> cbValue.getName()).orElse(null);
         String daypart = profile.preferredDaypart();
         Integer weekday = profile.preferredWeekday();
         String durationBand = profile.preferredDurationBand();
@@ -351,7 +351,7 @@ public class RecommendationService {
             summary = "Chưa có đủ tín hiệu cá nhân; CineBooking đang dùng xu hướng để giúp bạn khám phá phim mới.";
         } else {
             List<String> parts = new ArrayList<>();
-            if (!topGenres.isEmpty()) parts.add("ưu tiên " + topGenres.stream().limit(3).map(TasteGenre::name).collect(Collectors.joining(", ")));
+            if (!topGenres.isEmpty()) parts.add("ưu tiên " + topGenres.stream().limit(3).map(cbValue -> cbValue.name()).collect(Collectors.joining(", ")));
             if (!topLanguages.isEmpty()) parts.add("hay xem " + topLanguages.getFirst().name());
             if (durationBand != null) parts.add("hợp thời lượng " + durationLabel(durationBand).toLowerCase(Locale.ROOT));
             if (cinemaName != null) parts.add("thường xem tại " + cinemaName);
@@ -527,7 +527,7 @@ public class RecommendationService {
             selected.add(best);
             remaining.remove(best);
         }
-        return selected.stream().map(RankedRecommendation::item).toList();
+        return selected.stream().map(cbValue -> cbValue.item()).toList();
     }
 
     private double genreOverlap(Set<String> left, Set<String> right) {
@@ -621,7 +621,7 @@ public class RecommendationService {
     private void addMovieGenres(PersonalProfile profile, Movie movie, double weight) {
         if (movie == null) return;
         for (GenrePart part : genreParts(movie.getGenre())) {
-            profile.genreWeights.merge(part.key, weight, Double::sum);
+            profile.genreWeights.merge(part.key, weight, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
             profile.genreLabels.putIfAbsent(part.key, part.label);
         }
     }
@@ -630,13 +630,13 @@ public class RecommendationService {
         if (movie == null) return;
         String languageKey = normalize(movie.getLanguage());
         if (!languageKey.isBlank()) {
-            profile.languageWeights.merge(languageKey, weight, Double::sum);
+            profile.languageWeights.merge(languageKey, weight, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
             profile.languageLabels.putIfAbsent(languageKey, movie.getLanguage().trim());
         }
         String ratingKey = normalize(movie.getRating());
-        if (!ratingKey.isBlank()) profile.ratingWeights.merge(ratingKey, weight, Double::sum);
+        if (!ratingKey.isBlank()) profile.ratingWeights.merge(ratingKey, weight, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
         String duration = durationBand(movie.getDurationMinutes());
-        if (duration != null) profile.durationWeights.merge(duration, weight, Double::sum);
+        if (duration != null) profile.durationWeights.merge(duration, weight, (cbLeft, cbRight) -> Double.sum(cbLeft, cbRight));
     }
 
     private Set<String> genres(Movie movie) {
@@ -654,7 +654,7 @@ public class RecommendationService {
     private List<GenrePart> genreParts(String value) {
         if (value == null || value.isBlank()) return List.of();
         return Arrays.stream(value.split("[,;/|]"))
-                .map(String::trim).filter(x -> !x.isBlank())
+                .map(cbValue -> cbValue.trim()).filter(x -> !x.isBlank())
                 .map(x -> new GenrePart(normalize(x), x))
                 .distinct().toList();
     }
@@ -775,19 +775,19 @@ public class RecommendationService {
         }
         UUID preferredCinemaId() {
             return cinemaWeights.entrySet().stream().filter(e -> e.getValue() > 0)
-                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+                    .max(Map.Entry.comparingByValue()).map(cbValue -> cbValue.getKey()).orElse(null);
         }
         String preferredDaypart() {
             return daypartWeights.entrySet().stream().filter(e -> e.getValue() > 0)
-                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+                    .max(Map.Entry.comparingByValue()).map(cbValue -> cbValue.getKey()).orElse(null);
         }
         Integer preferredWeekday() {
             return weekdayWeights.entrySet().stream().filter(e -> e.getValue() > 0)
-                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+                    .max(Map.Entry.comparingByValue()).map(cbValue -> cbValue.getKey()).orElse(null);
         }
         String preferredDurationBand() {
             return durationWeights.entrySet().stream().filter(e -> e.getValue() > 0)
-                    .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+                    .max(Map.Entry.comparingByValue()).map(cbValue -> cbValue.getKey()).orElse(null);
         }
         boolean isNewToUser(UUID movieId) {
             return !favoriteMovies.contains(movieId) && !bookedMovies.contains(movieId) && !reviewedMovies.contains(movieId)

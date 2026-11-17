@@ -51,7 +51,7 @@ public class BookingCalendarService {
         Instant start = showtime.getStartTime();
         int duration = movie.getDurationMinutes() == null ? 120 : Math.max(1, movie.getDurationMinutes());
         Instant end = start.plusSeconds(duration * 60L);
-        String seats = booking.seats().stream().map(BookingDtos.BookingSeatResponse::code).collect(Collectors.joining(", "));
+        String seats = booking.seats().stream().map(cbValue -> cbValue.code()).collect(Collectors.joining(", "));
         String location = cinema.getName() + " - " + auditorium.getName() + ", " + cinema.getAddress();
         String description = "Booking #" + booking.id() + " | Ghế " + seats + " | CineBooking Pro";
 

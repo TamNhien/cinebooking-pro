@@ -50,7 +50,7 @@ public class AuditoriumBlackoutService {
         List<AuditoriumBlackout> items = auditoriumId == null
                 ? blackouts.findAllByOrderByStartTimeAsc()
                 : blackouts.findByAuditoriumIdOrderByStartTimeAsc(auditoriumId);
-        Map<UUID, Auditorium> roomMap = auditoriums.findAll().stream().collect(Collectors.toMap(Auditorium::getId, a -> a));
+        Map<UUID, Auditorium> roomMap = auditoriums.findAll().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(), a -> a));
         return items.stream().map(b -> response(b, roomMap.get(b.getAuditoriumId()))).toList();
     }
 
@@ -66,7 +66,7 @@ public class AuditoriumBlackoutService {
             throw new ApiException(HttpStatus.CONFLICT, "Khoảng bảo trì bị trùng với một khoảng khóa phòng đã tồn tại");
         }
 
-        Map<UUID, Movie> movieMap = movies.findAll().stream().collect(Collectors.toMap(Movie::getId, m -> m));
+        Map<UUID, Movie> movieMap = movies.findAll().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(), m -> m));
         for (Showtime showtime : showtimes.findByAuditoriumIdOrderByStartTimeAsc(request.auditoriumId())) {
             if (showtime.getStatus() == ShowtimeStatus.CANCELLED) continue;
             Movie movie = movieMap.get(showtime.getMovieId());

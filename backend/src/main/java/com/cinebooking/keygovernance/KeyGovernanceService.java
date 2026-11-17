@@ -127,7 +127,7 @@ public class KeyGovernanceService {
         Instant next=last==null?null:last.plusSeconds(days*86400L);
         String status;
         if(!rs.getBoolean("enabled")) status="DISABLED";
-        else if(last==null) status="NO_EVIDENCE";
+        else if(next==null) status="NO_EVIDENCE";
         else if(next.isBefore(Instant.now())) status="OVERDUE";
         else if(next.isBefore(Instant.now().plusSeconds(warningDays*86400L))) status="DUE_SOON";
         else status="HEALTHY";

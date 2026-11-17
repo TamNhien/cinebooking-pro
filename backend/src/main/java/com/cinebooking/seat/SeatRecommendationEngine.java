@@ -34,7 +34,7 @@ public class SeatRecommendationEngine {
         int safeLimit = Math.max(1, Math.min(limit, 10));
         Map<String,List<SeatResponse>> rows = groupRows(seats);
         List<String> rowNames = new ArrayList<>(rows.keySet());
-        rowNames.sort(String::compareToIgnoreCase);
+        rowNames.sort((cbLeft, cbRight) -> cbLeft.compareToIgnoreCase(cbRight));
         double rowCenter = rowNames.isEmpty() ? 0 : (rowNames.size() - 1) / 2.0;
         List<SeatSuggestion> candidates = new ArrayList<>();
 
@@ -44,11 +44,11 @@ public class SeatRecommendationEngine {
             for (int start=0; start+count<=row.size(); start++) {
                 List<SeatResponse> group = row.subList(start,start+count);
                 if (!isContiguousAvailable(group)) continue;
-                Set<UUID> ids = group.stream().map(SeatResponse::id).collect(java.util.stream.Collectors.toSet());
+                Set<UUID> ids = group.stream().map(cbValue -> cbValue.id()).collect(java.util.stream.Collectors.toSet());
                 if (!validate(seats, ids).allowed()) continue;
 
                 double seatCenter = (row.get(0).seatNumber() + row.get(row.size()-1).seatNumber()) / 2.0;
-                double groupCenter = group.stream().mapToInt(SeatResponse::seatNumber).average().orElse(seatCenter);
+                double groupCenter = group.stream().mapToInt(cbValue -> cbValue.seatNumber()).average().orElse(seatCenter);
                 double seatDistance = Math.abs(groupCenter-seatCenter);
                 double rowDistance = Math.abs(rowIndex-rowCenter);
                 int centerScore = clamp(100 - (int)Math.round(seatDistance*18));
@@ -61,10 +61,10 @@ public class SeatRecommendationEngine {
                 int inventoryPenalty = (int)(accessible*120) + (count==1 ? (int)(couple*35) : 0); // preserve accessible inventory unless explicitly needed.
                 int score = 700 + centerScore + rowScore + orphanSafetyScore - inventoryPenalty + (int)(vip*8);
 
-                BigDecimal total = group.stream().map(SeatResponse::price).reduce(BigDecimal.ZERO, BigDecimal::add);
-                BigDecimal dynamic = group.stream().map(SeatResponse::dynamicAdjustment).reduce(BigDecimal.ZERO, BigDecimal::add);
-                List<UUID> seatIds = group.stream().map(SeatResponse::id).toList();
-                List<String> codes = group.stream().map(SeatResponse::code).toList();
+                BigDecimal total = group.stream().map(cbValue -> cbValue.price()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
+                BigDecimal dynamic = group.stream().map(cbValue -> cbValue.dynamicAdjustment()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
+                List<UUID> seatIds = group.stream().map(cbValue -> cbValue.id()).toList();
+                List<String> codes = group.stream().map(cbValue -> cbValue.code()).toList();
                 String quality = score >= 975 ? "BEST" : score >= 930 ? "GREAT" : "GOOD";
                 String reason = "V57 · Hàng " + rowName + " · " + count + " ghế liền nhau · gần trung tâm · không tạo ghế trống đơn";
                 candidates.add(new SeatSuggestion(seatIds,codes,total,dynamic,score,centerScore,rowScore,orphanSafetyScore,quality,reason));
@@ -72,8 +72,8 @@ public class SeatRecommendationEngine {
         }
 
         return candidates.stream()
-                .sorted(Comparator.comparingInt(SeatSuggestion::score).reversed()
-                        .thenComparing(SeatSuggestion::totalPrice)
+                .sorted(Comparator.comparingInt((SeatSuggestion cbValue) -> cbValue.score()).reversed()
+                        .thenComparing((SeatSuggestion cbValue) -> cbValue.totalPrice())
                         .thenComparing(x -> String.join(",",x.seatCodes())))
                 .limit(safeLimit)
                 .toList();
@@ -84,7 +84,7 @@ public class SeatRecommendationEngine {
     private Map<String,List<SeatResponse>> groupRows(List<SeatResponse> seats) {
         Map<String,List<SeatResponse>> rows = new LinkedHashMap<>();
         if (seats != null) for (SeatResponse seat : seats) rows.computeIfAbsent(seat.rowLabel(), x->new ArrayList<>()).add(seat);
-        rows.values().forEach(row -> row.sort(Comparator.comparingInt(SeatResponse::seatNumber)));
+        rows.values().forEach(row -> row.sort(Comparator.comparingInt((SeatResponse cbValue) -> cbValue.seatNumber())));
         return rows;
     }
 

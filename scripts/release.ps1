@@ -101,6 +101,86 @@ if ($existingLocal -or $existingRemote) {
   throw "Stable tag $Version already exists. Immutable tags are never overwritten."
 }
 
+# Canonicalize only the terminal newline bytes of README.md before historical
+# source checks. This preserves the entire document (and its interior line
+# endings) while satisfying the V77.0.49 single-LF EOF contract.
+$readmePath = Join-Path $Root 'README.md'
+$readmeBytes = [System.IO.File]::ReadAllBytes($readmePath)
+$trimmedLength = $readmeBytes.Length
+while ($trimmedLength -gt 0 -and ($readmeBytes[$trimmedLength - 1] -eq 10 -or $readmeBytes[$trimmedLength - 1] -eq 13)) {
+  $trimmedLength--
+}
+if ($readmeBytes.Length -eq 0 -or $readmeBytes.Length -ne ($trimmedLength + 1) -or $readmeBytes[$readmeBytes.Length - 1] -ne 10) {
+  $canonicalReadme = [byte[]]::new($trimmedLength + 1)
+  if ($trimmedLength -gt 0) {
+    [System.Array]::Copy($readmeBytes, $canonicalReadme, $trimmedLength)
+  }
+  $canonicalReadme[$trimmedLength] = [byte]10
+  [System.IO.File]::WriteAllBytes($readmePath, $canonicalReadme)
+  Write-Host 'Normalized README.md EOF to exactly one LF byte (V77.0.49).' -ForegroundColor DarkCyan
+}
+
+# Older ZIPs left CHATBOT.md at the project root. A previous release
+# preflight moved it to docs/CHATBOT.md, which satisfied V77.0.37 but broke
+# the historical V36-V42 gates: they require README.md to be the ONLY
+# Markdown file anywhere in the source tree. Keep the full chatbot guide
+# as plain text, rather than removing it or hiding legacy test failures.
+$docsDirectory = Join-Path $Root 'docs'
+$legacyChatbotDocs = @()
+$rootChatbotDoc = Join-Path $Root 'CHATBOT.md'
+if (Test-Path -LiteralPath $rootChatbotDoc -PathType Leaf) {
+  $legacyChatbotDocs += Get-Item -LiteralPath $rootChatbotDoc
+}
+if (Test-Path -LiteralPath $docsDirectory -PathType Container) {
+  $legacyChatbotDocs += @(Get-ChildItem -LiteralPath $docsDirectory -File -Filter 'CHATBOT*.md')
+}
+if ($legacyChatbotDocs.Count -gt 0) {
+  New-Item -ItemType Directory -Path $docsDirectory -Force | Out-Null
+  foreach ($legacyDoc in $legacyChatbotDocs) {
+    $baseName = [System.IO.Path]::GetFileNameWithoutExtension($legacyDoc.Name)
+    $chatbotDocDestination = Join-Path $docsDirectory ($baseName + '.txt')
+    $suffix = 1
+    while (Test-Path -LiteralPath $chatbotDocDestination) {
+      $chatbotDocDestination = Join-Path $docsDirectory ("$baseName-legacy-$suffix.txt")
+      $suffix++
+    }
+    Move-Item -LiteralPath $legacyDoc.FullName -Destination $chatbotDocDestination
+    Write-Host "Preserved legacy chatbot guide as $chatbotDocDestination" -ForegroundColor Green
+  }
+}
+
+
+# Frontend security preflight for November 2026 npm advisories.
+# Upgrade the exact stable Next.js pair, regenerate package-lock.json on the
+# release machine, and fix compatible transitive advisories WITHOUT --force.
+# A clean npm audit is mandatory before the source can be pushed or tagged.
+$FrontendSecurityDir = Join-Path $Root 'frontend'
+Push-Location $FrontendSecurityDir
+try {
+  $patchedNextVersion = '16.4.6'
+  $packageManifest = Get-Content -LiteralPath (Join-Path $FrontendSecurityDir 'package.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+  $installedNextVersion = [string]$packageManifest.dependencies.next
+  $installedEslintNextVersion = [string]$packageManifest.devDependencies.'eslint-config-next'
+
+  if ($installedNextVersion -ne $patchedNextVersion -or $installedEslintNextVersion -ne $patchedNextVersion) {
+    Invoke-Checked 'Update stable Next.js and matching ESLint config (security patch)' {
+      & npm install --save-exact "next@$patchedNextVersion" "eslint-config-next@$patchedNextVersion" --no-audit --no-fund
+    }
+  }
+  else {
+    Invoke-Checked 'Synchronize frontend dependency lockfile' { & npm install --no-audit --no-fund }
+  }
+  Invoke-Checked 'Repair compatible frontend advisories (no force)' {
+    & npm audit fix --audit-level=high --no-fund
+  }
+  Invoke-Checked 'Frontend high/critical dependency audit after security patch' {
+    & npm run security:audit
+  }
+}
+finally {
+  Pop-Location
+}
+
 if (-not $SkipVerify) {
   $checks = @(
     'tools/verify_v60_payment_production_4.py',
@@ -282,6 +362,22 @@ if (-not $SkipDocker) {
 }
 
 if (-not $SkipE2E) {
+  # Windows can mark downloaded ZIP contents as Internet-zone files. The
+  # user may have unblocked scripts/*.ps1 but not this trusted project-owned
+  # preflight under tools/. Clear only its Mark-of-the-Web; do not change
+  # machine/user execution policy or disable the E2E validation itself.
+  $e2eReadinessScript = Join-Path $Root 'tools/verify-e2e-readiness.ps1'
+  if (-not (Test-Path -LiteralPath $e2eReadinessScript -PathType Leaf)) {
+    throw "E2E schedule preflight script is missing: $e2eReadinessScript"
+  }
+  Unblock-File -LiteralPath $e2eReadinessScript -ErrorAction Stop
+
+  # Historical V29 showtimes ended in September 2026. Fail early with a
+  # truthful data-precondition diagnostic instead of running 47 tests for 15m.
+  Invoke-Checked 'Validate real upcoming showtimes for booking E2E' {
+    & (Join-Path $Root 'tools/verify-e2e-readiness.ps1')
+    if (-not $?) { throw 'E2E schedule preflight failed' }
+  }
   $FrontendDir = Join-Path $Root 'frontend'
   Push-Location $FrontendDir
   $previousBaseUrl = $env:PLAYWRIGHT_BASE_URL

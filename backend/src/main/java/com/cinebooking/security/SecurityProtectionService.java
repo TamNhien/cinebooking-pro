@@ -60,7 +60,7 @@ public class SecurityProtectionService {
     }
 
     public SecurityOverview overview(UUID userId) {
-        long activeSessions=sessions.findByUserIdOrderByLastSeenAtDesc(userId).stream().filter(AuthSession::active).count();
+        long activeSessions=sessions.findByUserIdOrderByLastSeenAtDesc(userId).stream().filter(cbValue -> cbValue.active()).count();
         return new SecurityOverview(activeSessions,devices.countByUserIdAndRevokedAtIsNull(userId),alerts.countByUserIdAndAcknowledgedAtIsNull(userId),alerts.countByUserIdAndAcknowledgedAtIsNullAndSeverityIn(userId,List.of("HIGH","CRITICAL")),Instant.now());
     }
 

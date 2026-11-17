@@ -38,11 +38,11 @@ public class MovieEngagementService {
 
     public List<UUID> favoriteMovieIds(String email) {
         UUID userId=user(email).getId();
-        return favorites.findByUserIdOrderByCreatedAtDesc(userId).stream().map(MovieFavorite::getMovieId).toList();
+        return favorites.findByUserIdOrderByCreatedAtDesc(userId).stream().map(cbValue -> cbValue.getMovieId()).toList();
     }
 
     public List<ReviewResponse> listReviews(UUID movieId, String currentEmail) {
-        UUID mine=currentEmail==null?null:users.findByEmailIgnoreCase(currentEmail).map(AppUser::getId).orElse(null);
+        UUID mine=currentEmail==null?null:users.findByEmailIgnoreCase(currentEmail).map(cbValue -> cbValue.getId()).orElse(null);
         return reviews.findByMovieIdOrderByCreatedAtDesc(movieId).stream().map(r->dto(r,mine)).toList();
     }
 

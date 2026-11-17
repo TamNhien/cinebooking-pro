@@ -57,8 +57,8 @@ ok(('[data-testid="booking-status"][data-booking-status="CONFIRMED"]' in specs['
    'Booking journey asserts machine booking state instead of stale raw aria copy')
 ok('Vận hành hỗ trợ' in specs['customer-support.spec.ts'] and 'admin-support-v45' in specs['customer-support.spec.ts'],
    'Customer Support E2E follows the current localized Admin surface')
-ok('max >= "2026-09-30"' in specs['discovery-calendar.spec.ts'] and 'toHaveAttribute("max", "2026-09-30")' not in specs['discovery-calendar.spec.ts'],
-   'Discovery calendar verifies September remains selectable without freezing a stale maximum date')
+ok('max >= selectedDay' in specs['discovery-calendar.spec.ts'] and 'request.get("/api/showtimes")' in specs['discovery-calendar.spec.ts'],
+   'Discovery calendar follows a real upcoming showtime without freezing the expired V29 date')
 ok('loginExistingAdmin(page)' in specs['financial-ledger.spec.ts'] and 'gotoHydrated(page,"/admin/finance")' in specs['financial-ledger.spec.ts'],
    'Financial Ledger reuses the existing Admin and waits for hydrated finance navigation')
 ok('loyalty-redeem-rwd20k' in specs['loyalty-membership.spec.ts'] and 'loyalty-redeem-rwdcorn' in specs['loyalty-membership.spec.ts'],

@@ -72,6 +72,10 @@ logging:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  chatbot:
+    openai:
+      api-key: ${CHATBOT_OPENAI_API_KEY:}
+      model: ${CHATBOT_OPENAI_MODEL:gpt-4.1-mini}
   jwt:
     secret: ${JWT_SECRET}
     issuer: cinebooking

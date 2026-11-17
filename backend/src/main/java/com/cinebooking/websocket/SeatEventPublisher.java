@@ -19,7 +19,7 @@ public class SeatEventPublisher {
 
     /** V66: realtime fan-out is best-effort; Redis outage must never roll back durable seat ownership. */
     public void publish(UUID showtimeId, String type, List<UUID> seatIds) {
-        String ids = seatIds.stream().map(UUID::toString).collect(Collectors.joining(","));
+        String ids = seatIds.stream().map(cbValue -> cbValue.toString()).collect(Collectors.joining(","));
         try{redis.convertAndSend(CHANNEL, type + "|" + showtimeId + "|" + ids + "|" + Instant.now());}
         catch(RuntimeException ex){log.warn("seat_event_publish_degraded showtime={} type={} seats={} error={}",showtimeId,type,seatIds.size(),ex.getClass().getSimpleName());}
     }

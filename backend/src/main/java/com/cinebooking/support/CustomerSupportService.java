@@ -53,7 +53,7 @@ public class CustomerSupportService {
         return dto(c);
     }
 
-    public List<CaseEventResponse> customerEvents(UUID id,String email){AppUser u=user(email);CustomerSupportCase c=owned(id,u);return events.findByCaseIdOrderByCreatedAtAsc(id).stream().filter(e->"CUSTOMER".equals(e.getVisibility())).map(this::eventDto).toList();}
+    public List<CaseEventResponse> customerEvents(UUID id,String email){AppUser u=user(email);owned(id,u);return events.findByCaseIdOrderByCreatedAtAsc(id).stream().filter(e->"CUSTOMER".equals(e.getVisibility())).map(this::eventDto).toList();}
 
     @Transactional
     public CaseResponse customerMessage(UUID id,CustomerMessageRequest req,String email,String ip){
@@ -72,7 +72,7 @@ public class CustomerSupportService {
             if(actor.getRole()==Role.MANAGER&&!Objects.equals(p.getCinemaId(),managerCinemaId))continue;
             AppUser u=users.findById(p.getUserId()).orElse(null);
             if(u==null||!u.isAccountEnabled()||(u.getRole()!=Role.STAFF&&u.getRole()!=Role.MANAGER))continue;
-            String cinemaName=p.getCinemaId()==null?"Chưa phân rạp":cinemas.findById(p.getCinemaId()).map(Cinema::getName).orElse("-");
+            String cinemaName=p.getCinemaId()==null?"Chưa phân rạp":cinemas.findById(p.getCinemaId()).map(cbValue -> cbValue.getName()).orElse("-");
             out.add(new SupportStaff(u.getId(),p.getEmployeeCode(),u.getFullName(),u.getRole().name(),p.getCinemaId(),cinemaName));
         }
         return out;
@@ -112,14 +112,14 @@ public class CustomerSupportService {
     private AppUser user(String email){return users.findByEmailIgnoreCase(email).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Không tìm thấy tài khoản"));}
     private AppUser manager(String email){AppUser u=user(email);if(u.getRole()!=Role.MANAGER&&u.getRole()!=Role.ADMIN)throw new ApiException(HttpStatus.FORBIDDEN,"Chỉ Manager/Admin được truy cập trung tâm hỗ trợ");if(!u.isAccountEnabled())throw new ApiException(HttpStatus.FORBIDDEN,"Tài khoản đã bị khoá");return u;}
     private UUID managerCinema(AppUser actor){StaffProfile p=profiles.findById(actor.getId()).orElseThrow(()->new ApiException(HttpStatus.FORBIDDEN,"Manager chưa có hồ sơ nhân viên"));if(p.getCinemaId()==null)throw new ApiException(HttpStatus.FORBIDDEN,"Manager chưa được phân rạp");return p.getCinemaId();}
-    private UUID resolveCinema(AppUser actor,UUID requested){if(actor.getRole()==Role.ADMIN){UUID id=requested!=null?requested:cinemas.findAllByOrderByNameAsc().stream().findFirst().map(Cinema::getId).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp"));cinema(id);return id;}UUID id=managerCinema(actor);if(requested!=null&&!Objects.equals(id,requested))throw new ApiException(HttpStatus.FORBIDDEN,"Manager chỉ xem yêu cầu tại rạp của mình");return id;}
+    private UUID resolveCinema(AppUser actor,UUID requested){if(actor.getRole()==Role.ADMIN){UUID id=requested!=null?requested:cinemas.findAllByOrderByNameAsc().stream().findFirst().map(cbValue -> cbValue.getId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Chưa có rạp"));cinema(id);return id;}UUID id=managerCinema(actor);if(requested!=null&&!Objects.equals(id,requested))throw new ApiException(HttpStatus.FORBIDDEN,"Manager chỉ xem yêu cầu tại rạp của mình");return id;}
     private UUID cinemaForBooking(Booking b){Showtime s=showtimes.findById(b.getShowtimeId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy suất chiếu của booking"));Auditorium a=auditoriums.findById(s.getAuditoriumId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy phòng chiếu"));return a.getCinemaId();}
     private Cinema cinema(UUID id){return cinemas.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy rạp"));}
     private String nextCaseNumber(){return "CB-"+DateTimeFormatter.ofPattern("yyMMddHHmmss").withZone(ZoneOffset.UTC).format(Instant.now())+"-"+UUID.randomUUID().toString().substring(0,4).toUpperCase(Locale.ROOT);}
     private String upper(String v){return v==null?"":v.trim().toUpperCase(Locale.ROOT);} private String clean(String v){return v==null||v.isBlank()?null:v.trim();}
-    private String userName(UUID id){return id==null?null:users.findById(id).map(AppUser::getFullName).orElse("-");}
+    private String userName(UUID id){return id==null?null:users.findById(id).map(cbValue -> cbValue.getFullName()).orElse("-");}
     private String userRole(UUID id){return id==null?null:users.findById(id).map(x->x.getRole().name()).orElse("-");}
     private void addEvent(CustomerSupportCase c,String type,String from,String to,String visibility,String message,UUID actor){CustomerSupportCaseEvent e=new CustomerSupportCaseEvent();e.setCaseId(c.getId());e.setEventType(type);e.setFromStatus(from);e.setToStatus(to);e.setVisibility(visibility);e.setMessage(clean(message));e.setActorUserId(actor);events.save(e);}
-    private CaseResponse dto(CustomerSupportCase c){AppUser u=users.findById(c.getUserId()).orElse(null);String cinemaName=c.getCinemaId()==null?null:cinemas.findById(c.getCinemaId()).map(Cinema::getName).orElse("-");boolean overdue=SupportCaseRules.isOpen(c.getStatus())&&c.getSlaDueAt()!=null&&c.getSlaDueAt().isBefore(Instant.now());return new CaseResponse(c.getId(),c.getCaseNumber(),c.getUserId(),u==null?"-":u.getFullName(),u==null?"-":u.getEmail(),c.getBookingId(),c.getCinemaId(),cinemaName,c.getCategory(),c.getPriority(),c.getStatus(),c.getSubject(),c.getDescription(),c.getAssignedTo(),userName(c.getAssignedTo()),c.getSlaDueAt(),overdue,c.getResolutionNote(),c.getLastCustomerMessageAt(),c.getLastStaffMessageAt(),c.getResolvedAt(),c.getClosedAt(),c.getCreatedAt(),c.getUpdatedAt());}
+    private CaseResponse dto(CustomerSupportCase c){AppUser u=users.findById(c.getUserId()).orElse(null);String cinemaName=c.getCinemaId()==null?null:cinemas.findById(c.getCinemaId()).map(cbValue -> cbValue.getName()).orElse("-");boolean overdue=SupportCaseRules.isOpen(c.getStatus())&&c.getSlaDueAt()!=null&&c.getSlaDueAt().isBefore(Instant.now());return new CaseResponse(c.getId(),c.getCaseNumber(),c.getUserId(),u==null?"-":u.getFullName(),u==null?"-":u.getEmail(),c.getBookingId(),c.getCinemaId(),cinemaName,c.getCategory(),c.getPriority(),c.getStatus(),c.getSubject(),c.getDescription(),c.getAssignedTo(),userName(c.getAssignedTo()),c.getSlaDueAt(),overdue,c.getResolutionNote(),c.getLastCustomerMessageAt(),c.getLastStaffMessageAt(),c.getResolvedAt(),c.getClosedAt(),c.getCreatedAt(),c.getUpdatedAt());}
     private CaseEventResponse eventDto(CustomerSupportCaseEvent e){return new CaseEventResponse(e.getId(),e.getCaseId(),e.getEventType(),e.getFromStatus(),e.getToStatus(),e.getVisibility(),e.getMessage(),e.getActorUserId(),userName(e.getActorUserId()),userRole(e.getActorUserId()),e.getCreatedAt());}
 }

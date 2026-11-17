@@ -114,7 +114,7 @@ public class AdminCatalogService {
     private void requireCinema(UUID id){if(!cinemas.existsById(id))throw new ApiException(HttpStatus.BAD_REQUEST,"cinemaId không tồn tại");}
     private void requireAuditorium(UUID id){if(!auditoriums.existsById(id))throw new ApiException(HttpStatus.BAD_REQUEST,"auditoriumId không tồn tại");}
     private CinemaResponse cinema(Cinema c){return new CinemaResponse(c.getId(),c.getName(),c.getAddress());}
-    private AuditoriumResponse auditorium(Auditorium a){return new AuditoriumResponse(a.getId(),a.getCinemaId(),cinemas.findById(a.getCinemaId()).map(Cinema::getName).orElse(""),a.getName());}
-    private SeatAdminResponse seat(Seat s){return new SeatAdminResponse(s.getId(),s.getAuditoriumId(),auditoriums.findById(s.getAuditoriumId()).map(Auditorium::getName).orElse(""),s.getRowLabel(),s.getSeatNumber(),s.getSeatType().name(),s.getPriceModifier());}
+    private AuditoriumResponse auditorium(Auditorium a){return new AuditoriumResponse(a.getId(),a.getCinemaId(),cinemas.findById(a.getCinemaId()).map(cbValue -> cbValue.getName()).orElse(""),a.getName());}
+    private SeatAdminResponse seat(Seat s){return new SeatAdminResponse(s.getId(),s.getAuditoriumId(),auditoriums.findById(s.getAuditoriumId()).map(cbValue -> cbValue.getName()).orElse(""),s.getRowLabel(),s.getSeatNumber(),s.getSeatType().name(),s.getPriceModifier());}
     private String blank(String s){return s==null||s.isBlank()?null:s.trim();}
 }

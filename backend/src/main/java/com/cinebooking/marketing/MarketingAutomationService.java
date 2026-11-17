@@ -142,8 +142,8 @@ public class MarketingAutomationService {
                 .filter(c -> matches(segmentCode, c))
                 .sorted(Comparator
                         .comparing((CustomerRaw c) -> c.lastBookingDate() == null ? LocalDate.MIN : c.lastBookingDate()).reversed()
-                        .thenComparing(CustomerRaw::lifetimeRevenue, Comparator.reverseOrder())
-                        .thenComparing(CustomerRaw::userId))
+                        .thenComparing((CustomerRaw cbValue) -> cbValue.lifetimeRevenue(), Comparator.reverseOrder())
+                        .thenComparing((CustomerRaw cbValue) -> cbValue.userId()))
                 .toList();
     }
 

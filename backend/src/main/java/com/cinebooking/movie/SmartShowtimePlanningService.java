@@ -111,21 +111,21 @@ public class SmartShowtimePlanningService {
         if(rooms.isEmpty()) throw new ApiException(HttpStatus.CONFLICT,"Rạp chưa có phòng chiếu để lập lịch");
         if(lockRooms){
             List<Auditorium> locked=new ArrayList<>();
-            rooms.stream().map(Auditorium::getId).sorted().forEach(id->{
+            rooms.stream().map(cbValue -> cbValue.getId()).sorted().forEach(id->{
                 Auditorium room=auditoriums.findByIdForUpdate(id).orElseThrow(()->new ApiException(HttpStatus.CONFLICT,"Phòng chiếu vừa bị thay đổi"));
                 if(!room.getCinemaId().equals(request.cinemaId())) throw new ApiException(HttpStatus.CONFLICT,"Phòng chiếu không còn thuộc rạp đã chọn");
                 locked.add(room);
             });
-            rooms=locked.stream().sorted(Comparator.comparing(Auditorium::getName)).toList();
+            rooms=locked.stream().sorted(Comparator.comparing((Auditorium cbValue) -> cbValue.getName())).toList();
         }
         return new ValidatedSmartPlan(movie,cinema,rooms,status);
     }
 
     private SmartShowtimePlanPreview buildPreview(ValidatedSmartPlan plan,SmartShowtimePlanRequest request){
-        Map<UUID,Movie> movieMap=movies.findAll().stream().collect(Collectors.toMap(Movie::getId,m->m));
+        Map<UUID,Movie> movieMap=movies.findAll().stream().collect(Collectors.toMap(cbValue -> cbValue.getId(),m->m));
         Map<Integer,DemandSignal> movieDemand=loadDemand(request.cinemaId(),request.movieId());
         Map<Integer,DemandSignal> cinemaDemand=loadDemand(request.cinemaId(),null);
-        int historySamples=!movieDemand.isEmpty()?movieDemand.values().stream().mapToInt(DemandSignal::samples).sum():cinemaDemand.values().stream().mapToInt(DemandSignal::samples).sum();
+        int historySamples=!movieDemand.isEmpty()?movieDemand.values().stream().mapToInt(cbValue -> cbValue.samples()).sum():cinemaDemand.values().stream().mapToInt(cbValue -> cbValue.samples()).sum();
 
         Map<UUID,List<Showtime>> existing=new HashMap<>();
         Map<UUID,List<AuditoriumBlackout>> blackoutMap=new HashMap<>();
@@ -156,7 +156,7 @@ public class SmartShowtimePlanningService {
             }
 
             feasible.sort(Comparator.comparingDouble((Candidate c)->c.score().value()).reversed()
-                    .thenComparing(Candidate::start).thenComparing(c->c.room().getName()));
+                    .thenComparing((Candidate cbValue) -> cbValue.start()).thenComparing(c->c.room().getName()));
             List<Candidate> accepted=new ArrayList<>();
             for(Candidate candidate:feasible){
                 if(accepted.size()>=request.targetPerDay()) break;
@@ -164,14 +164,14 @@ public class SmartShowtimePlanningService {
                 if(roomOverlap) continue;
                 boolean tooClose=accepted.stream().anyMatch(a->Math.abs(Duration.between(a.start(),candidate.start()).toMinutes())<MIN_MOVIE_SPACING_MINUTES);
                 if(tooClose) continue;
-                boolean tooCloseExisting=existing.values().stream().flatMap(Collection::stream)
+                boolean tooCloseExisting=existing.values().stream().flatMap(cbValue -> cbValue.stream())
                         .filter(s->s.getStatus()!=ShowtimeStatus.CANCELLED && s.getMovieId().equals(request.movieId()))
                         .anyMatch(s->Math.abs(Duration.between(s.getStartTime(),candidate.start()).toMinutes())<MIN_MOVIE_SPACING_MINUTES);
                 if(tooCloseExisting) continue;
                 accepted.add(candidate);
             }
 
-            List<SmartShowtimeSlot> slots=accepted.stream().sorted(Comparator.comparing(Candidate::start)).map(c->new SmartShowtimeSlot(
+            List<SmartShowtimeSlot> slots=accepted.stream().sorted(Comparator.comparing((Candidate cbValue) -> cbValue.start())).map(c->new SmartShowtimeSlot(
                     c.room().getId(),c.room().getName(),c.start(),c.end(),round(c.score().value()),round(c.score().historicalOccupancy()),c.score().samples(),c.score().reasons()
             )).toList();
             days.add(new SmartShowtimeDay(date,request.targetPerDay(),slots.size(),conflicts,candidates,slots));
@@ -252,8 +252,8 @@ public class SmartShowtimePlanningService {
     }
 
     private ShowtimePlanningRunResponse runDto(ShowtimePlanningRun run){
-        return new ShowtimePlanningRunResponse(run.getId(),run.getCinemaId(),cinemas.findById(run.getCinemaId()).map(Cinema::getName).orElse(""),
-                run.getMovieId(),movies.findById(run.getMovieId()).map(Movie::getTitle).orElse(""),run.getFromDate(),run.getToDate(),run.getTargetPerDay(),
+        return new ShowtimePlanningRunResponse(run.getId(),run.getCinemaId(),cinemas.findById(run.getCinemaId()).map(cbValue -> cbValue.getName()).orElse(""),
+                run.getMovieId(),movies.findById(run.getMovieId()).map(cbValue -> cbValue.getTitle()).orElse(""),run.getFromDate(),run.getToDate(),run.getTargetPerDay(),
                 run.getOperatingStart(),run.getOperatingEnd(),run.getIntervalMinutes(),run.getBasePrice(),run.getRequestedSlots(),run.getSuggestedSlots(),
                 run.getConflictCount(),run.getHistoricalSamples(),run.getStrategy(),run.getStatus(),run.getCreatedBy(),run.getCreatedAt(),run.getCommittedAt());
     }

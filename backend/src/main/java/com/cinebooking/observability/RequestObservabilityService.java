@@ -36,7 +36,7 @@ public class RequestObservabilityService {
     ) {
         this.registry = registry;
         this.windowMinutes = Math.max(1, Math.min(windowMinutes, 60));
-        Gauge.builder("cinebooking.api.active", activeRequests, AtomicInteger::doubleValue)
+        Gauge.builder("cinebooking.api.active", activeRequests, cbValue -> cbValue.doubleValue())
                 .description("Active HTTP requests handled by this CineBooking replica")
                 .register(registry);
     }
@@ -125,7 +125,7 @@ public class RequestObservabilityService {
 
     private long percentile95(List<ObservabilityDtos.RequestSample> current) {
         if (current.isEmpty()) return 0;
-        List<Long> durations = new ArrayList<>(current.stream().map(ObservabilityDtos.RequestSample::durationMs).toList());
+        List<Long> durations = new ArrayList<>(current.stream().map(cbValue -> cbValue.durationMs()).toList());
         durations.sort(Comparator.naturalOrder());
         int index = (int) Math.ceil(durations.size() * 0.95d) - 1;
         return durations.get(Math.max(0, Math.min(index, durations.size() - 1)));

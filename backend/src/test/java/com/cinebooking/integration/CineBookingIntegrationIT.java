@@ -73,6 +73,7 @@ class CineBookingIntegrationIT {
 
     @Container
     @ServiceConnection
+    @SuppressWarnings("resource") // JUnit Testcontainers extension owns this shared container lifecycle.
     static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18.4-alpine")
             .withDatabaseName("cinebooking_it")
             .withUsername("cinebooking")
@@ -81,6 +82,7 @@ class CineBookingIntegrationIT {
 
     @Container
     @ServiceConnection(name = "redis")
+    @SuppressWarnings("resource") // JUnit Testcontainers extension owns this shared container lifecycle.
     static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:8.8-alpine"))
             .withExposedPorts(6379)
             .withStartupTimeout(Duration.ofMinutes(2));
@@ -491,7 +493,7 @@ class CineBookingIntegrationIT {
         assertThat(second.replayed()).isTrue();
         assertThat(second.payment().getId()).isEqualTo(first.payment().getId());
         assertThat(first.payment().getPayerUserId()).isEqualTo(payer.getId());
-        assertThat(payments.findByPayerUserIdOrderByCreatedAtDesc(payer.getId())).extracting(Payment::getId).contains(first.payment().getId());
+        assertThat(payments.findByPayerUserIdOrderByCreatedAtDesc(payer.getId())).extracting(cbValue -> cbValue.getId()).contains(first.payment().getId());
     }
 
     @Test

@@ -150,7 +150,7 @@ public class OperationsControlCenterService {
     }
 
     public List<AlertHistoryItem> history(String email, UUID cinemaId) {
-        Set<String> visible = snapshot(email, cinemaId).alerts().stream().map(AlertItem::fingerprint).collect(java.util.stream.Collectors.toSet());
+        Set<String> visible = snapshot(email, cinemaId).alerts().stream().map(cbValue -> cbValue.fingerprint()).collect(java.util.stream.Collectors.toSet());
         return alertStates.history(visible);
     }
 

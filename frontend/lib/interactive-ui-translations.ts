@@ -1,6 +1,21 @@
 // V77.0.39: presentation-only fallback catalog for legacy UI copy.
 // Machine values, backend payloads, movie titles, user data, and identifiers are never translated here.
 export const LEGACY_INTERACTIVE_UI_EN: Readonly<Record<string, string>> = Object.freeze({
+  "Gợi ý phim hay": "Recommend a movie",
+  "Lịch chiếu hôm nay": "Today's showtimes",
+  "Hướng dẫn đặt vé": "How to book tickets?",
+  "Xin chào bạn! 👋 Mình là CineBot, trợ lý phim của CineBooking. Mình có thể tư vấn phim, tìm lịch chiếu, hướng dẫn đặt vé và trò chuyện cùng bạn nè!": "Hi there! 👋 I'm CineBot, your movie buddy. Want a recommendation, showtimes or help with booking?",
+  "Trò chuyện với CineBot": "Chat with CineBot",
+  "Cuộc trò chuyện mới": "New chat",
+  "Xóa cuộc trò chuyện": "Clear chat",
+  "Đóng khung trò chuyện": "Close chat panel",
+  "Nội dung trò chuyện": "Chat messages",
+  "CineBot đang trả lời": "CineBot is typing",
+  "Câu hỏi gợi ý": "Suggested questions",
+  "Nhắn tin cho CineBot": "Message CineBot",
+  "Hỏi CineBot về phim, lịch chiếu...": "Ask CineBot anything about movies...",
+  "Gửi tin nhắn": "Send message",
+  "Đóng CineBot": "Close CineBot",
   " / không giới hạn": " / unlimited",
   " · nhu cầu heuristic": " · heuristic demand",
   " · Quá hạn": " · Overdue",

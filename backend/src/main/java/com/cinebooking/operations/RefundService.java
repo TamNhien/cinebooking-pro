@@ -139,7 +139,7 @@ public class RefundService {
         payments.save(p);
         finance.recordRefund(p,b);
 
-        List<UUID> seatIds=bookingSeats.findByBookingId(b.getId()).stream().map(BookingSeat::getSeatId).toList();
+        List<UUID> seatIds=bookingSeats.findByBookingId(b.getId()).stream().map(cbValue -> cbValue.getSeatId()).toList();
         bookingSeats.releaseByBookingId(b.getId());
         notifications.create(b.getUserId(),"REFUND_APPROVED",automatic?"Hoàn vé tự động thành công":"Hoàn vé đã được duyệt",
                 "Booking "+b.getId()+" đã ghi nhận hoàn "+b.getRefundAmount().toPlainString()+"đ. Phí hủy: "+nz(b.getRefundFeeAmount()).toPlainString()+"đ. Ghế đã được mở bán lại.","/bookings");

@@ -748,3 +748,69 @@ html[data-input-modality="keyboard"] :where(a,button,input,select,textarea,[tabi
   outline:2px solid #fb7185;
   outline-offset:3px;
 }
+
+/* CineBot: customer-assistance widget, rendered once in the shared layout. */
+.cinebot-root { position: fixed; right: max(18px,env(safe-area-inset-right)); bottom: max(18px,env(safe-area-inset-bottom)); z-index: 10030; font-family: inherit; }
+/* The PWA install/update/offline banner lives at bottom-right (z-index: 10020).
+   Move CineBot above it only while the banner is actually visible, so the
+   launcher and chat remain accessible instead of hiding behind the PWA CTA. */
+body:has(.pwa-manager[data-active="true"]) .cinebot-root {
+  bottom: max(104px, calc(env(safe-area-inset-bottom) + 104px));
+}
+body:has(.pwa-manager[data-active="true"]) .cinebot-panel {
+  height: min(620px, calc(100dvh - 215px));
+}
+
+.cinebot-launcher { display:flex; align-items:center; gap:10px; min-height:56px; border:1px solid rgba(255,255,255,.23); border-radius:99px; padding:7px 18px 7px 8px; background:linear-gradient(125deg,#e11d48,#be123c 80%); color:white; box-shadow:0 12px 36px rgba(225,29,72,.36),0 8px 22px #0009; cursor:pointer; font-weight:750; }
+.cinebot-launcher:focus-visible,.cinebot-panel button:focus-visible,.cinebot-panel a:focus-visible,.cinebot-panel textarea:focus-visible {outline:3px solid #fbbf24;outline-offset:3px;}
+.cinebot-launcher[aria-expanded="true"] { justify-content:center; width:56px; padding:7px; margin-left:auto; }
+.cinebot-launcher-icon { display:grid;place-items:center;min-width:40px;height:40px;background:#fff3;border-radius:99px;font-size:23px; }
+.cinebot-launcher-label { font-size:14px;white-space:nowrap; }
+.cinebot-panel { width:min(390px,calc(100vw - 28px)); height:min(620px,calc(100dvh - 116px)); display:flex;flex-direction:column; overflow:hidden; margin-bottom:12px; border:1px solid #475569; border-radius:22px; background:#0b1220;box-shadow:0 24px 80px #000c,0 0 0 1px #ffffff10; }
+.cinebot-header { min-height:76px; display:flex;gap:10px;align-items:center;padding:12px 14px;background:linear-gradient(110deg,#881337,#be123c);border-bottom:1px solid #ffffff26; }
+.cinebot-portrait { flex:0 0 45px;height:45px;display:grid;place-items:center;background:#fff3;border:1px solid #ffffff40;border-radius:15px;font-size:25px; }
+.cinebot-title { display:flex;flex:1;flex-direction:column;min-width:0;gap:4px; }
+.cinebot-title strong { color:white;font-size:16px;letter-spacing:.2px; }
+.cinebot-title span { color:#ffe4e6;font-size:11px;display:flex;align-items:center;gap:6px; }
+.cinebot-status-dot { width:7px;height:7px;border-radius:50%;background:#86efac;box-shadow:0 0 0 3px #86efac33; }
+.cinebot-icon-button {flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;border:0;border-radius:9px;background:#ffffff1a;color:white;cursor:pointer;}
+.cinebot-icon-button:hover {background:#ffffff36;}
+.cinebot-icon-button svg {width:17px;height:17px;}
+.cinebot-chat-area {display:flex;flex:1;flex-direction:column;gap:13px;overflow-y:auto;overscroll-behavior:contain;padding:17px 13px 12px;scrollbar-width:thin;scrollbar-color:#475569 transparent;background:radial-gradient(circle at top right,#88133725,transparent 52%),#0b1220;}
+.cinebot-date {align-self:center;font-size:10px;font-weight:600;letter-spacing:.3px;color:#94a3b8;margin-bottom:2px;}
+.cinebot-line {display:flex;align-items:flex-end;gap:7px;max-width:100%;}
+.cinebot-line-user {justify-content:flex-end;}
+.cinebot-line-avatar {flex:0 0 27px;height:27px;border-radius:10px;background:#be123c33;display:grid;place-items:center;font-size:15px;}
+.cinebot-message-group {display:flex;flex-direction:column;align-items:flex-start;gap:7px;max-width:calc(100% - 36px);min-width:0;}
+.cinebot-line-user .cinebot-message-group {align-items:flex-end;}
+.cinebot-bubble {padding:11px 13px;font-size:13px;line-height:1.6;white-space:pre-line;overflow-wrap:anywhere;max-width:100%;}
+.cinebot-bubble-assistant {background:#1e293b;border:1px solid #334155;color:#f1f5f9;border-radius:16px 16px 16px 5px;}
+.cinebot-bubble-user {background:linear-gradient(140deg,#e11d48,#be123c);border:1px solid #fb7185a0;color:white;border-radius:16px 16px 5px 16px;}
+.cinebot-links {display:flex;flex-wrap:wrap;gap:6px;max-width:100%;}
+.cinebot-links a {display:inline-flex;align-items:center;gap:5px;border:1px solid #fb718588;background:#9f123943;color:#fecdd3;border-radius:10px;padding:7px 9px;font-size:11px;font-weight:650;transition:background .15s;}
+.cinebot-links a:hover {background:#be123c77;}
+.cinebot-actions {display:flex;flex-wrap:nowrap;gap:7px;overflow-x:auto;min-height:53px;padding:10px 12px 8px;border-top:1px solid #33415580;scrollbar-width:thin;}
+.cinebot-actions button {flex:0 0 auto;max-width:210px;border:1px solid #475569;border-radius:999px;background:#192438;color:#fecdd3;font-size:11px;font-weight:650;padding:7px 10px;cursor:pointer;white-space:nowrap;}
+.cinebot-actions button:hover {border-color:#fb7185;background:#88133777;}
+.cinebot-actions button:disabled {opacity:.55;cursor:wait;}
+.cinebot-compose {display:flex;gap:8px;align-items:flex-end;margin:0 12px 0;padding:9px 9px 9px 12px;border-radius:15px;background:#172033;border:1px solid #475569;}
+.cinebot-compose textarea {flex:1;min-width:0;max-height:95px;resize:vertical;border:0;outline:0;background:transparent;color:#fff;font-size:13px;line-height:1.55;padding:4px 0;}
+.cinebot-compose textarea::placeholder {color:#94a3b8;}
+.cinebot-compose button {flex:0 0 35px;height:35px;display:grid;place-items:center;background:#e11d48;color:white;border:0;border-radius:12px;cursor:pointer;}
+.cinebot-compose button svg {width:18px;height:18px;}
+.cinebot-compose button:disabled {opacity:.4;cursor:not-allowed;}
+.cinebot-typing {display:flex;gap:5px;align-items:center;padding:13px 14px;border-radius:15px 15px 15px 4px;background:#1e293b;}
+.cinebot-typing b {width:6px;height:6px;background:#fda4af;border-radius:50%;animation:cinebot-pulse 1s infinite ease-in-out;}
+.cinebot-typing b:nth-child(2) {animation-delay:.15s;}.cinebot-typing b:nth-child(3) {animation-delay:.3s;}
+@keyframes cinebot-pulse {0%,70%,100%{opacity:.25;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}
+.cinebot-error {align-self:stretch;border:1px solid #fb718566;border-radius:11px;padding:10px;color:#fecdd3;background:#88133777;font-size:12px;}
+.cinebot-error button {color:#fff;border:0;background:transparent;font-weight:700;text-decoration:underline;margin-left:8px;cursor:pointer;}
+.cinebot-footnote {text-align:center;font-size:10px;color:#94a3b8;padding:6px 10px 10px;}
+@media (max-width:520px) {
+  .cinebot-root {right:12px;bottom:max(12px,env(safe-area-inset-bottom));}
+  .cinebot-panel {width:calc(100vw - 24px);height:min(610px,calc(100dvh - 100px));}
+  .cinebot-launcher {min-height:54px;}
+}
+@media (prefers-reduced-motion:reduce) {.cinebot-typing b {animation:none;}}
+
+.cinebot-mode {font-size:10px;letter-spacing:.2px;color:#94a3b8;padding-left:3px;}

@@ -332,7 +332,7 @@ public class AnalyticsExportService {
     }
 
     private String sheetXml(Sheet sheet) {
-        int columns = Math.max(1, sheet.rows().stream().mapToInt(List::size).max().orElse(1));
+        int columns = Math.max(1, sheet.rows().stream().mapToInt(cbValue -> cbValue.size()).max().orElse(1));
         int headerRow = Math.max(1, Math.min(sheet.headerRow(), Math.max(1, sheet.rows().size())));
         int lastRow = Math.max(headerRow, sheet.rows().size());
         StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
@@ -404,7 +404,7 @@ public class AnalyticsExportService {
         if (cinemaId == null) return "Tất cả rạp";
         return dashboard.cinemaPerformance().stream()
                 .filter(x -> cinemaId.equals(x.cinemaId()))
-                .map(CinemaPerformance::cinemaName)
+                .map(cbValue -> cbValue.cinemaName())
                 .findFirst()
                 .orElse(cinemaId.toString());
     }

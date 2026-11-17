@@ -41,8 +41,8 @@ ok('gotoSurface(page, marsHref, "movie-detail-v31")' in discovery,
    'Discovery uses the shared one-navigation surface recovery contract for movie detail')
 ok('gotoSurface' in runtime and 'Retry one real navigation' in runtime,
    'Shared runtime recovery remains bounded to one navigation and does not retry business writes')
-ok('data-movie-title' in discovery and '2026-09-30' in discovery,
-   'Discovery still proves the real Hành Trình Sao Hỏa detail and September schedule')
+ok('data-movie-title' in discovery and 'request.get("/api/showtimes")' in discovery,
+   'Discovery still proves the real Hành Trình Sao Hỏa detail and API-backed current schedule')
 
 legacy=['admin-v29@cine.local','V29SmokeOnly-ChangeMe','admin@cine.local','Admin@123']
 ok(all(x not in '\n'.join([booking,discovery]) for x in legacy),

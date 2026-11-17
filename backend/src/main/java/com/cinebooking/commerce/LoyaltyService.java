@@ -60,7 +60,7 @@ public class LoyaltyService {
     public List<LoyaltyRewardResponse> rewardCatalog(String email){
         AppUser u=lockedUser(email); expireDue(u,Instant.now()); int balance=points(u);
         Map<UUID,String> names=new HashMap<>();
-        products.findAllById(rewards.findByActiveTrueOrderBySortOrderAscPointsCostAsc().stream().map(LoyaltyReward::getConcessionProductId).filter(Objects::nonNull).toList())
+        products.findAllById(rewards.findByActiveTrueOrderBySortOrderAscPointsCostAsc().stream().map(cbValue -> cbValue.getConcessionProductId()).filter(Objects::nonNull).toList())
                 .forEach(p->names.put(p.getId(),p.getName()));
         return rewards.findByActiveTrueOrderBySortOrderAscPointsCostAsc().stream().map(r->rewardDto(r,balance,names.get(r.getConcessionProductId()))).toList();
     }
@@ -73,7 +73,7 @@ public class LoyaltyService {
 
     public List<LoyaltyRedemptionResponse> redemptions(String email){
         AppUser u=users.findByEmailIgnoreCase(email).orElseThrow(); Map<UUID,LoyaltyReward> rewardMap=new HashMap<>();
-        rewards.findAllById(redemptions.findTop50ByUserIdOrderByRedeemedAtDesc(u.getId()).stream().map(LoyaltyRewardRedemption::getRewardId).collect(java.util.stream.Collectors.toSet())).forEach(r->rewardMap.put(r.getId(),r));
+        rewards.findAllById(redemptions.findTop50ByUserIdOrderByRedeemedAtDesc(u.getId()).stream().map(cbValue -> cbValue.getRewardId()).collect(java.util.stream.Collectors.toSet())).forEach(r->rewardMap.put(r.getId(),r));
         return redemptions.findTop50ByUserIdOrderByRedeemedAtDesc(u.getId()).stream().map(r->redemptionDto(r,rewardMap.get(r.getRewardId()))).toList();
     }
 
@@ -186,8 +186,8 @@ public class LoyaltyService {
             if(lot.getExpiresAt().isAfter(now)&&!lot.getExpiresAt().isAfter(cutoff))byUser.computeIfAbsent(lot.getUserId(),k->new ArrayList<>()).add(lot);
         }
         for(var entry:byUser.entrySet()){
-            int soon=entry.getValue().stream().mapToInt(LoyaltyPointLot::getRemainingPoints).sum();
-            Instant next=entry.getValue().stream().map(LoyaltyPointLot::getExpiresAt).min(Comparator.naturalOrder()).orElse(null);
+            int soon=entry.getValue().stream().mapToInt(cbValue -> cbValue.getRemainingPoints()).sum();
+            Instant next=entry.getValue().stream().map(cbValue -> cbValue.getExpiresAt()).min(Comparator.naturalOrder()).orElse(null);
             if(soon<=0||next==null)continue;
             String day=next.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate().toString();
             if(notifications.createOnce(entry.getKey(),"LOYALTY_EXPIRING_SOON","Điểm thành viên sắp hết hạn",soon+" điểm sẽ bắt đầu hết hạn từ "+day+". Hãy dùng điểm cho vé hoặc phần thưởng trước thời hạn.","/profile","LOYALTY_EXPIRING:"+entry.getKey()+":"+day))created++;
@@ -206,7 +206,7 @@ public class LoyaltyService {
         for(UUID uid:userIds){AppUser u=users.findByIdForUpdate(uid).orElse(null);if(u!=null)expired+=expireDue(u,now);}return expired;
     }
 
-    private AdminMemberResponse adminMember(AppUser u,Instant cutoff,List<LoyaltyPointLot> open){int soon=open.stream().filter(l->!l.getExpiresAt().isAfter(cutoff)).mapToInt(LoyaltyPointLot::getRemainingPoints).sum();Instant next=open.stream().map(LoyaltyPointLot::getExpiresAt).min(Comparator.naturalOrder()).orElse(null);return new AdminMemberResponse(u.getId(),u.getEmail(),u.getFullName(),points(u),lifetime(u),tier(lifetime(u)),soon,next,u.getBirthDate());}
+    private AdminMemberResponse adminMember(AppUser u,Instant cutoff,List<LoyaltyPointLot> open){int soon=open.stream().filter(l->!l.getExpiresAt().isAfter(cutoff)).mapToInt(cbValue -> cbValue.getRemainingPoints()).sum();Instant next=open.stream().map(cbValue -> cbValue.getExpiresAt()).min(Comparator.naturalOrder()).orElse(null);return new AdminMemberResponse(u.getId(),u.getEmail(),u.getFullName(),points(u),lifetime(u),tier(lifetime(u)),soon,next,u.getBirthDate());}
     private Instant pointExpiry(Instant base){return base.atZone(ZoneOffset.UTC).plusMonths(expiryMonths).toInstant();}
 
     public String tierFor(int lifetimePoints){return tier(lifetimePoints);}
@@ -240,8 +240,8 @@ public class LoyaltyService {
     private int lifetime(AppUser u){return u.getLoyaltyLifetimePoints()==null?0:u.getLoyaltyLifetimePoints();}
     private String tier(int p){if(p>=4000)return "DIAMOND";if(p>=1500)return "GOLD";if(p>=500)return "SILVER";return "BRONZE";}
     private BigDecimal multiplier(String tier){return switch(tier){case "DIAMOND"->new BigDecimal("1.50");case "GOLD"->new BigDecimal("1.25");case "SILVER"->new BigDecimal("1.10");default->BigDecimal.ONE;};}
-    private LoyaltySummaryResponse summaryOf(AppUser u){List<LoyaltyPointLot> open=lots.findSpendableForUpdate(u.getId());Instant cutoff=Instant.now().plus(expiringSoonDays,ChronoUnit.DAYS);int soon=open.stream().filter(l->!l.getExpiresAt().isAfter(cutoff)).mapToInt(LoyaltyPointLot::getRemainingPoints).sum();Instant next=open.stream().map(LoyaltyPointLot::getExpiresAt).min(Comparator.naturalOrder()).orElse(null);int lp=lifetime(u);String current=tier(lp);String nextTier=current.equals("BRONZE")?"SILVER":current.equals("SILVER")?"GOLD":current.equals("GOLD")?"DIAMOND":null;Integer nextAt=current.equals("BRONZE")?500:current.equals("SILVER")?1500:current.equals("GOLD")?4000:null;int left=nextAt==null?0:Math.max(0,nextAt-lp);LocalDate today=LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));boolean eligible=u.getBirthDate()!=null&&sameMonthDay(u.getBirthDate(),today)&&!Objects.equals(u.getBirthdayRewardYear(),today.getYear());return new LoyaltySummaryResponse(points(u),lp,current,multiplier(current),nextTier,nextAt,left,soon,next,expiryMonths,u.getBirthDate(),eligible,u.getBirthdayRewardYear());}
+    private LoyaltySummaryResponse summaryOf(AppUser u){List<LoyaltyPointLot> open=lots.findSpendableForUpdate(u.getId());Instant cutoff=Instant.now().plus(expiringSoonDays,ChronoUnit.DAYS);int soon=open.stream().filter(l->!l.getExpiresAt().isAfter(cutoff)).mapToInt(cbValue -> cbValue.getRemainingPoints()).sum();Instant next=open.stream().map(cbValue -> cbValue.getExpiresAt()).min(Comparator.naturalOrder()).orElse(null);int lp=lifetime(u);String current=tier(lp);String nextTier=current.equals("BRONZE")?"SILVER":current.equals("SILVER")?"GOLD":current.equals("GOLD")?"DIAMOND":null;Integer nextAt=current.equals("BRONZE")?500:current.equals("SILVER")?1500:current.equals("GOLD")?4000:null;int left=nextAt==null?0:Math.max(0,nextAt.intValue()-lp);LocalDate today=LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));boolean eligible=u.getBirthDate()!=null&&sameMonthDay(u.getBirthDate(),today)&&!Objects.equals(u.getBirthdayRewardYear(),today.getYear());return new LoyaltySummaryResponse(points(u),lp,current,multiplier(current),nextTier,nextAt,left,soon,next,expiryMonths,u.getBirthDate(),eligible,u.getBirthdayRewardYear());}
     private LoyaltyTransactionResponse txDto(LoyaltyTransaction t){return new LoyaltyTransactionResponse(t.getId(),t.getBookingId(),t.getTransactionType(),t.getPoints(),t.getDescription(),t.getCreatedAt(),t.getExpiresAt(),t.getBalanceAfter(),t.getReferenceType(),t.getReferenceId());}
     private LoyaltyRewardResponse rewardDto(LoyaltyReward r,int balance,String productName){return new LoyaltyRewardResponse(r.getId(),r.getCode(),r.getName(),r.getDescription(),r.getRewardType(),r.getPointsCost(),balance>=r.getPointsCost(),r.getDiscountType(),r.getDiscountValue(),r.getMinOrderAmount(),r.getMaxDiscount(),r.getValidityDays(),r.getConcessionProductId(),productName,r.getConcessionQuantity());}
-    private LoyaltyRedemptionResponse redemptionDto(LoyaltyRewardRedemption rd,LoyaltyReward reward){String name=reward==null?"Phần thưởng":reward.getName();String type=reward==null?"UNKNOWN":reward.getRewardType();String voucherCode=rd.getVoucherId()==null?null:vouchers.findById(rd.getVoucherId()).map(Voucher::getCode).orElse(null);int days=reward==null?30:reward.getValidityDays();return new LoyaltyRedemptionResponse(rd.getId(),rd.getRewardId(),name,type,rd.getRedemptionCode(),voucherCode,rd.getPointsCost(),rd.getStatus(),rd.getRedeemedAt(),rd.getRedeemedAt().plus(days,ChronoUnit.DAYS),rd.getClaimedAt());}
+    private LoyaltyRedemptionResponse redemptionDto(LoyaltyRewardRedemption rd,LoyaltyReward reward){String name=reward==null?"Phần thưởng":reward.getName();String type=reward==null?"UNKNOWN":reward.getRewardType();String voucherCode=rd.getVoucherId()==null?null:vouchers.findById(rd.getVoucherId()).map(cbValue -> cbValue.getCode()).orElse(null);int days=reward==null?30:reward.getValidityDays();return new LoyaltyRedemptionResponse(rd.getId(),rd.getRewardId(),name,type,rd.getRedemptionCode(),voucherCode,rd.getPointsCost(),rd.getStatus(),rd.getRedeemedAt(),rd.getRedeemedAt().plus(days,ChronoUnit.DAYS),rd.getClaimedAt());}
 }

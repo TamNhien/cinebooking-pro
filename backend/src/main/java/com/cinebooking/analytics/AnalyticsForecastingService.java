@@ -201,7 +201,6 @@ public class AnalyticsForecastingService {
     public List<AuditoriumPerformance> auditoriumPerformance(int requestedDays, UUID cinemaId) {
         int days = Math.max(7, Math.min(requestedDays, 365));
         String filter = cinemaId == null ? "" : " and a.cinema_id=?";
-        Object[] args = cinemaId == null ? new Object[]{days, days, days} : new Object[]{days, cinemaId, days, cinemaId, days, cinemaId};
         return jdbc.query(
                 "with sales as (" +
                         "select a.id auditorium_id,coalesce(sum(p.amount),0) revenue,count(distinct b.id) bookings " +

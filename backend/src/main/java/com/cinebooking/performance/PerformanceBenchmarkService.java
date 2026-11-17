@@ -79,11 +79,11 @@ public class PerformanceBenchmarkService {
         LocalDate previousToExclusive = from;
 
         List<BranchRaw> raw = branchMetrics(from, toExclusive, previousFrom, previousToExclusive, cinemaId);
-        BigDecimal totalRevenue = raw.stream().map(BranchRaw::revenue).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalRevenue = raw.stream().map(cbValue -> cbValue.revenue()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
 
         List<BranchPerformance> branches = new ArrayList<>();
         List<BranchRaw> ranked = raw.stream()
-                .sorted(Comparator.comparing(BranchRaw::revenue).reversed().thenComparing(BranchRaw::cinemaName))
+                .sorted(Comparator.comparing((BranchRaw cbValue) -> cbValue.revenue()).reversed().thenComparing((BranchRaw cbValue) -> cbValue.cinemaName()))
                 .toList();
         for (int index = 0; index < ranked.size(); index++) {
             BranchRaw row = ranked.get(index);
@@ -96,12 +96,12 @@ public class PerformanceBenchmarkService {
             ));
         }
 
-        BigDecimal previousRevenue = raw.stream().map(BranchRaw::previousRevenue).reduce(BigDecimal.ZERO, BigDecimal::add);
-        long bookings = raw.stream().mapToLong(BranchRaw::bookings).sum();
-        long tickets = raw.stream().mapToLong(BranchRaw::tickets).sum();
-        long occupiedSeats = raw.stream().mapToLong(BranchRaw::occupiedSeats).sum();
-        long capacity = raw.stream().mapToLong(BranchRaw::capacity).sum();
-        BigDecimal forecastNext7d = branches.stream().map(BranchPerformance::forecastNext7d).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal previousRevenue = raw.stream().map(cbValue -> cbValue.previousRevenue()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
+        long bookings = raw.stream().mapToLong(cbValue -> cbValue.bookings()).sum();
+        long tickets = raw.stream().mapToLong(cbValue -> cbValue.tickets()).sum();
+        long occupiedSeats = raw.stream().mapToLong(cbValue -> cbValue.occupiedSeats()).sum();
+        long capacity = raw.stream().mapToLong(cbValue -> cbValue.capacity()).sum();
+        BigDecimal forecastNext7d = branches.stream().map(cbValue -> cbValue.forecastNext7d()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
 
         String cinemaName = cinemaId == null ? "Toàn hệ thống" : cinema(cinemaId).getName();
         return new Scorecard(

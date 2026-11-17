@@ -44,7 +44,7 @@ public class StaffLeaveService {
         else {UUID c=actorCinema(actor);list="ALL".equals(s)?leaves.findByCinemaIdAndFromDateLessThanEqualAndToDateGreaterThanEqualOrderByFromDateAsc(c,LocalDate.now().plusYears(2),LocalDate.now().minusYears(2)):leaves.findByCinemaIdAndStatusOrderByCreatedAtAsc(c,s);}
         if(!"ALL".equals(s))list=list.stream().filter(r->s.equals(r.getStatus())).toList();
         if(actor.getRole()==Role.MANAGER)list=list.stream().filter(r->users.findById(r.getStaffUserId()).map(u->u.getRole()==Role.STAFF).orElse(false)).toList();
-        return list.stream().sorted(Comparator.comparing(StaffLeaveRequest::getCreatedAt).reversed()).map(this::dto).toList();
+        return list.stream().sorted(Comparator.comparing((StaffLeaveRequest cbValue) -> cbValue.getCreatedAt()).reversed()).map(this::dto).toList();
     }
 
     @Transactional
@@ -68,6 +68,6 @@ public class StaffLeaveService {
     private StaffProfile profile(UUID id){return profiles.findById(id).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Không tìm thấy hồ sơ nhân viên"));}
     private UUID actorCinema(AppUser actor){UUID c=profile(actor.getId()).getCinemaId();if(c==null)throw new ApiException(HttpStatus.FORBIDDEN,"Manager chưa được phân rạp");return c;}
     private void validateManage(AppUser actor,StaffLeaveRequest r){if(actor.getRole()==Role.ADMIN)return;UUID c=actorCinema(actor);if(c==null||!c.equals(r.getCinemaId()))throw new ApiException(HttpStatus.FORBIDDEN,"Manager chỉ được duyệt nghỉ cho nhân viên cùng rạp");AppUser target=users.findById(r.getStaffUserId()).orElseThrow();if(target.getRole()!=Role.STAFF)throw new ApiException(HttpStatus.FORBIDDEN,"Manager chỉ được quản lý đơn nghỉ của STAFF");}
-    private LeaveResponse dto(StaffLeaveRequest r){StaffProfile p=profile(r.getStaffUserId());AppUser u=users.findById(r.getStaffUserId()).orElseThrow();String cn=cinemas.findById(r.getCinemaId()).map(Cinema::getName).orElse("-");String reviewer=r.getReviewedBy()==null?null:users.findById(r.getReviewedBy()).map(AppUser::getEmail).orElse(null);return new LeaveResponse(r.getId(),r.getStaffUserId(),p.getEmployeeCode(),u.getFullName(),r.getCinemaId(),cn,r.getFromDate(),r.getToDate(),r.getLeaveType(),r.getReason(),r.getStatus(),reviewer,r.getReviewedAt(),r.getReviewNote(),r.getCreatedAt());}
+    private LeaveResponse dto(StaffLeaveRequest r){StaffProfile p=profile(r.getStaffUserId());AppUser u=users.findById(r.getStaffUserId()).orElseThrow();String cn=cinemas.findById(r.getCinemaId()).map(cbValue -> cbValue.getName()).orElse("-");String reviewer=r.getReviewedBy()==null?null:users.findById(r.getReviewedBy()).map(cbValue -> cbValue.getEmail()).orElse(null);return new LeaveResponse(r.getId(),r.getStaffUserId(),p.getEmployeeCode(),u.getFullName(),r.getCinemaId(),cn,r.getFromDate(),r.getToDate(),r.getLeaveType(),r.getReason(),r.getStatus(),reviewer,r.getReviewedAt(),r.getReviewNote(),r.getCreatedAt());}
     private String clean(String s){return s==null||s.isBlank()?null:s.trim();}
 }

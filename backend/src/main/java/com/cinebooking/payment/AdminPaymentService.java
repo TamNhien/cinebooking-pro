@@ -1,7 +1,6 @@
 package com.cinebooking.payment;
 
 import com.cinebooking.audit.AuditService;
-import com.cinebooking.booking.BookingService;
 import com.cinebooking.common.ApiException;
 import com.cinebooking.domain.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,9 +16,9 @@ import static com.cinebooking.payment.PaymentDtos.*;
 
 @Service
 public class AdminPaymentService {
-    private final PaymentRepository payments;private final PaymentWebhookEventRepository webhooks;private final VnPayGateway vnPay;private final MomoGateway momo;private final PaymentService paymentService;private final PaymentProductionReadinessService productionReadiness;private final BookingService bookings;private final AuditService audit;private final PaymentEventService events;
+    private final PaymentRepository payments;private final PaymentWebhookEventRepository webhooks;private final VnPayGateway vnPay;private final MomoGateway momo;private final PaymentService paymentService;private final PaymentProductionReadinessService productionReadiness;private final AuditService audit;private final PaymentEventService events;
     private final int maxBatch;private final long minAgeSeconds;private final long maxBackoffSeconds;
-    public AdminPaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,VnPayGateway vnPay,MomoGateway momo,PaymentService paymentService,PaymentProductionReadinessService productionReadiness,BookingService bookings,AuditService audit,PaymentEventService events,@Value("${app.payment.reconcile.max-batch:20}") int maxBatch,@Value("${app.payment.reconcile.min-age-seconds:45}") long minAgeSeconds,@Value("${app.payment.reconcile.max-backoff-seconds:900}") long maxBackoffSeconds){this.payments=payments;this.webhooks=webhooks;this.vnPay=vnPay;this.momo=momo;this.paymentService=paymentService;this.productionReadiness=productionReadiness;this.bookings=bookings;this.audit=audit;this.events=events;this.maxBatch=Math.max(1,Math.min(100,maxBatch));this.minAgeSeconds=Math.max(15,minAgeSeconds);this.maxBackoffSeconds=Math.max(this.minAgeSeconds,maxBackoffSeconds);}
+    public AdminPaymentService(PaymentRepository payments,PaymentWebhookEventRepository webhooks,VnPayGateway vnPay,MomoGateway momo,PaymentService paymentService,PaymentProductionReadinessService productionReadiness,AuditService audit,PaymentEventService events,@Value("${app.payment.reconcile.max-batch:20}") int maxBatch,@Value("${app.payment.reconcile.min-age-seconds:45}") long minAgeSeconds,@Value("${app.payment.reconcile.max-backoff-seconds:900}") long maxBackoffSeconds){this.payments=payments;this.webhooks=webhooks;this.vnPay=vnPay;this.momo=momo;this.paymentService=paymentService;this.productionReadiness=productionReadiness;this.audit=audit;this.events=events;this.maxBatch=Math.max(1,Math.min(100,maxBatch));this.minAgeSeconds=Math.max(15,minAgeSeconds);this.maxBackoffSeconds=Math.max(this.minAgeSeconds,maxBackoffSeconds);}
 
     public PaymentOpsDashboard dashboard(){
         List<Payment> rows=payments.findTop200ByOrderByCreatedAtDesc();List<PaymentWebhookEvent> hookRows=webhooks.findTop100ByOrderByReceivedAtDesc();

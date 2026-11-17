@@ -23,7 +23,11 @@ next_version = str(package.get("dependencies", {}).get("next", ""))
 
 check("frontend keeps ESLint on major 9", bool(re.match(r"^\^?9(?:\.|$)", eslint_range)))
 check("frontend keeps TypeScript on major 5", bool(re.match(r"^\^?5(?:\.|$)", ts_range)))
-check("Next stays on reviewed 16.3 security patch line", bool(re.match(r"^16\.3\.\d+$", next_version)))
+# The reviewed 16.3 security patch line is a historical baseline, not a cap.
+# Accept the V77 baseline or secure stable Next.js >=16.4.6 within major 16.
+next_parts = tuple(map(int, next_version.split('.'))) if re.fullmatch(r"16\.\d+\.\d+", next_version) else ()
+next_supported = next_version == "16.3.4" or (len(next_parts) == 3 and next_parts >= (16, 4, 6))
+check("Next stays on reviewed 16.3 security patch line or later secure stable 16.x", next_supported)
 check("eslint-config-next remains exactly aligned to Next", next_eslint == next_version)
 check("V28.7 lint baseline remains enabled", '"react-hooks/set-state-in-effect": "warn"' in eslint_config)
 

@@ -84,7 +84,7 @@ public class AuthSessionService {
         if(sessionId!=null) s=sessions.findById(sessionId).orElse(null);
         if(s==null){String raw=refreshCookie(request); if(raw!=null) s=sessions.findByRefreshTokenHash(hash(raw)).orElse(null);}
         if(s!=null && s.getRevokedAt()==null){
-            if(email==null) email=users.findById(s.getUserId()).map(AppUser::getEmail).orElse(null);
+            if(email==null) email=users.findById(s.getUserId()).map(cbValue -> cbValue.getEmail()).orElse(null);
             revoke(s,"LOGOUT"); audit.record(email,"SESSION_LOGOUT","AUTH_SESSION",s.getId().toString(),"Đăng xuất phiên",ip(request));
         }
         clearRefreshCookie(response);

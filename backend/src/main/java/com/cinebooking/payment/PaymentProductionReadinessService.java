@@ -40,7 +40,7 @@ public class PaymentProductionReadinessService {
         );
         boolean allRemoteReady = gateways.stream()
                 .filter(g -> !"MOCK".equals(g.provider()))
-                .allMatch(GatewayReadiness::productionReady);
+                .allMatch(cbValue -> cbValue.productionReady());
         return new ProductionReadiness(guardEnabled, allRemoteReady, Instant.now(), gateways);
     }
 
