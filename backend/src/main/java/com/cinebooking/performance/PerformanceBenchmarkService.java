@@ -83,7 +83,7 @@ public class PerformanceBenchmarkService {
 
         List<BranchPerformance> branches = new ArrayList<>();
         List<BranchRaw> ranked = raw.stream()
-                .sorted(Comparator.comparing((BranchRaw cbValue) -> cbValue.revenue()).reversed().thenComparing((BranchRaw cbValue) -> cbValue.cinemaName()))
+                .sorted(Comparator.comparing(BranchRaw::revenue).reversed().thenComparing(BranchRaw::cinemaName))
                 .toList();
         for (int index = 0; index < ranked.size(); index++) {
             BranchRaw row = ranked.get(index);

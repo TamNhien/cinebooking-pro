@@ -157,7 +157,7 @@ public class SeatHoldService {
         Instant now=Instant.now();
         return repository.findActiveForSeats(showtimeId,ids,now).stream()
                 .filter(x->userId.equals(x.getUserId()))
-                .map(cbValue -> cbValue.getExpiresAt())
+                .map(SeatHoldRecord::getExpiresAt)
                 .mapToLong(x->Math.max(0,Duration.between(now,x).toMillis()))
                 .min().orElse(0L);
     }

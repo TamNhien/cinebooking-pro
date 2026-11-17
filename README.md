@@ -1,6 +1,7 @@
+# CineBooking Pro V78
+
 > **MỚI — CineBot (chatbot tư vấn phim và trò chuyện):** Website đã tích hợp trợ lý khách hàng có chào hỏi, gợi ý phim theo dữ liệu thật, tìm rạp/lịch chiếu, hướng dẫn đặt vé và tùy chọn trò chuyện AI khi cấu hình API key. Xem mục **CineBot — trợ lý khách hàng** ở cuối README.
 
-# CineBooking Pro V78
 
 CineBooking Pro là hệ thống đặt vé rạp phim full-stack gồm customer booking, payment, QR ticket/check-in, PWA offline ticket, loyalty/voucher, staff operations, analytics, inventory, waitlist, showtime planning, cinema operations và secure ticket transfer.
 

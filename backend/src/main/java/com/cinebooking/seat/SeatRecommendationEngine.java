@@ -62,7 +62,7 @@ public class SeatRecommendationEngine {
                 int score = 700 + centerScore + rowScore + orphanSafetyScore - inventoryPenalty + (int)(vip*8);
 
                 BigDecimal total = group.stream().map(cbValue -> cbValue.price()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
-                BigDecimal dynamic = group.stream().map(cbValue -> cbValue.dynamicAdjustment()).reduce(BigDecimal.ZERO, (cbLeft, cbRight) -> cbLeft.add(cbRight));
+                BigDecimal dynamic = group.stream().map(SeatResponse::dynamicAdjustment).reduce(BigDecimal.ZERO, BigDecimal::add);
                 List<UUID> seatIds = group.stream().map(cbValue -> cbValue.id()).toList();
                 List<String> codes = group.stream().map(cbValue -> cbValue.code()).toList();
                 String quality = score >= 975 ? "BEST" : score >= 930 ? "GREAT" : "GOOD";
@@ -72,8 +72,8 @@ public class SeatRecommendationEngine {
         }
 
         return candidates.stream()
-                .sorted(Comparator.comparingInt((SeatSuggestion cbValue) -> cbValue.score()).reversed()
-                        .thenComparing((SeatSuggestion cbValue) -> cbValue.totalPrice())
+                .sorted(Comparator.comparingInt(SeatSuggestion::score).reversed()
+                        .thenComparing(SeatSuggestion::totalPrice)
                         .thenComparing(x -> String.join(",",x.seatCodes())))
                 .limit(safeLimit)
                 .toList();

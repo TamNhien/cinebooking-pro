@@ -182,7 +182,15 @@ finally {
 }
 
 if (-not $SkipVerify) {
+  # Catch historical CI source-regression failures before publishing main.
+  # These read-only gates cover the V39/V57 seat contracts and related legacy DTOs.
   $checks = @(
+    'tools/verify_v39_seat_map_ux.py',
+    'tools/verify_v48_concession_inventory_2.py',
+    'tools/verify_v54_performance_benchmarking.py',
+    'tools/verify_v56_customer_value_rfm.py',
+    'tools/verify_v57_booking_seat_intelligence.py',
+    'tools/verify_v59_realtime_operations_4.py',
     'tools/verify_v60_payment_production_4.py',
     'tools/verify_v61_fraud_risk_intelligence.py',
     'tools/verify_v62_dynamic_pricing_4.py',

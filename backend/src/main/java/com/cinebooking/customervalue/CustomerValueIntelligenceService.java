@@ -80,10 +80,10 @@ public class CustomerValueIntelligenceService {
                 Comparator.comparingLong((CustomerMetricRaw row) -> recencyDays(row, today))
                         .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
         Map<UUID, Integer> frequencyScores = quintileScores(raw,
-                Comparator.comparingLong((CustomerMetricRaw cbValue) -> cbValue.lifetimeBookings()).reversed()
+                Comparator.comparingLong(CustomerMetricRaw::lifetimeBookings).reversed()
                         .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
         Map<UUID, Integer> monetaryScores = quintileScores(raw,
-                Comparator.comparing((CustomerMetricRaw cbValue) -> cbValue.lifetimeRevenue()).reversed()
+                Comparator.comparing(CustomerMetricRaw::lifetimeRevenue).reversed()
                         .thenComparing((CustomerMetricRaw cbValue) -> cbValue.customerId()));
 
         List<ScoredCustomer> scored = raw.stream().map(row -> {
